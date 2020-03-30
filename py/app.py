@@ -79,10 +79,14 @@ def storage():
 @app.route('/document-storage/json/2/upload/request', methods=['PUT'])
 def upload_doc_request():
     b = request.get_json()
-    
-    id = b[0]['ID']
+    log.info(b)
+    if b: 
+        id = b[0]['ID']
+    else:
+        id = 'somenewid'
     response = [{
-        'BlobURLPut':f'https://{host}/upload?id={id}',
+        #'BlobURLPut':f'https://{host}/upload?id={id}',
+        'BlobURLPut':f'http://localhost:8000/upload?id={id}',
         'ID':id,
         'Message':'',
         'Success':True,
