@@ -1,0 +1,33 @@
+{
+ "type": "Raw Content",
+ "elements": [ {
+   "type": "Text",
+   "id": 6,
+   "bounding-box": {
+    "x": 166.131752,
+    "y": 167.100967,
+    "width": 39.264481,
+    "height": 69.053772
+   },
+   "label": "dbasdfasdfasdfas",
+   "words": [ {
+     "label": "blah blah blah1",
+     "bounding-box": {
+      "x": 166.131752,
+      "y": 167.100967,
+      "width": 39.264481,
+      "height": 169.053772
+     }
+    },
+  {
+     "label": "blah blah blah1",
+     "bounding-box": {
+      "x": 166.131752,
+      "y": 167.100967,
+      "width": 39.264481,
+      "height": 169.053772
+     }
+   ]
+  } ],
+ "id": "MainBlock"
+}
