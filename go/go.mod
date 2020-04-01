@@ -4,5 +4,7 @@ go 1.14
 
 require (
 	github.com/gin-gonic/gin v1.6.2
+	github.com/pkg/errors v0.9.1 // indirect
+	github.com/satori/go.uuid v1.2.0 // indirect
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
 )
