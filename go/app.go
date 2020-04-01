@@ -33,29 +33,30 @@ type rawDocument struct {
 	Parent            string `json:"Parent"`
 }
 type idRequest struct {
-	id string `json:"ID"`
+	Id string `json:"ID"`
 }
 type documentRequest struct {
-	id         string `json:"ID"`
-	message    string `json:"Mesasge"`
-	success    bool   `json:"Success"`
-	blobUrlPut string `json:"BlobURLPut"`
-	version    int    `json:"Version"`
+	Id         string `json:"ID"`
+	Message    string `json:"Mesasge"`
+	Success    bool   `json:"Success"`
+	BlobUrlPut string `json:"BlobURLPut"`
+	Version    int    `json:"Version"`
 }
 type hostResponse struct {
-	host   string `json:"Host"`
-	status string `json:"Status"`
+	Host   string `json:"Host"`
+	Status string `json:"Status"`
 }
 
 type deviceTokenRequest struct {
-	code       string `json:"code"`
-	deviceDesc string `json:"deviceDesc"`
-	deviceId   string `json:"deviceID"`
+	Code       string `json:"code"`
+	DeviceDesc string `json:"deviceDesc"`
+	DeviceId   string `json:"deviceID"`
 }
 
 func main() {
 	gin.ForceConsoleColor()
 	r := gin.Default()
+	fmt.Println("Running")
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "pong",
@@ -79,10 +80,11 @@ func main() {
 	r.GET("/service/json/1/:service", func(c *gin.Context) {
 		svc := c.Param("service")
 		fmt.Printf("Requested: %s\n", svc)
-		c.JSON(200, hostResponse{host: defaultHost, status: "OK"})
+		response := hostResponse{Host: defaultHost, Status: "OK"}
+		c.JSON(200, response)
 	})
 
-	r.GET("/token/json/2/device/new", func(c *gin.Context) {
+	r.POST("/token/json/2/device/new", func(c *gin.Context) {
 		var json deviceTokenRequest
 		if err := c.ShouldBindJSON(&json); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -113,12 +115,12 @@ func main() {
 			return
 		}
 
-		id := json[0].id
+		id := json[0].Id
 		if id == "" {
 			id = "someid"
 		}
 
-		response := documentRequest{blobUrlPut: fmt.Sprintf("http://localhost:3000/upload?id=%v", id), id: id, success: true, version: 1}
+		response := documentRequest{BlobUrlPut: fmt.Sprintf("http://localhost:3000/upload?id=%v", id), Id: id, Success: true, Version: 1}
 
 		c.JSON(200, response)
 	})
