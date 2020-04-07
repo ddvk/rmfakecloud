@@ -1,13 +1,7 @@
-# rmcloud
-
-[![Actions Status](https://github.com/ddvk/remarkable-fakeapi/workflows/Go/badge.svg)](https://github.com/ddvk/remarkable-fakeapi/actions)
+# rmfakeapi
 
 
 remarkable-fakeapi is fake of the cloud sync the remarkable tablet is using. If you want to sync/backup your files and have full control of the hosting/storage environment and don't trust Google.
-
-You can interact with the different API end-points through a shell. However, you can also
-run commands non-interactively. This may come in handy to script certian workflows such as
-taking automatic backups or uploading documents programmatically.
 
 
 # Install
@@ -36,7 +30,7 @@ Install a root CA on the device, you can use the ones inlcuded in this repo, but
 			- add 127.0.0.1 appstpot.com
 			- set the address of your host:port in the reverse proxy
 			- run the host
-		2.yrun the fakeapi on port 443 with a certificate signed by the CA you installed and resolve 
+		2. run the fakeapi on port 443 with a certificate signed by the CA you installed and resolve 
 		3. run a reverse proxy on the host and route to the api
 
 
