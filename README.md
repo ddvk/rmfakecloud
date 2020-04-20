@@ -3,6 +3,8 @@
 
 rmfakecloud is fake of the cloud sync the remarkable tablet is using. If you want to sync/backup your files and have full control of the hosting/storage environment and don't trust Google.
 
+# Status 
+early prototype (sync and notifications work). no security and a lot of quick and dirty hacks.
 
 # Install
 
@@ -12,6 +14,16 @@ Install and build the project:
 
 `go get -u github.com/ddvk/rmfakecloud`
 
+run
+`~/go/bin/rmfakecloud`
+
+
+env variables
+```
+PORT to change the port number (default: 3000)
+DATA_DIR to set data/files directory (default: data in current dir)
+```
+
 
 ## Binary
 
@@ -20,6 +32,7 @@ TBD, some link
 # Prerequisites / Device Modifications
 
 ## Without patching the binary
+all needed artifacts are in `device/` folder
 
 Install a root CA on the device, you can use the ones inlcuded in this repo, but it's better you could generate your own
 - generate a CA and host certificate for *.appspot.com []()
@@ -35,6 +48,8 @@ Install a root CA on the device, you can use the ones inlcuded in this repo, but
                 ```
             - set the address of your host:port in the reverse proxy
                 `secure -cert example.org.bundle.crt -key example.org.key http://10.11.99.4:3000`
+                or use the provided systemd unit file and put the config in proxycfg
+
             - run the host
 		2. run the fakeapi on port 443 with a certificate signed by the CA you installed and resolve 
 		3. run a reverse proxy on the host and route to the api
