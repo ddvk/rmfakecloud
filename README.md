@@ -26,7 +26,7 @@ Install a root CA on the device, you can use the ones inlcuded in this repo, but
 - copy the CA.crt file to `/usr/local/share/ca-certificates` and run `update-ca-certificates`
 - modify the hosts file `/etc/hosts`
 	- so the options are:
-        1. run a reverse https proxy on the device as a service, i.g. [secure](github.com/yi-jiayu/secure)
+        1. run a reverse https proxy on the device as a service, i.g. [secure](https://github.com/yi-jiayu/secure)
             - add to /etc/hosts
                 ```
                 127.0.0.1 service-manager-production-dot-remarkable-production.appspot.com
