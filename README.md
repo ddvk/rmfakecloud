@@ -1,7 +1,7 @@
-# rmfakeapi
+# rmfakecloud
 
 
-remarkable-fakeapi is fake of the cloud sync the remarkable tablet is using. If you want to sync/backup your files and have full control of the hosting/storage environment and don't trust Google.
+rmfakecloud is fake of the cloud sync the remarkable tablet is using. If you want to sync/backup your files and have full control of the hosting/storage environment and don't trust Google.
 
 
 # Install
@@ -10,7 +10,7 @@ remarkable-fakeapi is fake of the cloud sync the remarkable tablet is using. If 
 
 Install and build the project:
 
-`go get -u github.com/ddvk/remarkable-fakeapi`
+`go get -u github.com/ddvk/rmfakecloud`
 
 
 ## Binary
@@ -26,10 +26,16 @@ Install a root CA on the device, you can use the ones inlcuded in this repo, but
 - copy the CA.crt file to `/usr/local/share/ca-certificates` and run `update-ca-certificates`
 - modify the hosts file `/etc/hosts`
 	- so the options are:
-		1. run a reverse https proxy on the device as a service, i.g. secure
-			- add 127.0.0.1 appstpot.com
-			- set the address of your host:port in the reverse proxy
-			- run the host
+        1. run a reverse https proxy on the device as a service, i.g. [secure](github.com/yi-jiayu/secure)
+            - add to /etc/hosts
+                ```
+                127.0.0.1 service-manager-production-dot-remarkable-production.appspot.com
+                127.0.0.1 local.appspot.com
+                127.0.0.1 my.remarkable.com
+                ```
+            - set the address of your host:port in the reverse proxy
+                `secure -cert example.org.bundle.crt -key example.org.key http://10.11.99.4:3000`
+            - run the host
 		2. run the fakeapi on port 443 with a certificate signed by the CA you installed and resolve 
 		3. run a reverse proxy on the host and route to the api
 
@@ -40,15 +46,12 @@ Install a root CA on the device, you can use the ones inlcuded in this repo, but
 # Caveats/ WARNING
 - connecting to the api will delete all you files, unless you mark them as not synced `synced:false` prior to syncing
 
-
-# Why?
-Why not. I was looking for an excuse to write an REST Api in Go
-
-
 # TODO
 
+- [ ] auth / authz
+- [ ] multi tenant
+- [ ] fix go stuff
 - [ ] storage provider
-- [ ] auth/ ticket signing 
 - [ ] db
-- [ ] handwritten recognition
 - [ ] liveview
+- [ ] refactor
