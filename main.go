@@ -13,7 +13,12 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
+)
+
+const (
+	defaultPort     = 3000
+	defaultDataDir  = "data"
+	defaultTrashDir = "trash"
 )
 
 //todo: config
@@ -25,179 +30,6 @@ var port = 3000
 func init() {
 }
 
-type Hub struct {
-	clients []*Client
-}
-
-func (h *Hub) Send(msg wsMessage) {
-	for _, c := range h.clients {
-		c.ntf <- msg
-	}
-}
-
-func (h *Hub) AddClient(c *Client) {
-	h.clients = append(h.clients, c)
-}
-func NewHub() *Hub {
-	h := Hub{}
-	return &h
-}
-
-type Client struct {
-	ntf chan wsMessage
-}
-
-func (c *Client) Process(ws *websocket.Conn) {
-	defer ws.Close()
-	for {
-		select {
-		case m := <-c.ntf:
-			err := ws.WriteJSON(m)
-			if err != nil {
-				break
-			}
-		}
-	}
-}
-
-type statusResponse struct {
-	Id      string `json:"ID"`
-	Message string `json:"Message"`
-	Success bool   `json:"Success"`
-	Version int    `json:"Version"`
-}
-type wsMessage struct {
-	Message      notificationMessage `json:"message"`
-	Subscription string              `json:"subscription"`
-}
-type notificationMessage struct {
-	Attributes   attributes `json:"attributes"`
-	MessageId    string     `json:"messageId"`
-	MessageId2   string     `json:"message_id"`
-	PublishTime  string     `json:"publishTime"`
-	PublishTime2 string     `json:"publish_time"`
-}
-type attributes struct {
-	Auth0UserID      string `json:"auth0UserID"`
-	Bookmarked       bool   `json:"bookmarked"`
-	Event            string `json:"event"`
-	Id               string `json:"id"`
-	Parent           string `json:"parent"`
-	SourceDeviceDesc string `json:"sourceDeviceDesc"`
-	SourceDeviceId   string `json:"sourceDeviceID"`
-	Type             string `json:"type"`
-	Version          string `json:"version"`
-	VissibleName     string `json:"vissibleName"`
-	SourceDeviceID   string `json:"sourceDeviceID"`
-}
-type updateStatusRequest struct {
-	ID             string `json:"ID"`
-	Parent         string `json:"Parent"`
-	Version        int    `json:"Version"`
-	Message        string `json:"Message"`
-	Success        bool   `json:"Success"`
-	ModifiedClient string `json:"ModifiedClient"`
-	Type           string `json:"Type"`
-	VissibleName   string `json:"VissibleName"`
-	CurrentPage    int    `json:"CurrentPage"`
-	Bookmarked     bool   `json:"Bookmarked"`
-}
-type rawDocument struct {
-	ID                string `json:"ID"`
-	Version           int    `json:"Version"`
-	Message           string `json:"Message"`
-	Success           bool   `json:"Success"`
-	BlobURLGet        string `json:"BlobURLGet"`
-	BlobURLGetExpires string `json:"BlobURLGetExpires"`
-	BlobURLPut        string `json:"BlobURLPut"`
-	BlobURLPutExpires string `json:"BlobURLPutExpires"`
-	ModifiedClient    string `json:"ModifiedClient"`
-	Type              string `json:"Type"`
-	VissibleName      string `json:"VissibleName"`
-	CurrentPage       int    `json:"CurrentPage"`
-	Bookmarked        bool   `json:"Bookmarked"`
-	Parent            string `json:"Parent"`
-}
-
-// request with id
-type idRequest struct {
-	Id string `json:"ID"`
-}
-type documentRequest struct {
-	Id         string `json:"ID"`
-	Message    string `json:"Mesasge"`
-	Success    bool   `json:"Success"`
-	BlobUrlPut string `json:"BlobURLPut"`
-	Version    int    `json:"Version"`
-}
-type hostResponse struct {
-	Host   string `json:"Host"`
-	Status string `json:"Status"`
-}
-
-type deviceTokenRequest struct {
-	Code       string `json:"code"`
-	DeviceDesc string `json:"deviceDesc"`
-	DeviceId   string `json:"deviceID"`
-}
-
-func (h *Hub) Gorilla(w http.ResponseWriter, r *http.Request) {
-	var upgrader = websocket.Upgrader{
-		CheckOrigin: func(r *http.Request) bool {
-			log.Printf("check origin")
-			return true
-		},
-	}
-	c, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Print("upgrade:", err)
-		return
-	}
-	defer c.Close()
-	client := Client{}
-	client.ntf = make(chan wsMessage)
-	h.AddClient(&client)
-	client.Process(c)
-}
-
-func deleteFile(id string) error {
-	meta := fmt.Sprintf("%s.metadata", id)
-	fullPath := path.Join(dataDir, meta)
-	err := os.Rename(fullPath, path.Join(dataDir, "trash", meta))
-	if err != nil {
-		return err
-	}
-	meta = fmt.Sprintf("%s.zip", id)
-	fullPath = path.Join(dataDir, meta)
-	err = os.Rename(fullPath, path.Join(dataDir, "trash", meta))
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func loadMetadata(filePath string) (*rawDocument, error) {
-	fullPath := path.Join(dataDir, filePath)
-	f, err := os.Open(fullPath)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	content, err := ioutil.ReadAll(f)
-	if err != nil {
-		return nil, err
-	}
-
-	response := rawDocument{}
-	err = json.Unmarshal(content, &response)
-	if err != nil {
-		return nil, err
-	}
-	response.BlobURLGet = uploadUrl + "/storage?id=" + response.ID
-	response.Success = true
-	return &response, nil
-
-}
 func newWs(id string, name string, version int, typ string) wsMessage {
 	msg := wsMessage{}
 	msg.Message.MessageId = "1234"
@@ -277,12 +109,12 @@ func main() {
 	// websocket notifications
 	r.GET("/notifications/ws/json/1", func(c *gin.Context) {
 		log.Println("before")
-		hub.Gorilla(c.Writer, c.Request)
+		hub.ConnectWs(c.Writer, c.Request)
 		log.Println("after")
 	})
 	// live sync
 	r.GET("/livesync/ws/json/2/:authid/sub", func(c *gin.Context) {
-		hub.Gorilla(c.Writer, c.Request)
+		hub.ConnectWs(c.Writer, c.Request)
 	})
 
 	r.PUT("/document-storage/json/2/upload/request", func(c *gin.Context) {
@@ -348,7 +180,7 @@ func main() {
 		}
 		result := []statusResponse{}
 		for _, r := range req {
-			path := path.Join(dataDir, fmt.Sprintf("%s.metadata", r.ID))
+			path := path.Join(dataDir, fmt.Sprintf("%s.metadata", r.Id))
 			file, err := os.Create(path)
 			if err != nil {
 				log.Println(err)
@@ -362,9 +194,9 @@ func main() {
 				log.Println(err)
 			}
 			log.Println(r)
-			result = append(result, statusResponse{Id: r.ID, Success: true})
+			result = append(result, statusResponse{Id: r.Id, Success: true})
 			//fix it: send not to the device
-			msg := newWs(r.ID, r.VissibleName, 0, "DocAdded")
+			msg := newWs(r.Id, r.VissibleName, 0, "DocAdded")
 			hub.Send(msg)
 		}
 
@@ -465,20 +297,39 @@ func main() {
 		c.String(200, "%s", "hi")
 	})
 	// configs
+	var err error
 	data := os.Getenv("DATADIR")
 	if data != "" {
-		dataDir = data
+		dataDir, err = filepath.Abs(data)
+		if err != nil {
+			panic(err)
+		}
 	}
-	host, _ := os.Hostname()
-	uploadUrl = fmt.Sprintf("http://%s:%d", host, port)
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3000"
 	}
 
-	err := os.MkdirAll(path.Join(dataDir, "trash"), 0700)
+	host := os.Getenv("STORAGE_URL")
+	if host == "" {
+		h, err := os.Hostname()
+		if err == nil {
+			host = h
+		} else {
+			host = defaultHost
+		}
+	}
+
+	uploadUrl = fmt.Sprintf("http://%s:%s", host, port)
+	err = os.MkdirAll(path.Join(dataDir, "trash"), 0700)
+
 	if err != nil {
 		panic(err)
 	}
+
+	log.Println("File will be saved in: ", dataDir)
+	log.Println("Url the device should use: ", uploadUrl)
+
 	r.Run(":" + port)
 }
