@@ -29,6 +29,18 @@ type Client struct {
 	ntf chan wsMessage
 }
 
+func (c *Client) Read(ws *websocket.Conn) {
+	defer ws.Close()
+	for {
+		_, p, err := ws.ReadMessage()
+		if err != nil {
+			log.Println(err)
+			break
+		}
+		log.Println("Message: ", string(p))
+
+	}
+}
 func (c *Client) Process(ws *websocket.Conn) {
 	defer ws.Close()
 	for {
@@ -59,5 +71,6 @@ func (h *Hub) ConnectWs(w http.ResponseWriter, r *http.Request) {
 	client := Client{}
 	client.ntf = make(chan wsMessage)
 	h.AddClient(&client)
+	go client.Read(c)
 	client.Process(c)
 }

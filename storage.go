@@ -25,6 +25,10 @@ func deleteFile(id string) error {
 	return nil
 }
 
+func formatStorageUrl(id string) string {
+	return fmt.Sprintf("%s/storage?id=%s", uploadUrl, id)
+}
+
 func loadMetadata(filePath string) (*rawDocument, error) {
 	fullPath := path.Join(dataDir, filePath)
 	f, err := os.Open(fullPath)
@@ -42,7 +46,7 @@ func loadMetadata(filePath string) (*rawDocument, error) {
 	if err != nil {
 		return nil, err
 	}
-	response.BlobURLGet = uploadUrl + "/storage?id=" + response.Id
+	response.BlobURLGet = formatStorageUrl(response.Id)
 	response.Success = true
 	return &response, nil
 

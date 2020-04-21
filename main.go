@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -19,30 +20,31 @@ const (
 	defaultPort     = 3000
 	defaultDataDir  = "data"
 	defaultTrashDir = "trash"
+	defaultHost     = "local.appspot.com"
 )
 
 //todo: config
-var dataDir = "data"
-var defaultHost = "local.appspot.com"
-var uploadUrl string = "https://" + defaultHost
+var dataDir string
+var uploadUrl string
 var port = 3000
 
 func init() {
 }
 
-func newWs(id string, name string, version int, typ string) wsMessage {
+func newWs(doc *rawDocument, typ string) wsMessage {
 	msg := wsMessage{}
 	msg.Message.MessageId = "1234"
 	msg.Message.MessageId2 = "1234"
 	msg.Message.Attributes.Auth0UserID = "auth0|12341234123412"
 	msg.Message.Attributes.Event = typ
-	msg.Message.Attributes.Id = id
-	msg.Message.Attributes.Type = "DocumentType"
-	msg.Message.Attributes.Version = fmt.Sprintf("%d", version)
+	msg.Message.Attributes.Id = doc.Id
+	msg.Message.Attributes.Type = doc.Type
+	msg.Message.Attributes.Version = strconv.Itoa(doc.Version)
 
-	msg.Message.Attributes.VissibleName = name
+	msg.Message.Attributes.VissibleName = doc.VissibleName
 	msg.Message.Attributes.SourceDeviceDesc = "some-client"
 	msg.Message.Attributes.SourceDeviceID = "12345"
+	msg.Message.Attributes.Parent = doc.Parent
 	tt, _ := time.Now().MarshalText()
 	msg.Message.PublishTime = string(tt)
 	msg.Message.PublishTime2 = string(tt)
@@ -56,21 +58,8 @@ func main() {
 	hub := NewHub()
 	r := gin.Default()
 
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "pong",
-		})
-	})
-
-	r.PUT("/test", func(c *gin.Context) {
-
-		msg := newWs("1234", "test", 0, "DocAdded")
-		hub.Send(msg)
-
-	})
-
 	r.GET("/", func(c *gin.Context) {
-		c.String(200, "%s", "hi")
+		c.String(200, "%s", "Working")
 	})
 
 	//service locator
@@ -131,7 +120,7 @@ func main() {
 			if id == "" {
 				id = "someid"
 			}
-			url := uploadUrl + "/storage?id=" + id
+			url := formatStorageUrl(id)
 			log.Println(url)
 			dr := documentRequest{BlobUrlPut: url, Id: id, Success: true, Version: 1}
 			response = append(response, dr)
@@ -172,7 +161,11 @@ func main() {
 	})
 
 	r.PUT("/document-storage/json/2/upload/update-status", func(c *gin.Context) {
-		var req []updateStatusRequest
+		// b := c.Request.Body
+		// bm, _ := ioutil.ReadAll(b)
+		// log.Println(string(bm))
+		// c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(bm))
+		var req []rawDocument
 		if err := c.ShouldBindJSON(&req); err != nil {
 			log.Println(err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -180,24 +173,28 @@ func main() {
 		}
 		result := []statusResponse{}
 		for _, r := range req {
+			log.Println("For Id: ", r.Id)
+			log.Println(" Name: ", r.VissibleName)
 			path := path.Join(dataDir, fmt.Sprintf("%s.metadata", r.Id))
-			file, err := os.Create(path)
-			if err != nil {
-				log.Println(err)
-				return
-			}
-			defer file.Close()
+
+			ok := false
+			event := "DocAdded"
 
 			js, err := json.Marshal(r)
-			file.Write(js)
 			if err != nil {
 				log.Println(err)
+			} else {
+				err = ioutil.WriteFile(path, js, 0700)
+				if err == nil {
+					ok = true
+					//fix it: send not to the device
+					msg := newWs(&r, event)
+					hub.Send(msg)
+				} else {
+					log.Println(err)
+				}
 			}
-			log.Println(r)
-			result = append(result, statusResponse{Id: r.Id, Success: true})
-			//fix it: send not to the device
-			msg := newWs(r.Id, r.VissibleName, 0, "DocAdded")
-			hub.Send(msg)
+			result = append(result, statusResponse{Id: r.Id, Success: ok})
 		}
 
 		c.JSON(200, result)
@@ -214,7 +211,7 @@ func main() {
 
 		result := []statusResponse{}
 		for _, r := range req {
-			mt, err := loadMetadata(r.Id + ".metadata")
+			metadata, err := loadMetadata(r.Id + ".metadata")
 			ok := true
 			if err == nil {
 				err := deleteFile(r.Id)
@@ -222,7 +219,7 @@ func main() {
 					log.Println(err)
 					ok = false
 				}
-				msg := newWs(r.Id, mt.VissibleName, mt.Version, "DocDeleted")
+				msg := newWs(metadata, "DocDeleted")
 				hub.Send(msg)
 			}
 			result = append(result, statusResponse{Id: r.Id, Success: ok})
@@ -233,7 +230,7 @@ func main() {
 
 	r.GET("/document-storage/json/2/docs", func(c *gin.Context) {
 		withBlob := c.Query("withBlob")
-		docId := c.Query("docId")
+		docId := c.Query("doc")
 		log.Println(withBlob, docId)
 		result := []*rawDocument{}
 
@@ -300,10 +297,16 @@ func main() {
 	var err error
 	data := os.Getenv("DATADIR")
 	if data != "" {
-		dataDir, err = filepath.Abs(data)
+		dataDir = data
+	} else {
+		dataDir, err = filepath.Abs(defaultDataDir)
 		if err != nil {
 			panic(err)
 		}
+	}
+	err = os.MkdirAll(path.Join(dataDir, defaultTrashDir), 0700)
+	if err != nil {
+		panic(err)
 	}
 
 	port := os.Getenv("PORT")
@@ -322,7 +325,6 @@ func main() {
 	}
 
 	uploadUrl = fmt.Sprintf("http://%s:%s", host, port)
-	err = os.MkdirAll(path.Join(dataDir, "trash"), 0700)
 
 	if err != nil {
 		panic(err)
