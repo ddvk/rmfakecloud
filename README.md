@@ -31,7 +31,7 @@ DATA_DIR to set data/files directory (default: data in current dir)
 ## Without patching the binary
 all needed artifacts are in `device/` folder
 
-Install a root CA on the device, you can use the ones inlcuded in this repo, but it's better you could generate your own
+Install a root CA on the device, you can use the `device/gencert.sh` script
 - generate a CA and host certificate for *.appspot.com []()
 - create the CA folder: `mkdir -p /usr/local/share/ca-certificates`
 - copy the CA.crt file to `/usr/local/share/ca-certificates` and run `update-ca-certificates`
@@ -46,7 +46,7 @@ Install a root CA on the device, you can use the ones inlcuded in this repo, but
                 127.0.0.1 my.remarkable.com
                 ```
             - set the address of your api host:port in the reverse proxy
-                `secure -cert example.org.bundle.crt -key example.org.key http://10.11.99.4:3000`
+                `secure -cert proxy.bundle.crt -key proxy.key http://host_where_the_api_is_running:3000`
                 or use the provided systemd unit file and put the config in proxycfg
 
             - run the host
