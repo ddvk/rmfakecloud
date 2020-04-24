@@ -33,10 +33,12 @@ all needed artifacts are in `device/` folder
 
 Install a root CA on the device, you can use the ones inlcuded in this repo, but it's better you could generate your own
 - generate a CA and host certificate for *.appspot.com []()
+- create the CA folder: `mkdir -p /usr/local/share/ca-certificates`
 - copy the CA.crt file to `/usr/local/share/ca-certificates` and run `update-ca-certificates`
 - modify the hosts file `/etc/hosts`
 	- so the options are:
         1. run a reverse https proxy on the rm tablet as a service, e.g. [secure](https://github.com/yi-jiayu/secure)
+            - stop xochitl `systemctl stop xochitl`
             - add to /etc/hosts
                 ```
                 127.0.0.1 service-manager-production-dot-remarkable-production.appspot.com
@@ -48,6 +50,8 @@ Install a root CA on the device, you can use the ones inlcuded in this repo, but
                 or use the provided systemd unit file and put the config in proxycfg
 
             - run the host
+            - run `fixsync.sh` on the device to mark all files as new (not to be deleted from the device)
+            - start xochitl `systemctl start xochitl`
 		2. run the fakeapi on port 443 with a certificate signed by the CA you installed and resolve 
         - modify the hosts files to point to this host
         3. install only the CA certificate on the device
