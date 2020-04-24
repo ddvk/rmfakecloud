@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -15,9 +16,12 @@ type Hub struct {
 }
 
 func (h *Hub) Send(msg wsMessage) {
-	for k, _ := range h.clients {
-		k.ntf <- msg
+	for c, _ := range h.clients {
+		c.ntf <- msg
 	}
+}
+func (h *Hub) ClientCount() int {
+	return len(h.clients)
 }
 
 func NewHub() *Hub {
@@ -30,9 +34,11 @@ func NewHub() *Hub {
 	return &h
 }
 
-//todo O(n)
 func (h *Hub) removeClient(c *Client) {
-	delete(h.clients, c)
+	if _, ok := h.clients[c]; ok {
+		delete(h.clients, c)
+		close(c.ntf)
+	}
 }
 func (h *Hub) start() {
 	for {
@@ -49,6 +55,7 @@ func (h *Hub) start() {
 
 type Client struct {
 	ntf chan wsMessage
+	hub *Hub
 }
 
 func (c *Client) Read(ws *websocket.Conn) {
@@ -56,22 +63,28 @@ func (c *Client) Read(ws *websocket.Conn) {
 	for {
 		_, p, err := ws.ReadMessage()
 		if err != nil {
-			log.Println(err)
-			break
+			log.Println("readng ", err)
+			c.hub.removals <- c
+			return
 		}
 		log.Println("Message: ", string(p))
-
 	}
 }
 func (c *Client) Write(ws *websocket.Conn) {
 	defer ws.Close()
 	for {
 		select {
-		case m := <-c.ntf:
+		case m, ok := <-c.ntf:
+			if !ok {
+				log.Println("done")
+				return
+			}
 			log.Println("sending notification")
+			ws.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			err := ws.WriteJSON(m)
 			if err != nil {
-				break
+				c.hub.removals <- c
+				return
 			}
 		}
 	}
@@ -81,7 +94,6 @@ func (c *Client) Write(ws *websocket.Conn) {
 func (h *Hub) ConnectWs(w http.ResponseWriter, r *http.Request) {
 	var upgrader = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
-			log.Printf("check origin")
 			return true
 		},
 	}
@@ -92,11 +104,11 @@ func (h *Hub) ConnectWs(w http.ResponseWriter, r *http.Request) {
 	}
 	defer c.Close()
 	client := &Client{
+		hub: h,
 		ntf: make(chan wsMessage),
 	}
-	h.additions <- client
 	go client.Read(c)
+	h.additions <- client
 	client.Write(c)
 	h.removals <- client
-	log.Println("done with this client")
 }

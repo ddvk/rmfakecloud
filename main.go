@@ -35,12 +35,11 @@ func newWs(doc *rawDocument, typ string) wsMessage {
 			MessageId:  "1234",
 			MessageId2: "1234",
 			Attributes: attributes{
-				Auth0UserID: "auth0|12341234123412",
-				Event:       typ,
-				Id:          doc.Id,
-				Type:        doc.Type,
-				Version:     strconv.Itoa(doc.Version),
-
+				Auth0UserID:      "auth0|12341234123412",
+				Event:            typ,
+				Id:               doc.Id,
+				Type:             doc.Type,
+				Version:          strconv.Itoa(doc.Version),
 				VissibleName:     doc.VissibleName,
 				SourceDeviceDesc: "some-client",
 				SourceDeviceID:   "12345",
@@ -49,11 +48,13 @@ func newWs(doc *rawDocument, typ string) wsMessage {
 			PublishTime:  tt,
 			PublishTime2: tt,
 		},
-
 		Subscription: "dummy-subscription",
 	}
 
 	return msg
+}
+func badReq(c *gin.Context, message string) {
+	c.JSON(http.StatusBadRequest, gin.H{"error": message})
 }
 func main() {
 	gin.ForceConsoleColor()
@@ -63,7 +64,8 @@ func main() {
 	r := gin.Default()
 
 	r.GET("/", func(c *gin.Context) {
-		c.String(200, "%s", "Working")
+		count := hub.ClientCount()
+		c.String(200, "Woring, %d clients", count)
 	})
 
 	//service locator
@@ -78,7 +80,7 @@ func main() {
 	r.POST("/token/json/2/device/new", func(c *gin.Context) {
 		var json deviceTokenRequest
 		if err := c.ShouldBindJSON(&json); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			badReq(c, err.Error())
 			return
 		}
 
@@ -101,9 +103,9 @@ func main() {
 
 	// websocket notifications
 	r.GET("/notifications/ws/json/1", func(c *gin.Context) {
-		log.Println("before")
+		log.Println("accepting websocket")
 		hub.ConnectWs(c.Writer, c.Request)
-		log.Println("after")
+		log.Println("closing the ws")
 	})
 	// live sync
 	r.GET("/livesync/ws/json/2/:authid/sub", func(c *gin.Context) {
@@ -114,7 +116,7 @@ func main() {
 		var req []documentRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
 			log.Println(err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			badReq(c, err.Error())
 			return
 		}
 
@@ -144,7 +146,7 @@ func main() {
 		if err != nil {
 			log.Println(err)
 
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			badReq(c, err.Error())
 		}
 		defer file.Close()
 		io.Copy(file, body)
@@ -154,12 +156,14 @@ func main() {
 	})
 
 	r.GET("/storage", func(c *gin.Context) {
-
 		id := c.Query("id")
-		log.Printf("Request: %s\n", id)
-
+		if id == "" {
+			badReq(c, "to id supplied")
+			return
+		}
+		log.Printf("Requestng Id: %s\n", id)
 		fullPath := path.Join(dataDir, filepath.Base(fmt.Sprintf("%s.zip", id)))
-		log.Printf("Fullpath", fullPath)
+		log.Println("Fullpath:", fullPath)
 
 		c.File(fullPath)
 	})
@@ -172,7 +176,7 @@ func main() {
 		var req []rawDocument
 		if err := c.ShouldBindJSON(&req); err != nil {
 			log.Println(err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			badReq(c, err.Error())
 			return
 		}
 		result := []statusResponse{}
@@ -183,6 +187,7 @@ func main() {
 
 			ok := false
 			event := "DocAdded"
+			message := ""
 
 			js, err := json.Marshal(r)
 			if err != nil {
@@ -191,14 +196,15 @@ func main() {
 				err = ioutil.WriteFile(path, js, 0700)
 				if err == nil {
 					ok = true
-					//fix it: send not to the device
+					//fix it: id of subscriber
 					msg := newWs(&r, event)
 					hub.Send(msg)
 				} else {
+					message = err.Error()
 					log.Println(err)
 				}
 			}
-			result = append(result, statusResponse{Id: r.Id, Success: ok})
+			result = append(result, statusResponse{Id: r.Id, Success: ok, Message: message})
 		}
 
 		c.JSON(200, result)
@@ -209,7 +215,7 @@ func main() {
 
 		if err := c.ShouldBindJSON(&req); err != nil {
 			log.Println("bad request")
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			badReq(c, err.Error())
 			return
 		}
 

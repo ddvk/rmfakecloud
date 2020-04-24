@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"time"
 )
 
 func deleteFile(id string) error {
@@ -48,6 +49,14 @@ func loadMetadata(filePath string) (*rawDocument, error) {
 	}
 	response.BlobURLGet = formatStorageUrl(response.Id)
 	response.Success = true
+
+	//fix time to utc because the tablet chokes
+	tt, err := time.Parse(response.ModifiedClient, time.RFC3339Nano)
+	if err != nil {
+		tt = time.Now()
+	}
+	response.ModifiedClient = tt.UTC().Format(time.RFC3339Nano)
+
 	return &response, nil
 
 }
