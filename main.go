@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	defaultPort     = 3000
+	defaultPort     = "3000"
 	defaultDataDir  = "data"
 	defaultTrashDir = "trash"
 	defaultHost     = "local.appspot.com"
@@ -26,29 +26,33 @@ const (
 //todo: config
 var dataDir string
 var uploadUrl string
-var port = 3000
-
-func init() {
-}
+var port string
 
 func newWs(doc *rawDocument, typ string) wsMessage {
-	msg := wsMessage{}
-	msg.Message.MessageId = "1234"
-	msg.Message.MessageId2 = "1234"
-	msg.Message.Attributes.Auth0UserID = "auth0|12341234123412"
-	msg.Message.Attributes.Event = typ
-	msg.Message.Attributes.Id = doc.Id
-	msg.Message.Attributes.Type = doc.Type
-	msg.Message.Attributes.Version = strconv.Itoa(doc.Version)
+	tt := time.Now().UTC().Format(time.RFC3339Nano)
+	msg := wsMessage{
+		Message: notificationMessage{
+			MessageId:  "1234",
+			MessageId2: "1234",
+			Attributes: attributes{
+				Auth0UserID: "auth0|12341234123412",
+				Event:       typ,
+				Id:          doc.Id,
+				Type:        doc.Type,
+				Version:     strconv.Itoa(doc.Version),
 
-	msg.Message.Attributes.VissibleName = doc.VissibleName
-	msg.Message.Attributes.SourceDeviceDesc = "some-client"
-	msg.Message.Attributes.SourceDeviceID = "12345"
-	msg.Message.Attributes.Parent = doc.Parent
-	tt, _ := time.Now().MarshalText()
-	msg.Message.PublishTime = string(tt)
-	msg.Message.PublishTime2 = string(tt)
-	msg.Subscription = "dummy-subscription"
+				VissibleName:     doc.VissibleName,
+				SourceDeviceDesc: "some-client",
+				SourceDeviceID:   "12345",
+				Parent:           doc.Parent,
+			},
+			PublishTime:  tt,
+			PublishTime2: tt,
+		},
+
+		Subscription: "dummy-subscription",
+	}
+
 	return msg
 }
 func main() {
@@ -311,7 +315,7 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "3000"
+		port = defaultPort
 	}
 
 	host := os.Getenv("STORAGE_URL")
