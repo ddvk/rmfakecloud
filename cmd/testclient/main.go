@@ -14,7 +14,11 @@ type Test struct {
 
 func main() {
 	log.SetOutput(os.Stdout)
-	conn, err := websocket.Dial("ws://localhost:3000/notifications/ws/json/1", "", "http://none")
+	host := os.Getenv("RMAPI_AUTH")
+	if host == "" {
+		host = "localhost:3000"
+	}
+	conn, err := websocket.Dial("ws://"+host+"/notifications/ws/json/1", "", "http://none")
 
 	if err != nil {
 
