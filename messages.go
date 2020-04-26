@@ -1,5 +1,10 @@
 package main
 
+import (
+	"strconv"
+	"time"
+)
+
 type statusResponse struct {
 	Id      string `json:"ID"`
 	Message string `json:"Message"`
@@ -31,18 +36,6 @@ type attributes struct {
 	SourceDeviceID   string `json:"sourceDeviceID"`
 }
 
-// type updateStatusRequest struct {
-// 	Id             string `json:"ID"`
-// 	Parent         string `json:"Parent"`
-// 	Version        int    `json:"Version"`
-// 	Message        string `json:"Message"`
-// 	Success        bool   `json:"Success"`
-// 	ModifiedClient string `json:"ModifiedClient"`
-// 	Type           string `json:"Type"`
-// 	VissibleName   string `json:"VissibleName"`
-// 	CurrentPage    int    `json:"CurrentPage"`
-// 	Bookmarked     bool   `json:"Bookmarked"`
-// }
 type rawDocument struct {
 	Id                string `json:"ID"`
 	Version           int    `json:"Version"`
@@ -50,8 +43,6 @@ type rawDocument struct {
 	Success           bool   `json:"Success"`
 	BlobURLGet        string `json:"BlobURLGet"`
 	BlobURLGetExpires string `json:"BlobURLGetExpires"`
-	BlobURLPut        string `json:"BlobURLPut"`
-	BlobURLPutExpires string `json:"BlobURLPutExpires"`
 	ModifiedClient    string `json:"ModifiedClient"`
 	Type              string `json:"Type"`
 	VissibleName      string `json:"VissibleName"`
@@ -64,12 +55,19 @@ type rawDocument struct {
 type idRequest struct {
 	Id string `json:"ID"`
 }
-type documentRequest struct {
-	Id         string `json:"ID"`
-	Message    string `json:"Mesasge"`
-	Success    bool   `json:"Success"`
-	BlobUrlPut string `json:"BlobURLPut"`
-	Version    int    `json:"Version"`
+type uploadRequest struct {
+	Id      string `json:"ID"`
+	Parent  string `json:"Parent"`
+	Type    string `json:"Type"`
+	Version int    `json:"Version"`
+}
+type uploadResponse struct {
+	Id                string `json:"ID"`
+	Message           string `json:"Mesasge"`
+	Success           bool   `json:"Success"`
+	BlobUrlPut        string `json:"BlobURLPut"`
+	BlobURLPutExpires string `json:"BlobURLPutExpires"`
+	Version           int    `json:"Version"`
 }
 type hostResponse struct {
 	Host   string `json:"Host"`
@@ -80,4 +78,30 @@ type deviceTokenRequest struct {
 	Code       string `json:"code"`
 	DeviceDesc string `json:"deviceDesc"`
 	DeviceId   string `json:"deviceID"`
+}
+
+func newWs(doc *rawDocument, typ string) wsMessage {
+	tt := time.Now().UTC().Format(time.RFC3339Nano)
+	msg := wsMessage{
+		Message: notificationMessage{
+			MessageId:  "1234",
+			MessageId2: "1234",
+			Attributes: attributes{
+				Auth0UserID:      "auth0|12341234123412",
+				Event:            typ,
+				Id:               doc.Id,
+				Type:             doc.Type,
+				Version:          strconv.Itoa(doc.Version),
+				VissibleName:     doc.VissibleName,
+				SourceDeviceDesc: "some-client",
+				SourceDeviceID:   "12345",
+				Parent:           doc.Parent,
+			},
+			PublishTime:  tt,
+			PublishTime2: tt,
+		},
+		Subscription: "dummy-subscription",
+	}
+
+	return msg
 }

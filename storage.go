@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path"
@@ -27,10 +28,22 @@ func deleteFile(id string) error {
 }
 
 func formatStorageUrl(id string) string {
+	fmt.Println("url", uploadUrl)
 	return fmt.Sprintf("%s/storage?id=%s", uploadUrl, id)
 }
 
-func loadMetadata(filePath string) (*rawDocument, error) {
+func saveUpload(stream io.ReadCloser, id string) error {
+	fullPath := path.Join(dataDir, fmt.Sprintf("%s.zip", id))
+	file, err := os.Create(fullPath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	io.Copy(file, stream)
+	return nil
+}
+
+func loadMetadata(filePath string, withBlob bool) (*rawDocument, error) {
 	fullPath := path.Join(dataDir, filePath)
 	f, err := os.Open(fullPath)
 	if err != nil {
@@ -47,15 +60,24 @@ func loadMetadata(filePath string) (*rawDocument, error) {
 	if err != nil {
 		return nil, err
 	}
-	response.BlobURLGet = formatStorageUrl(response.Id)
+
 	response.Success = true
+
+	if withBlob {
+		exp := time.Now().Add(time.Minute * 5)
+		response.BlobURLGet = formatStorageUrl(response.Id)
+		response.BlobURLGetExpires = exp.UTC().Format(time.RFC3339Nano)
+	} else {
+		response.BlobURLGetExpires = time.Time{}.Format(time.RFC3339Nano)
+
+	}
 
 	//fix time to utc because the tablet chokes
 	tt, err := time.Parse(response.ModifiedClient, time.RFC3339Nano)
 	if err != nil {
 		tt = time.Now()
 	}
-	response.ModifiedClient = tt.UTC().Format(time.RFC3339Nano)
+	response.ModifiedClient = tt.UTC().Format(time.RFC3339)
 
 	return &response, nil
 
