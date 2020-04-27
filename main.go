@@ -131,17 +131,17 @@ func main() {
 		c.String(200, "some_user_token")
 	})
 
+	//service locator
+	router.GET("/service/json/1/:service", func(c *gin.Context) {
+		svc := c.Param("service")
+		log.Printf("Requested: %s\n", svc)
+		response := hostResponse{Host: defaultHost, Status: "OK"}
+		c.JSON(200, response)
+	})
+
 	r := router.Group("/")
 	r.Use(AuthMiddleware())
 	{
-		//service locator
-		r.GET("/service/json/1/:service", func(c *gin.Context) {
-			svc := c.Param("service")
-			log.Printf("Requested: %s\n", svc)
-			response := hostResponse{Host: defaultHost, Status: "OK"}
-			c.JSON(200, response)
-		})
-
 		r.POST("/token/json/3/device/delete", func(c *gin.Context) {
 
 			c.String(204, "")
