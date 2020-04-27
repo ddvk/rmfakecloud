@@ -72,9 +72,12 @@ Install a root CA on the device, you can use the `device/gencert.sh` script
 - [ ] auth / authz
 - [ ] multi tenant
 - [ ] fix go stuff
-- [ ] storage provider
-- [ ] db
+- [ ] storage providers (dropbox, fs etc)
+- [ ] db (fs, sqlite etc)
 - [ ] liveview
+- [ ] ui (react)
+- [ ] ut
+- [ ] ci/cd
 - [ ] refactor
 
 
