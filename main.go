@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -31,34 +32,43 @@ var dataDir string
 var uploadUrl string
 var port string
 
+//todo: claims unmarshal
 type MyCustomClaims struct {
 	Foo string `json:"foo"`
 	jwt.StandardClaims
 }
 
+func getToken(c *gin.Context) (string, error) {
+	auth := c.Request.Header["Authorization"]
+
+	if len(auth) < 1 {
+		accessDenied(c, "missing token")
+		return "", errors.New("missing token")
+	}
+	token := strings.Split(auth[0], " ")
+	if len(token) < 2 {
+		return "", errors.New("missing token")
+	}
+	parts := strings.Split(token[1], ".")
+	if len(parts) != 3 {
+		log.Println("not jwt")
+		return "", nil
+	}
+
+	payload, err := base64.StdEncoding.DecodeString(parts[1])
+	if err != nil {
+		log.Println(err)
+		return string(payload), nil
+	}
+	return "", nil
+}
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		auth := c.Request.Header["Authorization"]
-
-		if len(auth) < 1 {
-			accessDenied(c, "missing token")
-			return
+		token, err := getToken(c)
+		if err != nil {
+			log.Println(token)
+			c.Set("userId", "abc")
 		}
-		token := strings.Split(auth[0], " ")
-		if len(token) < 2 {
-			accessDenied(c, "missing token")
-			return
-		}
-		parts := strings.Split(token[1], ".")
-		if len(parts) != 3 {
-			log.Println("not jwt")
-			return
-		}
-
-		payload, _ := base64.StdEncoding.DecodeString(parts[1])
-		log.Println(string(payload))
-
-		c.Set("userId", "abc")
 		c.Next()
 	}
 }
@@ -94,7 +104,7 @@ func main() {
 
 	router.GET("/", func(c *gin.Context) {
 		count := hub.ClientCount()
-		c.String(200, "Woring, %d clients", count)
+		c.String(200, "Working, %d clients", count)
 	})
 	// register device
 	router.POST("/token/json/2/device/new", func(c *gin.Context) {
@@ -124,10 +134,13 @@ func main() {
 
 		c.JSON(200, gin.H{})
 	})
+
 	// create new access token
 	router.POST("/token/json/2/user/new", func(c *gin.Context) {
-		auth := c.Request.Header["Authorization"]
-		log.Printf("Request: %s\n", auth)
+		token, err := getToken(c)
+		if err != nil {
+			log.Println("Got: ", token)
+		}
 		c.String(200, "some_user_token")
 	})
 
