@@ -1,14 +1,15 @@
 # rmfakecloud
 
 
-rmfakecloud is fake of the cloud sync the remarkable tablet is using. If you want to sync/backup your files and have full control of the hosting/storage environment and don't trust Google.
+rmfakecloud is fake of the cloud sync the remarkable tablet is using, in case you want to sync/backup your files and have full control of the hosting/storage environment and don't trust Google/.
 
 # Status 
 early prototype (sync and notifications work). no security and a lot of quick and dirty hacks.
+currently only a single device is "supported" to work reliably i.e. clients not distingished due to the lack of auth
 
-# Install
+# Installation
 
-## From sources
+## From source
 
 Install and build the project:
 
@@ -18,12 +19,14 @@ run
 `~/go/bin/rmfakecloud`
 
 or clone an do: `go run .`
+or `make run`
+or `make build` artifacts are in the `bin` folder.
+the Arm binaries work on pi3 / Synology etc
 
 env variables
-```
-PORT to change the port number (default: 3000)
-DATA_DIR to set data/files directory (default: data in current dir)
-```
+`PORT` port number (default: 3000)
+`DATA_DIR` to set data/files directory (default: data in current dir)
+`STORAGE_URL` the storage url resolvable from the device (default: http://host:port)
 
 
 # Prerequisites / Device Modifications
