@@ -68,7 +68,7 @@ Install a root CA on the device, you can use the `device/gencert.sh` script
 
 
 # Caveats/ WARNING
-- connecting to the api will delete all you files, unless you mark them as not synced `synced:false` prior to syncing
+- connecting to the api will delete all your files, unless you mark them as not synced `synced:false` prior to syncing
 
 # TODO
 
@@ -115,4 +115,26 @@ the order may be not correct at all:
 
 So if you just point the device to a new empty server, all documents will be deleted from the device. 
 Going back will again, delete all documents and put what was on the server
+
+# Troubleshooting
+- check the connectivity between the tablet and the host:
+    ping my.remarkable.com (should be localhost)
+    ping local.remarkable.com (should be localhost)
+    ping thehostpc
+    wget -qO- http://host:3000 (or relevant ports, should get Working...)
+    wget -qO- https://local.appspot.com (should get Working...)
+    
+
+- if both (host and tablet) are on a wifi make sure "Client Isolation" is not actived on the AP
+
+- check if the proxy is configured correctly
+    systemctl status proxy (or the logs)
+- check if the CA cert was correctly installed
+    when doing `update-ca-certificates` there should have been `1 added`
+    check the logs
+
+- check xochitls's logs, stop the service, start manually with more logging
+    `systemct stop xochtil`
+    `QT_LOGGING_RULES=xochitl.*=true xochitl  | grep -A3 QUrl`
+
 
