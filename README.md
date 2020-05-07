@@ -20,8 +20,9 @@ run
 
 or clone an do: `go run .`
 or `make run`
-or `make build` artifacts are in the `bin` folder.
+or `make all` artifacts are in the `bin` folder.
 the Arm binaries work on pi3 / Synology etc
+or `make docker && ./rundocker.sh`
 
 env variables
 `PORT` port number (default: 3000)
