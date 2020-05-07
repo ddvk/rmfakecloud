@@ -25,6 +25,10 @@ const (
 	defaultDataDir  = "data"
 	defaultTrashDir = "trash"
 	defaultHost     = "local.appspot.com"
+
+	envDataDir    = "DATADIR"
+	envPort       = "PORT"
+	envStorageUrl = "STORAGE_URL"
 )
 
 //todo: config
@@ -346,7 +350,7 @@ func main() {
 	}
 	// configs
 	var err error
-	data := os.Getenv("DATADIR")
+	data := os.Getenv(envDataDir)
 	if data != "" {
 		dataDir = data
 	} else {
@@ -360,12 +364,12 @@ func main() {
 		panic(err)
 	}
 
-	port := os.Getenv("PORT")
+	port := os.Getenv(envPort)
 	if port == "" {
 		port = defaultPort
 	}
 
-	uploadUrl = os.Getenv("STORAGE_URL")
+	uploadUrl = os.Getenv(envStorageUrl)
 	if uploadUrl == "" {
 		host, err := os.Hostname()
 		if err != nil {
@@ -379,8 +383,9 @@ func main() {
 		panic(err)
 	}
 
-	log.Println("File will be saved in: ", dataDir)
-	log.Println("Url the device should use: ", uploadUrl)
+	log.Println(envDataDir, "File will be saved in:", dataDir)
+	log.Println(envStorageUrl, "Url the device should use:", uploadUrl)
+	log.Println(envPort, "port", port)
 
 	router.Run(":" + port)
 }
