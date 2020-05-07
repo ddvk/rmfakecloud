@@ -11,23 +11,23 @@ currently only a single device is "supported" to work reliably i.e. clients not 
 
 ## From source
 
-Install and build the project:
-
+Install and build the project:  
 `go get -u github.com/ddvk/rmfakecloud`
 
-run
-`~/go/bin/rmfakecloud`
+run  
+`~/go/bin/rmfakecloud`  
 
-or clone an do: `go run .`
-or `make run`
-or `make all` artifacts are in the `bin` folder.
-the Arm binaries work on pi3 / Synology etc
-or `make docker && ./rundocker.sh`
 
-env variables
-`PORT` port number (default: 3000)
-`DATA_DIR` to set data/files directory (default: data in current dir)
-`STORAGE_URL` the storage url resolvable from the device (default: http://host:port)
+or clone an do: `go run .`  
+or `make run`  
+or `make all` artifacts are in the `bin` folder. the Arm binaries work on pi3 / Synology etc  
+or `make docker && ./rundocker.sh`  
+
+
+env variables:  
+`PORT` port number (default: 3000)  
+`DATA_DIR` to set data/files directory (default: data in current dir)  
+`STORAGE_URL` the storage url resolvable from the device (default: http://hostname:port)  
 
 
 # Prerequisites / Device Modifications
@@ -50,13 +50,13 @@ Install a root CA on the device, you can use the `device/gencert.sh` script
                 127.0.0.1 my.remarkable.com
                 ```
             - set the address of your api host:port in the reverse proxy
-                `secure -cert proxy.bundle.crt -key proxy.key http://host_where_the_api_is_running:3000`
+                `secure -cert proxy.crt -key proxy.key http://host_where_the_api_is_running:3000`
                 or use the provided systemd unit file and put the config in proxycfg
 
             - run the host
             - run `fixsync.sh` on the device to mark all files as new (not to be deleted from the device)
             - start xochitl `systemctl start xochitl`
-		2. run the fakeapi on port 443 with a certificate signed by the CA you installed and resolve 
+		2. run the fakeapi on port 443 with a certificate signed by the CA you installed
         - modify the hosts files to point to this host
         3. install only the CA certificate on the device
         - modify your DNS Server/router to resolve the aforementioned addesses to a https reverse proxy
@@ -66,7 +66,6 @@ Install a root CA on the device, you can use the `device/gencert.sh` script
                etc
             - on a synology there is an application portal which you can configure as a reverse proxy
         - ***CONS*** this will affect ALL devices, but you use the mobile apps and windows clients without modifications
-
 
 # Caveats/ WARNING
 - connecting to the api will delete all your files, unless you mark them as not synced `synced:false` prior to syncing
