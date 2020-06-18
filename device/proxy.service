@@ -8,7 +8,7 @@ After=home.mount
 Environment=HOME=/home/root
 EnvironmentFile=/home/root/proxycfg
 WorkingDirectory=/home/root
-ExecStart=/home/root/secure -cert example.org.bundle.crt -key example.org.key ${URL}
+ExecStart=/home/root/secure -cert proxy.crt -key proxy.key ${URL}
 
 [Install]
 WantedBy=multi-user.target
