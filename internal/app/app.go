@@ -1,42 +1,33 @@
-package main
+package app
 
 import (
 	"bytes"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
-	"path"
-	"path/filepath"
 	"strconv"
 	"strings"
 
+	"github.com/ddvk/rmfakecloud/internal/config"
+	"github.com/ddvk/rmfakecloud/internal/messages"
+	"github.com/ddvk/rmfakecloud/internal/storage/fs"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 )
 
-const (
-	defaultPort     = "3000"
-	defaultDataDir  = "data"
-	defaultTrashDir = "trash"
-	defaultHost     = "local.appspot.com"
+type App struct {
+	router *gin.Engine
+	cfg    *config.Config
+}
 
-	envDataDir    = "DATADIR"
-	envPort       = "PORT"
-	envStorageUrl = "STORAGE_URL"
-)
+func (app *App) Start() {
+	app.router.Run(":" + app.cfg.Port)
+}
 
-//todo: config
-var dataDir string
-var uploadUrl string
-var port string
-
-//todo: claims unmarshal
 type MyCustomClaims struct {
 	Foo string `json:"foo"`
 	jwt.StandardClaims
@@ -98,12 +89,19 @@ func badReq(c *gin.Context, message string) {
 	c.JSON(http.StatusBadRequest, gin.H{"error": message})
 	c.Abort()
 }
-func main() {
-	gin.ForceConsoleColor()
-	log.SetOutput(os.Stdout)
 
+func internalError(c *gin.Context, message string) {
+	c.JSON(http.StatusInternalServerError, gin.H{"error": message})
+	c.Abort()
+}
+func CreateApp(cfg *config.Config) *App {
 	hub := NewHub()
+	gin.ForceConsoleColor()
 	router := gin.Default()
+
+	storage := fs.FSStorage{
+		Cfg: *cfg,
+	}
 	router.Use(RequestLoggerMiddleware())
 
 	router.GET("/", func(c *gin.Context) {
@@ -112,7 +110,7 @@ func main() {
 	})
 	// register device
 	router.POST("/token/json/2/device/new", func(c *gin.Context) {
-		var json deviceTokenRequest
+		var json messages.DeviceTokenRequest
 		if err := c.ShouldBindJSON(&json); err != nil {
 			badReq(c, err.Error())
 			return
@@ -122,6 +120,25 @@ func main() {
 		c.String(200, "some_device_token")
 	})
 
+	router.GET("/storage", func(c *gin.Context) {
+		id := c.Query("id")
+		if id == "" {
+			badReq(c, "no id supplied")
+			return
+		}
+
+		//todo: storage provider
+		log.Printf("Requestng Id: %s\n", id)
+
+		reader, err := storage.GetContent(id)
+		defer reader.Close()
+
+		if err != nil {
+			internalError(c, "")
+		}
+
+		c.DataFromReader(http.StatusOK, 0, "", reader, nil)
+	})
 	//todo: pass the token in the url
 	router.PUT("/storage", func(c *gin.Context) {
 		id := c.Query("id")
@@ -129,7 +146,7 @@ func main() {
 		body := c.Request.Body
 		defer body.Close()
 
-		err := saveUpload(body, id)
+		err := storage.SaveUpload(body, id)
 		if err != nil {
 			fmt.Println(err)
 			c.String(500, "set up us the bomb")
@@ -152,15 +169,15 @@ func main() {
 	router.GET("/service/json/1/:service", func(c *gin.Context) {
 		svc := c.Param("service")
 		log.Printf("Requested: %s\n", svc)
-		response := hostResponse{Host: defaultHost, Status: "OK"}
+		response := messages.HostResponse{Host: config.DefaultHost, Status: "OK"}
 		c.JSON(200, response)
 	})
 
 	r := router.Group("/")
 	r.Use(AuthMiddleware())
 	{
+		//unregister device
 		r.POST("/token/json/3/device/delete", func(c *gin.Context) {
-
 			c.String(204, "")
 		})
 
@@ -177,39 +194,27 @@ func main() {
 		})
 
 		r.PUT("/document-storage/json/2/upload/request", func(c *gin.Context) {
-			var req []uploadRequest
+			var req []messages.UploadRequest
 			if err := c.ShouldBindJSON(&req); err != nil {
 				log.Println(err)
 				badReq(c, err.Error())
 				return
 			}
 
-			response := []uploadResponse{}
+			response := []messages.UploadResponse{}
+
 			for _, r := range req {
 				id := r.Id
 				if id == "" {
 					badReq(c, "no id")
 				}
-				url := formatStorageUrl(id)
+				url := storage.GetStorageUrl(id)
 				log.Println(url)
-				dr := uploadResponse{BlobUrlPut: url, Id: id, Success: true, Version: r.Version}
+				dr := messages.UploadResponse{BlobUrlPut: url, Id: id, Success: true, Version: r.Version}
 				response = append(response, dr)
 			}
 
 			c.JSON(200, response)
-		})
-
-		r.GET("/storage", func(c *gin.Context) {
-			id := c.Query("id")
-			if id == "" {
-				badReq(c, "no id supplied")
-				return
-			}
-			log.Printf("Requestng Id: %s\n", id)
-			fullPath := path.Join(dataDir, filepath.Base(fmt.Sprintf("%s.zip", id)))
-			log.Println("Fullpath:", fullPath)
-
-			c.File(fullPath)
 		})
 
 		r.PUT("/document-storage/json/2/upload/update-status", func(c *gin.Context) {
@@ -217,45 +222,39 @@ func main() {
 			// bm, _ := ioutil.ReadAll(b)
 			// log.Println(string(bm))
 			// c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(bm))
-			var req []rawDocument
+			var req []messages.RawDocument
 			if err := c.ShouldBindJSON(&req); err != nil {
 				log.Println(err)
 				badReq(c, err.Error())
 				return
 			}
-			result := []statusResponse{}
+			result := []messages.StatusResponse{}
 			for _, r := range req {
 				log.Println("For Id: ", r.Id)
 				log.Println(" Name: ", r.VissibleName)
-				path := path.Join(dataDir, fmt.Sprintf("%s.metadata", r.Id))
 
 				ok := false
 				event := "DocAdded"
 				message := ""
 
-				js, err := json.Marshal(r)
-				if err != nil {
-					log.Println(err)
+				err := storage.UpdateMetadata(&r)
+				if err == nil {
+					ok = true
+					//fix it: id of subscriber
+					msg := newWs(&r, event)
+					hub.Send(msg)
 				} else {
-					err = ioutil.WriteFile(path, js, 0700)
-					if err == nil {
-						ok = true
-						//fix it: id of subscriber
-						msg := newWs(&r, event)
-						hub.Send(msg)
-					} else {
-						message = err.Error()
-						log.Println(err)
-					}
+					message = err.Error()
+					log.Println(err)
 				}
-				result = append(result, statusResponse{Id: r.Id, Success: ok, Message: message})
+				result = append(result, messages.StatusResponse{Id: r.Id, Success: ok, Message: message})
 			}
 
 			c.JSON(200, result)
 		})
 
 		r.PUT("/document-storage/json/2/delete", func(c *gin.Context) {
-			var req []idRequest
+			var req []messages.IdRequest
 
 			if err := c.ShouldBindJSON(&req); err != nil {
 				log.Println("bad request")
@@ -263,12 +262,12 @@ func main() {
 				return
 			}
 
-			result := []statusResponse{}
+			result := []messages.StatusResponse{}
 			for _, r := range req {
-				metadata, err := loadMetadata(r.Id+".metadata", false)
+				metadata, err := storage.LoadMetadata(r.Id, false)
 				ok := true
 				if err == nil {
-					err := deleteFile(r.Id)
+					err := storage.DeleteFile(r.Id)
 					if err != nil {
 						log.Println(err)
 						ok = false
@@ -276,46 +275,35 @@ func main() {
 					msg := newWs(metadata, "DocDeleted")
 					hub.Send(msg)
 				}
-				result = append(result, statusResponse{Id: r.Id, Success: ok})
+				result = append(result, messages.StatusResponse{Id: r.Id, Success: ok})
 			}
 
 			c.JSON(200, result)
 		})
 
 		r.GET("/document-storage/json/2/docs", func(c *gin.Context) {
-			withBlob, err := strconv.ParseBool(c.Query("withBlob"))
+			withBlob, _ := strconv.ParseBool(c.Query("withBlob"))
 			docId := c.Query("doc")
 			log.Println(withBlob, docId)
-			result := []*rawDocument{}
+			result := []*messages.RawDocument{}
 
-			files, err := ioutil.ReadDir(dataDir)
-			if err != nil {
-				log.Println(err)
-				return
-			}
-
+			var err error
 			if docId != "" {
-				doc, err := loadMetadata(fmt.Sprintf("%s.metadata", docId), withBlob)
-				if err != nil {
-					log.Println(err)
-				} else {
+				//load single document
+				var doc *messages.RawDocument
+				doc, err = storage.LoadMetadata(docId, withBlob)
+				if err == nil {
 					result = append(result, doc)
 				}
 			} else {
+				//load all
+				result, err = storage.LoadAll(withBlob)
+			}
 
-				for _, f := range files {
-					ext := filepath.Ext(f.Name())
-					if ext != ".metadata" {
-						continue
-					}
-					doc, err := loadMetadata(f.Name(), withBlob)
-					if err != nil {
-						log.Println(err)
-						continue
-					}
-
-					result = append(result, doc)
-				}
+			if err != nil {
+				log.Println(err)
+				internalError(c, "blah")
+				return
 			}
 
 			c.JSON(200, result)
@@ -349,43 +337,14 @@ func main() {
 		})
 	}
 	// configs
-	var err error
-	data := os.Getenv(envDataDir)
-	if data != "" {
-		dataDir = data
-	} else {
-		dataDir, err = filepath.Abs(defaultDataDir)
-		if err != nil {
-			panic(err)
-		}
-	}
-	err = os.MkdirAll(path.Join(dataDir, defaultTrashDir), 0700)
-	if err != nil {
-		panic(err)
+	log.Println("File will be saved in:", cfg.DataDir)
+	log.Println("Url the device should use:", cfg.StorageUrl)
+	log.Println("port", cfg.Port)
+
+	app := App{
+		router: router,
+		cfg:    cfg,
 	}
 
-	port := os.Getenv(envPort)
-	if port == "" {
-		port = defaultPort
-	}
-
-	uploadUrl = os.Getenv(envStorageUrl)
-	if uploadUrl == "" {
-		host, err := os.Hostname()
-		if err != nil {
-			log.Println("cannot get hostname")
-			host = defaultHost
-		}
-		uploadUrl = fmt.Sprintf("http://%s:%s", host, port)
-	}
-
-	if err != nil {
-		panic(err)
-	}
-
-	log.Println(envDataDir, "File will be saved in:", dataDir)
-	log.Println(envStorageUrl, "Url the device should use:", uploadUrl)
-	log.Println(envPort, "port", port)
-
-	router.Run(":" + port)
+	return &app
 }

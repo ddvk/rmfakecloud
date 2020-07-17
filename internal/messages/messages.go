@@ -1,28 +1,23 @@
-package main
+package messages
 
-import (
-	"strconv"
-	"time"
-)
-
-type statusResponse struct {
+type StatusResponse struct {
 	Id      string `json:"ID"`
 	Message string `json:"Message"`
 	Success bool   `json:"Success"`
 	Version int    `json:"Version"`
 }
-type wsMessage struct {
-	Message      notificationMessage `json:"message"`
+type WsMessage struct {
+	Message      NotificationMessage `json:"message"`
 	Subscription string              `json:"subscription"`
 }
-type notificationMessage struct {
-	Attributes   attributes `json:"attributes"`
+type NotificationMessage struct {
+	Attributes   Attributes `json:"attributes"`
 	MessageId    string     `json:"messageId"`
 	MessageId2   string     `json:"message_id"`
 	PublishTime  string     `json:"publishTime"`
 	PublishTime2 string     `json:"publish_time"`
 }
-type attributes struct {
+type Attributes struct {
 	Auth0UserID      string `json:"auth0UserID"`
 	Bookmarked       bool   `json:"bookmarked"`
 	Event            string `json:"event"`
@@ -36,7 +31,7 @@ type attributes struct {
 	SourceDeviceID   string `json:"sourceDeviceID"`
 }
 
-type rawDocument struct {
+type RawDocument struct {
 	Id                string `json:"ID"`
 	Version           int    `json:"Version"`
 	Message           string `json:"Message"`
@@ -52,16 +47,16 @@ type rawDocument struct {
 }
 
 // request with id
-type idRequest struct {
+type IdRequest struct {
 	Id string `json:"ID"`
 }
-type uploadRequest struct {
+type UploadRequest struct {
 	Id      string `json:"ID"`
 	Parent  string `json:"Parent"`
 	Type    string `json:"Type"`
 	Version int    `json:"Version"`
 }
-type uploadResponse struct {
+type UploadResponse struct {
 	Id                string `json:"ID"`
 	Message           string `json:"Mesasge"`
 	Success           bool   `json:"Success"`
@@ -69,39 +64,13 @@ type uploadResponse struct {
 	BlobURLPutExpires string `json:"BlobURLPutExpires"`
 	Version           int    `json:"Version"`
 }
-type hostResponse struct {
+type HostResponse struct {
 	Host   string `json:"Host"`
 	Status string `json:"Status"`
 }
 
-type deviceTokenRequest struct {
+type DeviceTokenRequest struct {
 	Code       string `json:"code"`
 	DeviceDesc string `json:"deviceDesc"`
 	DeviceId   string `json:"deviceID"`
-}
-
-func newWs(doc *rawDocument, typ string) wsMessage {
-	tt := time.Now().UTC().Format(time.RFC3339Nano)
-	msg := wsMessage{
-		Message: notificationMessage{
-			MessageId:  "1234",
-			MessageId2: "1234",
-			Attributes: attributes{
-				Auth0UserID:      "auth0|12341234123412",
-				Event:            typ,
-				Id:               doc.Id,
-				Type:             doc.Type,
-				Version:          strconv.Itoa(doc.Version),
-				VissibleName:     doc.VissibleName,
-				SourceDeviceDesc: "some-client",
-				SourceDeviceID:   "12345",
-				Parent:           doc.Parent,
-			},
-			PublishTime:  tt,
-			PublishTime2: tt,
-		},
-		Subscription: "dummy-subscription",
-	}
-
-	return msg
 }

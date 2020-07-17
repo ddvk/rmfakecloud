@@ -1,10 +1,12 @@
-package main
+package app
 
 import (
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
+	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/gorilla/websocket"
 )
 
@@ -12,11 +14,11 @@ type Hub struct {
 	clients      map[*Client]bool
 	additions    chan *Client
 	removals     chan *Client
-	notification chan *wsMessage
+	notification chan *messages.WsMessage
 }
 
-func (h *Hub) Send(msg wsMessage) {
-	for c, _ := range h.clients {
+func (h *Hub) Send(msg messages.WsMessage) {
+	for c := range h.clients {
 		c.ntf <- msg
 	}
 }
@@ -54,7 +56,7 @@ func (h *Hub) start() {
 }
 
 type Client struct {
-	ntf chan wsMessage
+	ntf chan messages.WsMessage
 	hub *Hub
 }
 
@@ -105,10 +107,36 @@ func (h *Hub) ConnectWs(w http.ResponseWriter, r *http.Request) {
 	defer c.Close()
 	client := &Client{
 		hub: h,
-		ntf: make(chan wsMessage),
+		ntf: make(chan messages.WsMessage),
 	}
 	go client.Read(c)
 	h.additions <- client
 	client.Write(c)
 	h.removals <- client
+}
+
+func newWs(doc *messages.RawDocument, typ string) messages.WsMessage {
+	tt := time.Now().UTC().Format(time.RFC3339Nano)
+	msg := messages.WsMessage{
+		Message: messages.NotificationMessage{
+			MessageId:  "1234",
+			MessageId2: "1234",
+			Attributes: messages.Attributes{
+				Auth0UserID:      "auth0|12341234123412",
+				Event:            typ,
+				Id:               doc.Id,
+				Type:             doc.Type,
+				Version:          strconv.Itoa(doc.Version),
+				VissibleName:     doc.VissibleName,
+				SourceDeviceDesc: "some-client",
+				SourceDeviceID:   "12345",
+				Parent:           doc.Parent,
+			},
+			PublishTime:  tt,
+			PublishTime2: tt,
+		},
+		Subscription: "dummy-subscription",
+	}
+
+	return msg
 }
