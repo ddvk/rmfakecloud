@@ -1,4 +1,4 @@
 #!/bin/sh
-PORT=3000
+HOSTPORT=3000
 DATA=$(realpath data)
-docker run -p 3000:$PORT -v $DATA:/data -e STORAGE_URL=http://$(hostname):$PORT -it --rm rmfakecloud
+docker run -p $HOSTPORT:3000 -v $DATA:/data -e STORAGE_URL=http://$(hostname):$HOSTPORT -it --rm rmfakecloud
