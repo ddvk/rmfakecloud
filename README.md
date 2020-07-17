@@ -20,7 +20,7 @@ run
 
 or clone an do: `go run .`  
 or `make run`  
-or `make all` artifacts are in the `out` folder. the Arm binaries work on pi3 / Synology etc  
+or `make all` artifacts are in the `dist` folder. the Arm binaries work on pi3 / Synology etc  
 or `make docker && ./rundocker.sh`  
 
 
