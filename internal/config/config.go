@@ -12,21 +12,25 @@ const (
 	defaultPort     = "3000"
 	defaultDataDir  = "data"
 	defaultTrashDir = "trash"
-	DefaultHost     = "local.appspot.com"
+
+	// DefaultHost fake url
+	DefaultHost = "local.appspot.com"
 
 	envDataDir    = "DATADIR"
 	envPort       = "PORT"
-	envStorageUrl = "STORAGE_URL"
+	envStorageURL = "STORAGE_URL"
 )
 
+// Config config
 type Config struct {
 	Port       string
-	StorageUrl string
+	StorageURL string
 	DataDir    string
 	TrashDir   string
 }
 
-func ConfigFromEnv() *Config {
+// FromEnv config from environment values
+func FromEnv() *Config {
 	var err error
 	var dataDir string
 	data := os.Getenv(envDataDir)
@@ -49,7 +53,7 @@ func ConfigFromEnv() *Config {
 		port = defaultPort
 	}
 
-	uploadURL := os.Getenv(envStorageUrl)
+	uploadURL := os.Getenv(envStorageURL)
 	if uploadURL == "" {
 		host, err := os.Hostname()
 		if err != nil {
@@ -65,7 +69,7 @@ func ConfigFromEnv() *Config {
 
 	cfg := Config{
 		Port:       port,
-		StorageUrl: uploadURL,
+		StorageURL: uploadURL,
 		DataDir:    dataDir,
 		TrashDir:   trashDir,
 	}

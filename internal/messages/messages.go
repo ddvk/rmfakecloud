@@ -28,7 +28,6 @@ type Attributes struct {
 	Type             string `json:"type"`
 	Version          string `json:"version"`
 	VissibleName     string `json:"vissibleName"`
-	SourceDeviceID   string `json:"sourceDeviceID"`
 }
 
 type RawDocument struct {

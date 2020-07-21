@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -13,22 +12,25 @@ import (
 	"strings"
 
 	"github.com/ddvk/rmfakecloud/internal/config"
+	"github.com/ddvk/rmfakecloud/internal/db"
 	"github.com/ddvk/rmfakecloud/internal/messages"
-	"github.com/ddvk/rmfakecloud/internal/storage/fs"
+	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 )
 
+// App web app
 type App struct {
 	router *gin.Engine
 	cfg    *config.Config
 }
 
+// Start starts the app
 func (app *App) Start() {
 	app.router.Run(":" + app.cfg.Port)
 }
 
-type MyCustomClaims struct {
+type myCustomClaims struct {
 	Foo string `json:"foo"`
 	jwt.StandardClaims
 }
@@ -57,7 +59,7 @@ func getToken(c *gin.Context) (string, error) {
 	}
 	return "", nil
 }
-func AuthMiddleware() gin.HandlerFunc {
+func authMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token, err := getToken(c)
 		if err != nil {
@@ -67,7 +69,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		c.Next()
 	}
 }
-func RequestLoggerMiddleware() gin.HandlerFunc {
+func requestLoggerMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.Request.URL.Path != "/storage" {
 			var buf bytes.Buffer
@@ -94,15 +96,16 @@ func internalError(c *gin.Context, message string) {
 	c.JSON(http.StatusInternalServerError, gin.H{"error": message})
 	c.Abort()
 }
-func CreateApp(cfg *config.Config) *App {
+
+// NewApp constructs an app
+func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.DocumentStorer) App {
 	hub := NewHub()
 	gin.ForceConsoleColor()
 	router := gin.Default()
 
-	storage := fs.FSStorage{
-		Cfg: *cfg,
-	}
-	router.Use(RequestLoggerMiddleware())
+	router.Use(requestLoggerMiddleware())
+
+	docStorer.RegisterRoutes(router)
 
 	router.GET("/", func(c *gin.Context) {
 		count := hub.ClientCount()
@@ -118,42 +121,6 @@ func CreateApp(cfg *config.Config) *App {
 
 		log.Printf("Request: %s\n", json)
 		c.String(200, "some_device_token")
-	})
-
-	router.GET("/storage", func(c *gin.Context) {
-		id := c.Query("id")
-		if id == "" {
-			badReq(c, "no id supplied")
-			return
-		}
-
-		//todo: storage provider
-		log.Printf("Requestng Id: %s\n", id)
-
-		reader, err := storage.GetContent(id)
-		defer reader.Close()
-
-		if err != nil {
-			internalError(c, "")
-		}
-
-		c.DataFromReader(http.StatusOK, 0, "", reader, nil)
-	})
-	//todo: pass the token in the url
-	router.PUT("/storage", func(c *gin.Context) {
-		id := c.Query("id")
-		log.Printf("Uploading id %s\n", id)
-		body := c.Request.Body
-		defer body.Close()
-
-		err := storage.SaveUpload(body, id)
-		if err != nil {
-			fmt.Println(err)
-			c.String(500, "set up us the bomb")
-			c.Abort()
-		}
-
-		c.JSON(200, gin.H{})
 	})
 
 	// create new access token
@@ -174,7 +141,7 @@ func CreateApp(cfg *config.Config) *App {
 	})
 
 	r := router.Group("/")
-	r.Use(AuthMiddleware())
+	r.Use(authMiddleware())
 	{
 		//unregister device
 		r.POST("/token/json/3/device/delete", func(c *gin.Context) {
@@ -183,8 +150,8 @@ func CreateApp(cfg *config.Config) *App {
 
 		// websocket notifications
 		r.GET("/notifications/ws/json/1", func(c *gin.Context) {
-			userId := c.GetString("userId")
-			log.Println("accepting websocket", userId)
+			userID := c.GetString("userId")
+			log.Println("accepting websocket", userID)
 			hub.ConnectWs(c.Writer, c.Request)
 			log.Println("closing the ws")
 		})
@@ -208,7 +175,7 @@ func CreateApp(cfg *config.Config) *App {
 				if id == "" {
 					badReq(c, "no id")
 				}
-				url := storage.GetStorageUrl(id)
+				url := docStorer.GetStorageURL(id)
 				log.Println(url)
 				dr := messages.UploadResponse{BlobUrlPut: url, Id: id, Success: true, Version: r.Version}
 				response = append(response, dr)
@@ -218,10 +185,6 @@ func CreateApp(cfg *config.Config) *App {
 		})
 
 		r.PUT("/document-storage/json/2/upload/update-status", func(c *gin.Context) {
-			// b := c.Request.Body
-			// bm, _ := ioutil.ReadAll(b)
-			// log.Println(string(bm))
-			// c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(bm))
 			var req []messages.RawDocument
 			if err := c.ShouldBindJSON(&req); err != nil {
 				log.Println(err)
@@ -237,7 +200,7 @@ func CreateApp(cfg *config.Config) *App {
 				event := "DocAdded"
 				message := ""
 
-				err := storage.UpdateMetadata(&r)
+				err := metaStorer.UpdateMetadata(&r)
 				if err == nil {
 					ok = true
 					//fix it: id of subscriber
@@ -264,10 +227,10 @@ func CreateApp(cfg *config.Config) *App {
 
 			result := []messages.StatusResponse{}
 			for _, r := range req {
-				metadata, err := storage.LoadMetadata(r.Id, false)
+				metadata, err := metaStorer.GetMetadata(r.Id, false)
 				ok := true
 				if err == nil {
-					err := storage.DeleteFile(r.Id)
+					err := docStorer.RemoveDocument(r.Id)
 					if err != nil {
 						log.Println(err)
 						ok = false
@@ -283,21 +246,21 @@ func CreateApp(cfg *config.Config) *App {
 
 		r.GET("/document-storage/json/2/docs", func(c *gin.Context) {
 			withBlob, _ := strconv.ParseBool(c.Query("withBlob"))
-			docId := c.Query("doc")
-			log.Println(withBlob, docId)
+			docID := c.Query("doc")
+			log.Println(withBlob, docID)
 			result := []*messages.RawDocument{}
 
 			var err error
-			if docId != "" {
+			if docID != "" {
 				//load single document
 				var doc *messages.RawDocument
-				doc, err = storage.LoadMetadata(docId, withBlob)
+				doc, err = metaStorer.GetMetadata(docID, withBlob)
 				if err == nil {
 					result = append(result, doc)
 				}
 			} else {
 				//load all
-				result, err = storage.LoadAll(withBlob)
+				result, err = metaStorer.GetAllMetadata(withBlob)
 			}
 
 			if err != nil {
@@ -332,19 +295,16 @@ func CreateApp(cfg *config.Config) *App {
 		})
 		// hwr
 		r.POST("/api/v1/page", func(c *gin.Context) {
+			//todo: pass to the hwr endpoint
 			//return json
 			c.String(200, "%s", "hi")
 		})
 	}
-	// configs
-	log.Println("File will be saved in:", cfg.DataDir)
-	log.Println("Url the device should use:", cfg.StorageUrl)
-	log.Println("port", cfg.Port)
 
 	app := App{
 		router: router,
 		cfg:    cfg,
 	}
 
-	return &app
+	return app
 }

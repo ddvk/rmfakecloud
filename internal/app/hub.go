@@ -10,33 +10,38 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// Hub ws notificaiton hub
 type Hub struct {
-	clients      map[*Client]bool
-	additions    chan *Client
-	removals     chan *Client
+	clients      map[*wsClient]bool
+	additions    chan *wsClient
+	removals     chan *wsClient
 	notification chan *messages.WsMessage
 }
 
+// Send sends a message to all connected clients
 func (h *Hub) Send(msg messages.WsMessage) {
 	for c := range h.clients {
 		c.ntf <- msg
 	}
 }
+
+// ClientCount number of connected clients
 func (h *Hub) ClientCount() int {
 	return len(h.clients)
 }
 
+// NewHub construct a hub
 func NewHub() *Hub {
 	h := Hub{
-		clients:   make(map[*Client]bool),
-		additions: make(chan *Client),
-		removals:  make(chan *Client),
+		clients:   make(map[*wsClient]bool),
+		additions: make(chan *wsClient),
+		removals:  make(chan *wsClient),
 	}
 	go h.start()
 	return &h
 }
 
-func (h *Hub) removeClient(c *Client) {
+func (h *Hub) removeClient(c *wsClient) {
 	if _, ok := h.clients[c]; ok {
 		delete(h.clients, c)
 		close(c.ntf)
@@ -55,12 +60,12 @@ func (h *Hub) start() {
 	}
 }
 
-type Client struct {
+type wsClient struct {
 	ntf chan messages.WsMessage
 	hub *Hub
 }
 
-func (c *Client) Read(ws *websocket.Conn) {
+func (c *wsClient) Read(ws *websocket.Conn) {
 	defer ws.Close()
 	for {
 		_, p, err := ws.ReadMessage()
@@ -72,7 +77,7 @@ func (c *Client) Read(ws *websocket.Conn) {
 		log.Println("Message: ", string(p))
 	}
 }
-func (c *Client) Write(ws *websocket.Conn) {
+func (c *wsClient) Write(ws *websocket.Conn) {
 	defer ws.Close()
 	for {
 		select {
@@ -92,7 +97,7 @@ func (c *Client) Write(ws *websocket.Conn) {
 	}
 }
 
-// upgrade the connection to websocket
+// ConnectWs upgrade the connection to websocket
 func (h *Hub) ConnectWs(w http.ResponseWriter, r *http.Request) {
 	var upgrader = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
@@ -105,7 +110,7 @@ func (h *Hub) ConnectWs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer c.Close()
-	client := &Client{
+	client := &wsClient{
 		hub: h,
 		ntf: make(chan messages.WsMessage),
 	}
@@ -129,7 +134,7 @@ func newWs(doc *messages.RawDocument, typ string) messages.WsMessage {
 				Version:          strconv.Itoa(doc.Version),
 				VissibleName:     doc.VissibleName,
 				SourceDeviceDesc: "some-client",
-				SourceDeviceID:   "12345",
+				SourceDeviceId:   "12345",
 				Parent:           doc.Parent,
 			},
 			PublishTime:  tt,
