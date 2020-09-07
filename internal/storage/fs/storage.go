@@ -173,7 +173,7 @@ func (fs *Storage) RegisterRoutes(router *gin.Engine) {
 			return
 		}
 
-		c.DataFromReader(http.StatusOK, 0, "", reader, nil)
+		c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
 	})
 	//todo: pass the token in the url
 	router.PUT("/storage", func(c *gin.Context) {
