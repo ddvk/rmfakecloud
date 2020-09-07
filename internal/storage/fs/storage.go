@@ -167,8 +167,10 @@ func (fs *Storage) RegisterRoutes(router *gin.Engine) {
 		defer reader.Close()
 
 		if err != nil {
-			c.String(500, "set up us the bomb")
+			log.Println(err)
+			c.String(500, "internal error")
 			c.Abort()
+			return
 		}
 
 		c.DataFromReader(http.StatusOK, 0, "", reader, nil)
@@ -185,6 +187,7 @@ func (fs *Storage) RegisterRoutes(router *gin.Engine) {
 			fmt.Println(err)
 			c.String(500, "set up us the bomb")
 			c.Abort()
+			return
 		}
 
 		c.JSON(200, gin.H{})
