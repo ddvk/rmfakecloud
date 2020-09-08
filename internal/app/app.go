@@ -13,6 +13,7 @@ import (
 
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/db"
+	"github.com/ddvk/rmfakecloud/internal/hwr"
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/dgrijalva/jwt-go"
@@ -281,9 +282,10 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 			file, err := c.FormFile("attachment")
 			if err != nil {
 				log.Println("no file")
+			} else {
+				log.Println("file", file.Filename)
+				log.Println("size", file.Size)
 			}
-			log.Println("file", file.Filename)
-			log.Println("size", file.Size)
 			reply := c.PostForm("reply-to")
 			from := c.PostForm("from")
 			subject := c.PostForm("subject")
@@ -298,9 +300,15 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 		})
 		// hwr
 		r.POST("/api/v1/page", func(c *gin.Context) {
-			//todo: pass to the hwr endpoint
-			//return json
-			c.String(200, "%s", "hi")
+			body, _ := ioutil.ReadAll(c.Request.Body)
+			response, err := hwr.SendRequest(body)
+			if err != nil {
+				log.Println(err)
+				c.Abort()
+				return
+			}
+			c.Data(200, hwr.JIIX, response)
+
 		})
 	}
 
