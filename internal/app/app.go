@@ -13,6 +13,7 @@ import (
 
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/db"
+	"github.com/ddvk/rmfakecloud/internal/email"
 	"github.com/ddvk/rmfakecloud/internal/hwr"
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/storage"
@@ -55,7 +56,7 @@ func getToken(c *gin.Context) (string, error) {
 
 	payload, err := base64.StdEncoding.DecodeString(parts[1])
 	if err != nil {
-		log.Println(err)
+		log.Println("decode token err", err)
 		return string(payload), nil
 	}
 
@@ -64,8 +65,8 @@ func getToken(c *gin.Context) (string, error) {
 func authMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token, err := getToken(c)
-		if err != nil {
-			log.Println(token)
+		if err == nil {
+			log.Println("token:", token)
 			c.Set("userId", "abc")
 		} else {
 			log.Println(err)
@@ -73,16 +74,24 @@ func authMiddleware() gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+var ignored = []string{"/storage", "/api/v2/document"}
+
 func requestLoggerMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if c.Request.URL.Path != "/storage" {
-			var buf bytes.Buffer
-			tee := io.TeeReader(c.Request.Body, &buf)
-			body, _ := ioutil.ReadAll(tee)
-			c.Request.Body = ioutil.NopCloser(&buf)
-			log.Println(c.Request.Header)
-			log.Println(string(body))
+		for _, skip := range ignored {
+			if skip == c.Request.URL.Path {
+				c.Next()
+				return
+			}
 		}
+
+		var buf bytes.Buffer
+		tee := io.TeeReader(c.Request.Body, &buf)
+		body, _ := ioutil.ReadAll(tee)
+		c.Request.Body = ioutil.NopCloser(&buf)
+		log.Println(c.Request.Header)
+		log.Println(string(body))
 		c.Next()
 	}
 }
@@ -251,7 +260,7 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 		r.GET("/document-storage/json/2/docs", func(c *gin.Context) {
 			withBlob, _ := strconv.ParseBool(c.Query("withBlob"))
 			docID := c.Query("doc")
-			log.Println(withBlob, docID)
+			log.Println("params: withBlob, docId", withBlob, docID)
 			result := []*messages.RawDocument{}
 
 			var err error
@@ -278,24 +287,50 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 
 		// send email
 		r.POST("/api/v2/document", func(c *gin.Context) {
-			log.Println("email")
-			file, err := c.FormFile("attachment")
+			log.Println("Sending email")
+
+			form, err := c.MultipartForm()
 			if err != nil {
-				log.Println("no file")
-			} else {
-				log.Println("file", file.Filename)
-				log.Println("size", file.Size)
+				internalError(c, "not multipart form")
+				return
 			}
-			reply := c.PostForm("reply-to")
-			from := c.PostForm("from")
-			subject := c.PostForm("subject")
-			html := c.PostForm("html")
+			for k := range form.File {
+				log.Println(k)
+			}
+			for k := range form.Value {
+				log.Println(k)
+			}
 
-			log.Println("reply-to", reply)
-			log.Println("from", from)
-			log.Println("subject", subject)
-			log.Println("body", html)
+			emailClient := email.EmailBuilder{
+				Subject: form.Value["subject"][0],
+				ReplyTo: form.Value["reply-to"][0],
+				From:    form.Value["from"][0],
+				To:      form.Value["to"][0],
+				Body:    form.Value["html"][0],
+			}
 
+			for _, file := range form.File["attachment"] {
+				f, err := file.Open()
+				defer f.Close()
+				if err != nil {
+					log.Println(err)
+					internalError(c, "cant open attachment")
+					return
+				}
+				data, err := ioutil.ReadAll(f)
+				if err != nil {
+					log.Println(err)
+					internalError(c, "cant read attachment")
+					return
+				}
+				emailClient.AddFile(file.Filename, data)
+			}
+			err = emailClient.Send()
+			if err != nil {
+				log.Println(err)
+				internalError(c, "cant send email")
+				return
+			}
 			c.String(200, "")
 		})
 		// hwr
@@ -304,7 +339,7 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 			response, err := hwr.SendRequest(body)
 			if err != nil {
 				log.Println(err)
-				c.Abort()
+				internalError(c, "cannot send")
 				return
 			}
 			c.Data(200, hwr.JIIX, response)
