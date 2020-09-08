@@ -30,10 +30,16 @@ env variables:
 `STORAGE_URL` the storage url resolvable from the device (default: http://hostname:port)  
 
 # Handwriting Recognition
-In order to get hwr running with myScript register for a developer account and set the env variables: `HWR_APPLICATIONKEY` and `RMAPI_HWR_HMAC`
+In order to get hwr running with myScript register for a developer account and set the env variables: 
+`HWR_APPLICATIONKEY`  
+`RMAPI_HWR_HMAC`
 
-# Send email
-Not implemented yet
+# Sending emails
+Define the following env variables (only gmail has been tested):
+
+`RM_SMTP_SERVER` e.g. smtp.gmail.com:465  
+`RM_STMP_USERNAME`  
+`RM_STMP_PASSWORD` (colud try with app password)  
 
 # Prerequisites / Device Modifications
 
