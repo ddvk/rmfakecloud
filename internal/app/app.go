@@ -49,8 +49,9 @@ func getToken(c *gin.Context) (string, error) {
 		return "", errors.New("missing token")
 	}
 	parts := strings.Split(token[1], ".")
-	if len(parts) != 3 {
-		log.Println("not jwt")
+	length := len(parts)
+	if length != 3 {
+		log.Println("not jwt, parts length:", length)
 		return "", nil
 	}
 
@@ -69,6 +70,7 @@ func authMiddleware() gin.HandlerFunc {
 			log.Println("token:", token)
 			c.Set("userId", "abc")
 		} else {
+			c.Set("userId", "annon")
 			log.Println(err)
 		}
 		c.Next()
