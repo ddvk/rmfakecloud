@@ -16,9 +16,13 @@ import (
 var servername, username, password, fromOverride string
 
 func init() {
+	//TODO: remove env dependency
 	servername = os.Getenv("RM_SMTP_SERVER")
 	username = os.Getenv("RM_SMTP_USERNAME")
 	password = os.Getenv("RM_SMTP_PASSWORD")
+	if servername == "" {
+		log.Println("smtp not configured, no emails will be sent")
+	}
 	fromOverride = os.Getenv("RM_STMTP_FROM")
 }
 
@@ -53,6 +57,9 @@ func (b *EmailBuilder) AddFile(name string, data []byte) {
 }
 
 func (b *EmailBuilder) Send() (err error) {
+	if servername == "" {
+		return fmt.Errorf("not configured")
+	}
 	log.Println("smtp client")
 	frm := b.From
 	if fromOverride != "" {
@@ -73,8 +80,6 @@ func (b *EmailBuilder) Send() (err error) {
 
 	host, _, _ := net.SplitHostPort(servername)
 
-	auth := smtp.PlainAuth("", username, password, host)
-
 	tlsconfig := &tls.Config{
 		InsecureSkipVerify: false,
 		ServerName:         host,
@@ -90,8 +95,11 @@ func (b *EmailBuilder) Send() (err error) {
 		return err
 	}
 
-	if err = c.Auth(auth); err != nil {
-		return err
+	if username != "" {
+		auth := smtp.PlainAuth("", username, password, host)
+		if err = c.Auth(auth); err != nil {
+			return err
+		}
 	}
 
 	if err = c.Mail(from.Address); err != nil {
