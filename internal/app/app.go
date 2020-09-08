@@ -57,6 +57,7 @@ func getToken(c *gin.Context) (string, error) {
 		log.Println(err)
 		return string(payload), nil
 	}
+
 	return "", nil
 }
 func authMiddleware() gin.HandlerFunc {
@@ -65,6 +66,8 @@ func authMiddleware() gin.HandlerFunc {
 		if err != nil {
 			log.Println(token)
 			c.Set("userId", "abc")
+		} else {
+			log.Println(err)
 		}
 		c.Next()
 	}

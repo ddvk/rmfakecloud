@@ -12,6 +12,5 @@ type DocumentStorer interface {
 	RemoveDocument(string) error
 	GetDocument(string) (io.ReadCloser, error)
 	GetStorageURL(string) string
-
 	RegisterRoutes(*gin.Engine)
 }
