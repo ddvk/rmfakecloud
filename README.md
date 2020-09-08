@@ -29,6 +29,11 @@ env variables:
 `DATA_DIR` to set data/files directory (default: data in current dir)  
 `STORAGE_URL` the storage url resolvable from the device (default: http://hostname:port)  
 
+# Handwriting Recognition
+In order to get hwr running with myScript register for a developer account and set the env variables: `HWR_APPLICATIONKEY` and `RMAPI_HWR_HMAC`
+
+# Send email
+Not implemented yet
 
 # Prerequisites / Device Modifications
 
