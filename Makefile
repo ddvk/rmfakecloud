@@ -27,6 +27,10 @@ $(OUT_DIR)/$(BINARY)-docker:$(GOFILES)
 container: $(OUT_DIR)/$(BINARY)-docker
 	docker build -t rmfakecloud -f Dockerfile.make .
 	
+
+ui:
+	npm build --prefix ui
+
 run: 
 	go run $(CMD)
 
