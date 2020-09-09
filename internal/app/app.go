@@ -17,7 +17,9 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/hwr"
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/storage"
+	"github.com/ddvk/rmfakecloud/internal/webassets"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
 )
 
@@ -79,6 +81,42 @@ func authMiddleware() gin.HandlerFunc {
 
 var ignored = []string{"/storage", "/api/v2/document"}
 
+type FSWrapper struct {
+	fs     http.FileSystem
+	prefix string
+}
+
+func (l FSWrapper) Exists(prefix string, filepath string) bool {
+	log.Println("exists", prefix, filepath)
+	if p := strings.TrimPrefix(filepath, prefix); len(p) < len(filepath) {
+		_, err := l.fs.Open(p)
+
+		if err != nil {
+			return false
+		}
+		return true
+	}
+	return false
+}
+func (l FSWrapper) Open(filepath string) (http.File, error) {
+	log.Println("open", filepath)
+	if filepath == "/" {
+		f, err := l.fs.Open("index.html")
+		return f, err
+	}
+	if p := strings.TrimPrefix(filepath, l.prefix); len(p) < len(filepath) {
+		log.Println("opening", p)
+		f, err := l.fs.Open(p)
+
+		if err != nil {
+			return nil, err
+		}
+		return f, nil
+	}
+	f, err := l.fs.Open("index.html")
+	return f, err
+}
+
 func requestLoggerMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		for _, skip := range ignored {
@@ -118,11 +156,17 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 	gin.ForceConsoleColor()
 	router := gin.Default()
 
+	vfs := FSWrapper{
+		fs:     webassets.Assets,
+		prefix: "",
+	}
+	router.Use(static.Serve("/", vfs))
+
 	router.Use(requestLoggerMiddleware())
 
 	docStorer.RegisterRoutes(router)
 
-	router.GET("/", func(c *gin.Context) {
+	router.GET("/health", func(c *gin.Context) {
 		count := hub.ClientCount()
 		c.String(200, "Working, %d clients", count)
 	})
