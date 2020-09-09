@@ -4,8 +4,9 @@ import Nav from 'react-bootstrap/Nav'
 import Row from 'react-bootstrap/Row'
 import Navbar from 'react-bootstrap/Navbar'
 import Container from 'react-bootstrap/Container'
+import FileList from './components/FileList'
 
-function App() {
+export default function App() {
     return (
         <>
         <Navbar bg="dark" variant="dark" >
@@ -27,12 +28,10 @@ function App() {
                 </Nav.Item>
             </Nav>
             <div className="flex-column">
-                <h1>some content</h1>
+                <FileList />
             </div>
         </Row>
         </Container>
         </>
     );
 }
-
-export default App;
