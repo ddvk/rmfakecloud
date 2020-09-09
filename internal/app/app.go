@@ -17,9 +17,8 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/hwr"
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/storage"
-	"github.com/ddvk/rmfakecloud/internal/webassets"
+	"github.com/ddvk/rmfakecloud/internal/ui"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
 )
 
@@ -81,42 +80,6 @@ func authMiddleware() gin.HandlerFunc {
 
 var ignored = []string{"/storage", "/api/v2/document"}
 
-type FSWrapper struct {
-	fs     http.FileSystem
-	prefix string
-}
-
-func (l FSWrapper) Exists(prefix string, filepath string) bool {
-	log.Println("exists", prefix, filepath)
-	if p := strings.TrimPrefix(filepath, prefix); len(p) < len(filepath) {
-		_, err := l.fs.Open(p)
-
-		if err != nil {
-			return false
-		}
-		return true
-	}
-	return false
-}
-func (l FSWrapper) Open(filepath string) (http.File, error) {
-	log.Println("open", filepath)
-	if filepath == "/" {
-		f, err := l.fs.Open("index.html")
-		return f, err
-	}
-	if p := strings.TrimPrefix(filepath, l.prefix); len(p) < len(filepath) {
-		log.Println("opening", p)
-		f, err := l.fs.Open(p)
-
-		if err != nil {
-			return nil, err
-		}
-		return f, nil
-	}
-	f, err := l.fs.Open("index.html")
-	return f, err
-}
-
 func requestLoggerMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		for _, skip := range ignored {
@@ -156,11 +119,7 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 	gin.ForceConsoleColor()
 	router := gin.Default()
 
-	vfs := FSWrapper{
-		fs:     webassets.Assets,
-		prefix: "",
-	}
-	router.Use(static.Serve("/", vfs))
+	ui.RegisterUI(router)
 
 	router.Use(requestLoggerMiddleware())
 
@@ -168,7 +127,8 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 
 	router.GET("/health", func(c *gin.Context) {
 		count := hub.ClientCount()
-		c.String(200, "Working, %d clients", count)
+
+		c.String(http.StatusOK, "Working, %d clients", count)
 	})
 	// register device
 	router.POST("/token/json/2/device/new", func(c *gin.Context) {
@@ -179,7 +139,7 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 		}
 
 		log.Printf("Request: %s\n", json)
-		c.String(200, "some_device_token")
+		c.String(http.StatusOK, "some_device_token")
 	})
 
 	// create new access token
@@ -188,7 +148,7 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 		if err != nil {
 			log.Println("Got: ", token)
 		}
-		c.String(200, "some_user_token")
+		c.String(http.StatusOK, "some_user_token")
 	})
 
 	//service locator
@@ -196,7 +156,7 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 		svc := c.Param("service")
 		log.Printf("Requested: %s\n", svc)
 		response := messages.HostResponse{Host: config.DefaultHost, Status: "OK"}
-		c.JSON(200, response)
+		c.JSON(http.StatusOK, response)
 	})
 
 	r := router.Group("/")
@@ -240,7 +200,7 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 				response = append(response, dr)
 			}
 
-			c.JSON(200, response)
+			c.JSON(http.StatusOK, response)
 		})
 
 		r.PUT("/document-storage/json/2/upload/update-status", func(c *gin.Context) {
@@ -272,7 +232,7 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 				result = append(result, messages.StatusResponse{Id: r.Id, Success: ok, Message: message})
 			}
 
-			c.JSON(200, result)
+			c.JSON(http.StatusOK, result)
 		})
 
 		r.PUT("/document-storage/json/2/delete", func(c *gin.Context) {
@@ -300,7 +260,7 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 				result = append(result, messages.StatusResponse{Id: r.Id, Success: ok})
 			}
 
-			c.JSON(200, result)
+			c.JSON(http.StatusOK, result)
 		})
 
 		r.GET("/document-storage/json/2/docs", func(c *gin.Context) {
@@ -328,7 +288,7 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 				return
 			}
 
-			c.JSON(200, result)
+			c.JSON(http.StatusOK, result)
 		})
 
 		// send email
@@ -377,7 +337,7 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 				internalError(c, "cant send email")
 				return
 			}
-			c.String(200, "")
+			c.String(http.StatusOK, "")
 		})
 		// hwr
 		r.POST("/api/v1/page", func(c *gin.Context) {
@@ -388,7 +348,7 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 				internalError(c, "cannot send")
 				return
 			}
-			c.Data(200, hwr.JIIX, response)
+			c.Data(http.StatusOK, hwr.JIIX, response)
 
 		})
 	}

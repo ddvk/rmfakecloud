@@ -1,6 +1,7 @@
 import React from 'react';
 
-const listUrl = '/document-storage/json/2/docs';
+//const listUrl = '/document-storage/json/2/docs';
+const listUrl = '/ui/api/list';
 
 export default class FileList extends React.Component {
     constructor(props) {
@@ -43,9 +44,18 @@ export default class FileList extends React.Component {
         }
 
         return (
-            this.state.documentList.map(x => 
-                <div>{x}</div>
+            <table>
+            { 
+
+                this.state.documentList.map(x => 
+            <tr>
+                <td>{x.ID}</td>
+                <td>{x.VissibleName}</td>
+                <td>{x.ParentId}</td>
+            </tr>
             )
+            }
+            </table>
         )
     }
 }
