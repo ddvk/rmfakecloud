@@ -1,5 +1,9 @@
 FROM scratch
 EXPOSE 3000
-#ENV 
-COPY dist/rmfake-docker .
-ENTRYPOINT ["/rmfake-docker"]
+#ENV RMAPI_HWR_HMAC=""
+#ENV RMAPI_HWR_APPLICATIONKEY=""
+#ENV RM_SMTP_HOST=""
+#ENV RM_SMTP_USERNAME=""
+#ENV RM_SMTP_PASSWORD=""
+COPY dist/rmfakecloud-docker .
+ENTRYPOINT ["/rmfakecloud-docker"]

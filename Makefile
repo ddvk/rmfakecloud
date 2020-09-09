@@ -1,27 +1,39 @@
-LDFLAGS := "-s -w"
+VERSION :=$(shell git describe --tags)
+LDFLAGS := "-s -w -X main.version=$(VERSION)"
 OUT_DIR := dist
-BIN ?= ./cmd/rmfakecloud
+CMD := ./cmd/rmfakecloud
+BINARY := rmfakecloud
+BUILD = go build -ldflags $(LDFLAGS) -o $(@) $(CMD) 
+GOFILES := $(shell find . -iname '*.go' ! -iname "*_test.go")
+TARGETS := $(addprefix $(OUT_DIR)/$(BINARY)-, x64 armv6 armv7 win64 docker)
 
-run:
-	go run $(BIN)
+all: $(TARGETS)
 
-all: 
-	go build -o $(OUT_DIR)/rmfakecloud-x64 $(BIN) 
-	GOARCH=arm GOARM=7 go build -ldflags $(LDFLAGS) -o $(OUT_DIR)/rmfakecloud-armv7 $(BIN)
-	GOARCH=arm GOARM=6 go build -ldflags $(LDFLAGS) -o $(OUT_DIR)/rmfakecloud-armv6 $(BIN)
-	GOOS=windows go build -ldflags $(LDFLAGS) -o $(OUT_DIR)/rmfakecloud-winx64 $(BIN) 
+$(OUT_DIR)/$(BINARY)-x64: $(GOFILES)
+	GOOS=linux $(BUILD)
 
-$(OUT_DIR)/rmfake-docker:
-	CGO_ENABLED=0 go build -o $@ $(BIN) 
+$(OUT_DIR)/$(BINARY)-armv6:$(GOFILES)
+	GOARCH=arm GOARM=6 $(BUILD)
 
-docker: $(OUT_DIR)/rmfake-docker
+$(OUT_DIR)/$(BINARY)-armv7:$(GOFILES)
+	GOARCH=arm GOARM=7 $(BUILD)
+
+$(OUT_DIR)/$(BINARY)-win64:$(GOFILES)
+	GOOS=windows $(BUILD)
+
+$(OUT_DIR)/$(BINARY)-docker:$(GOFILES)
+	CGO_ENABLED=0 $(BUILD)
+
+container: $(OUT_DIR)/$(BINARY)-docker
 	docker build -t rmfakecloud .
 	
+run: 
+	go run $(CMD)
+
+
 clean:
 	rm -f $(OUT_DIR)/*
 
-test:
-	@echo "some test"
-
-
+test: 
+	go test ./...
 
