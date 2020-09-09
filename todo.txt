@@ -1,0 +1,12 @@
+auth react
+jwt
+generat code
+react websocket ntf
+userdb
+
+
+
+---
+swagger go / react
+generate js dto-s
+

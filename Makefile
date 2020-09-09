@@ -11,7 +11,7 @@ UIFILES += $(shell find ui/public)
 TARGETS := $(addprefix $(OUT_DIR)/$(BINARY)-, x64 armv6 armv7 win64 docker)
 
 .PHONY: all
-all: $(TARGETS)
+all: prep $(TARGETS)
 
 $(OUT_DIR)/$(BINARY)-x64: $(GOFILES)
 	GOOS=linux $(BUILD)
@@ -45,11 +45,11 @@ run:
 	go run $(CMD)
 
 dev:
-	@bash -c 'ls'
 	find . -path ui -prune -false -o -iname "*.go" | entr -r go run $(CMD)
 devui:
 	npm start --prefix ui
 
+#install ui stuff
 prep:
 	npm i --prefix ui
 
