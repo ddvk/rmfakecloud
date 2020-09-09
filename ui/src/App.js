@@ -13,7 +13,7 @@ export default function App() {
             <Navbar.Brand href="#home">Stuff</Navbar.Brand>
             <Nav activeKey="/home" onSelect={(k)=> console.log(k)} className="mr-auto" >
             <Nav.Item>
-            <Nav.Link href="/home">Active</Nav.Link>
+            <Nav.Link href="/home">Stuf</Nav.Link>
             </Nav.Item>
         </Nav>
         </Navbar>
