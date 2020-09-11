@@ -141,8 +141,10 @@ func (fs *Storage) GetMetadata(id string, withBlob bool) (*messages.RawDocument,
 	}
 
 	//fix time to utc
-	tt, err := time.Parse(response.ModifiedClient, time.RFC3339Nano)
+	tt, err := time.Parse(time.RFC3339, response.ModifiedClient)
 	if err != nil {
+		log.Println("fixing time")
+		log.Println(err)
 		tt = time.Now()
 	}
 	response.ModifiedClient = tt.UTC().Format(time.RFC3339)
