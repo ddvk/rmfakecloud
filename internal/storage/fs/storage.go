@@ -1,3 +1,4 @@
+// rudimentary file storage
 package fs
 
 import (
@@ -8,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
@@ -31,10 +33,49 @@ func (fs *Storage) GetDocument(id string) (io.ReadCloser, error) {
 	return reader, err
 }
 
+const hooksFile = "hooks/notify.sh"
+
+func (fs *Storage) Notify(what string, id string) error {
+	if _, err := os.Stat(hooksFile); err == nil {
+		log.Println("Hooks file exists", hooksFile)
+
+		//TODO: isfolder
+		meta, err := fs.GetMetadata(id, false)
+		if err != nil {
+			fmt.Println(err)
+			return err
+		}
+		parentId := meta.Parent
+
+		s := []string{meta.VissibleName}
+		for parentId != "" {
+			tmp, err := fs.GetMetadata(parentId, false)
+			if err != nil {
+				return err
+			}
+			s = append(s, tmp.VissibleName)
+			parentId = tmp.Parent
+		}
+		for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
+			s[i], s[j] = s[j], s[i]
+		}
+		fullpath := path.Join(s...)
+		filepath := path.Join(fs.Cfg.DataDir, filepath.Base(fmt.Sprintf("%s.zip", id)))
+
+		out, err := exec.Command(hooksFile, what, fullpath, filepath).CombinedOutput()
+		if err != nil {
+			log.Printf("%s", err)
+		}
+		log.Println(string(out))
+	}
+	return nil
+}
+
 // UpdateMetadata updates the metadata of a document
 func (fs *Storage) UpdateMetadata(r *messages.RawDocument) error {
 	filepath := path.Join(fs.Cfg.DataDir, fmt.Sprintf("%s.metadata", r.Id))
 
+	//todo: notify moved
 	js, err := json.Marshal(r)
 	if err != nil {
 		return err
@@ -47,6 +88,8 @@ func (fs *Storage) UpdateMetadata(r *messages.RawDocument) error {
 // RemoveDocument remove document
 func (fs *Storage) RemoveDocument(id string) error {
 	//do not delete, move to trash
+	fs.Notify("delete", id)
+
 	dataDir := fs.Cfg.DataDir
 	trashDir := fs.Cfg.TrashDir
 	meta := fmt.Sprintf("%s.metadata", id)
@@ -80,6 +123,8 @@ func (fs *Storage) StoreDocument(stream io.ReadCloser, id string) error {
 	}
 	defer file.Close()
 	io.Copy(file, stream)
+
+	fs.Notify("update", id)
 	return nil
 }
 
