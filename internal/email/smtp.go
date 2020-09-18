@@ -4,12 +4,13 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
-	"log"
 	"net"
 	"net/mail"
 	"net/smtp"
 	"os"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // SSL/TLS Email Example
@@ -21,7 +22,7 @@ func init() {
 	username = os.Getenv("RM_SMTP_USERNAME")
 	password = os.Getenv("RM_SMTP_PASSWORD")
 	if servername == "" {
-		log.Println("smtp not configured, no emails will be sent")
+		log.Warnln("smtp not configured, no emails will be sent")
 	}
 	fromOverride = os.Getenv("RM_STMTP_FROM")
 }

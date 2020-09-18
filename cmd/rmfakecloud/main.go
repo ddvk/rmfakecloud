@@ -1,17 +1,24 @@
 package main
 
 import (
+	"os"
+	"os/signal"
+	"syscall"
+
 	"github.com/ddvk/rmfakecloud/internal/app"
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/storage/fs"
-	"log"
-	"os"
+	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 var version string
 
 func main() {
-	log.SetOutput(os.Stdout)
+	//logrus := logrus.New()
+	logger := logrus.StandardLogger()
+	logger.SetFormatter(&logrus.TextFormatter{})
 
 	cfg := config.FromEnv()
 
@@ -24,9 +31,16 @@ func main() {
 	fsStorage := &fs.Storage{
 		Cfg: *cfg,
 	}
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
+	gin.DefaultWriter = logger.Writer()
 	a := app.NewApp(cfg, fsStorage, fsStorage)
-	a.Start()
-
-	//todo: ctrl-c handler
+	go a.Start()
+	quit := make(chan os.Signal)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+	<-quit
+	log.Println("Stopping the service...")
+	a.Stop()
+	log.Println("Stopped")
 }

@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/messages"
@@ -26,7 +27,7 @@ type Storage struct {
 // GetDocument Opens a document by id
 func (fs *Storage) GetDocument(id string) (io.ReadCloser, error) {
 	fullPath := path.Join(fs.Cfg.DataDir, filepath.Base(fmt.Sprintf("%s.zip", id)))
-	log.Println("Fullpath:", fullPath)
+	log.Debugln("Fullpath:", fullPath)
 	reader, err := os.Open(fullPath)
 	return reader, err
 }
@@ -66,7 +67,7 @@ func (fs *Storage) RemoveDocument(id string) error {
 
 func (fs *Storage) GetStorageURL(id string) string {
 	uploadRL := fs.Cfg.StorageURL
-	fmt.Println("url", uploadRL)
+	log.Debugln("url", uploadRL)
 	return fmt.Sprintf("%s/storage?id=%s", uploadRL, id)
 }
 
@@ -99,7 +100,7 @@ func (fs *Storage) GetAllMetadata(withBlob bool) (result []*messages.RawDocument
 		}
 		doc, err := fs.GetMetadata(id, withBlob)
 		if err != nil {
-			log.Println(err)
+			log.Error(err)
 			continue
 		}
 
@@ -143,8 +144,7 @@ func (fs *Storage) GetMetadata(id string, withBlob bool) (*messages.RawDocument,
 	//fix time to utc
 	tt, err := time.Parse(time.RFC3339, response.ModifiedClient)
 	if err != nil {
-		log.Println("fixing time")
-		log.Println(err)
+		log.Errorln("cant parse time", err)
 		tt = time.Now()
 	}
 	response.ModifiedClient = tt.UTC().Format(time.RFC3339)
@@ -169,7 +169,7 @@ func (fs *Storage) RegisterRoutes(router *gin.Engine) {
 		defer reader.Close()
 
 		if err != nil {
-			log.Println(err)
+			log.Error(err)
 			c.String(500, "internal error")
 			c.Abort()
 			return
@@ -186,7 +186,7 @@ func (fs *Storage) RegisterRoutes(router *gin.Engine) {
 
 		err := fs.StoreDocument(body, id)
 		if err != nil {
-			fmt.Println(err)
+			log.Error(err)
 			c.String(500, "set up us the bomb")
 			c.Abort()
 			return
