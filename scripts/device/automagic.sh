@@ -1,15 +1,19 @@
 #!/bin/sh
-REPOURL="https://github.com/ddvk/rmfakeclout/raw/master/scripts/device/"
+set -e
+REPOURL="https://github.com/ddvk/rmfakecloud/raw/master/scripts/device/"
 
 # workdir
 # get stuff
 # wget
+if [ -z "$SKIP_DOWNLOAD" ]; then
 echo "Getting assets..."
 assets=(secure fixsync.sh gencert.sh patchhosts.sh installcert.sh installproxy.sh )
 for app in "${assets[@]}"
 do
     wget "$REPOURL/$app" -O $app
+    chmod +x $app
 done
+fi
 # gencert
 echo "Generating certificates..."
 ./gencert.sh
@@ -19,7 +23,6 @@ echo "Installing the root ca"
 
 read -p "Enter your own cloud url: " url
 # install proxy
-echo "Proxy set to point to $url"
 ./installproxy.sh $url
 echo "Overriding default cloud addresses..."
 ./patchhosts.sh
