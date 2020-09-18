@@ -6,6 +6,7 @@ REPOURL="https://github.com/ddvk/rmfakecloud/raw/master/scripts/device/"
 # get stuff
 # wget
 if [ -z "$SKIP_DOWNLOAD" ]; then
+    systemctl stop proxy || true
 echo "Getting assets..."
 assets=(secure fixsync.sh gencert.sh patchhosts.sh installcert.sh installproxy.sh )
 for app in "${assets[@]}"
