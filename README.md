@@ -31,7 +31,8 @@ env variables:
 
 # Handwriting Recognition
 In order to get hwr running with myScript register for a developer account and set the env variables: 
-`HWR_APPLICATIONKEY`  
+
+`RMAPI_HWR_APPLICATIONKEY`  
 `RMAPI_HWR_HMAC`
 
 # Sending emails
