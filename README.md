@@ -44,7 +44,8 @@ Define the following env variables (only gmail has been tested):
 # Prerequisites / Device Modifications
 
 ## Without patching the binary
-all needed artifacts are in `device/` folder
+all needed artifacts are in `scripts/device/` folder
+For Automatic script check [Automagic](scripts/device/readme.md)
 
 Install a root CA on the device, you can use the `device/gencert.sh` script
 - generate a CA and host certificate for *.appspot.com []()

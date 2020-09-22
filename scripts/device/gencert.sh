@@ -76,6 +76,3 @@ if [ ! -f proxy.crt ]; then
 else
     echo "crt exists"
 fi
-
-
-
