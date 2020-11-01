@@ -58,7 +58,7 @@ Install a root CA on the device, you can use the `device/gencert.sh` script
             - stop xochitl `systemctl stop xochitl`
             - add to /etc/hosts
                 ```
-		127.0.0.1 hwr-production-dot-remarkable-production.appspot.com
+                127.0.0.1 hwr-production-dot-remarkable-production.appspot.com
                 127.0.0.1 service-manager-production-dot-remarkable-production.appspot.com
                 127.0.0.1 local.appspot.com
                 127.0.0.1 my.remarkable.com
