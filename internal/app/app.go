@@ -72,7 +72,7 @@ func getToken(c *gin.Context) (string, error) {
 		return "", nil
 	}
 
-	payload, err := base64.StdEncoding.DecodeString(parts[1])
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
 	if err != nil {
 		log.Warnln("decode token err", err)
 		return string(payload), nil
