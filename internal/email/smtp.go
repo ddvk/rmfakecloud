@@ -160,6 +160,14 @@ func (b *EmailBuilder) Send() (err error) {
 			return err
 		}
 	}
+
+	// Add last boundary delimeter, with trailing -- according to RFC 1341
+	last_boundary := fmt.Sprintf("\r\n--%s--\r\n", delimeter)
+	_, err = w.Write([]byte(last_boundary))
+	if err != nil {
+		return err
+	}
+
 	err = w.Close()
 	if err != nil {
 		return err
