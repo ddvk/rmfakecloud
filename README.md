@@ -38,9 +38,10 @@ In order to get hwr running with myScript register for a developer account and s
 # Sending emails
 Define the following env variables (only gmail has been tested):
 
-`RM_SMTP_SERVER` e.g. smtp.gmail.com:465  
-`RM_STMP_USERNAME`  
-`RM_STMP_PASSWORD` (colud try with app password)  
+`RM_SMTP_SERVER` e.g. smtp.gmail.com:465
+`RM_SMTP_USERNAME`
+`RM_SMTP_PASSWORD` (colud try with app password)
+`RM_SMTP_FROM` (i.e. "ReMarkable self-hosted <remarkable@mydomain.com>")
 
 # Prerequisites / Device Modifications
 
