@@ -24,7 +24,7 @@ func init() {
 	if servername == "" {
 		log.Warnln("smtp not configured, no emails will be sent")
 	}
-	fromOverride = os.Getenv("RM_STMTP_FROM")
+	fromOverride = os.Getenv("RM_SMTP_FROM")
 }
 
 type EmailBuilder struct {
