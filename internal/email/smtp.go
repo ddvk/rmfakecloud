@@ -24,7 +24,7 @@ func init() {
 	if servername == "" {
 		log.Warnln("smtp not configured, no emails will be sent")
 	}
-	fromOverride = os.Getenv("RM_STMTP_FROM")
+	fromOverride = os.Getenv("RM_SMTP_FROM")
 }
 
 type EmailBuilder struct {
@@ -119,7 +119,7 @@ func (b *EmailBuilder) Send() (err error) {
 	}
 	delimeter := "**=myohmy689407924327898338383"
 	//basic email headers
-	msg := fmt.Sprintf("From: %s\r\n", b.From)
+	msg := fmt.Sprintf("From: %s\r\n", from)
 	msg += fmt.Sprintf("To: %s\r\n", b.To)
 	msg += fmt.Sprintf("Subject: %s\r\n", b.Subject)
 	// msg += fmt.Sprintf("ReplyTo: %s\r\n", b.ReplyTo)
@@ -160,6 +160,14 @@ func (b *EmailBuilder) Send() (err error) {
 			return err
 		}
 	}
+
+	// Add last boundary delimeter, with trailing -- according to RFC 1341
+	last_boundary := fmt.Sprintf("\r\n--%s--\r\n", delimeter)
+	_, err = w.Write([]byte(last_boundary))
+	if err != nil {
+		return err
+	}
+
 	err = w.Close()
 	if err != nil {
 		return err
