@@ -52,13 +52,13 @@ func (fs *Storage) RemoveDocument(id string) error {
 	trashDir := fs.Cfg.TrashDir
 	meta := fmt.Sprintf("%s.metadata", id)
 	fullPath := path.Join(dataDir, meta)
-	err := os.Rename(fullPath, path.Join(dataDir, trashDir, meta))
+	err := os.Rename(fullPath, path.Join(trashDir, meta))
 	if err != nil {
 		return err
 	}
 	meta = fmt.Sprintf("%s.zip", id)
 	fullPath = path.Join(dataDir, meta)
-	err = os.Rename(fullPath, path.Join(dataDir, trashDir, meta))
+	err = os.Rename(fullPath, path.Join(trashDir, meta))
 	if err != nil {
 		return err
 	}
