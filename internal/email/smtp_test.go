@@ -2,10 +2,25 @@ package email
 
 import (
 	"io/ioutil"
+	"net/mail"
 	"testing"
 )
 
+func TestParseEmptyAddress(t *testing.T) {
+	addreses := ", email@domain.com , "
+	to, err := mail.ParseAddressList(addreses)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(to) > 1 {
+		t.Error("more than 2")
+	}
+	t.Log(to)
+}
+
 func TestRead(t *testing.T) {
+	t.Skip("TODO: fake the sending")
+
 	file, _ := ioutil.ReadFile("test.txt")
 	sender := EmailBuilder{
 		To:      "bingobango@mailinator.com",
