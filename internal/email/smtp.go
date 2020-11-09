@@ -49,7 +49,7 @@ func Strip(msg string) string {
 
 // workaround for go < 1.15
 func TrimAddresses(address string) string {
-	return strings.Trim(strings.Trim(address, ","), " ")
+	return strings.Trim(strings.Trim(address, " "), ",")
 }
 
 func (b *EmailBuilder) AddFile(name string, data []byte) {
