@@ -47,6 +47,11 @@ func Strip(msg string) string {
 	return msg
 }
 
+// workaround for go < 1.15
+func TrimAddresses(address string) string {
+	return strings.Trim(strings.Trim(address, " "), ",")
+}
+
 func (b *EmailBuilder) AddFile(name string, data []byte) {
 	if b.fileNames == nil || b.files == nil {
 		b.fileNames = []string{name}
@@ -71,7 +76,7 @@ func (b *EmailBuilder) Send() (err error) {
 	if err != nil {
 		return err
 	}
-	to, err := mail.ParseAddressList(b.To)
+	to, err := mail.ParseAddressList(TrimAddresses(b.To))
 	if err != nil {
 		return err
 	}
