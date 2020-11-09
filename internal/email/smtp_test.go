@@ -7,12 +7,12 @@ import (
 )
 
 func TestParseEmptyAddress(t *testing.T) {
-	addreses := ", email@domain.com , "
+	addreses := TrimAddresses(", email@domain.com , blah@blah, ")
 	to, err := mail.ParseAddressList(addreses)
 	if err != nil {
 		t.Error(err)
 	}
-	if len(to) > 1 {
+	if len(to) > 2 {
 		t.Error("more than 2")
 	}
 	t.Log(to)
