@@ -1,7 +1,7 @@
 # rmfakecloud
 
 
-rmfakecloud is fake of the cloud sync the remarkable tablet is using, in case you want to sync/backup your files and have full control of the hosting/storage environment and don't trust Google/.
+rmfakecloud is fake of the cloud sync the remarkable tablet is using, in case you want to sync/backup your files and have full control of the hosting/storage environment and don't trust Google.
 
 # Status 
 early prototype (sync and notifications work). no security and a lot of quick and dirty hacks.
@@ -155,7 +155,7 @@ Going back will again, delete all documents and put what was on the server
     check the logs
 
 - check xochitls's logs, stop the service, start manually with more logging
-    `systemct stop xochtil`
-    `QT_LOGGING_RULES=xochitl.*=true xochitl  | grep -A3 QUrl`
+    `systemctl stop xochitl`
+    `QT_LOGGING_RULES=xochitl.*=true xochitl | grep -A3 QUrl`
 
 
