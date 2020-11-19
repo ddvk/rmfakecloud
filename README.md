@@ -49,6 +49,8 @@ If you want to provide custom FROM header for your mails, you can use:
 RM_SMTP_FROM='"ReMarkable self-hosted" <user@domain.com>'
 ```
 
+# [HTTPS](docs/https.md)
+
 # Prerequisites / Device Modifications
 
 ## Without patching the binary
