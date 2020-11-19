@@ -25,7 +25,7 @@ $(OUT_DIR)/$(BINARY)-docker:$(GOFILES)
 	CGO_ENABLED=0 $(BUILD)
 
 container: $(OUT_DIR)/$(BINARY)-docker
-	docker build -t rmfakecloud .
+	docker build -t rmfakecloud -f Dockerfile.make .
 	
 run: 
 	go run $(CMD)
