@@ -147,6 +147,11 @@ Going back will again, delete all documents and put what was on the server
     wget -qO- http://host:3000 (or relevant ports, should get Working...)
     wget -qO- https://local.appspot.com (should get Working...)
     
+- check that the proxy is running and certs are installed:
+```
+echo Q | openssl s_client -connect localhost:443  -verify_hostname local.appspot.com 2>&1 | grep Verify
+```
+You should see: Verify return code: 0 (ok)
 
 - if both (host and tablet) are on a wifi make sure "Client Isolation" is not actived on the AP
 
@@ -157,7 +162,10 @@ Going back will again, delete all documents and put what was on the server
     check the logs
 
 - check xochitls's logs, stop the service, start manually with more logging
-    `systemctl stop xochitl`
-    `QT_LOGGING_RULES=xochitl.*=true xochitl | grep -A3 QUrl`
+```
+  systemctl stop xochitl
+  QT_LOGGING_RULES=xochitl.*=true xochitl | grep -A3 QUrl
+```
+    - if you see *SSL Handshake failed* then the cert was not installed correctly
 
 

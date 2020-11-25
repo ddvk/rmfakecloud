@@ -70,7 +70,7 @@ if [ ! -f proxy.crt ]; then
     #cat proxy.crt ca.crt > proxy.bundle.crt
 
     echo "showing result"
-    openssl x509 -in proxy.bundle.crt -text -noout 
+    #openssl x509 -in proxy.bundle.crt -text -noout 
 
     echo "Generation complete"
 else
