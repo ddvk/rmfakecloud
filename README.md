@@ -148,24 +148,31 @@ Going back will again, delete all documents and put what was on the server
     wget -qO- https://local.appspot.com (should get Working...)
     
 - check that the proxy is running and certs are installed:
-```
-echo Q | openssl s_client -connect localhost:443  -verify_hostname local.appspot.com 2>&1 | grep Verify
-```
-You should see: Verify return code: 0 (ok)
+    ```
+    echo Q | openssl s_client -connect localhost:443  -verify_hostname local.appspot.com 2>&1 | grep Verify
+    ```
+    You should see: *Verify return code: 0 (ok)*
 
 - if both (host and tablet) are on a wifi make sure "Client Isolation" is not actived on the AP
 
 - check if the proxy is configured correctly
-    systemctl status proxy (or the logs)
+    ```
+    systemctl status proxy
+
+    #or
+
+    journalctl -u proxy
+    ```
 - check if the CA cert was correctly installed
     when doing `update-ca-certificates` there should have been `1 added`
     check the logs
 
 - check xochitls's logs, stop the service, start manually with more logging
-```
-  systemctl stop xochitl
-  QT_LOGGING_RULES=xochitl.*=true xochitl | grep -A3 QUrl
-```
-    - if you see *SSL Handshake failed* then the cert was not installed correctly
+    ```
+    systemctl stop xochitl
+    QT_LOGGING_RULES=xochitl.*=true xochitl | grep -A3 QUrl
+
+    ```
+    if you see *SSL Handshake failed* then something is wrong with the certs
 
 
