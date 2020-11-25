@@ -26,7 +26,7 @@ or `make docker && ./rundocker.sh`
 
 env variables:  
 `PORT` port number (default: 3000)  
-`DATA_DIR` to set data/files directory (default: data in current dir)  
+`DATADIR` to set data/files directory (default: data in current dir)  
 `STORAGE_URL` the storage url resolvable from the device (default: http://hostname:port)  
 
 # Handwriting Recognition
