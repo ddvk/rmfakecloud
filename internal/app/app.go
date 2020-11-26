@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -20,7 +21,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/hwr"
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/storage"
-	"github.com/dgrijalva/jwt-go"
+	//	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 )
 
@@ -50,42 +51,52 @@ func (app *App) Stop() {
 	}
 }
 
-type myCustomClaims struct {
-	Foo string `json:"foo"`
-	jwt.StandardClaims
+type auth0token struct {
+	Profile auth0profile `json:"auth0-profile"`
+}
+type auth0profile struct {
+	UserId string `json:"UserID'`
 }
 
-func getToken(c *gin.Context) (string, error) {
+func getToken(c *gin.Context) (parsed *auth0token, err error) {
 	auth := c.Request.Header["Authorization"]
 
 	if len(auth) < 1 {
 		accessDenied(c, "missing token")
-		return "", errors.New("missing token")
+		return nil, errors.New("missing token")
 	}
 	token := strings.Split(auth[0], " ")
 	if len(token) < 2 {
-		return "", errors.New("missing token")
+		return nil, errors.New("missing token")
 	}
 	parts := strings.Split(token[1], ".")
 	length := len(parts)
 	if length != 3 {
-		return "", nil
+		return nil, errors.New("invalid token format")
 	}
 
 	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
 	if err != nil {
 		log.Warnln("decode token err", err)
-		return string(payload), nil
+		return nil, err
 	}
 
-	return "", nil
+	parsed = &auth0token{}
+	err = json.Unmarshal(payload, &parsed)
+	if err != nil {
+		return nil, err
+	}
+	return
 }
 func authMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token, err := getToken(c)
 		if err == nil {
-			log.Warnln("token:", token)
+			if err != nil {
+				log.Warnln(err)
+			}
 			c.Set("userId", "abc")
+			log.Info("got a user token", token.Profile.UserId)
 		} else {
 			c.Set("userId", "annon")
 			log.Warn(err)
@@ -176,8 +187,10 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 	router.POST("/token/json/2/user/new", func(c *gin.Context) {
 		token, err := getToken(c)
 		if err != nil {
-			log.Println("Got: ", token)
+			log.Warnln(err)
 		}
+		log.Debug(token)
+		//TODO: do something with the token
 		c.String(200, "eyJhbGciOiJIUzI1NiIsImtpZCI6InBpbmtwYW5kYSIsInR5cCI6IkpXVCJ9.eyJhdXRoMC1wcm9maWxlIjp7IlVzZXJJRCI6ImF1dGgwfDEyMzQiLCJJc1NvY2lhbCI6ZmFsc2UsIkNsaWVudElEIjoiIiwiQ29ubmVjdGlvbiI6IiIsIk5hbWUiOiJybUZha2UiLCJOaWNrbmFtZSI6InJtRmFrZSIsIkdpdmVuTmFtZSI6IiIsIkZhbWlseU5hbWUiOiIiLCJFbWFpbCI6ImZha2VAcm1mYWtlIiwiRW1haWxWZXJpZmllZCI6dHJ1ZSwiUGljdHVyZSI6ImltYWdlLnBuZyIsIkNyZWF0ZWRBdCI6IjIwMjAtMDQtMjlUMTA6NDg6MjUuOTM2WiIsIlVwZGF0ZWRBdCI6IjIwMjAtMTAtMjlUMTE6NTU6MzIuNjI4WiJ9LCJkZXZpY2UtZGVzYyI6InJlbWFya2FibGUiLCJkZXZpY2UtaWQiOiJSTTEwMC0wMDAtMDAwMDAiLCJleHAiOjEsImlhdCI6MSwiaXNzIjoick0gV2ViQXBwIiwianRpIjoiIiwibmJmIjoxLCJzY29wZXMiOiIiLCJzdWIiOiJyTSBVc2VyIFRva2VuIn0.DDnlaRuE4Un6x8OhM1uoHHXeitIOTaLMM2gFtVdMGt8")
 	})
 
@@ -372,7 +385,12 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 		})
 		// hwr
 		r.POST("/api/v1/page", func(c *gin.Context) {
-			body, _ := ioutil.ReadAll(c.Request.Body)
+			body, err := ioutil.ReadAll(c.Request.Body)
+			if err != nil || len(body) < 1 {
+				log.Warn("no body")
+				badReq(c, "missing bbody")
+				return
+			}
 			response, err := hwr.SendRequest(body)
 			if err != nil {
 				log.Error(err)
