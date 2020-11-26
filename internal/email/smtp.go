@@ -43,16 +43,6 @@ type Attachment struct {
 	data        []byte
 }
 
-/// remove remarkable ads
-func stripAds(msg string) string {
-	br := "<br>--<br>"
-	i := strings.Index(msg, br)
-	if i > 0 {
-		return msg[:i]
-	}
-	return msg
-}
-
 func sanitizeAttachmentName(name string) string {
 	return filepath.Base(name)
 }
@@ -73,10 +63,6 @@ func (b *EmailBuilder) AddFile(name string, data []byte, contentType string) {
 		filename:    sanitizeAttachmentName(name),
 		data:        data,
 	}
-	if b.attachments == nil {
-		b.attachments = []Attachment{attachment}
-		return
-	}
 	b.attachments = append(b.attachments, attachment)
 }
 
@@ -84,7 +70,6 @@ func (b *EmailBuilder) Send() (err error) {
 	if servername == "" {
 		return fmt.Errorf("not configured")
 	}
-	log.Println("smtp client")
 	frm := b.From
 	if fromOverride != "" {
 		frm = fromOverride
@@ -155,7 +140,7 @@ func (b *EmailBuilder) Send() (err error) {
 	msg += "Content-Transfer-Encoding: quoted-printable\r\n"
 	msg += "Content-Disposition: inline\r\n"
 	msg += "\r\n"
-	msg += stripAds(b.Body)
+	msg += b.Body
 
 	log.Debug("mime msg", msg)
 
@@ -165,7 +150,7 @@ func (b *EmailBuilder) Send() (err error) {
 	}
 	//Add attachments
 	for _, attachment := range b.attachments {
-		log.Printf("File attachment: %s\n", attachment)
+		log.Debugln("File attachment: ", attachment.filename)
 
 		file := fmt.Sprintf("\r\n--%s\r\n", delimeter)
 		file += "Content-Type: " + attachment.contentType + "; charset=\"utf-8\"\r\n"
@@ -197,5 +182,6 @@ func (b *EmailBuilder) Send() (err error) {
 	}
 
 	c.Quit()
+	log.Info("Message sent")
 	return nil
 }

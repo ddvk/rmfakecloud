@@ -131,6 +131,16 @@ func internalError(c *gin.Context, message string) {
 	c.Abort()
 }
 
+/// remove remarkable ads
+func stripAds(msg string) string {
+	br := "<br>--<br>"
+	i := strings.Index(msg, br)
+	if i > 0 {
+		return msg[:i]
+	}
+	return msg
+}
+
 // NewApp constructs an app
 func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.DocumentStorer) App {
 	hub := NewHub()
@@ -333,7 +343,7 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 				ReplyTo: form.Value["reply-to"][0],
 				From:    form.Value["from"][0],
 				To:      form.Value["to"][0],
-				Body:    form.Value["html"][0],
+				Body:    stripAds(form.Value["html"][0]),
 			}
 
 			for _, file := range form.File["attachment"] {

@@ -28,7 +28,6 @@ type Config struct {
 	StorageURL string
 	DataDir    string
 	TrashDir   string
-	LogLevel   log.Level
 }
 
 // FromEnv config from environment values
