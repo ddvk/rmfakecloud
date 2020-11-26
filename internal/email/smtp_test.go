@@ -31,7 +31,7 @@ func TestRead(t *testing.T) {
 		// FileName: []string{"sometest.txt"},
 		// File:     files,
 	}
-	sender.AddFile("tst", file)
+	sender.AddFile("tst", file, "text/plain")
 
 	err := sender.Send()
 	if err != nil && err.Error() != "not configured" {
