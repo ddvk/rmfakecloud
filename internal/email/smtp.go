@@ -8,6 +8,7 @@ import (
 	"net/mail"
 	"net/smtp"
 	"os"
+	"path/filepath"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
@@ -28,17 +29,22 @@ func init() {
 }
 
 type EmailBuilder struct {
-	From      string
-	To        string
-	ReplyTo   string
-	Body      string
-	Subject   string
-	fileNames []string
-	files     [][]byte
+	From    string
+	To      string
+	ReplyTo string
+	Body    string
+	Subject string
+
+	attachments []Attachment
+}
+type Attachment struct {
+	filename    string
+	contentType string
+	data        []byte
 }
 
 /// remove remarkable ads
-func Strip(msg string) string {
+func stripAds(msg string) string {
 	br := "<br>--<br>"
 	i := strings.Index(msg, br)
 	if i > 0 {
@@ -47,19 +53,31 @@ func Strip(msg string) string {
 	return msg
 }
 
+func sanitizeAttachmentName(name string) string {
+	return filepath.Base(name)
+}
+
 // workaround for go < 1.15
 func TrimAddresses(address string) string {
 	return strings.Trim(strings.Trim(address, " "), ",")
 }
 
-func (b *EmailBuilder) AddFile(name string, data []byte) {
-	if b.fileNames == nil || b.files == nil {
-		b.fileNames = []string{name}
-		b.files = [][]byte{data}
+func (b *EmailBuilder) AddFile(name string, data []byte, contentType string) {
+	log.Debugln("Adding file: ", name, " contentType: ", contentType)
+	if contentType == "" {
+		log.Warnln("no contentType, setting to binary")
+		contentType = "application/octet-stream"
+	}
+	attachment := Attachment{
+		contentType: contentType,
+		filename:    sanitizeAttachmentName(name),
+		data:        data,
+	}
+	if b.attachments == nil {
+		b.attachments = []Attachment{attachment}
 		return
 	}
-	b.fileNames = append(b.fileNames, name)
-	b.files = append(b.files, data)
+	b.attachments = append(b.attachments, attachment)
 }
 
 func (b *EmailBuilder) Send() (err error) {
@@ -81,8 +99,8 @@ func (b *EmailBuilder) Send() (err error) {
 		return err
 	}
 
-	log.Println("from:", from)
-	log.Println("to:", to)
+	log.Debug("from:", from)
+	log.Debug("to:", to)
 
 	host, _, _ := net.SplitHostPort(servername)
 
@@ -137,22 +155,22 @@ func (b *EmailBuilder) Send() (err error) {
 	msg += "Content-Transfer-Encoding: quoted-printable\r\n"
 	msg += "Content-Disposition: inline\r\n"
 	msg += "\r\n"
-	msg += Strip(b.Body)
+	msg += stripAds(b.Body)
 
-	log.Println("mime msg", msg)
+	log.Debug("mime msg", msg)
 
 	_, err = w.Write([]byte(msg))
 	if err != nil {
 		return err
 	}
 	//Add attachments
-	for i, f := range b.fileNames {
-		log.Printf("File attachment: %s\n", f)
+	for _, attachment := range b.attachments {
+		log.Printf("File attachment: %s\n", attachment)
 
 		file := fmt.Sprintf("\r\n--%s\r\n", delimeter)
-		file += "Content-Type: text/plain; charset=\"utf-8\"\r\n"
+		file += "Content-Type: " + attachment.contentType + "; charset=\"utf-8\"\r\n"
 		file += "Content-Transfer-Encoding: base64\r\n"
-		file += "Content-Disposition: attachment;filename=\"" + f + "\"\r\n\r\n"
+		file += "Content-Disposition: attachment;filename=\"" + attachment.filename + "\"\r\n\r\n"
 		_, err = w.Write([]byte(file))
 		if err != nil {
 			return err
@@ -160,15 +178,15 @@ func (b *EmailBuilder) Send() (err error) {
 
 		encoder := base64.NewEncoder(base64.StdEncoding, w)
 		defer encoder.Close()
-		_, err := encoder.Write(b.files[i])
+		_, err := encoder.Write(attachment.data)
 		if err != nil {
 			return err
 		}
 	}
 
 	// Add last boundary delimeter, with trailing -- according to RFC 1341
-	last_boundary := fmt.Sprintf("\r\n--%s--\r\n", delimeter)
-	_, err = w.Write([]byte(last_boundary))
+	lastBoundary := fmt.Sprintf("\r\n--%s--\r\n", delimeter)
+	_, err = w.Write([]byte(lastBoundary))
 	if err != nil {
 		return err
 	}

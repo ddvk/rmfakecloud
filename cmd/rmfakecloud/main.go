@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -20,6 +21,10 @@ func main() {
 	logger := logrus.StandardLogger()
 	logger.SetFormatter(&logrus.TextFormatter{})
 
+	if lvl, err := log.ParseLevel(os.Getenv("LOGLEVEL")); err == nil {
+		fmt.Println("Log level:", lvl)
+		logger.SetLevel(lvl)
+	}
 	cfg := config.FromEnv()
 
 	log.Println("Version: ", version)

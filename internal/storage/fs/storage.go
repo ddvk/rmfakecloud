@@ -24,9 +24,13 @@ type Storage struct {
 	Cfg config.Config
 }
 
+func (fs *Storage) getSanitizedFileName(path string) string {
+	return filepath.Join(fs.Cfg.DataDir, filepath.Base(path))
+}
+
 // GetDocument Opens a document by id
 func (fs *Storage) GetDocument(id string) (io.ReadCloser, error) {
-	fullPath := path.Join(fs.Cfg.DataDir, filepath.Base(fmt.Sprintf("%s.zip", id)))
+	fullPath := fs.getSanitizedFileName(id + ".zip")
 	log.Debugln("Fullpath:", fullPath)
 	reader, err := os.Open(fullPath)
 	return reader, err
@@ -34,7 +38,7 @@ func (fs *Storage) GetDocument(id string) (io.ReadCloser, error) {
 
 // UpdateMetadata updates the metadata of a document
 func (fs *Storage) UpdateMetadata(r *messages.RawDocument) error {
-	filepath := path.Join(fs.Cfg.DataDir, fmt.Sprintf("%s.metadata", r.Id))
+	filepath := fs.getSanitizedFileName(r.Id + ".metadata")
 
 	js, err := json.Marshal(r)
 	if err != nil {
@@ -45,26 +49,26 @@ func (fs *Storage) UpdateMetadata(r *messages.RawDocument) error {
 
 }
 
-// RemoveDocument remove document
+// RemoveDocument removes document (moves it to trash)
 func (fs *Storage) RemoveDocument(id string) error {
 	//do not delete, move to trash
-	dataDir := fs.Cfg.DataDir
 	trashDir := fs.Cfg.TrashDir
-	meta := fmt.Sprintf("%s.metadata", id)
-	fullPath := path.Join(dataDir, meta)
+	meta := filepath.Base(fmt.Sprintf("%s.metadata", id))
+	fullPath := fs.getSanitizedFileName(meta)
 	err := os.Rename(fullPath, path.Join(trashDir, meta))
 	if err != nil {
 		return err
 	}
-	meta = fmt.Sprintf("%s.zip", id)
-	fullPath = path.Join(dataDir, meta)
-	err = os.Rename(fullPath, path.Join(trashDir, meta))
+	zipfile := filepath.Base(fmt.Sprintf("%s.zip", id))
+	fullPath = fs.getSanitizedFileName(zipfile)
+	err = os.Rename(fullPath, path.Join(trashDir, zipfile))
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
+// GetStorageURL return a url for a file to store
 func (fs *Storage) GetStorageURL(id string) string {
 	uploadRL := fs.Cfg.StorageURL
 	log.Debugln("url", uploadRL)
@@ -113,7 +117,7 @@ func (fs *Storage) GetAllMetadata(withBlob bool) (result []*messages.RawDocument
 func (fs *Storage) GetMetadata(id string, withBlob bool) (*messages.RawDocument, error) {
 	dataDir := fs.Cfg.DataDir
 	filePath := id + ".metadata"
-	fullPath := path.Join(dataDir, filePath)
+	fullPath := path.Join(dataDir, filepath.Base(filePath))
 	f, err := os.Open(fullPath)
 	if err != nil {
 		return nil, err

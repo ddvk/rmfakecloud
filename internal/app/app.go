@@ -98,8 +98,11 @@ var ignored = []string{"/storage", "/api/v2/document"}
 
 func requestLoggerMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+
+		log.Debugln("header ", c.Request.Header)
 		for _, skip := range ignored {
 			if skip == c.Request.URL.Path {
+				log.Debugln("body logging ignored")
 				c.Next()
 				return
 			}
@@ -109,7 +112,6 @@ func requestLoggerMiddleware() gin.HandlerFunc {
 		tee := io.TeeReader(c.Request.Body, &buf)
 		body, _ := ioutil.ReadAll(tee)
 		c.Request.Body = ioutil.NopCloser(&buf)
-		log.Debugln("header ", c.Request.Header)
 		log.Debugln("body: ", string(body))
 		c.Next()
 	}
@@ -137,7 +139,9 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 
 	// router.Use(ginlogrus.Logger(std.Out), gin.Recovery())
 
-	router.Use(requestLoggerMiddleware())
+	if log.GetLevel() == log.DebugLevel {
+		router.Use(requestLoggerMiddleware())
+	}
 
 	docStorer.RegisterRoutes(router)
 
@@ -346,7 +350,7 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 					internalError(c, "cant read attachment")
 					return
 				}
-				emailClient.AddFile(file.Filename, data)
+				emailClient.AddFile(file.Filename, data, file.Header.Get("Content-Type"))
 			}
 			err = emailClient.Send()
 			if err != nil {

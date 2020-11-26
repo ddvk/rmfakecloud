@@ -28,6 +28,7 @@ env variables:
 `PORT` port number (default: 3000)  
 `DATADIR` to set data/files directory (default: data in current dir)  
 `STORAGE_URL` the storage url resolvable from the device (default: http://hostname:port)  
+`LOGLEVEL` default to **info** (set to **debug** for more logging or **warn**, **error** for less)
 
 # Handwriting Recognition
 In order to get hwr running with myScript register for a developer account and set the env variables: 
