@@ -15,7 +15,7 @@ import (
 )
 
 // SSL/TLS Email Example
-var servername, username, password, fromOverride string
+var servername, username, password, fromOverride, helo, insecureTls string
 
 func init() {
 	//TODO: remove env dependency
@@ -25,6 +25,8 @@ func init() {
 	if servername == "" {
 		log.Warnln("smtp not configured, no emails will be sent")
 	}
+	helo = os.Getenv("RM_SMTP_HELO")
+	insecureTls = os.Getenv("RM_SMTP_INSECURE_TLS")
 	fromOverride = os.Getenv("RM_SMTP_FROM")
 }
 
@@ -90,7 +92,7 @@ func (b *EmailBuilder) Send() (err error) {
 	host, _, _ := net.SplitHostPort(servername)
 
 	tlsconfig := &tls.Config{
-		InsecureSkipVerify: false,
+		InsecureSkipVerify: insecureTls != "",
 		ServerName:         host,
 	}
 
@@ -102,6 +104,13 @@ func (b *EmailBuilder) Send() (err error) {
 	c, err := smtp.NewClient(conn, host)
 	if err != nil {
 		return err
+	}
+
+	if helo != "" {
+		err = c.Hello(helo)
+		if err != nil {
+			return err
+		}
 	}
 
 	if username != "" {
