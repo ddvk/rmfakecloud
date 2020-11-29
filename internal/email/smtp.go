@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -184,6 +185,7 @@ func (b *Builder) Send(cfg *SMTPConfig) (err error) {
 
 	msgBuilder := strings.Builder{}
 	//basic email headers
+	msgBuilder.WriteString(fmt.Sprintf("Date: %s\r\n", time.Now().Format(time.RFC1123Z)))
 	msgBuilder.WriteString(fmt.Sprintf("From: %s\r\n", utf8encode(b.From.String())))
 	msgBuilder.WriteString(fmt.Sprintf("To: %s\r\n", utf8encode(to)))
 	if b.ReplyTo != nil {
