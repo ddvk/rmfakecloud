@@ -19,5 +19,6 @@ EXPOSE 3000
 #ENV RM_SMTP_SERVER=""
 #ENV RM_SMTP_USERNAME=""
 #ENV RM_SMTP_PASSWORD=""
-COPY --from=gobuilder /src/rmfakecloud-docker .
+COPY --from=gobuilder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=gobuilder /src/rmfakecloud-docker /
 ENTRYPOINT ["/rmfakecloud-docker"]
