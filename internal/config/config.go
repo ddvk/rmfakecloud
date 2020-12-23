@@ -1,6 +1,8 @@
 package config
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path"
@@ -17,17 +19,19 @@ const (
 	// DefaultHost fake url
 	DefaultHost = "local.appspot.com"
 
-	envDataDir    = "DATADIR"
-	envPort       = "PORT"
-	envStorageURL = "STORAGE_URL"
+	envDataDir      = "DATADIR"
+	envPort         = "PORT"
+	envStorageURL   = "STORAGE_URL"
+	envJWTSecretKey = "JWT_SECRET_KEY"
 )
 
 // Config config
 type Config struct {
-	Port       string
-	StorageURL string
-	DataDir    string
-	TrashDir   string
+	Port         string
+	StorageURL   string
+	DataDir      string
+	TrashDir     string
+	JWTSecretKey []byte
 }
 
 // FromEnv config from environment values
@@ -64,15 +68,23 @@ func FromEnv() *Config {
 		uploadURL = fmt.Sprintf("http://%s:%s", host, port)
 	}
 
-	if err != nil {
-		panic(err)
+	jwtSecretKey, err := hex.DecodeString(os.Getenv(envJWTSecretKey))
+	if err != nil || len(jwtSecretKey) == 0 {
+		jwtSecretKey = make([]byte, 32)
+		_, err := rand.Read(jwtSecretKey)
+		if err != nil {
+			panic(err)
+		}
+		log.Warnf("You have to set %s with some content. Eg: %s='%X'", envJWTSecretKey, envJWTSecretKey, jwtSecretKey)
+		log.Warn("  without this variable set, you'll be disconnected after this program restart")
 	}
 
 	cfg := Config{
-		Port:       port,
-		StorageURL: uploadURL,
-		DataDir:    dataDir,
-		TrashDir:   trashDir,
+		Port:         port,
+		StorageURL:   uploadURL,
+		DataDir:      dataDir,
+		TrashDir:     trashDir,
+		JWTSecretKey: jwtSecretKey,
 	}
 	return &cfg
 }

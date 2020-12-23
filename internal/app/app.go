@@ -53,10 +53,26 @@ func (app *App) Stop() {
 }
 
 type auth0token struct {
-	Profile auth0profile `json:"auth0-profile"`
+	Profile    *auth0profile `json:"auth0-profile,omitempty"`
+	DeviceDesc string        `json:"device-desc"`
+	DeviceId   string        `json:"device-id"`
+	Scopes     string        `json:"scopes,omitempty"`
+	jwt.StandardClaims
 }
 type auth0profile struct {
-	UserId string `json:"UserID'`
+	UserId        string `json:"UserID'`
+	IsSocial      bool
+	ClientId      string `json:"ClientID'`
+	Connection    string
+	Name          string
+	Nickname      string
+	GivenName     string
+	FamilyName    string
+	Email         string
+	EmailVerified bool
+	Picture       string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
 }
 
 func getToken(c *gin.Context) (parsed *auth0token, err error) {
@@ -185,19 +201,66 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 		}
 
 		log.Printf("Request: %s\n", json)
-		//TODO: generate the token
-		c.String(200, "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdXRoMC11c2VyaWQiOiJhdXRoMHxhdXRoIiwiZGV2aWNlLWRlc2MiOiJyZW1hcmthYmxlIiwiZGV2aWNlLWlkIjoiUk0xMDAtMDAwLTAwMDAwIiwiaWF0IjoxMjM0MTIzNCwiaXNzIjoick0gV2ViQXBwIiwic3ViIjoick0gRGV2aWNlIFRva2VuIn0.nf3D0dF1c_QbOAqh8e7R4cFQJp_wFa-rVa-PpOe80mw")
+
+		// generate the JWT token
+		expirationTime := time.Now().Add(356 * 24 * time.Hour)
+		claims := &auth0token{
+			DeviceDesc: json.DeviceDesc,
+			DeviceId:   json.DeviceId,
+			StandardClaims: jwt.StandardClaims{
+				ExpiresAt: expirationTime.Unix(),
+				Subject:   "rM Device Token",
+			},
+		}
+
+		deviceToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		tokenString, err := deviceToken.SignedString(cfg.JWTSecretKey)
+		if err != nil {
+			badReq(c, err.Error())
+			return
+		}
+
+		c.String(200, tokenString)
 	})
 
 	// create new access token
 	router.POST("/token/json/2/user/new", func(c *gin.Context) {
-		token, err := getToken(c)
+		deviceToken, err := getToken(c)
 		if err != nil {
 			log.Warnln(err)
 		}
-		log.Debug(token)
+		log.Debug(deviceToken)
+
+		expirationTime := time.Now().Add(30 * 24 * time.Hour)
+		claims := &auth0token{
+			Profile: &auth0profile{
+				UserId:        "auth0|1234",
+				IsSocial:      false,
+				Name:          "rmFake",
+				Nickname:      "rmFake",
+				Email:         "fake@rmfake",
+				EmailVerified: true,
+				Picture:       "image.png",
+				CreatedAt:     time.Date(2020, 04, 29, 10, 48, 25, 936, time.UTC),
+				UpdatedAt:     time.Now(),
+			},
+			DeviceDesc: deviceToken.DeviceDesc,
+			DeviceId:   deviceToken.DeviceId,
+			StandardClaims: jwt.StandardClaims{
+				ExpiresAt: expirationTime.Unix(),
+				Subject:   "rM User Token",
+			},
+		}
+
+		userToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		tokenString, err := userToken.SignedString(cfg.JWTSecretKey)
+		if err != nil {
+			badReq(c, err.Error())
+			return
+		}
 		//TODO: do something with the token
-		c.String(200, "eyJhbGciOiJIUzI1NiIsImtpZCI6InBpbmtwYW5kYSIsInR5cCI6IkpXVCJ9.eyJhdXRoMC1wcm9maWxlIjp7IlVzZXJJRCI6ImF1dGgwfDEyMzQiLCJJc1NvY2lhbCI6ZmFsc2UsIkNsaWVudElEIjoiIiwiQ29ubmVjdGlvbiI6IiIsIk5hbWUiOiJybUZha2UiLCJOaWNrbmFtZSI6InJtRmFrZSIsIkdpdmVuTmFtZSI6IiIsIkZhbWlseU5hbWUiOiIiLCJFbWFpbCI6ImZha2VAcm1mYWtlIiwiRW1haWxWZXJpZmllZCI6dHJ1ZSwiUGljdHVyZSI6ImltYWdlLnBuZyIsIkNyZWF0ZWRBdCI6IjIwMjAtMDQtMjlUMTA6NDg6MjUuOTM2WiIsIlVwZGF0ZWRBdCI6IjIwMjAtMTAtMjlUMTE6NTU6MzIuNjI4WiJ9LCJkZXZpY2UtZGVzYyI6InJlbWFya2FibGUiLCJkZXZpY2UtaWQiOiJSTTEwMC0wMDAtMDAwMDAiLCJleHAiOjEsImlhdCI6MSwiaXNzIjoick0gV2ViQXBwIiwianRpIjoiIiwibmJmIjoxLCJzY29wZXMiOiIiLCJzdWIiOiJyTSBVc2VyIFRva2VuIn0.DDnlaRuE4Un6x8OhM1uoHHXeitIOTaLMM2gFtVdMGt8")
+
+		c.String(200, tokenString)
 	})
 
 	//service locator
