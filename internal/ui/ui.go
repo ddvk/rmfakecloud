@@ -23,6 +23,8 @@ func (w ReactAppWrapper) Open(filepath string) (http.File, error) {
 	//index.html hack
 	if filepath != indexReplacement {
 		fullpath = path.Join(w.prefix, filepath)
+	} else {
+		fullpath = "/index.html"
 	}
 	f, err := w.fs.Open(fullpath)
 	return f, err
