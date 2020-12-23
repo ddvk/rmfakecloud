@@ -52,30 +52,7 @@ func (app *App) Stop() {
 	}
 }
 
-type auth0token struct {
-	Profile    *auth0profile `json:"auth0-profile,omitempty"`
-	DeviceDesc string        `json:"device-desc"`
-	DeviceId   string        `json:"device-id"`
-	Scopes     string        `json:"scopes,omitempty"`
-	jwt.StandardClaims
-}
-type auth0profile struct {
-	UserId        string `json:"UserID'`
-	IsSocial      bool
-	ClientId      string `json:"ClientID'`
-	Connection    string
-	Name          string
-	Nickname      string
-	GivenName     string
-	FamilyName    string
-	Email         string
-	EmailVerified bool
-	Picture       string
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
-}
-
-func getToken(c *gin.Context) (parsed *auth0token, err error) {
+func getToken(c *gin.Context) (parsed *messages.Auth0token, err error) {
 	auth := c.Request.Header["Authorization"]
 
 	if len(auth) < 1 {
@@ -98,7 +75,7 @@ func getToken(c *gin.Context) (parsed *auth0token, err error) {
 		return nil, err
 	}
 
-	parsed = &auth0token{}
+	parsed = &messages.Auth0token{}
 	err = json.Unmarshal(payload, &parsed)
 	if err != nil {
 		return nil, err
@@ -170,7 +147,7 @@ func stripAds(msg string) string {
 }
 
 // NewApp constructs an app
-func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.DocumentStorer) App {
+func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.DocumentStorer, userStorer db.UserStorer) App {
 	hub := NewHub()
 	gin.ForceConsoleColor()
 	router := gin.Default()
@@ -181,7 +158,7 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 		router.Use(requestLoggerMiddleware())
 	}
 
-	ui.RegisterUI(router, metaStorer)
+	ui.RegisterUI(router, metaStorer, userStorer)
 
 	router.Use(requestLoggerMiddleware())
 
@@ -204,7 +181,7 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 
 		// generate the JWT token
 		expirationTime := time.Now().Add(356 * 24 * time.Hour)
-		claims := &auth0token{
+		claims := &messages.Auth0token{
 			DeviceDesc: json.DeviceDesc,
 			DeviceId:   json.DeviceId,
 			StandardClaims: jwt.StandardClaims{
@@ -232,8 +209,8 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 		log.Debug(deviceToken)
 
 		expirationTime := time.Now().Add(30 * 24 * time.Hour)
-		claims := &auth0token{
-			Profile: &auth0profile{
+		claims := &messages.Auth0token{
+			Profile: &messages.Auth0profile{
 				UserId:        "auth0|1234",
 				IsSocial:      false,
 				Name:          "rmFake",

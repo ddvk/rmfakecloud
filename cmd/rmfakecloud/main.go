@@ -40,7 +40,7 @@ func main() {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
 	gin.DefaultWriter = logger.Writer()
-	a := app.NewApp(cfg, fsStorage, fsStorage)
+	a := app.NewApp(cfg, fsStorage, fsStorage, fsStorage)
 	go a.Start()
 	quit := make(chan os.Signal)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)

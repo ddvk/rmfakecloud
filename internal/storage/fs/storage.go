@@ -157,6 +157,91 @@ func (fs *Storage) GetMetadata(id string, withBlob bool) (*messages.RawDocument,
 
 }
 
+func (fs *Storage) GetUser(id string) (response *messages.User, err error) {
+	dataDir := fs.Cfg.DataDir
+	filePath := ".userprofile"
+	fullPath := path.Join(dataDir, id, filepath.Base(filePath))
+
+	var f *os.File
+	f, err = os.Open(fullPath)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+
+	var content []byte
+	content, err = ioutil.ReadAll(f)
+	if err != nil {
+		return
+	}
+
+	response = &messages.User{}
+	err = json.Unmarshal(content, response)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+func (fs *Storage) GetUsers() (users []*messages.User, err error) {
+	dataDir := fs.Cfg.DataDir
+
+	err = filepath.Walk(dataDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if info.IsDir() {
+			if user, err := fs.GetUser(info.Name()); err == nil {
+				users = append(users, user)
+			}
+		}
+
+		return nil
+	})
+
+	return
+}
+
+func (fs *Storage) RegisterUser(u *messages.User) (err error) {
+	userDir := path.Join(fs.Cfg.DataDir, u.Id)
+	filePath := ".userprofile"
+	fullPath := path.Join(userDir, filepath.Base(filePath))
+
+	// Create the user's directory
+	err = os.MkdirAll(userDir, 0755)
+	if err != nil {
+		return
+	}
+
+	// Create the profile file
+	var js []byte
+	js, err = json.Marshal(u)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(fullPath, js, 0644)
+
+	return
+}
+
+func (fs *Storage) UpdateUser(u *messages.User) (err error) {
+	userDir := path.Join(fs.Cfg.DataDir, u.Id)
+	filePath := ".userprofile"
+	fullPath := path.Join(userDir, filepath.Base(filePath))
+
+	// Erase the profile file
+	var js []byte
+	js, err = json.Marshal(u)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(fullPath, js, 0644)
+
+	return
+}
+
 func (fs *Storage) RegisterRoutes(router *gin.Engine) {
 
 	router.GET("/storage", func(c *gin.Context) {

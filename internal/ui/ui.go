@@ -54,7 +54,7 @@ func badReq(c *gin.Context, message string) {
 }
 
 /// RegisterUI add the react ui
-func RegisterUI(e *gin.Engine, metaStorer db.MetadataStorer) {
+func RegisterUI(e *gin.Engine, metaStorer db.MetadataStorer, userStorer db.UserStorer) {
 	staticWrapper := ReactAppWrapper{
 		fs:     webassets.Assets,
 		prefix: "/static",
