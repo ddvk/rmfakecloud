@@ -181,7 +181,7 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 		router.Use(requestLoggerMiddleware())
 	}
 
-	ui.RegisterUI(router)
+	ui.RegisterUI(router, metaStorer)
 
 	router.Use(requestLoggerMiddleware())
 

@@ -4,6 +4,9 @@ import (
 	"net/http"
 	"path"
 
+	log "github.com/sirupsen/logrus"
+
+	"github.com/ddvk/rmfakecloud/internal/db"
 	"github.com/ddvk/rmfakecloud/internal/webassets"
 	"github.com/gin-gonic/gin"
 )
@@ -45,8 +48,13 @@ type DocumentList struct {
 	Documents []Document `json:documents`
 }
 
+func badReq(c *gin.Context, message string) {
+	c.JSON(http.StatusBadRequest, gin.H{"error": message})
+	c.Abort()
+}
+
 /// RegisterUI add the react ui
-func RegisterUI(e *gin.Engine) {
+func RegisterUI(e *gin.Engine, metaStorer db.MetadataStorer) {
 	staticWrapper := ReactAppWrapper{
 		fs:     webassets.Assets,
 		prefix: "/static",
@@ -55,15 +63,14 @@ func RegisterUI(e *gin.Engine) {
 
 	r := e.Group("/ui/api")
 	r.GET("list", func(c *gin.Context) {
-		documentList := DocumentList{
-			Documents: []Document{
-				Document{
-					ID:   "asd",
-					Name: "test",
-				},
-			},
+		docs, err := metaStorer.GetAllMetadata(false)
+		if err != nil {
+			log.Error(err)
+			badReq(c, err.Error())
+			return
 		}
-		c.JSON(http.StatusOK, documentList.Documents)
+
+		c.JSON(http.StatusOK, docs)
 	})
 
 }
