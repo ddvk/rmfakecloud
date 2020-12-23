@@ -44,7 +44,7 @@ func (fs *Storage) UpdateMetadata(r *messages.RawDocument) error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(filepath, js, 0700)
+	err = ioutil.WriteFile(filepath, js, 0600)
 	return err
 
 }
