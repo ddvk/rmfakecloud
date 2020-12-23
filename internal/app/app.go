@@ -142,7 +142,7 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 		router.Use(requestLoggerMiddleware())
 	}
 
-	ui.RegisterUI(router, metaStorer, userStorer)
+	ui.RegisterUI(router, cfg, userStorer)
 
 	router.Use(requestLoggerMiddleware())
 
@@ -235,6 +235,8 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 	r := router.Group("/")
 	r.Use(authMiddleware(cfg.JWTSecretKey))
 	{
+		ui.RegisterUIAuth(r, metaStorer, userStorer)
+
 		//unregister device
 		r.POST("/token/json/3/device/delete", func(c *gin.Context) {
 			c.String(204, "")

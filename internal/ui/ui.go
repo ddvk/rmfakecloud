@@ -6,7 +6,9 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/db"
+	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/webassets"
 	"github.com/gin-gonic/gin"
 )
@@ -55,8 +57,13 @@ func badReq(c *gin.Context, message string) {
 	c.Abort()
 }
 
+type loginForm struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
 /// RegisterUI add the react ui
-func RegisterUI(e *gin.Engine, metaStorer db.MetadataStorer, userStorer db.UserStorer) {
+func RegisterUI(e *gin.Engine, cfg *config.Config, userStorer db.UserStorer) {
 	staticWrapper := ReactAppWrapper{
 		fs:     webassets.Assets,
 		prefix: "/static",
@@ -64,6 +71,96 @@ func RegisterUI(e *gin.Engine, metaStorer db.MetadataStorer, userStorer db.UserS
 	staticWrapper.Register(e)
 
 	r := e.Group("/ui/api")
+	r.POST("register", func(c *gin.Context) {
+		var form loginForm
+		if err := c.ShouldBindJSON(&form); err != nil {
+			log.Error(err)
+			badReq(c, err.Error())
+			return
+		}
+
+		// Check this user doesn't already exist
+		users, err := userStorer.GetUsers()
+		if err != nil {
+			log.Error(err)
+			badReq(c, err.Error())
+			return
+		}
+
+		for _, u := range users {
+			if u.Email == form.Email {
+				badReq(c, form.Email+" is already registered.")
+				return
+			}
+		}
+
+		user, err := messages.NewUser(form.Email, form.Password)
+		if err != nil {
+			log.Error(err)
+			badReq(c, err.Error())
+			return
+		}
+
+		err = userStorer.RegisterUser(user)
+		if err != nil {
+			log.Error(err)
+			badReq(c, err.Error())
+			return
+		}
+
+		c.JSON(http.StatusOK, user)
+	})
+
+	r.POST("login", func(c *gin.Context) {
+		var form loginForm
+		if err := c.ShouldBindJSON(&form); err != nil {
+			log.Error(err)
+			badReq(c, err.Error())
+			return
+		}
+
+		// Try to find the user
+		users, err := userStorer.GetUsers()
+		if err != nil {
+			log.Error(err)
+			badReq(c, err.Error())
+			return
+		}
+
+		var user *messages.User
+		for _, u := range users {
+			if form.Email == u.Email {
+				user = u
+			}
+		}
+
+		if user == nil {
+			log.Error(err)
+			c.JSON(http.StatusUnauthorized, "Invalid email or password")
+			return
+		}
+
+		if ok, err := user.CheckPassword(form.Password); err != nil || !ok {
+			log.Error(err)
+			c.JSON(http.StatusUnauthorized, "Invalid email or password")
+			return
+		}
+
+		token := user.NewAuth0Token("ui", "")
+		tokenString, err := token.SignedString(cfg.JWTSecretKey)
+		if err != nil {
+			badReq(c, err.Error())
+			return
+		}
+
+		c.String(http.StatusOK, tokenString)
+	})
+
+}
+
+func RegisterUIAuth(e *gin.RouterGroup, metaStorer db.MetadataStorer, userStorer db.UserStorer) {
+	r := e.Group("/ui/api")
+
 	r.GET("list", func(c *gin.Context) {
 		docs, err := metaStorer.GetAllMetadata(false)
 		if err != nil {
@@ -74,5 +171,4 @@ func RegisterUI(e *gin.Engine, metaStorer db.MetadataStorer, userStorer db.UserS
 
 		c.JSON(http.StatusOK, docs)
 	})
-
 }
