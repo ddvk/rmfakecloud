@@ -3,8 +3,6 @@ package app
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -52,7 +50,7 @@ func (app *App) Stop() {
 	}
 }
 
-func getToken(c *gin.Context) (parsed *messages.Auth0token, err error) {
+func getToken(c *gin.Context, jwtSecretKey []byte) (claims *messages.Auth0token, err error) {
 	auth := c.Request.Header["Authorization"]
 
 	if len(auth) < 1 {
@@ -63,37 +61,23 @@ func getToken(c *gin.Context) (parsed *messages.Auth0token, err error) {
 	if len(token) < 2 {
 		return nil, errors.New("missing token")
 	}
-	parts := strings.Split(token[1], ".")
-	length := len(parts)
-	if length != 3 {
-		return nil, errors.New("invalid token format")
-	}
 
-	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
-	if err != nil {
-		log.Warnln("decode token err", err)
-		return nil, err
-	}
-
-	parsed = &messages.Auth0token{}
-	err = json.Unmarshal(payload, &parsed)
-	if err != nil {
-		return nil, err
-	}
+	claims = &messages.Auth0token{}
+	_, err = jwt.ParseWithClaims(token[1], claims, func(token *jwt.Token) (interface{}, error) {
+		return jwtSecretKey, nil
+	})
 	return
 }
-func authMiddleware() gin.HandlerFunc {
+func authMiddleware(jwtSecretKey []byte) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token, err := getToken(c)
+		claims, err := getToken(c, jwtSecretKey)
 		if err == nil {
-			if err != nil {
-				log.Warnln(err)
-			}
-			c.Set("userId", "abc")
-			log.Info("got a user token", token.Profile.UserId)
+			c.Set("userId", strings.TrimPrefix(claims.Profile.UserId, "auth0|"))
+			log.Info("got a user token", claims.Profile.UserId)
 		} else {
-			c.Set("userId", "annon")
 			log.Warn(err)
+			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+			c.Abort()
 		}
 		c.Next()
 	}
@@ -202,7 +186,7 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 
 	// create new access token
 	router.POST("/token/json/2/user/new", func(c *gin.Context) {
-		deviceToken, err := getToken(c)
+		deviceToken, err := getToken(c, cfg.JWTSecretKey)
 		if err != nil {
 			log.Warnln(err)
 		}
@@ -249,7 +233,7 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 	})
 
 	r := router.Group("/")
-	r.Use(authMiddleware())
+	r.Use(authMiddleware(cfg.JWTSecretKey))
 	{
 		//unregister device
 		r.POST("/token/json/3/device/delete", func(c *gin.Context) {
