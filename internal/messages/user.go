@@ -24,8 +24,9 @@ type User struct {
 	Id            string `json:"userid"`
 	Email         string `json:"email"`
 	EmailVerified bool
-	Password      string  `json:"password"`
-	CurrentCode   *string `json:"code"`
+	Password      string     `json:"password"`
+	CurrentCode   *string    `json:"code"`
+	CodeExpire    *time.Time `json:"code_exp"`
 	Name          string
 	Nickname      string
 	GivenName     string
@@ -138,6 +139,9 @@ func (u *User) NewUserCode() (code string, err error) {
 	}
 
 	code = base32.StdEncoding.EncodeToString(b)
+
+	u.Code = code
+	u.CodeExpire = time.Now().Add(10 * time.Minute)
 
 	return
 }

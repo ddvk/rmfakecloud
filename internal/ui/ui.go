@@ -167,6 +167,43 @@ func RegisterUI(e *gin.Engine, cfg *config.Config, userStorer db.UserStorer) {
 func RegisterUIAuth(e *gin.RouterGroup, metaStorer db.MetadataStorer, userStorer db.UserStorer) {
 	r := e.Group("/ui/api")
 
+	r.GET("newcode", func(c *gin.Context) {
+		uid, ok := c.Get("userId")
+		if !ok {
+			log.Error("Unable to find userId in context")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+			c.Abort()
+			return
+		}
+		userId, ok := uid.(string)
+		if !ok {
+			log.Error("Unable to find valid userId in context")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+			c.Abort()
+			return
+		}
+
+		user, err := userStorer.GetUser(userId)
+		if err != nil {
+			log.Error("Unable to find user: ", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.Abort()
+			return
+		}
+
+		code, err := user.NewUserCode()
+		if err != nil {
+			log.Error("Unable to generate new device code: ", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to generate new code"})
+			c.Abort()
+			return
+		}
+
+		userStorer.UpdateUser(user)
+
+		c.JSON(http.StatusOK, code)
+	})
+
 	r.GET("list", func(c *gin.Context) {
 		docs, err := metaStorer.GetAllMetadata(false)
 		if err != nil {
