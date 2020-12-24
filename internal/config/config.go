@@ -19,19 +19,21 @@ const (
 	// DefaultHost fake url
 	DefaultHost = "local.appspot.com"
 
-	envDataDir      = "DATADIR"
-	envPort         = "PORT"
-	envStorageURL   = "STORAGE_URL"
-	envJWTSecretKey = "JWT_SECRET_KEY"
+	envDataDir          = "DATADIR"
+	envPort             = "PORT"
+	envStorageURL       = "STORAGE_URL"
+	envJWTSecretKey     = "JWT_SECRET_KEY"
+	envRegistrationOpen = "OPEN_REGISTRATION"
 )
 
 // Config config
 type Config struct {
-	Port         string
-	StorageURL   string
-	DataDir      string
-	TrashDir     string
-	JWTSecretKey []byte
+	Port             string
+	StorageURL       string
+	DataDir          string
+	TrashDir         string
+	JWTSecretKey     []byte
+	RegistrationOpen bool
 }
 
 // FromEnv config from environment values
@@ -79,12 +81,15 @@ func FromEnv() *Config {
 		log.Warn("  without this variable set, you'll be disconnected after this program restart")
 	}
 
+	openRegistration := os.Getenv(envRegistrationOpen)
+
 	cfg := Config{
-		Port:         port,
-		StorageURL:   uploadURL,
-		DataDir:      dataDir,
-		TrashDir:     trashDir,
-		JWTSecretKey: jwtSecretKey,
+		Port:             port,
+		StorageURL:       uploadURL,
+		DataDir:          dataDir,
+		TrashDir:         trashDir,
+		JWTSecretKey:     jwtSecretKey,
+		RegistrationOpen: openRegistration == "1" || openRegistration == "on" || openRegistration == "ON" || openRegistration == "true" || openRegistration == "True" || openRegistration == "TRUE",
 	}
 	return &cfg
 }

@@ -72,6 +72,12 @@ func RegisterUI(e *gin.Engine, cfg *config.Config, userStorer db.UserStorer) {
 
 	r := e.Group("/ui/api")
 	r.POST("register", func(c *gin.Context) {
+		if !cfg.RegistrationOpen {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Registrations are closed"})
+			c.Abort()
+			return
+		}
+
 		var form loginForm
 		if err := c.ShouldBindJSON(&form); err != nil {
 			log.Error(err)
