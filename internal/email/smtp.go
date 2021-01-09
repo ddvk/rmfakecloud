@@ -174,7 +174,7 @@ func (b *EmailBuilder) Send() (err error) {
 			return err
 		}
 		fileData := base64.StdEncoding.EncodeToString(attachment.data)
-		_, err = w.Write([]byte(chunkSplit(fileData, MaxLineLength, "\n")))
+		_, err = w.Write([]byte(chunkSplit(fileData, MaxLineLength, "\r\n")))
 		if err != nil {
 			return err
 		}
