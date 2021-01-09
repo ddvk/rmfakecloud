@@ -14,6 +14,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+    MaxLineLength = 76 // MaxLineLength is the maximum line length per RFC 2045
+)
+
 // SSL/TLS Email Example
 var servername, username, password, fromOverride, helo, insecureTls string
 
@@ -169,10 +173,8 @@ func (b *EmailBuilder) Send() (err error) {
 		if err != nil {
 			return err
 		}
-
-		encoder := base64.NewEncoder(base64.StdEncoding, w)
-		defer encoder.Close()
-		_, err := encoder.Write(attachment.data)
+		fileData := base64.StdEncoding.EncodeToString(attachment.data)
+		_, err = w.Write([]byte(chunkSplit(fileData, MaxLineLength, "\r\n")))
 		if err != nil {
 			return err
 		}
@@ -193,4 +195,31 @@ func (b *EmailBuilder) Send() (err error) {
 	c.Quit()
 	log.Info("Message sent")
 	return nil
+}
+
+func chunkSplit(body string, limit int, end string) string {
+	var charSlice []rune
+
+	// push characters to slice
+	for _, char := range body {
+		charSlice = append(charSlice, char)
+	}
+
+	var result = ""
+
+	for len(charSlice) >= 1 {
+     		// convert slice/array back to string
+		// but insert end at specified limit
+		result = result + string(charSlice[:limit]) + end
+
+		// discard the elements that were copied over to result
+		charSlice = charSlice[limit:]
+
+		// change the limit
+		// to cater for the last few words in
+		if len(charSlice) < limit {
+			limit = len(charSlice)
+		}
+	}
+	return result
 }
