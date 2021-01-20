@@ -1,7 +1,7 @@
 # rmfakecloud
 
 
-rmfakecloud is fake of the cloud sync the remarkable tablet is using, in case you want to sync/backup your files and have full control of the hosting/storage environment and don't trust Google/.
+rmfakecloud is fake of the cloud sync the remarkable tablet is using, in case you want to sync/backup your files and have full control of the hosting/storage environment and don't trust Google.
 
 # Status 
 early prototype (sync and notifications work). no security and a lot of quick and dirty hacks.
@@ -26,25 +26,37 @@ or `make docker && ./rundocker.sh`
 
 env variables:  
 `PORT` port number (default: 3000)  
-`DATA_DIR` to set data/files directory (default: data in current dir)  
+`DATADIR` to set data/files directory (default: data in current dir)  
 `STORAGE_URL` the storage url resolvable from the device (default: http://hostname:port)  
+`LOGLEVEL` default to **info** (set to **debug** for more logging or **warn**, **error** for less)
 
 # Handwriting Recognition
 In order to get hwr running with myScript register for a developer account and set the env variables: 
-`HWR_APPLICATIONKEY`  
+
+`RMAPI_HWR_APPLICATIONKEY`  
 `RMAPI_HWR_HMAC`
 
 # Sending emails
-Define the following env variables (only gmail has been tested):
+Define the following env variables:
 
-`RM_SMTP_SERVER` e.g. smtp.gmail.com:465  
-`RM_STMP_USERNAME`  
-`RM_STMP_PASSWORD` (colud try with app password)  
+```
+RM_SMTP_SERVER=smtp.gmail.com:465
+RM_SMTP_USERNAME=user@domain.com
+RM_SMTP_PASSWORD=plaintextpass  # Application password should work
+```
+
+If you want to provide custom FROM header for your mails, you can use:
+```
+RM_SMTP_FROM='"ReMarkable self-hosted" <user@domain.com>'
+```
+
+# [HTTPS](docs/https.md)
 
 # Prerequisites / Device Modifications
 
 ## Without patching the binary
-all needed artifacts are in `device/` folder
+all needed artifacts are in `scripts/device/` folder
+For Automatic script check [Automagic](scripts/device/readme.md)
 
 Install a root CA on the device, you can use the `device/gencert.sh` script
 - generate a CA and host certificate for *.appspot.com []()
@@ -56,6 +68,7 @@ Install a root CA on the device, you can use the `device/gencert.sh` script
             - stop xochitl `systemctl stop xochitl`
             - add to /etc/hosts
                 ```
+                127.0.0.1 hwr-production-dot-remarkable-production.appspot.com
                 127.0.0.1 service-manager-production-dot-remarkable-production.appspot.com
                 127.0.0.1 local.appspot.com
                 127.0.0.1 my.remarkable.com
@@ -135,17 +148,32 @@ Going back will again, delete all documents and put what was on the server
     wget -qO- http://host:3000 (or relevant ports, should get Working...)
     wget -qO- https://local.appspot.com (should get Working...)
     
+- check that the proxy is running and certs are installed:
+    ```
+    echo Q | openssl s_client -connect localhost:443  -verify_hostname local.appspot.com 2>&1 | grep Verify
+    ```
+    You should see: *Verify return code: 0 (ok)*
 
 - if both (host and tablet) are on a wifi make sure "Client Isolation" is not actived on the AP
 
 - check if the proxy is configured correctly
-    systemctl status proxy (or the logs)
+    ```
+    systemctl status proxy
+
+    #or
+
+    journalctl -u proxy
+    ```
 - check if the CA cert was correctly installed
     when doing `update-ca-certificates` there should have been `1 added`
     check the logs
 
 - check xochitls's logs, stop the service, start manually with more logging
-    `systemct stop xochtil`
-    `QT_LOGGING_RULES=xochitl.*=true xochitl  | grep -A3 QUrl`
+    ```
+    systemctl stop xochitl
+    QT_LOGGING_RULES=xochitl.*=true xochitl | grep -A3 QUrl
+
+    ```
+    if you see *SSL Handshake failed* then something is wrong with the certs
 
 

@@ -29,7 +29,7 @@ $(OUT_DIR)/$(BINARY)-docker:$(GOFILES)
 	CGO_ENABLED=0 $(BUILD)
 
 container: $(OUT_DIR)/$(BINARY)-docker
-	docker build -t rmfakecloud .
+	docker build -t rmfakecloud -f Dockerfile.make .
 	
 assets_vfsdata.go: ui
 	go generate ./...
@@ -45,7 +45,7 @@ run:
 	go run $(CMD)
 
 dev:
-	find . -path ui -prune -false -o -iname "*.go" | entr -r go run $(CMD)
+	find . -path ui -prune -false -o -iname "*.go" | entr -r go run -tags dev $(CMD)
 devui:
 	npm start --prefix ui
 
