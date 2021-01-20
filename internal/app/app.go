@@ -2,14 +2,18 @@ package app
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/db"
@@ -18,7 +22,8 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/ui"
-	"github.com/dgrijalva/jwt-go"
+
+	//	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 )
 
@@ -26,53 +31,77 @@ import (
 type App struct {
 	router *gin.Engine
 	cfg    *config.Config
+	srv    *http.Server
 }
 
 // Start starts the app
 func (app *App) Start() {
-	app.router.Run(":" + app.cfg.Port)
+	app.srv = &http.Server{
+		Addr:    ":" + app.cfg.Port,
+		Handler: app.router,
+	}
+
+	if err := app.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Fatalf("listen: %s\n", err)
+	}
+}
+func (app *App) Stop() {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := app.srv.Shutdown(ctx); err != nil {
+		log.Fatal("Server Shutdown:", err)
+	}
 }
 
-type myCustomClaims struct {
-	Foo string `json:"foo"`
-	jwt.StandardClaims
+type auth0token struct {
+	Profile auth0profile `json:"auth0-profile"`
+}
+type auth0profile struct {
+	UserId string `json:"UserID'`
 }
 
-func getToken(c *gin.Context) (string, error) {
+func getToken(c *gin.Context) (parsed *auth0token, err error) {
 	auth := c.Request.Header["Authorization"]
 
 	if len(auth) < 1 {
 		accessDenied(c, "missing token")
-		return "", errors.New("missing token")
+		return nil, errors.New("missing token")
 	}
 	token := strings.Split(auth[0], " ")
 	if len(token) < 2 {
-		return "", errors.New("missing token")
+		return nil, errors.New("missing token")
 	}
 	parts := strings.Split(token[1], ".")
 	length := len(parts)
 	if length != 3 {
-		log.Println("not jwt, parts length:", length)
-		return "", nil
+		return nil, errors.New("invalid token format")
 	}
 
-	payload, err := base64.StdEncoding.DecodeString(parts[1])
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
 	if err != nil {
-		log.Println("decode token err", err)
-		return string(payload), nil
+		log.Warnln("decode token err", err)
+		return nil, err
 	}
 
-	return "", nil
+	parsed = &auth0token{}
+	err = json.Unmarshal(payload, &parsed)
+	if err != nil {
+		return nil, err
+	}
+	return
 }
 func authMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token, err := getToken(c)
 		if err == nil {
-			log.Println("token:", token)
+			if err != nil {
+				log.Warnln(err)
+			}
 			c.Set("userId", "abc")
+			log.Info("got a user token", token.Profile.UserId)
 		} else {
 			c.Set("userId", "annon")
-			log.Println(err)
+			log.Warn(err)
 		}
 		c.Next()
 	}
@@ -82,8 +111,11 @@ var ignored = []string{"/storage", "/api/v2/document"}
 
 func requestLoggerMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+
+		log.Debugln("header ", c.Request.Header)
 		for _, skip := range ignored {
 			if skip == c.Request.URL.Path {
+				log.Debugln("body logging ignored")
 				c.Next()
 				return
 			}
@@ -93,8 +125,7 @@ func requestLoggerMiddleware() gin.HandlerFunc {
 		tee := io.TeeReader(c.Request.Body, &buf)
 		body, _ := ioutil.ReadAll(tee)
 		c.Request.Body = ioutil.NopCloser(&buf)
-		log.Println(c.Request.Header)
-		log.Println(string(body))
+		log.Debugln("body: ", string(body))
 		c.Next()
 	}
 }
@@ -113,6 +144,16 @@ func internalError(c *gin.Context, message string) {
 	c.Abort()
 }
 
+/// remove remarkable ads
+func stripAds(msg string) string {
+	br := "<br>--<br>"
+	i := strings.Index(msg, br)
+	if i > 0 {
+		return msg[:i]
+	}
+	return msg
+}
+
 // NewApp constructs an app
 func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.DocumentStorer) App {
 	hub := NewHub()
@@ -120,8 +161,11 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 	router := gin.Default()
 
 	ui.RegisterUI(router)
+	// router.Use(ginlogrus.Logger(std.Out), gin.Recovery())
 
-	router.Use(requestLoggerMiddleware())
+	if log.GetLevel() == log.DebugLevel {
+		router.Use(requestLoggerMiddleware())
+	}
 
 	docStorer.RegisterRoutes(router)
 
@@ -139,16 +183,19 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 		}
 
 		log.Printf("Request: %s\n", json)
-		c.String(http.StatusOK, "some_device_token")
+		//TODO: generate the token
+		c.String(http.StatusOK, "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdXRoMC11c2VyaWQiOiJhdXRoMHxhdXRoIiwiZGV2aWNlLWRlc2MiOiJyZW1hcmthYmxlIiwiZGV2aWNlLWlkIjoiUk0xMDAtMDAwLTAwMDAwIiwiaWF0IjoxMjM0MTIzNCwiaXNzIjoick0gV2ViQXBwIiwic3ViIjoick0gRGV2aWNlIFRva2VuIn0.nf3D0dF1c_QbOAqh8e7R4cFQJp_wFa-rVa-PpOe80mw")
 	})
 
 	// create new access token
 	router.POST("/token/json/2/user/new", func(c *gin.Context) {
 		token, err := getToken(c)
 		if err != nil {
-			log.Println("Got: ", token)
+			log.Warnln(err)
 		}
-		c.String(http.StatusOK, "some_user_token")
+		log.Debug(token)
+		//TODO: do something with the token
+		c.String(http.StatusOK, "eyJhbGciOiJIUzI1NiIsImtpZCI6InBpbmtwYW5kYSIsInR5cCI6IkpXVCJ9.eyJhdXRoMC1wcm9maWxlIjp7IlVzZXJJRCI6ImF1dGgwfDEyMzQiLCJJc1NvY2lhbCI6ZmFsc2UsIkNsaWVudElEIjoiIiwiQ29ubmVjdGlvbiI6IiIsIk5hbWUiOiJybUZha2UiLCJOaWNrbmFtZSI6InJtRmFrZSIsIkdpdmVuTmFtZSI6IiIsIkZhbWlseU5hbWUiOiIiLCJFbWFpbCI6ImZha2VAcm1mYWtlIiwiRW1haWxWZXJpZmllZCI6dHJ1ZSwiUGljdHVyZSI6ImltYWdlLnBuZyIsIkNyZWF0ZWRBdCI6IjIwMjAtMDQtMjlUMTA6NDg6MjUuOTM2WiIsIlVwZGF0ZWRBdCI6IjIwMjAtMTAtMjlUMTE6NTU6MzIuNjI4WiJ9LCJkZXZpY2UtZGVzYyI6InJlbWFya2FibGUiLCJkZXZpY2UtaWQiOiJSTTEwMC0wMDAtMDAwMDAiLCJleHAiOjEsImlhdCI6MSwiaXNzIjoick0gV2ViQXBwIiwianRpIjoiIiwibmJmIjoxLCJzY29wZXMiOiIiLCJzdWIiOiJyTSBVc2VyIFRva2VuIn0.DDnlaRuE4Un6x8OhM1uoHHXeitIOTaLMM2gFtVdMGt8")
 	})
 
 	//service locator
@@ -182,7 +229,7 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 		r.PUT("/document-storage/json/2/upload/request", func(c *gin.Context) {
 			var req []messages.UploadRequest
 			if err := c.ShouldBindJSON(&req); err != nil {
-				log.Println(err)
+				log.Error(err)
 				badReq(c, err.Error())
 				return
 			}
@@ -195,7 +242,7 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 					badReq(c, "no id")
 				}
 				url := docStorer.GetStorageURL(id)
-				log.Println(url)
+				log.Debugln("StorageUrl: ", url)
 				dr := messages.UploadResponse{BlobUrlPut: url, Id: id, Success: true, Version: r.Version}
 				response = append(response, dr)
 			}
@@ -206,7 +253,7 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 		r.PUT("/document-storage/json/2/upload/update-status", func(c *gin.Context) {
 			var req []messages.RawDocument
 			if err := c.ShouldBindJSON(&req); err != nil {
-				log.Println(err)
+				log.Error(err)
 				badReq(c, err.Error())
 				return
 			}
@@ -227,7 +274,7 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 					hub.Send(msg)
 				} else {
 					message = err.Error()
-					log.Println(err)
+					log.Error(err)
 				}
 				result = append(result, messages.StatusResponse{Id: r.Id, Success: ok, Message: message})
 			}
@@ -239,7 +286,7 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 			var req []messages.IdRequest
 
 			if err := c.ShouldBindJSON(&req); err != nil {
-				log.Println("bad request")
+				log.Warn("bad request")
 				badReq(c, err.Error())
 				return
 			}
@@ -251,7 +298,7 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 				if err == nil {
 					err := docStorer.RemoveDocument(r.Id)
 					if err != nil {
-						log.Println(err)
+						log.Error(err)
 						ok = false
 					}
 					msg := newWs(metadata, "DocDeleted")
@@ -283,7 +330,7 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 			}
 
 			if err != nil {
-				log.Println(err)
+				log.Error(err)
 				internalError(c, "blah")
 				return
 			}
@@ -297,14 +344,15 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 
 			form, err := c.MultipartForm()
 			if err != nil {
+				log.Error(err)
 				internalError(c, "not multipart form")
 				return
 			}
 			for k := range form.File {
-				log.Println(k)
+				log.Debugln("form field", k)
 			}
 			for k := range form.Value {
-				log.Println(k)
+				log.Debugln("form value", k)
 			}
 
 			emailClient := email.EmailBuilder{
@@ -312,28 +360,28 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 				ReplyTo: form.Value["reply-to"][0],
 				From:    form.Value["from"][0],
 				To:      form.Value["to"][0],
-				Body:    form.Value["html"][0],
+				Body:    stripAds(form.Value["html"][0]),
 			}
 
 			for _, file := range form.File["attachment"] {
 				f, err := file.Open()
 				defer f.Close()
 				if err != nil {
-					log.Println(err)
+					log.Error(err)
 					internalError(c, "cant open attachment")
 					return
 				}
 				data, err := ioutil.ReadAll(f)
 				if err != nil {
-					log.Println(err)
+					log.Error(err)
 					internalError(c, "cant read attachment")
 					return
 				}
-				emailClient.AddFile(file.Filename, data)
+				emailClient.AddFile(file.Filename, data, file.Header.Get("Content-Type"))
 			}
 			err = emailClient.Send()
 			if err != nil {
-				log.Println(err)
+				log.Error(err)
 				internalError(c, "cant send email")
 				return
 			}
@@ -341,10 +389,15 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 		})
 		// hwr
 		r.POST("/api/v1/page", func(c *gin.Context) {
-			body, _ := ioutil.ReadAll(c.Request.Body)
+			body, err := ioutil.ReadAll(c.Request.Body)
+			if err != nil || len(body) < 1 {
+				log.Warn("no body")
+				badReq(c, "missing bbody")
+				return
+			}
 			response, err := hwr.SendRequest(body)
 			if err != nil {
-				log.Println(err)
+				log.Error(err)
 				internalError(c, "cannot send")
 				return
 			}

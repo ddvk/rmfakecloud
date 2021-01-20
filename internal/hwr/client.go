@@ -7,9 +7,10 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var key, hmackey string

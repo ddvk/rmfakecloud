@@ -2,10 +2,11 @@ package config
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const (

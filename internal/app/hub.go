@@ -1,10 +1,11 @@
 package app
 
 import (
-	"log"
 	"net/http"
 	"strconv"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/gorilla/websocket"
@@ -70,7 +71,7 @@ func (c *wsClient) Read(ws *websocket.Conn) {
 	for {
 		_, p, err := ws.ReadMessage()
 		if err != nil {
-			log.Println("readng ", err)
+			log.Warn("Hub ", err)
 			c.hub.removals <- c
 			return
 		}
@@ -83,10 +84,10 @@ func (c *wsClient) Write(ws *websocket.Conn) {
 		select {
 		case m, ok := <-c.ntf:
 			if !ok {
-				log.Println("done")
+				log.Debugln("done")
 				return
 			}
-			log.Println("sending notification")
+			log.Debugln("sending notification")
 			ws.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			err := ws.WriteJSON(m)
 			if err != nil {

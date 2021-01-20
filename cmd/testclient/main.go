@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 
+	log "github.com/sirupsen/logrus"
+
+	"github.com/sirupsen/logrus"
 	"golang.org/x/net/websocket"
 )
 
@@ -13,7 +15,10 @@ type Test struct {
 }
 
 func main() {
-	log.SetOutput(os.Stdout)
+	logger := logrus.New()
+
+	log.SetOutput(logger.Writer())
+
 	host := os.Getenv("RMAPI_AUTH")
 	if host == "" {
 		host = "localhost:3000"
@@ -49,7 +54,7 @@ func main() {
 	var message string
 	for {
 		if err := websocket.Message.Receive(conn, &message); err != nil {
-			log.Println(err)
+			log.Error(err)
 			return
 		}
 		fmt.Println(message)

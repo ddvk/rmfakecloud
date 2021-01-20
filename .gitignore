@@ -16,5 +16,6 @@ data/
 dist/
 node_modules/
 assets_vfsdata.go
+.vscode/
 # Dependency directories (remove the comment below to include it)
 # vendor/
