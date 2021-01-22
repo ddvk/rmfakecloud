@@ -60,7 +60,15 @@ func RegisterUI(e *gin.Engine) {
 		documentList := DocumentList{
 			Documents: []Document{
 				Document{
-					ID:   "asd",
+					ID:   "doc1",
+					Name: "test",
+				},
+				Document{
+					ID:   "doc2",
+					Name: "test",
+				},
+				Document{
+					ID:   "doc3",
 					Name: "test",
 				},
 			},
