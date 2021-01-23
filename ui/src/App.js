@@ -1,37 +1,34 @@
-import 'bootstrap/dist/css/bootstrap.min.css'
-import React from 'react';
-import Nav from 'react-bootstrap/Nav'
-import Row from 'react-bootstrap/Row'
-import Navbar from 'react-bootstrap/Navbar'
-import Container from 'react-bootstrap/Container'
-import FileList from './components/FileList'
+import "bootstrap/dist/css/bootstrap.min.css";
+import React from "react";
+import Row from "react-bootstrap/Row";
+import Layout from "./components/Layout";
+import Navigationbar from "./components/NavigationBar";
+import FileList from "./components/FileList";
+import FileListFunctional from "./components/FileListFunction";
+import NoMatch from "./components/NoMatch";
+import Home from "./components/Home";
+import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
 
 export default function App() {
-    return (
-        <>
-        <Navbar bg="dark" variant="dark" >
-            <Navbar.Brand href="#home">Stuff</Navbar.Brand>
-            <Nav activeKey="/home" onSelect={(k)=> console.log(k)} className="mr-auto" >
-            <Nav.Item>
-            <Nav.Link href="/home">Stuf</Nav.Link>
-            </Nav.Item>
-        </Nav>
-        </Navbar>
-        <Container fluid={true}>
+  return (
+    <>
+      <Navigationbar />
+      <Layout>
+        <Router>
+          <Switch>
+            <Route exact path="/" component={Home} />
+            <Route path="/fileList" component={FileList} />
+            <Route path="/fileListFunctional" component={FileListFunctional} />
+            <Route component={NoMatch} />
             <Row>
-            <Nav activeKey="/home" onSelect={(k)=> console.log(k)} className="flex-column" >
-                <Nav.Item>
-                    <Nav.Link href="/home">Active</Nav.Link>
-                </Nav.Item>
-                <Nav.Item>
-                    <Nav.Link href="/home">Active</Nav.Link>
-                </Nav.Item>
-            </Nav>
-            <div className="flex-column">
+              <div className="flex-column">
+                <FileListFunctional />
                 <FileList />
-            </div>
-        </Row>
-        </Container>
-        </>
-    );
+              </div>
+            </Row>
+          </Switch>
+        </Router>
+      </Layout>
+    </>
+  );
 }
