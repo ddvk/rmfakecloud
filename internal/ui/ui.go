@@ -46,7 +46,7 @@ func (w ReactAppWrapper) Register(router *gin.Engine) {
 
 type Document struct {
 	ID   string `json:id`
-	Name string `json:name
+	Name string `json:name`
 	ImageUrl string `json:imageUrl`
 	ParentId string `json:parentId`
 }
