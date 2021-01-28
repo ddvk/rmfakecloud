@@ -3,8 +3,6 @@ package app
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -23,7 +21,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/ui"
 
-	//	"github.com/dgrijalva/jwt-go"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 )
 
@@ -53,14 +51,7 @@ func (app *App) Stop() {
 	}
 }
 
-type auth0token struct {
-	Profile auth0profile `json:"auth0-profile"`
-}
-type auth0profile struct {
-	UserId string `json:"UserID'`
-}
-
-func getToken(c *gin.Context) (parsed *auth0token, err error) {
+func getToken(c *gin.Context, jwtSecretKey []byte) (claims *messages.Auth0token, err error) {
 	auth := c.Request.Header["Authorization"]
 
 	if len(auth) < 1 {
@@ -71,37 +62,23 @@ func getToken(c *gin.Context) (parsed *auth0token, err error) {
 	if len(token) < 2 {
 		return nil, errors.New("missing token")
 	}
-	parts := strings.Split(token[1], ".")
-	length := len(parts)
-	if length != 3 {
-		return nil, errors.New("invalid token format")
-	}
 
-	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
-	if err != nil {
-		log.Warnln("decode token err", err)
-		return nil, err
-	}
-
-	parsed = &auth0token{}
-	err = json.Unmarshal(payload, &parsed)
-	if err != nil {
-		return nil, err
-	}
+	claims = &messages.Auth0token{}
+	_, err = jwt.ParseWithClaims(token[1], claims, func(token *jwt.Token) (interface{}, error) {
+		return jwtSecretKey, nil
+	})
 	return
 }
-func authMiddleware() gin.HandlerFunc {
+func authMiddleware(jwtSecretKey []byte) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token, err := getToken(c)
+		claims, err := getToken(c, jwtSecretKey)
 		if err == nil {
-			if err != nil {
-				log.Warnln(err)
-			}
-			c.Set("userId", "abc")
-			log.Info("got a user token", token.Profile.UserId)
+			c.Set("userId", strings.TrimPrefix(claims.Profile.UserId, "auth0|"))
+			log.Info("got a user token", claims.Profile.UserId)
 		} else {
-			c.Set("userId", "annon")
 			log.Warn(err)
+			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+			c.Abort()
 		}
 		c.Next()
 	}
@@ -155,17 +132,20 @@ func stripAds(msg string) string {
 }
 
 // NewApp constructs an app
-func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.DocumentStorer) App {
+func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.DocumentStorer, userStorer db.UserStorer) App {
 	hub := NewHub()
 	gin.ForceConsoleColor()
 	router := gin.Default()
 
-	ui.RegisterUI(router)
 	// router.Use(ginlogrus.Logger(std.Out), gin.Recovery())
 
 	if log.GetLevel() == log.DebugLevel {
 		router.Use(requestLoggerMiddleware())
 	}
+
+	ui.RegisterUI(router, cfg, userStorer)
+
+	router.Use(requestLoggerMiddleware())
 
 	docStorer.RegisterRoutes(router)
 
@@ -183,19 +163,66 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 		}
 
 		log.Printf("Request: %s\n", json)
-		//TODO: generate the token
-		c.String(http.StatusOK, "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdXRoMC11c2VyaWQiOiJhdXRoMHxhdXRoIiwiZGV2aWNlLWRlc2MiOiJyZW1hcmthYmxlIiwiZGV2aWNlLWlkIjoiUk0xMDAtMDAwLTAwMDAwIiwiaWF0IjoxMjM0MTIzNCwiaXNzIjoick0gV2ViQXBwIiwic3ViIjoick0gRGV2aWNlIFRva2VuIn0.nf3D0dF1c_QbOAqh8e7R4cFQJp_wFa-rVa-PpOe80mw")
+
+		// generate the JWT token
+		expirationTime := time.Now().Add(356 * 24 * time.Hour)
+		claims := &messages.Auth0token{
+			DeviceDesc: json.DeviceDesc,
+			DeviceId:   json.DeviceId,
+			StandardClaims: jwt.StandardClaims{
+				ExpiresAt: expirationTime.Unix(),
+				Subject:   "rM Device Token",
+			},
+		}
+
+		deviceToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		tokenString, err := deviceToken.SignedString(cfg.JWTSecretKey)
+		if err != nil {
+			badReq(c, err.Error())
+			return
+		}
+
+		c.String(200, tokenString)
 	})
 
 	// create new access token
 	router.POST("/token/json/2/user/new", func(c *gin.Context) {
-		token, err := getToken(c)
+		deviceToken, err := getToken(c, cfg.JWTSecretKey)
 		if err != nil {
 			log.Warnln(err)
 		}
-		log.Debug(token)
+		log.Debug(deviceToken)
+
+		expirationTime := time.Now().Add(30 * 24 * time.Hour)
+		claims := &messages.Auth0token{
+			Profile: &messages.Auth0profile{
+				UserId:        "auth0|1234",
+				IsSocial:      false,
+				Name:          "rmFake",
+				Nickname:      "rmFake",
+				Email:         "fake@rmfake",
+				EmailVerified: true,
+				Picture:       "image.png",
+				CreatedAt:     time.Date(2020, 04, 29, 10, 48, 25, 936, time.UTC),
+				UpdatedAt:     time.Now(),
+			},
+			DeviceDesc: deviceToken.DeviceDesc,
+			DeviceId:   deviceToken.DeviceId,
+			StandardClaims: jwt.StandardClaims{
+				ExpiresAt: expirationTime.Unix(),
+				Subject:   "rM User Token",
+			},
+		}
+
+		userToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		tokenString, err := userToken.SignedString(cfg.JWTSecretKey)
+		if err != nil {
+			badReq(c, err.Error())
+			return
+		}
 		//TODO: do something with the token
-		c.String(http.StatusOK, "eyJhbGciOiJIUzI1NiIsImtpZCI6InBpbmtwYW5kYSIsInR5cCI6IkpXVCJ9.eyJhdXRoMC1wcm9maWxlIjp7IlVzZXJJRCI6ImF1dGgwfDEyMzQiLCJJc1NvY2lhbCI6ZmFsc2UsIkNsaWVudElEIjoiIiwiQ29ubmVjdGlvbiI6IiIsIk5hbWUiOiJybUZha2UiLCJOaWNrbmFtZSI6InJtRmFrZSIsIkdpdmVuTmFtZSI6IiIsIkZhbWlseU5hbWUiOiIiLCJFbWFpbCI6ImZha2VAcm1mYWtlIiwiRW1haWxWZXJpZmllZCI6dHJ1ZSwiUGljdHVyZSI6ImltYWdlLnBuZyIsIkNyZWF0ZWRBdCI6IjIwMjAtMDQtMjlUMTA6NDg6MjUuOTM2WiIsIlVwZGF0ZWRBdCI6IjIwMjAtMTAtMjlUMTE6NTU6MzIuNjI4WiJ9LCJkZXZpY2UtZGVzYyI6InJlbWFya2FibGUiLCJkZXZpY2UtaWQiOiJSTTEwMC0wMDAtMDAwMDAiLCJleHAiOjEsImlhdCI6MSwiaXNzIjoick0gV2ViQXBwIiwianRpIjoiIiwibmJmIjoxLCJzY29wZXMiOiIiLCJzdWIiOiJyTSBVc2VyIFRva2VuIn0.DDnlaRuE4Un6x8OhM1uoHHXeitIOTaLMM2gFtVdMGt8")
+
+		c.String(200, tokenString)
 	})
 
 	//service locator
@@ -207,8 +234,10 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 	})
 
 	r := router.Group("/")
-	r.Use(authMiddleware())
+	r.Use(authMiddleware(cfg.JWTSecretKey))
 	{
+		ui.RegisterUIAuth(r, metaStorer, userStorer)
+
 		//unregister device
 		r.POST("/token/json/3/device/delete", func(c *gin.Context) {
 			c.String(204, "")
