@@ -6,6 +6,7 @@ require (
 	github.com/GeertJohan/go.rice v1.0.0
 	github.com/blend/go-sdk v1.1.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-gonic/contrib v0.0.0-20200810162008-6dee08bf958e
 	github.com/gin-gonic/gin v1.6.3
 	github.com/go-delve/delve v1.5.1 // indirect

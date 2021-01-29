@@ -81,7 +81,7 @@ func FromEnv() *Config {
 		log.Warn("  without this variable set, you'll be disconnected after this program restart")
 	}
 
-	openRegistration := os.Getenv(envRegistrationOpen)
+	//openRegistration := os.Getenv(envRegistrationOpen)
 
 	cfg := Config{
 		Port:             port,
@@ -89,7 +89,7 @@ func FromEnv() *Config {
 		DataDir:          dataDir,
 		TrashDir:         trashDir,
 		JWTSecretKey:     jwtSecretKey,
-		RegistrationOpen: openRegistration == "1" || openRegistration == "on" || openRegistration == "ON" || openRegistration == "true" || openRegistration == "True" || openRegistration == "TRUE",
+		RegistrationOpen: true,
 	}
 	return &cfg
 }

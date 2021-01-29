@@ -22,6 +22,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/ui"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -43,6 +44,8 @@ func (app *App) Start() {
 		log.Fatalf("listen: %s\n", err)
 	}
 }
+
+// Stop the app
 func (app *App) Stop() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -51,7 +54,7 @@ func (app *App) Stop() {
 	}
 }
 
-func getToken(c *gin.Context, jwtSecretKey []byte) (claims *messages.Auth0token, err error) {
+func getToken(c *gin.Context, jwtSecretKey []byte) (claims *messages.OAuthtoken, err error) {
 	auth := c.Request.Header["Authorization"]
 
 	if len(auth) < 1 {
@@ -63,7 +66,7 @@ func getToken(c *gin.Context, jwtSecretKey []byte) (claims *messages.Auth0token,
 		return nil, errors.New("missing token")
 	}
 
-	claims = &messages.Auth0token{}
+	claims = &messages.OAuthtoken{}
 	_, err = jwt.ParseWithClaims(token[1], claims, func(token *jwt.Token) (interface{}, error) {
 		return jwtSecretKey, nil
 	})
@@ -73,7 +76,7 @@ func authMiddleware(jwtSecretKey []byte) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		claims, err := getToken(c, jwtSecretKey)
 		if err == nil {
-			c.Set("userId", strings.TrimPrefix(claims.Profile.UserId, "auth0|"))
+			c.Set("userId", strings.TrimPrefix(claims.Profile.UserId, "oauth|"))
 			log.Info("got a user token", claims.Profile.UserId)
 		} else {
 			log.Warn(err)
@@ -137,6 +140,23 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 	gin.ForceConsoleColor()
 	router := gin.Default()
 
+	corsConfig := cors.DefaultConfig()
+
+	corsConfig.AllowOrigins = []string{"*"}
+	
+	// To be able to send tokens to the server.
+	corsConfig.AllowCredentials = true
+
+	// OPTIONS method for ReactJS
+	corsConfig.AddAllowMethods("OPTIONS")
+	//corsConfig.AllowHeaders = []string{"*"};
+	//corsConfig.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization"};
+
+	corsConfig.AddAllowHeaders("Authorization");
+
+	// Register the middleware
+	router.Use(cors.New(corsConfig))
+
 	// router.Use(ginlogrus.Logger(std.Out), gin.Recovery())
 
 	if log.GetLevel() == log.DebugLevel {
@@ -166,7 +186,7 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 
 		// generate the JWT token
 		expirationTime := time.Now().Add(356 * 24 * time.Hour)
-		claims := &messages.Auth0token{
+		claims := &messages.OAuthtoken{
 			DeviceDesc: json.DeviceDesc,
 			DeviceId:   json.DeviceId,
 			StandardClaims: jwt.StandardClaims{
@@ -194,9 +214,9 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 		log.Debug(deviceToken)
 
 		expirationTime := time.Now().Add(30 * 24 * time.Hour)
-		claims := &messages.Auth0token{
-			Profile: &messages.Auth0profile{
-				UserId:        "auth0|1234",
+		claims := &messages.OAuthtoken{
+			Profile: &messages.OAuthprofile{				
+				UserId:        "oauth|1234",
 				IsSocial:      false,
 				Name:          "rmFake",
 				Nickname:      "rmFake",
@@ -431,7 +451,6 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 				return
 			}
 			c.Data(http.StatusOK, hwr.JIIX, response)
-
 		})
 	}
 

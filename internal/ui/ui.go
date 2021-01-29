@@ -44,12 +44,15 @@ func (w ReactAppWrapper) Register(router *gin.Engine) {
 	})
 }
 
+// Document is a single document
 type Document struct {
 	ID   string `json:id`
 	Name string `json:name`
 	ImageUrl string `json:imageUrl`
 	ParentId string `json:parentId`
 }
+
+// DocumentList is a list of documents
 type DocumentList struct {
 	Documents []Document `json:documents`
 }
@@ -64,7 +67,7 @@ type loginForm struct {
 	Password string `json:"password"`
 }
 
-/// RegisterUI add the react ui
+// RegisterUI add the react ui
 func RegisterUI(e *gin.Engine, cfg *config.Config, userStorer db.UserStorer) {
 	staticWrapper := ReactAppWrapper{
 		fs:     webassets.Assets,
@@ -154,18 +157,25 @@ func RegisterUI(e *gin.Engine, cfg *config.Config, userStorer db.UserStorer) {
 			return
 		}
 
-		token := user.NewAuth0Token("ui", "")
+		token := user.NewOAuthToken("ui", "")
+
 		tokenString, err := token.SignedString(cfg.JWTSecretKey)
+		
 		if err != nil {
 			badReq(c, err.Error())
 			return
 		}
 
-		c.String(http.StatusOK, tokenString)
-	})
+		loginResponse := map[string]interface{}{
+			"user": user,
+			"auth_token": tokenString,
+		}
 
+		c.JSON(http.StatusOK, loginResponse)
+	})
 }
 
+// RegisterUIAuth registers methods that require authentication
 func RegisterUIAuth(e *gin.RouterGroup, metaStorer db.MetadataStorer, userStorer db.UserStorer) {
 	r := e.Group("/ui/api")
 
@@ -209,66 +219,66 @@ func RegisterUIAuth(e *gin.RouterGroup, metaStorer db.MetadataStorer, userStorer
 	r.GET("list", func(c *gin.Context) {
 		documentList := DocumentList{
 			Documents: []Document{
-				Document{
+				{
 					ID:   "001",
 					Name: "The Adventures of Huckleberry Finn by Mark Twain",
 					ImageUrl: "https://picsum.photos/100/150",
 					ParentId: "root",
 				},
-				Document{
+				{
 					ID:   "002",
 					Name: "The Great Gatsby by F. Scott Fizgerald",
 					ImageUrl: "https://images-na.ssl-images-amazon.com/images/I/41iers%2BHLSL._SL160_.jpg",
 					ParentId: "root",
 				},
-				Document{
+				{
 					ID:   "003",
 					Name: "The Stories of Anton Chekhov by Anton Checkhov",
 					ImageUrl: "https://picsum.photos/100/150",
 					ParentId: "root",
 				},
-				Document{
+				{
 					ID:   "004",
 					Name: "War and Peace by Leo Tolstoy",
 					ImageUrl: "https://picsum.photos/100/150",
 					ParentId: "root",
 				},
 
-				Document{
+				{
 					ID:   "005",
 					Name: " Madame Bovary by Gustav Flaubert",
 					ImageUrl: "https://picsum.photos/100/150",
 					ParentId: "root",
 				},
 
-				Document{
+				{
 					ID:   "006",
 					Name: "The Adventures of Huckleberry Finn by Mark Twain",
 					ImageUrl: "https://picsum.photos/100/150",
 					ParentId: "root",
 				},
 
-				Document{
+				{
 					ID:   "007",
 					Name: " The Brothers Karamazov by Fyodor Dostoyevsky",
 					ImageUrl: "https://picsum.photos/100/150",
 					ParentId: "root",
 				},
 
-				Document{
+				{
 					ID:   "008",
 					Name: "Don Quixote by Miguel de Cervantes",
 					ImageUrl: "https://m.media-amazon.com/images/I/51nBHIQv6zL._SL160_.jpg",
 					ParentId: "root",
 				},
 
-				Document{
+				{
 					ID:   "009",
 					Name: "Ulysses by James Joyce",
 					ImageUrl: "https://picsum.photos/100/150",
 					ParentId: "root",
 				},
-				Document{
+				{
 					ID:   "010",
 					Name: "Crime and Punishment by Fyodor Dostoyevsky",
 					ImageUrl: "https://picsum.photos/100/150",
