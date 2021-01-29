@@ -13,6 +13,8 @@ TARGETS := $(addprefix $(OUT_DIR)/$(BINARY)-, x64 armv6 armv7 win64 docker)
 .PHONY: all
 all: prep $(TARGETS)
 
+build: $(OUT_DIR)/$(BINARY)-x64
+
 $(OUT_DIR)/$(BINARY)-x64: $(GOFILES)
 	GOOS=linux $(BUILD)
 
@@ -31,21 +33,21 @@ $(OUT_DIR)/$(BINARY)-docker:$(GOFILES)
 container: $(OUT_DIR)/$(BINARY)-docker
 	docker build -t rmfakecloud -f Dockerfile.make .
 	
-assets_vfsdata.go: ui
-	go generate ./...
+assets_vfsdata.go: ui/build
+	go run assets_generate.go
 
-.PHONY: ui
-ui: $(UIFILES)
+ui/build: $(UIFILES)
 	yarn --cwd ui run build
 	@#remove unneeded stuff, todo: eject
 	@rm ui/build/service-worker.js ui/build/precache-manifest* ui/build/asset-manifest.json 2> /dev/null || true
 
 .PHONY: run
-run: 
-	go run $(CMD)
+run: ui/build
+	go run -tags dev $(CMD)
 
 dev:
 	find . -path ui -prune -false -o -iname "*.go" | entr -r go run -tags dev $(CMD)
+
 devui:
 	yarn --cwd ui start
 
@@ -56,6 +58,7 @@ prep:
 .PHONY: clean
 clean:
 	rm -f $(OUT_DIR)/*
+	rm -fr ui/build
 
 .PHONY: test
 test: 

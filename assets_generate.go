@@ -1,7 +1,5 @@
 // +build ignore
 
-//go:generate go run assets_generate.go
-
 package main
 
 import (
@@ -10,6 +8,7 @@ import (
 	"log"
 )
 
+// embeds the ui/build into WebAssets
 func main() {
 	err := vfsgen.Generate(webassets.Assets, vfsgen.Options{
 		PackageName:  "webassets",
