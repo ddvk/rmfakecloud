@@ -8,14 +8,16 @@ GOFILES := $(shell find . -iname '*.go' ! -iname "*_test.go")
 GOFILES += assets_vfsdata.go
 UIFILES := $(shell find ui/src)
 UIFILES += $(shell find ui/public)
+UIFILES += ui/package.json
 TARGETS := $(addprefix $(OUT_DIR)/$(BINARY)-, x64 armv6 armv7 win64 docker)
+YARN	= yarn --cwd ui  
 
-.PHONY: all
-all: prep $(TARGETS)
+.PHONY: all run dev devui clean test
+all: $(TARGETS)
 
 build: $(OUT_DIR)/$(BINARY)-x64
 
-$(OUT_DIR)/$(BINARY)-x64: $(GOFILES)
+$(OUT_DIR)/$(BINARY)-x64:$(GOFILES)
 	GOOS=linux $(BUILD)
 
 $(OUT_DIR)/$(BINARY)-armv6:$(GOFILES)
@@ -36,32 +38,32 @@ container: $(OUT_DIR)/$(BINARY)-docker
 assets_vfsdata.go: ui/build
 	go run assets_generate.go
 
-ui/build: $(UIFILES)
-	yarn --cwd ui run build
-	@#remove unneeded stuff, todo: eject
-	@rm ui/build/service-worker.js ui/build/precache-manifest* ui/build/asset-manifest.json 2> /dev/null || true
-
-.PHONY: run
 run: ui/build
 	go run -tags dev $(CMD)
 
-dev:
+dev: ui/build
 	find . -path ui -prune -false -o -iname "*.go" | entr -r go run -tags dev $(CMD)
 
-devui:
-	yarn --cwd ui start
+ui/build: $(UIFILES) ui/yarn.lock
+	$(YARN) build
+	@#remove unneeded stuff, todo: eject
+	@rm ui/build/service-worker.js ui/build/precache-manifest* ui/build/asset-manifest.json 2> /dev/null || true
 
-#install ui stuff
-prep:
-	yarn --cwd ui install
+ui/yarn.lock: ui/node_modules ui/package.json
+	$(YARN)
+	@touch -mr $(shell ls -Atd $? | head -1) $@
 
-.PHONY: clean
+ui/node_modules:
+	mkdir -p $@
+
+devui: ui/yarn.lock
+	$(YARN) start
+
 clean:
 	rm -f $(OUT_DIR)/*
 	rm -fr ui/build
 
-.PHONY: test
 test: 
 	go test ./...
-	CI=true yarn --cwd ui test
+	CI=true $(YARN) test
 
