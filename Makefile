@@ -36,9 +36,9 @@ assets_vfsdata.go: ui
 
 .PHONY: ui
 ui: $(UIFILES)
-	npm run build --prefix ui
-	#remove unneeded stuff, todo: eject
-	rm ui/build/service-worker.js ui/build/precache-manifest* ui/build/asset-manifest.json|| true
+	yarn --cwd ui run build
+	@#remove unneeded stuff, todo: eject
+	@rm ui/build/service-worker.js ui/build/precache-manifest* ui/build/asset-manifest.json 2> /dev/null || true
 
 .PHONY: run
 run: 
@@ -47,11 +47,11 @@ run:
 dev:
 	find . -path ui -prune -false -o -iname "*.go" | entr -r go run -tags dev $(CMD)
 devui:
-	npm start --prefix ui
+	yarn --cwd ui start
 
 #install ui stuff
 prep:
-	npm i --prefix ui
+	yarn --cwd ui install
 
 .PHONY: clean
 clean:

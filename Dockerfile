@@ -2,8 +2,7 @@ ARG VERSION=0.0.0
 FROM node:alpine as uibuilder
 WORKDIR /src
 COPY ui .
-RUN npm i && \
-    npm run build
+RUN yarn && yarn build 
 
 FROM golang:1-alpine as gobuilder
 ARG VERSION
