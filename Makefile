@@ -60,4 +60,5 @@ clean:
 .PHONY: test
 test: 
 	go test ./...
+	CI=true yarn --cwd ui test
 
