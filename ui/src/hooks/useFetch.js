@@ -1,23 +1,22 @@
-import { useState, useEffect } from "react";
-
-const baseUrl = process.env.REACT_APP_API_BASE_URL;
+import { useState, useEffect, useContext } from "react";
+import { useAuthState } from "../components/Login/useAuthContext";
+const ROOT_URL = "http://localhost:3000/ui/api";
 
 const useFetch = (url) => {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
+  const { token } = useAuthState();
 
   useEffect(() => {
     const init = async () => {
       try {
-        //const response = await fetch(baseUrl + url, {
-        console.log(baseUrl);
-
         debugger;
-        const response = await fetch(url, {
+        console.log(`${ROOT_URL}/${url}`);
+        const response = await fetch(`${ROOT_URL}/${url}`, {
           method: "GET",
           headers: new Headers({
-            Authorization: "some_token",
+            Authorization: `Bearer ${token}`,
           }),
         });
 

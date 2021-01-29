@@ -11,17 +11,14 @@ const Login = ({ history }) => {
   const { loading, errorMessage } = useAuthState(); //read the values of loading and errorMessage from context
 
   const handleLogin = async (e) => {
-    console.log("Login pressed");
     e.preventDefault();
-
-    debugger;
 
     let payload = { email, password };
     try {
-      let response = await loginUser(dispatch, payload); //loginUser action makes the request and handles all the neccessary state changes
+      let response = await loginUser(dispatch, payload);
       if (!response.user) return;
 
-      history.push("/"); //TODO: usenavigate
+      history.push("/"); //TODO: usenavigate or return redirect
     } catch (error) {
       console.log(error);
     }

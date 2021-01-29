@@ -5,7 +5,7 @@ import Card from "react-bootstrap/Card";
 import useFetch from "../hooks/useFetch";
 
 //const listUrl = '/document-storage/json/2/docs';
-const documentListUrl = "/ui/api/list";
+const documentListUrl = "list";
 
 export default function FileListFunctional() {
   //const skuRef = useRef();

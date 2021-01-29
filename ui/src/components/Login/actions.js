@@ -1,4 +1,5 @@
-const ROOT_URL = "/ui/api/login";
+//const ROOT_URL = process.env.REACT_APP_SECRET_CODE;
+const ROOT_URL = "http://localhost:3000/ui/api";
 
 export async function loginUser(dispatch, loginPayload) {
   const requestOptions = {
@@ -9,18 +10,13 @@ export async function loginUser(dispatch, loginPayload) {
 
   try {
     dispatch({ type: "REQUEST_LOGIN" });
-    // let response = await fetch(`${ROOT_URL}/login`, requestOptions);
-    // let data = await response.json();
 
-    const data = {
-      user: { email: "dummy@freemarkable.com" },
-      auth_token: "auth_token",
-    };
+    let response = await fetch(`${ROOT_URL}/login`, requestOptions);
+
+    let data = await response.json();
 
     if (data.user) {
       dispatch({ type: "LOGIN_SUCCESS", payload: data });
-
-      debugger;
       localStorage.setItem("currentUser", JSON.stringify(data));
       return data;
     }
