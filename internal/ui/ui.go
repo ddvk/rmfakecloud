@@ -34,14 +34,15 @@ func (w ReactAppWrapper) Open(filepath string) (http.File, error) {
 func (w ReactAppWrapper) Register(router *gin.Engine) {
 	router.StaticFS(w.prefix, w)
 
+	router.GET("/avicon.ico", func(c *gin.Context) {
+		c.FileFromFS("/favicon.ico", webassets.Assets)
+	})
+
 	//hack for index.html
 	router.NoRoute(func(c *gin.Context) {
 		c.FileFromFS(indexReplacement, w)
 	})
 
-	router.GET("/favicon.ico", func(c *gin.Context) {
-		c.FileFromFS("/favicon.ico", webassets.Assets)
-	})
 }
 
 // Document is a single document
@@ -98,6 +99,7 @@ func RegisterUI(e *gin.Engine, cfg *config.Config, userStorer db.UserStorer) {
 			return
 		}
 
+		//TODO: replace with map/index search
 		for _, u := range users {
 			if u.Email == form.Email {
 				badReq(c, form.Email+" is already registered.")
@@ -180,22 +182,15 @@ func RegisterUIAuth(e *gin.RouterGroup, metaStorer db.MetadataStorer, userStorer
 	r := e.Group("/ui/api")
 
 	r.GET("newcode", func(c *gin.Context) {
-		uid, ok := c.Get("userId")
-		if !ok {
+		uid := c.GetString("userId")
+		if uid == "" {
 			log.Error("Unable to find userId in context")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
 			c.Abort()
 			return
 		}
-		userId, ok := uid.(string)
-		if !ok {
-			log.Error("Unable to find valid userId in context")
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
-			c.Abort()
-			return
-		}
 
-		user, err := userStorer.GetUser(userId)
+		user, err := userStorer.GetUser(uid)
 		if err != nil {
 			log.Error("Unable to find user: ", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

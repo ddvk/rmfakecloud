@@ -58,7 +58,6 @@ func getToken(c *gin.Context, jwtSecretKey []byte) (claims *messages.OAuthtoken,
 	auth := c.Request.Header["Authorization"]
 
 	if len(auth) < 1 {
-		accessDenied(c, "missing token")
 		return nil, errors.New("missing token")
 	}
 	token := strings.Split(auth[0], " ")
@@ -75,25 +74,28 @@ func getToken(c *gin.Context, jwtSecretKey []byte) (claims *messages.OAuthtoken,
 func authMiddleware(jwtSecretKey []byte) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		claims, err := getToken(c, jwtSecretKey)
-		if err == nil {
-			c.Set("userId", strings.TrimPrefix(claims.Profile.UserId, "oauth|"))
-			log.Info("got a user token", claims.Profile.UserId)
-		} else {
+
+		if err != nil {
 			log.Warn(err)
-			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "missing or incorrect token"})
 			c.Abort()
+			return
 		}
+
+		log.Info("next")
+		c.Set("userId", strings.TrimPrefix(claims.Profile.UserId, "auth0|"))
+		log.Info("got a user token", claims.Profile.UserId)
 		c.Next()
 	}
 }
 
-var ignored = []string{"/storage", "/api/v2/document"}
+var ignoreBodyLogging = []string{"/storage", "/api/v2/document"}
 
 func requestLoggerMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		log.Debugln("header ", c.Request.Header)
-		for _, skip := range ignored {
+		for _, skip := range ignoreBodyLogging {
 			if skip == c.Request.URL.Path {
 				log.Debugln("body logging ignored")
 				c.Next()
