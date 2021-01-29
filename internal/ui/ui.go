@@ -159,7 +159,7 @@ func RegisterUI(e *gin.Engine, cfg *config.Config, userStorer db.UserStorer) {
 			return
 		}
 
-		token := user.NewOAuthToken("ui", "")
+		token := user.NewAuth0Token("ui", "")
 
 		tokenString, err := token.SignedString(cfg.JWTSecretKey)
 		

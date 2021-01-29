@@ -18,7 +18,7 @@ type NotificationMessage struct {
 	PublishTime2 string     `json:"publish_time"`
 }
 type Attributes struct {
-	OAuthUserID      string `json:"oAuthUserID"`
+	Auth0UserID      string `json:"auth0UserID"`
 	Bookmarked       bool   `json:"bookmarked"`
 	Event            string `json:"event"`
 	Id               string `json:"id"`

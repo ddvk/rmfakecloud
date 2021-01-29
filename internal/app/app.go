@@ -54,7 +54,7 @@ func (app *App) Stop() {
 	}
 }
 
-func getToken(c *gin.Context, jwtSecretKey []byte) (claims *messages.OAuthtoken, err error) {
+func getToken(c *gin.Context, jwtSecretKey []byte) (claims *messages.Auth0token, err error) {
 	auth := c.Request.Header["Authorization"]
 
 	if len(auth) < 1 {
@@ -65,7 +65,7 @@ func getToken(c *gin.Context, jwtSecretKey []byte) (claims *messages.OAuthtoken,
 		return nil, errors.New("missing token")
 	}
 
-	claims = &messages.OAuthtoken{}
+	claims = &messages.Auth0token{}
 	_, err = jwt.ParseWithClaims(token[1], claims, func(token *jwt.Token) (interface{}, error) {
 		return jwtSecretKey, nil
 	})
@@ -188,7 +188,7 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 
 		// generate the JWT token
 		expirationTime := time.Now().Add(356 * 24 * time.Hour)
-		claims := &messages.OAuthtoken{
+		claims := &messages.Auth0token{
 			DeviceDesc: json.DeviceDesc,
 			DeviceId:   json.DeviceId,
 			StandardClaims: jwt.StandardClaims{
@@ -216,9 +216,9 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 		log.Debug(deviceToken)
 
 		expirationTime := time.Now().Add(30 * 24 * time.Hour)
-		claims := &messages.OAuthtoken{
-			Profile: &messages.OAuthprofile{				
-				UserId:        "oauth|1234",
+		claims := &messages.Auth0token{
+			Profile: &messages.Auth0profile{				
+				UserId:        "auth0|1234",
 				IsSocial:      false,
 				Name:          "rmFake",
 				Nickname:      "rmFake",

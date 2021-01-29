@@ -128,7 +128,7 @@ func newWs(doc *messages.RawDocument, typ string) messages.WsMessage {
 			MessageId:  "1234",
 			MessageId2: "1234",
 			Attributes: messages.Attributes{
-				OAuthUserID:      "oauth|12341234123412",
+				Auth0UserID:      "auth0|12341234123412",
 				Event:            typ,
 				Id:               doc.Id,
 				Type:             doc.Type,
