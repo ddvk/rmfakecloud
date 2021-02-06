@@ -71,7 +71,7 @@ func (c *wsClient) Read(ws *websocket.Conn) {
 	for {
 		_, p, err := ws.ReadMessage()
 		if err != nil {
-			log.Warn("Hub ", err)
+			log.Warn("Hub Read ", err)
 			c.hub.removals <- c
 			return
 		}
@@ -91,6 +91,7 @@ func (c *wsClient) Write(ws *websocket.Conn) {
 			ws.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			err := ws.WriteJSON(m)
 			if err != nil {
+				log.Warn("Hub write ", err)
 				c.hub.removals <- c
 				return
 			}
@@ -118,7 +119,9 @@ func (h *Hub) ConnectWs(w http.ResponseWriter, r *http.Request) {
 	go client.Read(c)
 	h.additions <- client
 	client.Write(c)
+	log.Info("normal end")
 	h.removals <- client
+
 }
 
 func newWs(doc *messages.RawDocument, typ string) messages.WsMessage {

@@ -19,6 +19,8 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          fetch_depth: 0
 
       - name: Set Version
         run: echo "version=$(git describe --tags)" >> $GITHUB_ENV
