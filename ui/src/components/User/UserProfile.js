@@ -11,10 +11,7 @@ import { useParams } from "react-router-dom";
 const userListUrl = "users";
 
 export default function UserProfile() {
-  debugger;
-
   const { userid } = useParams();
-  //const navigate = useNavigate();
 
   const { data: user, loading, error } = useFetch(`${userListUrl}/${userid}`);
 

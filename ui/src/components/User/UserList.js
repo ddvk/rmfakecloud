@@ -22,8 +22,6 @@ export default function UserList() {
     return <div>No users</div>;
   }
 
-  debugger;
-
   return (
     <Row>
       <Table>
