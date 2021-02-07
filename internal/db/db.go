@@ -2,6 +2,7 @@ package db
 
 import (
 	"github.com/ddvk/rmfakecloud/internal/messages"
+	"github.com/ddvk/rmfakecloud/internal/model"
 )
 
 // MetadataStorer manages document metadata
@@ -13,8 +14,8 @@ type MetadataStorer interface {
 
 // UserStorer holds informations about users
 type UserStorer interface {
-	GetUsers() ([]*messages.User, error)
-	GetUser(string) (*messages.User, error)
-	RegisterUser(u *messages.User) error
-	UpdateUser(u *messages.User) error
+	GetUsers() ([]*model.User, error)
+	GetUser(string) (*model.User, error)
+	RegisterUser(u *model.User) error
+	UpdateUser(u *model.User) error
 }
