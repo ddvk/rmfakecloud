@@ -75,7 +75,7 @@ myScript hwr (needs a developer account):
 	// configs
 	log.Println("Documents will be saved in:", cfg.DataDir)
 	log.Println("Url the device should use:", cfg.StorageURL)
-	log.Println("Port", cfg.Port)
+	log.Println("Listening on port:", cfg.Port)
 
 	fsStorage := &fs.Storage{
 		Cfg: *cfg,
