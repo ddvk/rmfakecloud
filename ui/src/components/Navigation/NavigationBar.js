@@ -37,6 +37,11 @@ const NavigationBar = () => {
                   FileList Functional
                 </Nav.Link>
               </Nav.Item>
+              <Nav.Item>
+                <Nav.Link as={NavLink} to="/userList">
+                  Users
+                </Nav.Link>
+              </Nav.Item>
             </Nav>
           </Navbar.Collapse>
 

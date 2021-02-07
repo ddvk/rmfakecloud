@@ -11,7 +11,6 @@ const useFetch = (url) => {
   useEffect(() => {
     const init = async () => {
       try {
-        debugger;
         console.log(`${ROOT_URL}/${url}`);
         const response = await fetch(`${ROOT_URL}/${url}`, {
           method: "GET",

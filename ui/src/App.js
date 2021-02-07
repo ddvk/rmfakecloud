@@ -2,6 +2,7 @@ import React from "react";
 import Layout from "./components/Layout/Layout";
 import Navigationbar from "./components/Navigation/NavigationBar";
 import Login from "./components/Login/Login";
+import UserList from "./components/User/UserList";
 import Home from "./components/Home";
 import FileList from "./components/File/FileList";
 import FileListFunctional from "./components/File/FileListFunction";
@@ -24,6 +25,7 @@ export default function App() {
               path="/fileListFunctional"
               component={FileListFunctional}
             />
+            <PrivateRoute path="/userList" component={UserList} />
             <Route path="/login" component={Login} />
             <Route component={NoMatch} />
           </Switch>

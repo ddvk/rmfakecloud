@@ -5,8 +5,6 @@ import { useAuthState } from "../hooks/useAuthContext";
 
 export const PrivateRoute = ({ component: Component, ...rest }) => {
   const userDetails = useAuthState(); //read the values of loading and errorMessage from context
-
-  debugger;
   return (
     <Route
       {...rest}
