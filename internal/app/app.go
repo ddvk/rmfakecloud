@@ -155,12 +155,16 @@ func stripAds(msg string) string {
 // NewApp constructs an app
 func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.DocumentStorer) App {
 	hub := NewHub()
+	isDebug := log.GetLevel() == log.DebugLevel
+
+	if !isDebug {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
 	gin.ForceConsoleColor()
 	router := gin.Default()
 
-	// router.Use(ginlogrus.Logger(std.Out), gin.Recovery())
-
-	if log.GetLevel() == log.DebugLevel {
+	if isDebug {
 		router.Use(requestLoggerMiddleware())
 	}
 

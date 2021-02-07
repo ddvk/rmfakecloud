@@ -11,11 +11,12 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/ddvk/rmfakecloud/internal/config"
 	log "github.com/sirupsen/logrus"
 )
 
 const (
-    MaxLineLength = 76 // MaxLineLength is the maximum line length per RFC 2045
+	MaxLineLength = 76 // MaxLineLength is the maximum line length per RFC 2045
 )
 
 // SSL/TLS Email Example
@@ -23,15 +24,15 @@ var servername, username, password, fromOverride, helo, insecureTls string
 
 func init() {
 	//TODO: remove env dependency
-	servername = os.Getenv("RM_SMTP_SERVER")
-	username = os.Getenv("RM_SMTP_USERNAME")
-	password = os.Getenv("RM_SMTP_PASSWORD")
+	servername = os.Getenv(config.EnvSmtpServer)
+	username = os.Getenv(config.EnvSmtpUsername)
+	password = os.Getenv(config.EnvSmtpPassword)
 	if servername == "" {
 		log.Warnln("smtp not configured, no emails will be sent")
 	}
-	helo = os.Getenv("RM_SMTP_HELO")
-	insecureTls = os.Getenv("RM_SMTP_INSECURE_TLS")
-	fromOverride = os.Getenv("RM_SMTP_FROM")
+	helo = os.Getenv(config.EnvSmtpHelo)
+	insecureTls = os.Getenv(config.EnvSmtpInsecureTLS)
+	fromOverride = os.Getenv(config.EnvSmtpFrom)
 }
 
 type EmailBuilder struct {
@@ -208,7 +209,7 @@ func chunkSplit(body string, limit int, end string) string {
 	var result = ""
 
 	for len(charSlice) >= 1 {
-     		// convert slice/array back to string
+		// convert slice/array back to string
 		// but insert end at specified limit
 		result = result + string(charSlice[:limit]) + end
 
