@@ -20,10 +20,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
         with:
-          fetch_depth: 0
+          fetch-depth: 0
 
       - name: Set Version
-        run: echo "version=$(git describe --tags)" >> $GITHUB_ENV
+        run: |
+          version=$(git describe --tags)
+          echo $version
+          echo version=$version >> $GITHUB_ENV
 
       - name: Build and push
         id: docker_build
