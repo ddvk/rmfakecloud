@@ -2,8 +2,9 @@ import React from "react";
 
 import Row from "react-bootstrap/Row";
 import useFetch from "../../hooks/useFetch";
-
+import Spinner from "../Spinner";
 import Table from "react-bootstrap/Table";
+import { Link } from "react-router-dom";
 
 const userListUrl = "users";
 
@@ -11,7 +12,7 @@ export default function UserList() {
   const { data: userList, error, loading } = useFetch(`${userListUrl}`);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <Spinner />;
   }
   if (error) {
     return <div>{error.message}</div>;
@@ -38,7 +39,9 @@ export default function UserList() {
           {userList.map((x, index) => (
             <tr key={x.userid}>
               <td>{index}</td>
-              <td>{x.email}</td>
+              <td>
+                <Link to={`/userList/${x.userid}`}>{x.email}</Link>
+              </td>
               <td>{x.Name}</td>
               {/* TODO: format datetime */}
               <td>{x.CreatedAt}</td>
