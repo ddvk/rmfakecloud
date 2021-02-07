@@ -149,11 +149,8 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 	// To be able to send tokens to the server.
 	corsConfig.AllowCredentials = true
 
-	// OPTIONS method for ReactJS
+	// OPTIONS method for preflight 
 	corsConfig.AddAllowMethods("OPTIONS")
-	//corsConfig.AllowHeaders = []string{"*"};
-	//corsConfig.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization"};
-
 	corsConfig.AddAllowHeaders("Authorization");
 
 	// Register the middleware
