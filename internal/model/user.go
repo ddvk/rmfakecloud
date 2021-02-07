@@ -1,4 +1,4 @@
-package messages
+package model
 
 import (
 	"crypto/rand"
@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/argon2"
 )
@@ -145,37 +146,12 @@ func (u *User) NewUserCode() (code string, err error) {
 
 	return
 }
-// Auth0token is the oauth token struct.
-type Auth0token struct {
-	Profile    *Auth0profile `json:"auth0-profile,omitempty"`
-	DeviceDesc string        `json:"device-desc"`
-	DeviceId   string        `json:"device-id"`
-	Scopes     string        `json:"scopes,omitempty"`
-	jwt.StandardClaims
-}
-
-// Auth0profile is the oauth user struct.
-type Auth0profile struct {
-	UserId        string `json:"UserID'`
-	IsSocial      bool
-	ClientId      string `json:"ClientID'`
-	Connection    string
-	Name          string
-	Nickname      string
-	GivenName     string
-	FamilyName    string
-	Email         string
-	EmailVerified bool
-	Picture       string
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
-}
 
 // NewAuth0Token create new auth0 token
 func (u *User) NewAuth0Token(deviceDesc, deviceId string) *jwt.Token {
 	expirationTime := time.Now().Add(30 * 24 * time.Hour)
-	claims := &Auth0token{
-		Profile: &Auth0profile{
+	claims := &messages.Auth0token{
+		Profile: messages.Auth0profile{
 			UserId:        "auth0|" + u.Id,
 			IsSocial:      false,
 			Name:          u.Name,

@@ -8,7 +8,7 @@ import (
 
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/db"
-	"github.com/ddvk/rmfakecloud/internal/messages"
+	"github.com/ddvk/rmfakecloud/internal/model"
 	"github.com/ddvk/rmfakecloud/internal/webassets"
 	"github.com/gin-gonic/gin"
 )
@@ -34,7 +34,7 @@ func (w ReactAppWrapper) Open(filepath string) (http.File, error) {
 func (w ReactAppWrapper) Register(router *gin.Engine) {
 	router.StaticFS(w.prefix, w)
 
-	router.GET("/avicon.ico", func(c *gin.Context) {
+	router.GET("/favicon.ico", func(c *gin.Context) {
 		c.FileFromFS("/favicon.ico", webassets.Assets)
 	})
 
@@ -47,8 +47,8 @@ func (w ReactAppWrapper) Register(router *gin.Engine) {
 
 // Document is a single document
 type Document struct {
-	ID   string `json:id`
-	Name string `json:name`
+	ID       string `json:id`
+	Name     string `json:name`
 	ImageUrl string `json:imageUrl`
 	ParentId string `json:parentId`
 }
@@ -59,8 +59,7 @@ type DocumentList struct {
 }
 
 func badReq(c *gin.Context, message string) {
-	c.JSON(http.StatusBadRequest, gin.H{"error": message})
-	c.Abort()
+	c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": message})
 }
 
 type loginForm struct {
@@ -79,8 +78,7 @@ func RegisterUI(e *gin.Engine, cfg *config.Config, userStorer db.UserStorer) {
 	r := e.Group("/ui/api")
 	r.POST("register", func(c *gin.Context) {
 		if !cfg.RegistrationOpen {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Registrations are closed"})
-			c.Abort()
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Registrations are closed"})
 			return
 		}
 
@@ -107,7 +105,7 @@ func RegisterUI(e *gin.Engine, cfg *config.Config, userStorer db.UserStorer) {
 			}
 		}
 
-		user, err := messages.NewUser(form.Email, form.Password)
+		user, err := model.NewUser(form.Email, form.Password)
 		if err != nil {
 			log.Error(err)
 			badReq(c, err.Error())
@@ -140,7 +138,7 @@ func RegisterUI(e *gin.Engine, cfg *config.Config, userStorer db.UserStorer) {
 			return
 		}
 
-		var user *messages.User
+		var user *model.User
 		for _, u := range users {
 			if form.Email == u.Email {
 				user = u
@@ -149,27 +147,27 @@ func RegisterUI(e *gin.Engine, cfg *config.Config, userStorer db.UserStorer) {
 
 		if user == nil {
 			log.Error(err)
-			c.JSON(http.StatusUnauthorized, "Invalid email or password")
+			c.AbortWithStatusJSON(http.StatusUnauthorized, "Invalid email or password")
 			return
 		}
 
 		if ok, err := user.CheckPassword(form.Password); err != nil || !ok {
 			log.Error(err)
-			c.JSON(http.StatusUnauthorized, "Invalid email or password")
+			c.AbortWithStatusJSON(http.StatusUnauthorized, "Invalid email or password")
 			return
 		}
 
 		token := user.NewAuth0Token("ui", "")
 
 		tokenString, err := token.SignedString(cfg.JWTSecretKey)
-		
+
 		if err != nil {
 			badReq(c, err.Error())
 			return
 		}
 
 		loginResponse := map[string]interface{}{
-			"user": user,
+			"user":       user,
 			"auth_token": tokenString,
 		}
 
@@ -215,67 +213,67 @@ func RegisterUIAuth(e *gin.RouterGroup, metaStorer db.MetadataStorer, userStorer
 		documentList := DocumentList{
 			Documents: []Document{
 				{
-					ID:   "001",
-					Name: "The Adventures of Huckleberry Finn by Mark Twain",
+					ID:       "001",
+					Name:     "The Adventures of Huckleberry Finn by Mark Twain",
 					ImageUrl: "https://picsum.photos/100/150",
 					ParentId: "root",
 				},
 				{
-					ID:   "002",
-					Name: "The Great Gatsby by F. Scott Fizgerald",
+					ID:       "002",
+					Name:     "The Great Gatsby by F. Scott Fizgerald",
 					ImageUrl: "https://images-na.ssl-images-amazon.com/images/I/41iers%2BHLSL._SL160_.jpg",
 					ParentId: "root",
 				},
 				{
-					ID:   "003",
-					Name: "The Stories of Anton Chekhov by Anton Checkhov",
+					ID:       "003",
+					Name:     "The Stories of Anton Chekhov by Anton Checkhov",
 					ImageUrl: "https://picsum.photos/100/150",
 					ParentId: "root",
 				},
 				{
-					ID:   "004",
-					Name: "War and Peace by Leo Tolstoy",
-					ImageUrl: "https://picsum.photos/100/150",
-					ParentId: "root",
-				},
-
-				{
-					ID:   "005",
-					Name: " Madame Bovary by Gustav Flaubert",
+					ID:       "004",
+					Name:     "War and Peace by Leo Tolstoy",
 					ImageUrl: "https://picsum.photos/100/150",
 					ParentId: "root",
 				},
 
 				{
-					ID:   "006",
-					Name: "The Adventures of Huckleberry Finn by Mark Twain",
+					ID:       "005",
+					Name:     " Madame Bovary by Gustav Flaubert",
 					ImageUrl: "https://picsum.photos/100/150",
 					ParentId: "root",
 				},
 
 				{
-					ID:   "007",
-					Name: " The Brothers Karamazov by Fyodor Dostoyevsky",
+					ID:       "006",
+					Name:     "The Adventures of Huckleberry Finn by Mark Twain",
 					ImageUrl: "https://picsum.photos/100/150",
 					ParentId: "root",
 				},
 
 				{
-					ID:   "008",
-					Name: "Don Quixote by Miguel de Cervantes",
+					ID:       "007",
+					Name:     " The Brothers Karamazov by Fyodor Dostoyevsky",
+					ImageUrl: "https://picsum.photos/100/150",
+					ParentId: "root",
+				},
+
+				{
+					ID:       "008",
+					Name:     "Don Quixote by Miguel de Cervantes",
 					ImageUrl: "https://m.media-amazon.com/images/I/51nBHIQv6zL._SL160_.jpg",
 					ParentId: "root",
 				},
 
 				{
-					ID:   "009",
-					Name: "Ulysses by James Joyce",
+					ID:       "009",
+					Name:     "Ulysses by James Joyce",
 					ImageUrl: "https://picsum.photos/100/150",
 					ParentId: "root",
 				},
 				{
-					ID:   "010",
-					Name: "Crime and Punishment by Fyodor Dostoyevsky",
+					ID:       "010",
+					Name:     "Crime and Punishment by Fyodor Dostoyevsky",
 					ImageUrl: "https://picsum.photos/100/150",
 					ParentId: "root",
 				},

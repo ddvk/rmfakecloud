@@ -16,6 +16,7 @@ import (
 
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/messages"
+	"github.com/ddvk/rmfakecloud/internal/model"
 	"github.com/gin-gonic/gin"
 )
 
@@ -157,7 +158,7 @@ func (fs *Storage) GetMetadata(id string, withBlob bool) (*messages.RawDocument,
 
 }
 
-func (fs *Storage) GetUser(id string) (response *messages.User, err error) {
+func (fs *Storage) GetUser(id string) (response *model.User, err error) {
 	dataDir := fs.Cfg.DataDir
 	filePath := ".userprofile"
 	fullPath := path.Join(dataDir, id, filepath.Base(filePath))
@@ -175,7 +176,7 @@ func (fs *Storage) GetUser(id string) (response *messages.User, err error) {
 		return
 	}
 
-	response = &messages.User{}
+	response = &model.User{}
 	err = json.Unmarshal(content, response)
 	if err != nil {
 		return
@@ -184,7 +185,7 @@ func (fs *Storage) GetUser(id string) (response *messages.User, err error) {
 	return
 }
 
-func (fs *Storage) GetUsers() (users []*messages.User, err error) {
+func (fs *Storage) GetUsers() (users []*model.User, err error) {
 	dataDir := fs.Cfg.DataDir
 
 	err = filepath.Walk(dataDir, func(path string, info os.FileInfo, err error) error {
@@ -204,7 +205,7 @@ func (fs *Storage) GetUsers() (users []*messages.User, err error) {
 	return
 }
 
-func (fs *Storage) RegisterUser(u *messages.User) (err error) {
+func (fs *Storage) RegisterUser(u *model.User) (err error) {
 	userDir := path.Join(fs.Cfg.DataDir, u.Id)
 	filePath := ".userprofile"
 	fullPath := path.Join(userDir, filepath.Base(filePath))
@@ -226,7 +227,7 @@ func (fs *Storage) RegisterUser(u *messages.User) (err error) {
 	return
 }
 
-func (fs *Storage) UpdateUser(u *messages.User) (err error) {
+func (fs *Storage) UpdateUser(u *model.User) (err error) {
 	userDir := path.Join(fs.Cfg.DataDir, u.Id)
 	filePath := ".userprofile"
 	fullPath := path.Join(userDir, filepath.Base(filePath))
