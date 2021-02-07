@@ -1,7 +1,7 @@
 import React from "react";
 import { Route, Redirect } from "react-router-dom";
 
-import { useAuthState } from "./Login/useAuthContext";
+import { useAuthState } from "../hooks/useAuthContext";
 
 export const PrivateRoute = ({ component: Component, ...rest }) => {
   const userDetails = useAuthState(); //read the values of loading and errorMessage from context

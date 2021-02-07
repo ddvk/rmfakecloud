@@ -1,15 +1,15 @@
-import "bootstrap/dist/css/bootstrap.min.css";
 import React from "react";
-import Layout from "./components/Layout";
-import Navigationbar from "./components/NavigationBar";
-import FileList from "./components/FileList";
-import FileListFunctional from "./components/FileListFunction";
-import NoMatch from "./components/NoMatch";
-import Home from "./components/Home";
-import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
-import { AuthProvider } from "./components/Login/useAuthContext";
+import Layout from "./components/Layout/Layout";
+import Navigationbar from "./components/Navigation/NavigationBar";
 import Login from "./components/Login/Login";
+import Home from "./components/Home";
+import FileList from "./components/File/FileList";
+import FileListFunctional from "./components/File/FileListFunction";
+import NoMatch from "./components/NoMatch";
+import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
+import { AuthProvider } from "./hooks/useAuthContext";
 import { PrivateRoute } from "./components/PrivateRoute";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 export default function App() {
   return (
