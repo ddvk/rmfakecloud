@@ -26,7 +26,7 @@ jobs:
         run: |
           version=$(git describe --tags)
           echo $version
-          echo version=$version >> $GITHUB_ENV
+          echo "version=$version" >> $GITHUB_ENV
 
       - name: Build and push
         id: docker_build
