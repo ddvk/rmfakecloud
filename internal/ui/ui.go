@@ -313,7 +313,7 @@ func RegisterUIAuth(e *gin.RouterGroup, metaStorer db.MetadataStorer, userStorer
 			return
 		}
 
-		var user *messages.User
+		var user *model.User
 		for _, u := range users {
 			if userid == u.Id {
 				user = u
