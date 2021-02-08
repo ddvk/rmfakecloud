@@ -12,13 +12,15 @@ import (
 )
 
 type InMemConnector struct {
-	dict map[string]string
-	lock sync.Mutex
+	dict         map[string]string
+	lock         sync.Mutex
+	codeValidity time.Duration
 }
 
 func NewCodeConnector() common.CodeConnector {
 	return &InMemConnector{
-		dict: make(map[string]string),
+		dict:         make(map[string]string),
+		codeValidity: time.Second * 10,
 	}
 
 }
@@ -37,11 +39,11 @@ func (conn *InMemConnector) NewCode(uid string) (string, error) {
 	conn.lock.Unlock()
 	go func() {
 		select {
-		case <-time.After(10 * time.Second):
+		case <-time.After(conn.codeValidity):
 			conn.lock.Lock()
-			defer conn.lock.Unlock()
-			log.Info("removing unused code: ", code)
 			delete(conn.dict, code)
+			conn.lock.Unlock()
+			log.Info("removed unused code: ", code)
 		}
 
 	}()

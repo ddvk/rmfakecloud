@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 
 	log "github.com/sirupsen/logrus"
@@ -23,7 +24,14 @@ func main() {
 	if host == "" {
 		host = "localhost:3000"
 	}
-	conn, err := websocket.Dial("ws://"+host+"/notifications/ws/json/1", "", "http://none")
+	config, err := websocket.NewConfig("ws://"+host+"/notifications/ws/json/1", "http://none")
+	if err != nil {
+		log.Fatal(err)
+	}
+	config.Header = http.Header{
+		"Authorization": {"Bearer 1234.1234.123"},
+	}
+	conn, err := websocket.DialConfig(config)
 
 	if err != nil {
 

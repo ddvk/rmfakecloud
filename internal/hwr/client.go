@@ -10,17 +10,18 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/ddvk/rmfakecloud/internal/config"
 	log "github.com/sirupsen/logrus"
 )
 
 var key, hmackey string
 
 func init() {
-	key = os.Getenv("RMAPI_HWR_APPLICATIONKEY")
+	key = os.Getenv(config.EnvHwrApplicationKey)
 	if key == "" {
 		log.Println("if you want HWR, provide the myScript applicationKey in: RMAPI_HWR_APPLICATIONKEY")
 	}
-	hmackey = os.Getenv("RMAPI_HWR_HMAC")
+	hmackey = os.Getenv(config.EnvHwrHmac)
 	if hmackey == "" {
 		log.Println("provide the myScript hmac in: RMAPI_HWR_HMAC")
 	}

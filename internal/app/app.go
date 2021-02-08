@@ -122,3 +122,4 @@ func stripAds(msg string) string {
 	}
 	return msg
 }
+	// router.Use(ginlogrus.Logger(std.Out), gin.Recovery())
