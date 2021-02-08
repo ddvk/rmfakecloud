@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"strconv"
 
@@ -15,7 +14,7 @@ import (
 const (
 	DefaultPort     = "3000"
 	DefaultDataDir  = "data"
-	defaultTrashDir = "trash"
+	DefaultTrashDir = "trash"
 
 	// DefaultHost fake url
 	DefaultHost = "local.appspot.com"
@@ -45,7 +44,6 @@ type Config struct {
 	Port             string
 	StorageURL       string
 	DataDir          string
-	TrashDir         string
 	JWTSecretKey     []byte
 	RegistrationOpen bool
 }
@@ -62,11 +60,6 @@ func FromEnv() *Config {
 		if err != nil {
 			panic(err)
 		}
-	}
-	trashDir := path.Join(dataDir, defaultTrashDir)
-	err = os.MkdirAll(trashDir, 0700)
-	if err != nil {
-		panic(err)
 	}
 
 	port := os.Getenv(EnvPort)
@@ -102,7 +95,6 @@ func FromEnv() *Config {
 		Port:             port,
 		StorageURL:       uploadURL,
 		DataDir:          dataDir,
-		TrashDir:         trashDir,
 		JWTSecretKey:     jwtSecretKey,
 		RegistrationOpen: openRegistration,
 	}

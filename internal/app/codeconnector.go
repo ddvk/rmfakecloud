@@ -20,7 +20,7 @@ type InMemConnector struct {
 func NewCodeConnector() common.CodeConnector {
 	return &InMemConnector{
 		dict:         make(map[string]string),
-		codeValidity: time.Second * 10,
+		codeValidity: time.Minute * 5,
 	}
 
 }

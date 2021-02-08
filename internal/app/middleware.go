@@ -16,14 +16,14 @@ func (app *App) authMiddleware() gin.HandlerFunc {
 		claims, err := app.getUserClaims(c)
 
 		if err != nil {
-			log.Warn("token parsing", err)
+			log.Warn("token parsing:", err)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing or incorrect token"})
 			return
 		}
 
 		uid := strings.TrimPrefix(claims.Profile.UserId, "auth0|")
 		c.Set(userID, uid)
-		log.Info("got a user token: ", uid)
+		log.Info("got a user from token: ", uid)
 		c.Next()
 	}
 }

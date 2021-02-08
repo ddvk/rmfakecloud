@@ -1,11 +1,9 @@
 package fs
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -18,7 +16,6 @@ import (
 
 	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/config"
-	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/gin-gonic/gin"
 )
 
@@ -27,43 +24,36 @@ type Storage struct {
 	Cfg *config.Config
 }
 
-func (fs *Storage) getSanitizedFileName(path string) string {
-	return filepath.Join(fs.Cfg.DataDir, filepath.Base(path))
+func (fs *Storage) getSanitizedFileName(uid, path string) string {
+	return filepath.Join(fs.Cfg.DataDir, userDir, uid, filepath.Base(path))
 }
 
 // GetDocument Opens a document by id
 func (fs *Storage) GetDocument(uid, id string) (io.ReadCloser, error) {
-	fullPath := fs.getSanitizedFileName(id + ".zip")
+	fullPath := fs.getSanitizedFileName(uid, id+".zip")
 	log.Debugln("Fullpath:", fullPath)
 	reader, err := os.Open(fullPath)
 	return reader, err
 }
 
-// UpdateMetadata updates the metadata of a document
-func (fs *Storage) UpdateMetadata(uid string, r *messages.RawDocument) error {
-	filepath := fs.getSanitizedFileName(r.Id + ".metadata")
+// RemoveDocument removes document (moves it to trash)
+func (fs *Storage) RemoveDocument(uid, id string) error {
 
-	js, err := json.Marshal(r)
+	trashDir := path.Join(fs.Cfg.DataDir, userDir, uid, config.DefaultTrashDir)
+	err := os.MkdirAll(trashDir, 0700)
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(filepath, js, 0600)
-	return err
-
-}
-
-// RemoveDocument removes document (moves it to trash)
-func (fs *Storage) RemoveDocument(uid, id string) error {
 	//do not delete, move to trash
-	trashDir := fs.Cfg.TrashDir
+	log.Info(trashDir)
 	meta := filepath.Base(fmt.Sprintf("%s.metadata", id))
-	fullPath := fs.getSanitizedFileName(meta)
-	err := os.Rename(fullPath, path.Join(trashDir, meta))
+	fullPath := fs.getSanitizedFileName(uid, meta)
+	err = os.Rename(fullPath, path.Join(trashDir, meta))
 	if err != nil {
 		return err
 	}
 	zipfile := filepath.Base(fmt.Sprintf("%s.zip", id))
-	fullPath = fs.getSanitizedFileName(zipfile)
+	fullPath = fs.getSanitizedFileName(uid, zipfile)
 	err = os.Rename(fullPath, path.Join(trashDir, zipfile))
 	if err != nil {
 		return err
@@ -80,7 +70,7 @@ func (fs *Storage) GetStorageURL(uid string, exp time.Time, id string) (string, 
 		UserId:     uid,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: exp.Unix(),
-			Subject:   "storage",
+			Audience:  common.StorageUsage,
 		},
 	}
 	signedToken, err := common.SignClaims(claim, fs.Cfg.JWTSecretKey)
@@ -94,7 +84,7 @@ func (fs *Storage) GetStorageURL(uid string, exp time.Time, id string) (string, 
 // StoreDocument stores a document
 func (fs *Storage) StoreDocument(uid string, stream io.ReadCloser, id string) error {
 	dataDir := fs.Cfg.DataDir
-	fullPath := path.Join(dataDir, filepath.Base(fmt.Sprintf("%s.zip", id)))
+	fullPath := path.Join(dataDir, userDir, uid, filepath.Base(fmt.Sprintf("%s.zip", id)))
 	file, err := os.Create(fullPath)
 	if err != nil {
 		return err
@@ -114,18 +104,19 @@ func (fs *Storage) parseToken(token string) (*common.StorageClaim, error) {
 	if err != nil {
 		return nil, err
 	}
-	if claim.StandardClaims.Subject != "storage" {
+	if claim.StandardClaims.Audience != common.StorageUsage {
 		return nil, errors.New("not a storage token")
-
 	}
 	return claim, nil
 }
 
 func (fs *Storage) uploadDocument(c *gin.Context) {
-	strToken := c.Query("token")
+	strToken := c.Param("token")
+	log.Info("Token", strToken)
 	token, err := fs.parseToken(strToken)
 
 	if err != nil {
+		log.Error(err)
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
@@ -144,10 +135,11 @@ func (fs *Storage) uploadDocument(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{})
 }
 func (fs *Storage) downloadDocument(c *gin.Context) {
-	strToken := c.Query("token")
+	strToken := c.Param("token")
 	token, err := fs.parseToken(strToken)
 
 	if err != nil {
+		log.Error(err)
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}

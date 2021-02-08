@@ -90,6 +90,7 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 		cfg:           cfg,
 		docStorer:     docStorer,
 		userStorer:    userStorer,
+		metaStorer:    metaStorer,
 		hub:           hub,
 		ui:            reactApp,
 		codeConnector: codeConnector,
@@ -122,4 +123,5 @@ func stripAds(msg string) string {
 	}
 	return msg
 }
-	// router.Use(ginlogrus.Logger(std.Out), gin.Recovery())
+
+// router.Use(ginlogrus.Logger(std.Out), gin.Recovery())
