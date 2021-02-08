@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/email"
 	"github.com/ddvk/rmfakecloud/internal/hwr"
@@ -30,10 +31,10 @@ func (app *App) getToken(c *gin.Context) (claims *messages.Auth0token, err error
 	strToken := token[1]
 
 	claims = &messages.Auth0token{}
-	_, err = jwt.ParseWithClaims(strToken, claims,
-		func(token *jwt.Token) (interface{}, error) {
-			return app.cfg.JWTSecretKey, nil
-		})
+	err = common.ClaimsFromToken(claims, strToken, app.cfg.JWTSecretKey)
+	if err != nil {
+		return
+	}
 	log.Info("token parsed")
 	return
 }
@@ -58,8 +59,7 @@ func (app *App) newDevice(c *gin.Context) {
 		},
 	}
 
-	deviceToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := deviceToken.SignedString(app.cfg.JWTSecretKey)
+	tokenString, err := common.SignClaims(claims, app.cfg.JWTSecretKey)
 	if err != nil {
 		badReq(c, err.Error())
 		return
