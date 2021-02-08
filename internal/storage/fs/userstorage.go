@@ -93,7 +93,7 @@ func (fs *Storage) RegisterUser(u *model.User) (err error) {
 }
 
 func (fs *Storage) UpdateUser(u *model.User) (err error) {
-	userDir := path.Join(fs.Cfg.DataDir, u.Id)
+	userDir := path.Join(fs.Cfg.DataDir, userDir, u.Id)
 	profilePath := path.Join(userDir, profileName)
 
 	// Erase the profile file

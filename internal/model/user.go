@@ -5,10 +5,12 @@ import (
 	"crypto/subtle"
 	"encoding/base32"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/argon2"
 )
 
@@ -106,6 +108,10 @@ func (u *User) SetPassword(raw string) (err error) {
 
 func (u *User) CheckPassword(raw string) (bool, error) {
 	parts := strings.Split(u.Password, "$")
+	if len(parts) < 3 {
+		log.Error("invalid password format")
+		return false, errors.New("invalid password format")
+	}
 
 	var (
 		memory  uint32

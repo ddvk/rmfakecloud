@@ -23,24 +23,27 @@ func main() {
 		flag.PrintDefaults()
 		fmt.Println("Version: ", version)
 		fmt.Printf(`
+Commands:
+	setuser		create users / reset passwords
+
 Environment Variables:
-General:
-%s	Log verbosity level (debug, info, warn) (default: info)
-%s		Port (default: %s)
-%s		Local storage folder (default: %s)
-%s	Url the tablet can resolve (default: http://hostname:port)
+	General:
+	%s	Log verbosity level (debug, info, warn) (default: info)
+	%s		Port (default: %s)
+	%s		Local storage folder (default: %s)
+	%s	Url the tablet can resolve (default: http://hostname:port)
 
 email sending, smtp:
-%s
-%s
-%s
-%s	don't check the server certificate (not recommended)
-%s	custom HELO (if your email server needs it)
-%s	override the email's From:
+	%s
+	%s
+	%s
+	%s	don't check the server certificate (not recommended)
+	%s	custom HELO (if your email server needs it)
+	%s	override the email's From:
 
 myScript hwr (needs a developer account):
-%s
-%s
+	%s
+	%s
 `,
 			config.EnvLogLevel,
 			config.EnvPort,

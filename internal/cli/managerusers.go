@@ -26,7 +26,10 @@ func Handler(cfg *config.Config, args []string) bool {
 			if err == nil {
 				log.Info("Updateing user: ", *username)
 				usr.SetPassword(*pass)
-				storage.UpdateUser(usr)
+				err := storage.UpdateUser(usr)
+				if err != nil {
+					log.Fatal(err)
+				}
 			} else {
 				log.Info("Creating user: ", *username)
 				usr := &model.User{
