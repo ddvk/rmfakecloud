@@ -35,6 +35,7 @@ type User struct {
 	Picture       string
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
+	IsAdmin       bool
 }
 
 func genId() (string, error) {

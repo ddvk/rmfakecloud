@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -95,7 +96,7 @@ func FromEnv() *Config {
 		log.Warn("The authentication will fail, the next time you start the server")
 	}
 
-	//openRegistration := os.Getenv(envRegistrationOpen)
+	openRegistration, _ := strconv.ParseBool(os.Getenv(envRegistrationOpen))
 
 	cfg := Config{
 		Port:             port,
@@ -103,7 +104,7 @@ func FromEnv() *Config {
 		DataDir:          dataDir,
 		TrashDir:         trashDir,
 		JWTSecretKey:     jwtSecretKey,
-		RegistrationOpen: true,
+		RegistrationOpen: openRegistration,
 	}
 	return &cfg
 }

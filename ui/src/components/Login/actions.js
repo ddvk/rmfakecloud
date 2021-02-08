@@ -26,6 +26,7 @@ export async function loginUser(dispatch, loginPayload) {
 
     return;
   } catch (error) {
+    console.log(error)
     dispatch({ type: "LOGIN_ERROR", error: error });
   }
 }

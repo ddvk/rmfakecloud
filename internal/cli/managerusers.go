@@ -14,6 +14,7 @@ func Handler(cfg *config.Config, args []string) bool {
 		userParam := flag.NewFlagSet("adduser", flag.ExitOnError)
 		username := userParam.String("u", "", "username")
 		pass := userParam.String("p", "", "password")
+		admin := userParam.Bool("a", false, "admin role")
 
 		userParam.Parse(args[2:])
 		if *username != "" && *pass != "" {
@@ -23,25 +24,20 @@ func Handler(cfg *config.Config, args []string) bool {
 			}
 
 			usr, err := storage.GetUser(*username)
-			if err == nil {
-				log.Info("Updateing user: ", *username)
-				usr.SetPassword(*pass)
-				err := storage.UpdateUser(usr)
-				if err != nil {
-					log.Fatal(err)
-				}
-			} else {
-				log.Info("Creating user: ", *username)
-				usr := &model.User{
+			if err != nil {
+				usr = &model.User{
 					Id:    *username,
 					Email: *username,
 				}
 
-				err := storage.RegisterUser(usr)
-				if err != nil {
-					log.Fatal(err)
-				}
 			}
+			usr.SetPassword(*pass)
+			usr.IsAdmin = *admin
+			err = storage.UpdateUser(usr)
+			if err != nil {
+				log.Fatal(err)
+			}
+			log.Info("Updated/created the user")
 		} else {
 			userParam.PrintDefaults()
 		}

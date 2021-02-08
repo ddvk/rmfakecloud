@@ -61,6 +61,12 @@ func (app *ReactAppWrapper) authMiddleware() gin.HandlerFunc {
 
 		uid := claims.UserId
 		c.Set(userID, uid)
+		for _, r := range claims.Roles {
+			if r == "admin" {
+				c.Set("admin", true)
+				break
+			}
+		}
 		log.Info("got a user from token: ", uid)
 		c.Next()
 	}

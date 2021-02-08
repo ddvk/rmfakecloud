@@ -49,6 +49,7 @@ type WebUserClaims struct {
 	UserId string `json:"UserID'`
 	Email  string
 	Scopes string `json:"scopes,omitempty"`
+	Roles  []string
 	jwt.StandardClaims
 }
 
