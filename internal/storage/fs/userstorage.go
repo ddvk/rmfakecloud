@@ -77,7 +77,7 @@ func (fs *Storage) RegisterUser(u *model.User) (err error) {
 	if err != nil {
 		return err
 	}
-	f, err := os.OpenFile(profilePath, os.O_CREATE|os.O_WRONLY, 0600)
+	f, err := os.OpenFile(profilePath, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0600)
 	if err != nil {
 		log.Warn("cant open")
 		return err

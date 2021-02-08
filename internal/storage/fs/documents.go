@@ -24,7 +24,7 @@ import (
 
 // Storage file system document storage
 type Storage struct {
-	Cfg config.Config
+	Cfg *config.Config
 }
 
 func (fs *Storage) getSanitizedFileName(path string) string {

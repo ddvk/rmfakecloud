@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/ddvk/rmfakecloud/internal/app"
+	"github.com/ddvk/rmfakecloud/internal/cli"
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/storage/fs"
 	"github.com/gin-gonic/gin"
@@ -62,6 +63,12 @@ myScript hwr (needs a developer account):
 	flag.Parse()
 	fmt.Println("run with -h for all available env variables")
 
+	cfg := config.FromEnv()
+	//cli
+	if cli.Handler(cfg, os.Args) {
+		return
+	}
+
 	logger := logrus.StandardLogger()
 	logger.SetFormatter(&logrus.TextFormatter{})
 
@@ -69,7 +76,6 @@ myScript hwr (needs a developer account):
 		fmt.Println("Log level:", lvl)
 		logger.SetLevel(lvl)
 	}
-	cfg := config.FromEnv()
 
 	log.Println("Version: ", version)
 	// configs
@@ -78,7 +84,7 @@ myScript hwr (needs a developer account):
 	log.Println("Listening on port:", cfg.Port)
 
 	fsStorage := &fs.Storage{
-		Cfg: *cfg,
+		Cfg: cfg,
 	}
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
