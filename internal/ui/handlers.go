@@ -131,11 +131,6 @@ func (app *ReactAppWrapper) listDocuments(c *gin.Context) {
 }
 
 func (app *ReactAppWrapper) getAppUsers(c *gin.Context) {
-	isAdmin := c.GetBool("admin")
-	if !isAdmin {
-		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "not admin"})
-		return
-	}
 	// Try to find the user
 	users, err := app.userStorer.GetUsers()
 
@@ -156,11 +151,11 @@ func (app *ReactAppWrapper) getAppUsers(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, uilist)
 }
+func (app *ReactAppWrapper) updateUser(c *gin.Context) {
+}
 func (app *ReactAppWrapper) getUser(c *gin.Context) {
 	uid := c.Param("userid")
 	log.Info("Requested: ", uid)
-
-	//TODO: check for admin role
 
 	// Try to find the user
 	user, err := app.userStorer.GetUser(uid)

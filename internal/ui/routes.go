@@ -31,16 +31,28 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 
 	gr.GET("newcode", app.newCode)
 	gr.GET("list", app.listDocuments)
-	gr.GET("users", app.getAppUsers)
-	gr.GET("users/:userid", app.getUser)
+
+	admin := gr.Group("")
+	admin.Use(app.adminMiddleware())
+	admin.GET("users/:userid", app.getUser)
+	admin.GET("users", app.getAppUsers)
+	admin.PUT("users", app.updateUser)
 }
 
+func (app *ReactAppWrapper) adminMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if !c.GetBool("admin") {
+			log.Warn("not admin")
+			c.AbortWithStatus(http.StatusForbidden)
+		}
+	}
+}
 func (app *ReactAppWrapper) authMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token, err := common.GetToken(c)
 
 		if err != nil {
-			log.Warn("token parsing", err)
+			log.Warn("token parsing, ", err)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing or incorrect token"})
 			return
 		}
