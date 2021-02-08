@@ -158,10 +158,14 @@ func (fs *Storage) GetMetadata(id string, withBlob bool) (*messages.RawDocument,
 
 }
 
+const (
+	userDir     = "users"
+	profileName = ".userprofile"
+)
+
 func (fs *Storage) GetUser(id string) (response *model.User, err error) {
 	dataDir := fs.Cfg.DataDir
-	filePath := ".userprofile"
-	fullPath := path.Join(dataDir, id, filepath.Base(filePath))
+	fullPath := path.Join(dataDir, userDir, id, profileName)
 
 	var f *os.File
 	f, err = os.Open(fullPath)
@@ -186,32 +190,28 @@ func (fs *Storage) GetUser(id string) (response *model.User, err error) {
 }
 
 func (fs *Storage) GetUsers() (users []*model.User, err error) {
-	dataDir := fs.Cfg.DataDir
+	dataDir := path.Join(fs.Cfg.DataDir, userDir)
 
-	err = filepath.Walk(dataDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if info.IsDir() {
-			if user, err := fs.GetUser(info.Name()); err == nil {
+	entries, err := ioutil.ReadDir(dataDir)
+	if err != nil {
+		return
+	}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			if user, err := fs.GetUser(entry.Name()); err == nil {
 				users = append(users, user)
 			}
 		}
-
-		return nil
-	})
-
+	}
 	return
 }
 
 func (fs *Storage) RegisterUser(u *model.User) (err error) {
-	userDir := path.Join(fs.Cfg.DataDir, u.Id)
-	filePath := ".userprofile"
-	fullPath := path.Join(userDir, filepath.Base(filePath))
+	userDir := path.Join(fs.Cfg.DataDir, userDir, u.Id)
+	fullPath := path.Join(userDir, profileName)
 
 	// Create the user's directory
-	err = os.MkdirAll(userDir, 0755)
+	err = os.MkdirAll(userDir, 0700)
 	if err != nil {
 		return
 	}
@@ -222,7 +222,7 @@ func (fs *Storage) RegisterUser(u *model.User) (err error) {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(fullPath, js, 0644)
+	err = ioutil.WriteFile(fullPath, js, 0600)
 
 	return
 }
@@ -245,10 +245,12 @@ func (fs *Storage) UpdateUser(u *model.User) (err error) {
 
 func (fs *Storage) RegisterRoutes(router *gin.Engine) {
 
+	//TODO: AUth
+	//TODO: handle the user or add the Id in the token
 	router.GET("/storage", func(c *gin.Context) {
 		id := c.Query("id")
 		if id == "" {
-			c.String(400, "set up us the bomb")
+			c.AbortWithStatus(http.StatusBadRequest)
 			return
 		}
 
@@ -260,8 +262,7 @@ func (fs *Storage) RegisterRoutes(router *gin.Engine) {
 
 		if err != nil {
 			log.Error(err)
-			c.String(500, "internal error")
-			c.Abort()
+			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
 
