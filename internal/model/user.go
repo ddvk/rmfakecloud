@@ -71,11 +71,15 @@ func genPassword(raw string) (string, error) {
 	return full, nil
 }
 
+func sanitizeEmail(email string) string {
+	//remove all non ascii
+	return email
+}
 func NewUser(email string, rawPassword string) (*User, error) {
-	id, err := genId()
-	if err != nil {
-		return nil, err
-	}
+	// id, err := genId()
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	password, err := genPassword(rawPassword)
 	if err != nil {
@@ -83,7 +87,7 @@ func NewUser(email string, rawPassword string) (*User, error) {
 	}
 
 	return &User{
-		Id:            id,
+		Id:            sanitizeEmail(email),
 		Email:         email,
 		EmailVerified: true,
 		Password:      password,

@@ -3,54 +3,56 @@ package app
 import (
 	"net/http"
 
-	"github.com/ddvk/rmfakecloud/internal/ui"
 	"github.com/gin-gonic/gin"
 )
 
-func (self *App) registerRoutes(router *gin.Engine) {
+func (app *App) registerRoutes(router *gin.Engine) {
 
 	router.GET("/health", func(c *gin.Context) {
-		count := self.hub.ClientCount()
+		count := app.hub.ClientCount()
 		c.String(http.StatusOK, "Working, %d clients", count)
 	})
 	// register  a new device
-	router.POST("/token/json/2/device/new", self.newDevice)
+	router.POST("/token/json/2/device/new", app.newDevice)
 
 	//service locator
-	router.GET("/service/json/1/:service", self.locateService)
+	router.GET("/service/json/1/:service", app.locateService)
+
+	app.docStorer.RegisterRoutes(router)
+	app.ui.RegisterRoutes(router)
 
 	//routes needing authentitcation
-	authRoute := router.Group("/")
-	authRoute.Use(self.authMiddleware())
+	authRoutes := router.Group("/")
+	authRoutes.Use(app.authMiddleware())
 	{
-		ui.RegisterUIAuth(authRoute, self.metaStorer, self.userStorer)
+		app.ui.RegisterAuthRoutes(authRoutes)
 
 		// renew device acces token
-		authRoute.POST("/token/json/2/user/new", self.newUserToken)
+		authRoutes.POST("/token/json/2/user/new", app.newUserToken)
 
 		//unregister device
-		authRoute.POST("/token/json/3/device/delete", func(c *gin.Context) {
+		authRoutes.POST("/token/json/3/device/delete", func(c *gin.Context) {
 			c.String(http.StatusNoContent, "")
 		})
 
 		// doucment notifications
-		authRoute.GET("/notifications/ws/json/1", self.connectWebSocket)
+		authRoutes.GET("/notifications/ws/json/1", app.connectWebSocket)
 
-		authRoute.PUT("/document-storage/json/2/upload/request", self.uploadRequest)
+		authRoutes.PUT("/document-storage/json/2/upload/request", app.uploadRequest)
 
-		authRoute.PUT("/document-storage/json/2/upload/update-status", self.updateStatus)
+		authRoutes.PUT("/document-storage/json/2/upload/update-status", app.updateStatus)
 
-		authRoute.PUT("/document-storage/json/2/delete", self.deleteDocument)
+		authRoutes.PUT("/document-storage/json/2/delete", app.deleteDocument)
 
-		authRoute.GET("/document-storage/json/2/docs", self.listDocuments)
+		authRoutes.GET("/document-storage/json/2/docs", app.listDocuments)
 
 		// send email
-		authRoute.POST("/api/v2/document", self.sendEmail)
+		authRoutes.POST("/api/v2/document", app.sendEmail)
 		// hwr
-		authRoute.POST("/api/v1/page", self.handleHwr)
+		authRoutes.POST("/api/v1/page", app.handleHwr)
 		//livesync
-		authRoute.GET("/livesync/ws/json/2/:authid/sub", func(c *gin.Context) {
-			self.hub.ConnectWs(c.Writer, c.Request)
+		authRoutes.GET("/livesync/ws/json/2/:authid/sub", func(c *gin.Context) {
+			app.hub.ConnectWs(c.Writer, c.Request)
 		})
 	}
 }

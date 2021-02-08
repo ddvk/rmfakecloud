@@ -7,9 +7,9 @@ import (
 
 // MetadataStorer manages document metadata
 type MetadataStorer interface {
-	UpdateMetadata(r *messages.RawDocument) error
-	GetAllMetadata(withBlob bool) ([]*messages.RawDocument, error)
-	GetMetadata(string, bool) (*messages.RawDocument, error)
+	UpdateMetadata(uid string, r *messages.RawDocument) error
+	GetAllMetadata(uid string, withBlob bool) ([]*messages.RawDocument, error)
+	GetMetadata(string, string, bool) (*messages.RawDocument, error)
 }
 
 // UserStorer holds informations about users

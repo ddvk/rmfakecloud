@@ -27,9 +27,10 @@ func (app *App) getToken(c *gin.Context) (claims *messages.Auth0token, err error
 	if len(token) < 2 {
 		return nil, errors.New("missing token")
 	}
+	strToken := token[1]
 
 	claims = &messages.Auth0token{}
-	_, err = jwt.ParseWithClaims(token[1], claims,
+	_, err = jwt.ParseWithClaims(strToken, claims,
 		func(token *jwt.Token) (interface{}, error) {
 			return app.cfg.JWTSecretKey, nil
 		})
@@ -157,6 +158,7 @@ func (app *App) sendEmail(c *gin.Context) {
 }
 func (app *App) listDocuments(c *gin.Context) {
 
+	uid := c.GetString(userID)
 	withBlob, _ := strconv.ParseBool(c.Query("withBlob"))
 	docID := c.Query("doc")
 	log.Println("params: withBlob, docId", withBlob, docID)
@@ -166,13 +168,13 @@ func (app *App) listDocuments(c *gin.Context) {
 	if docID != "" {
 		//load single document
 		var doc *messages.RawDocument
-		doc, err = app.metaStorer.GetMetadata(docID, withBlob)
+		doc, err = app.metaStorer.GetMetadata(uid, docID, withBlob)
 		if err == nil {
 			result = append(result, doc)
 		}
 	} else {
 		//load all
-		result, err = app.metaStorer.GetAllMetadata(withBlob)
+		result, err = app.metaStorer.GetAllMetadata(uid, withBlob)
 	}
 
 	if err != nil {
@@ -184,6 +186,7 @@ func (app *App) listDocuments(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 func (app *App) deleteDocument(c *gin.Context) {
+	uid := c.GetString(userID)
 
 	var req []messages.IdRequest
 
@@ -195,10 +198,10 @@ func (app *App) deleteDocument(c *gin.Context) {
 
 	result := []messages.StatusResponse{}
 	for _, r := range req {
-		metadata, err := app.metaStorer.GetMetadata(r.Id, false)
+		metadata, err := app.metaStorer.GetMetadata(uid, r.Id, false)
 		ok := true
 		if err == nil {
-			err := app.docStorer.RemoveDocument(r.Id)
+			err := app.docStorer.RemoveDocument(uid, r.Id)
 			if err != nil {
 				log.Error(err)
 				ok = false
@@ -212,7 +215,9 @@ func (app *App) deleteDocument(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 func (app *App) updateStatus(c *gin.Context) {
+	uid := c.GetString(userID)
 	var req []messages.RawDocument
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Error(err)
 		badReq(c, err.Error())
@@ -227,7 +232,7 @@ func (app *App) updateStatus(c *gin.Context) {
 		event := "DocAdded"
 		message := ""
 
-		err := app.metaStorer.UpdateMetadata(&r)
+		err := app.metaStorer.UpdateMetadata(uid, &r)
 		if err == nil {
 			ok = true
 			//fix it: id of subscriber
@@ -250,6 +255,7 @@ func (app *App) locateService(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 func (app *App) uploadRequest(c *gin.Context) {
+	uid := c.GetString(userID)
 	var req []messages.UploadRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Error(err)
@@ -260,13 +266,19 @@ func (app *App) uploadRequest(c *gin.Context) {
 	response := []messages.UploadResponse{}
 
 	for _, r := range req {
-		id := r.Id
-		if id == "" {
+		documentID := r.Id
+		if documentID == "" {
 			badReq(c, "no id")
 		}
-		url := app.docStorer.GetStorageURL(id)
+		exp := time.Now().Add(time.Minute)
+		url, err := app.docStorer.GetStorageURL(uid, exp, documentID)
+		if err != nil {
+			log.Error(err)
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
 		log.Debugln("StorageUrl: ", url)
-		dr := messages.UploadResponse{BlobUrlPut: url, Id: id, Success: true, Version: r.Version}
+		dr := messages.UploadResponse{BlobUrlPut: url, Id: documentID, Success: true, Version: r.Version}
 		response = append(response, dr)
 	}
 

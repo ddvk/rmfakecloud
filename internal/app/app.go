@@ -30,6 +30,7 @@ type App struct {
 	userStorer db.UserStorer
 	metaStorer db.MetadataStorer
 	hub        *Hub
+	ui         *ui.ReactAppWrapper
 }
 
 // Start starts the app
@@ -79,20 +80,19 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 		router.Use(requestLoggerMiddleware())
 	}
 
+	reactApp := ui.New(cfg, userStorer)
+
 	app := App{
 		router:     router,
 		cfg:        cfg,
 		docStorer:  docStorer,
 		userStorer: userStorer,
 		hub:        hub,
+		ui:         reactApp,
 	}
 
-	ui.RegisterUI(router, cfg, userStorer)
-
-	app.registerRoutes(router)
 	router.Use(requestLoggerMiddleware())
-
-	docStorer.RegisterRoutes(router)
+	app.registerRoutes(router)
 
 	return app
 }
