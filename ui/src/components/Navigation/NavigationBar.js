@@ -1,7 +1,7 @@
 import React from "react";
 import { Nav, Navbar, Button } from "react-bootstrap";
-import { logout } from "./Login/actions";
-import { useAuthDispatch, useAuthState } from "./Login/useAuthContext";
+import { logout } from "../Login/actions";
+import { useAuthDispatch, useAuthState } from "../../hooks/useAuthContext";
 import {
   Route,
   NavLink,
@@ -35,6 +35,11 @@ const NavigationBar = () => {
               <Nav.Item>
                 <Nav.Link as={NavLink} to="/filelistFunctional">
                   FileList Functional
+                </Nav.Link>
+              </Nav.Item>
+              <Nav.Item>
+                <Nav.Link as={NavLink} to="/userList">
+                  Users
                 </Nav.Link>
               </Nav.Item>
             </Nav>

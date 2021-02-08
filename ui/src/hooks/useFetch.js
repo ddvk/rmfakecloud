@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from "react";
-import { useAuthState } from "../components/Login/useAuthContext";
+import { useAuthState } from "./useAuthContext";
 const ROOT_URL = "http://localhost:3000/ui/api";
 
 const useFetch = (url) => {
@@ -11,7 +11,6 @@ const useFetch = (url) => {
   useEffect(() => {
     const init = async () => {
       try {
-        debugger;
         console.log(`${ROOT_URL}/${url}`);
         const response = await fetch(`${ROOT_URL}/${url}`, {
           method: "GET",

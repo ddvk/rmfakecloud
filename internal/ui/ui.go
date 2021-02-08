@@ -281,4 +281,51 @@ func RegisterUIAuth(e *gin.RouterGroup, metaStorer db.MetadataStorer, userStorer
 		}
 		c.JSON(http.StatusOK, documentList.Documents)
 	})
+
+	r.GET("users", func(c *gin.Context) { 
+
+		// Try to find the user
+		users, err := userStorer.GetUsers()
+
+		for _, u := range users {
+			u.Password = ""
+		}
+
+		if err != nil {
+			log.Error(err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to get users."})
+			c.Abort()
+			return
+		}
+
+		c.JSON(http.StatusOK, users)
+	})
+
+	r.GET("/users/:userid", func(c *gin.Context) {
+		userid := c.Param("userid")
+		log.Printf("Requested: %s\n", userid)
+
+		// Try to find the user
+		users, err := userStorer.GetUsers()
+		if err != nil {
+			log.Error(err)
+			badReq(c, err.Error())
+			return
+		}
+
+		var user *model.User
+		for _, u := range users {
+			if userid == u.Id {
+				user = u
+			}
+		}
+
+		if user == nil {
+			log.Error(err)
+			c.JSON(http.StatusUnauthorized, "Invalid user")
+			return
+		}
+
+		c.JSON(http.StatusOK, user)
+	})
 }
