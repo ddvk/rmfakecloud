@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"path"
 
+	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/db"
 	"github.com/ddvk/rmfakecloud/internal/webassets"
@@ -12,10 +13,11 @@ import (
 
 /// ReactAppWrapper wrap some stuff
 type ReactAppWrapper struct {
-	fs         http.FileSystem
-	prefix     string
-	cfg        *config.Config
-	userStorer db.UserStorer
+	fs            http.FileSystem
+	prefix        string
+	cfg           *config.Config
+	userStorer    db.UserStorer
+	codeConnector common.CodeConnector
 }
 
 const indexReplacement = "/default"
@@ -36,12 +38,13 @@ func badReq(c *gin.Context, message string) {
 }
 
 // RegisterUI add the react ui
-func New(cfg *config.Config, userStorer db.UserStorer) *ReactAppWrapper {
+func New(cfg *config.Config, userStorer db.UserStorer, codeConnector common.CodeConnector) *ReactAppWrapper {
 	staticWrapper := ReactAppWrapper{
-		fs:         webassets.Assets,
-		prefix:     "/static",
-		cfg:        cfg,
-		userStorer: userStorer,
+		fs:            webassets.Assets,
+		prefix:        "/static",
+		cfg:           cfg,
+		userStorer:    userStorer,
+		codeConnector: codeConnector,
 	}
 	return &staticWrapper
 }

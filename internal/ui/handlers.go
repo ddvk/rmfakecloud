@@ -2,10 +2,17 @@ package ui
 
 import (
 	"net/http"
+	"time"
 
+	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/model"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
+)
+
+const (
+	userID = "userID"
 )
 
 func (app *ReactAppWrapper) register(c *gin.Context) {
@@ -62,35 +69,40 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 	}
 
 	if user == nil {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, "Invalid email or password")
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
 		return
 	}
 
 	if ok, err := user.CheckPassword(form.Password); err != nil || !ok {
 		log.Error(err)
-		c.AbortWithStatusJSON(http.StatusUnauthorized, "Invalid email or password")
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
 		return
 	}
 
-	token := user.NewAuth0Token("ui", "")
+	claims := &common.WebUserClaims{
+		UserId: user.Id,
+		Email:  user.Email,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(12 * time.Hour).Unix(),
+			Issuer:    "rmFake WEB",
+			Subject:   common.WebUsage,
+		},
+	}
 
-	tokenString, err := token.SignedString(app.cfg.JWTSecretKey)
+	tokenString, err := common.SignClaims(claims, app.cfg.JWTSecretKey)
 
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+	c.SetCookie(".AuthCookie", tokenString, 1, "/", "rmfakecloud", true, true)
 
-	c.JSON(http.StatusOK, gin.H{
-		"user":       user,
-		"auth_token": tokenString,
-	})
-
+	c.JSON(http.StatusOK, gin.H{"auth_code": tokenString})
 }
 
 func (app *ReactAppWrapper) newCode(c *gin.Context) {
-	uid := c.GetString("userId")
+	uid := c.GetString(userID)
 	if uid == "" {
 		log.Error("Unable to find userId in context")
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
@@ -104,14 +116,12 @@ func (app *ReactAppWrapper) newCode(c *gin.Context) {
 		return
 	}
 
-	code, err := user.NewUserCode()
+	code, err := app.codeConnector.NewCode(user.Id)
 	if err != nil {
 		log.Error("Unable to generate new device code: ", err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Unable to generate new code"})
 		return
 	}
-
-	app.userStorer.UpdateUser(user)
 
 	c.JSON(http.StatusOK, code)
 }

@@ -13,7 +13,7 @@ import (
 
 func (app *App) authMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		claims, err := app.getToken(c)
+		claims, err := app.getUserClaims(c)
 
 		if err != nil {
 			log.Warn("token parsing", err)
@@ -21,8 +21,9 @@ func (app *App) authMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		c.Set(userID, strings.TrimPrefix(claims.Profile.UserId, "auth0|"))
-		log.Info("got a user token: ", claims.Profile.UserId)
+		uid := strings.TrimPrefix(claims.Profile.UserId, "auth0|")
+		c.Set(userID, uid)
+		log.Info("got a user token: ", uid)
 		c.Next()
 	}
 }

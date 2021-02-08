@@ -7,6 +7,7 @@ import (
 	"path"
 
 	"github.com/ddvk/rmfakecloud/internal/model"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -76,13 +77,15 @@ func (fs *Storage) RegisterUser(u *model.User) (err error) {
 	if err != nil {
 		return err
 	}
-	f, err := os.OpenFile(profilePath, os.O_CREATE, 0600)
+	f, err := os.OpenFile(profilePath, os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
+		log.Warn("cant open")
 		return err
 	}
 	defer f.Close()
 	_, err = f.Write(js)
 	if err != nil {
+		log.Warn("could not write")
 		return err
 	}
 

@@ -9,8 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ddvk/rmfakecloud/internal/messages"
-	"github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/argon2"
 )
 
@@ -134,45 +132,4 @@ func (u *User) CheckPassword(raw string) (bool, error) {
 	comparisonHash := argon2.IDKey([]byte(raw), salt, time, memory, threads, keyLen)
 
 	return (subtle.ConstantTimeCompare(decodedHash, comparisonHash) == 1), nil
-}
-
-func (u *User) NewUserCode() (code string, err error) {
-	b := make([]byte, 5)
-
-	if _, err = rand.Read(b); err != nil {
-		return
-	}
-
-	code = base32.StdEncoding.EncodeToString(b)
-
-	u.CurrentCode = code
-	u.CodeExpire = time.Now().Add(10 * time.Minute)
-
-	return
-}
-
-// NewAuth0Token create new auth0 token
-func (u *User) NewAuth0Token(deviceDesc, deviceId string) *jwt.Token {
-	expirationTime := time.Now().Add(30 * 24 * time.Hour)
-	claims := &messages.Auth0token{
-		Profile: messages.Auth0profile{
-			UserId:        "auth0|" + u.Id,
-			IsSocial:      false,
-			Name:          u.Name,
-			Nickname:      u.Nickname,
-			Email:         u.Email,
-			EmailVerified: u.EmailVerified,
-			Picture:       u.Picture,
-			CreatedAt:     u.CreatedAt,
-			UpdatedAt:     u.UpdatedAt,
-		},
-		DeviceDesc: deviceDesc,
-		DeviceId:   deviceId,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expirationTime.Unix(),
-			Subject:   "rM User Token",
-		},
-	}
-
-	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 }

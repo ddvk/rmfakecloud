@@ -21,12 +21,10 @@ func (app *App) registerRoutes(router *gin.Engine) {
 	app.docStorer.RegisterRoutes(router)
 	app.ui.RegisterRoutes(router)
 
-	//routes needing authentitcation
+	//routes needing api authentitcation
 	authRoutes := router.Group("/")
 	authRoutes.Use(app.authMiddleware())
 	{
-		app.ui.RegisterAuthRoutes(authRoutes)
-
 		// renew device acces token
 		authRoutes.POST("/token/json/2/user/new", app.newUserToken)
 

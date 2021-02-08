@@ -2,6 +2,7 @@ package fs
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -12,7 +13,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/blend/go-sdk/jwt"
+	"github.com/dgrijalva/jwt-go"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ddvk/rmfakecloud/internal/common"
@@ -74,14 +75,15 @@ func (fs *Storage) RemoveDocument(uid, id string) error {
 func (fs *Storage) GetStorageURL(uid string, exp time.Time, id string) (string, error) {
 	uploadRL := fs.Cfg.StorageURL
 	log.Debugln("url", uploadRL)
-	claim := &storageToken{
+	claim := &common.StorageClaim{
 		DocumentId: id,
+		UserId:     uid,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: exp.Unix(),
-			ID:        uid,
+			Subject:   "storage",
 		},
 	}
-	signedToken, err := common.SignToken(claim, fs.Cfg.JWTSecretKey)
+	signedToken, err := common.SignClaims(claim, fs.Cfg.JWTSecretKey)
 	if err != nil {
 		return "", err
 	}
@@ -102,23 +104,26 @@ func (fs *Storage) StoreDocument(uid string, stream io.ReadCloser, id string) er
 	return nil
 }
 
-type storageToken struct {
-	DocumentId string `json:"documentId"`
-	jwt.StandardClaims
-}
-
 // func (st *storageToken) Valid() error {
 // 	return st.StandardClaims.Valid()
 // }
 
-func parseToken(strToken string) (token *storageToken, err error) {
-	return &storageToken{}, nil
+func (fs *Storage) parseToken(token string) (*common.StorageClaim, error) {
+	claim := &common.StorageClaim{}
+	err := common.ClaimsFromToken(claim, token, fs.Cfg.JWTSecretKey)
+	if err != nil {
+		return nil, err
+	}
+	if claim.StandardClaims.Subject != "storage" {
+		return nil, errors.New("not a storage token")
 
+	}
+	return claim, nil
 }
 
 func (fs *Storage) uploadDocument(c *gin.Context) {
 	strToken := c.Query("token")
-	token, err := parseToken(strToken)
+	token, err := fs.parseToken(strToken)
 
 	if err != nil {
 		c.AbortWithStatus(http.StatusBadRequest)
@@ -129,7 +134,7 @@ func (fs *Storage) uploadDocument(c *gin.Context) {
 	body := c.Request.Body
 	defer body.Close()
 
-	err = fs.StoreDocument(token.StandardClaims.ID, body, id)
+	err = fs.StoreDocument(token.UserId, body, id)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -140,7 +145,7 @@ func (fs *Storage) uploadDocument(c *gin.Context) {
 }
 func (fs *Storage) downloadDocument(c *gin.Context) {
 	strToken := c.Query("token")
-	token, err := parseToken(strToken)
+	token, err := fs.parseToken(strToken)
 
 	if err != nil {
 		c.AbortWithStatus(http.StatusBadRequest)
@@ -151,7 +156,7 @@ func (fs *Storage) downloadDocument(c *gin.Context) {
 	//todo: storage provider
 	log.Printf("Requestng Id: %s\n", id)
 
-	reader, err := fs.GetDocument(token.StandardClaims.ID, id)
+	reader, err := fs.GetDocument(token.UserId, id)
 	defer reader.Close()
 
 	if err != nil {

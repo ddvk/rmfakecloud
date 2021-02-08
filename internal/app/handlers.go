@@ -1,7 +1,7 @@
 package app
 
 import (
-	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -18,50 +18,72 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func (app *App) getToken(c *gin.Context) (claims *messages.Auth0token, err error) {
-	auth := c.Request.Header["Authorization"]
-
-	if len(auth) < 1 {
-		return nil, errors.New("missing token")
-	}
-	token := strings.Split(auth[0], " ")
-	if len(token) < 2 {
-		return nil, errors.New("missing token")
-	}
-	strToken := token[1]
-
-	claims = &messages.Auth0token{}
-	err = common.ClaimsFromToken(claims, strToken, app.cfg.JWTSecretKey)
+func (app *App) getDeviceClaims(c *gin.Context) (*common.DeviceClaims, error) {
+	token, err := common.GetToken(c)
 	if err != nil {
-		return
+		return nil, err
 	}
-	log.Info("token parsed")
-	return
+	claims := &common.DeviceClaims{}
+	err = common.ClaimsFromToken(claims, token, app.cfg.JWTSecretKey)
+	if err != nil {
+		return nil, err
+	}
+	if claims.UserID == "" {
+		return nil, fmt.Errorf("wrong token, missing userid")
+	}
+	return claims, nil
+}
+
+func (app *App) getUserClaims(c *gin.Context) (*common.UserClaims, error) {
+	token, err := common.GetToken(c)
+	if err != nil {
+		return nil, err
+	}
+	claims := &common.UserClaims{}
+	err = common.ClaimsFromToken(claims, token, app.cfg.JWTSecretKey)
+	if err != nil {
+		return nil, err
+	}
+	if claims.Profile.UserId == "" {
+		return nil, fmt.Errorf("wrong token, missing userid")
+	}
+	return claims, nil
 }
 
 func (app *App) newDevice(c *gin.Context) {
-	var json messages.DeviceTokenRequest
-	if err := c.ShouldBindJSON(&json); err != nil {
+	var tokenRequest messages.DeviceTokenRequest
+	if err := c.ShouldBindJSON(&tokenRequest); err != nil {
 		badReq(c, err.Error())
 		return
 	}
 
-	log.Printf("Request: %s\n", json)
+	code := strings.ToUpper(tokenRequest.Code)
+	log.Info("Got code ", code)
+
+	uid, err := app.codeConnector.ConsumeCode(code)
+	if err != nil {
+		log.Warn(err)
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	log.Info("Request: %s\n", tokenRequest)
 
 	// generate the JWT token
 	expirationTime := time.Now().Add(356 * 24 * time.Hour)
-	claims := &messages.Auth0token{
-		DeviceDesc: json.DeviceDesc,
-		DeviceId:   json.DeviceId,
+	claims := &common.DeviceClaims{
+		DeviceDesc: tokenRequest.DeviceDesc,
+		DeviceId:   tokenRequest.DeviceId,
+		UserID:     uid,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
-			Subject:   "rM Device Token",
+			Subject:   common.ApiUsage,
 		},
 	}
 
 	tokenString, err := common.SignClaims(claims, app.cfg.JWTSecretKey)
 	if err != nil {
-		badReq(c, err.Error())
+		log.Warn(err)
+		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
@@ -69,21 +91,33 @@ func (app *App) newDevice(c *gin.Context) {
 }
 
 func (app *App) newUserToken(c *gin.Context) {
-	key := app.cfg.JWTSecretKey
-	deviceToken, err := app.getToken(c)
+	deviceToken, err := app.getDeviceClaims(c)
 	if err != nil {
-		log.Warnln(err)
+		log.Error(err)
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
 	}
-	log.Debug(deviceToken)
+
+	user, err := app.userStorer.GetUser(deviceToken.UserID)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	if user == nil {
+		log.Warn("User not found: ", deviceToken.UserID)
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
 
 	expirationTime := time.Now().Add(24 * time.Hour)
-	claims := &messages.Auth0token{
-		Profile: messages.Auth0profile{
-			UserId:        "auth0|1234",
+	claims := &common.UserClaims{
+		Profile: common.Auth0profile{
+			UserId:        deviceToken.UserID,
 			IsSocial:      false,
-			Name:          "rmFake",
-			Nickname:      "rmFake",
-			Email:         "fake@rmfake",
+			Name:          user.Name,
+			Nickname:      user.Nickname,
+			Email:         user.Email,
 			EmailVerified: true,
 			Picture:       "image.png",
 			CreatedAt:     time.Now(),
@@ -97,19 +131,19 @@ func (app *App) newUserToken(c *gin.Context) {
 		},
 	}
 
-	userToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := userToken.SignedString(key)
+	tokenString, err := common.SignClaims(claims, app.cfg.JWTSecretKey)
 	if err != nil {
 		badReq(c, err.Error())
 		return
 	}
-	//TODO: do something with the token
-
 	c.String(http.StatusOK, tokenString)
 }
 
 func (app *App) sendEmail(c *gin.Context) {
 	log.Println("Sending email")
+	uid := c.GetString(userID)
+
+	log.Info("Sending mail for: ", uid)
 
 	form, err := c.MultipartForm()
 	if err != nil {

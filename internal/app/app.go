@@ -8,6 +8,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/db"
 	"github.com/ddvk/rmfakecloud/internal/storage"
@@ -23,14 +24,15 @@ const (
 
 // App web app
 type App struct {
-	router     *gin.Engine
-	cfg        *config.Config
-	srv        *http.Server
-	docStorer  storage.DocumentStorer
-	userStorer db.UserStorer
-	metaStorer db.MetadataStorer
-	hub        *Hub
-	ui         *ui.ReactAppWrapper
+	router        *gin.Engine
+	cfg           *config.Config
+	srv           *http.Server
+	docStorer     storage.DocumentStorer
+	userStorer    db.UserStorer
+	metaStorer    db.MetadataStorer
+	hub           *Hub
+	ui            *ui.ReactAppWrapper
+	codeConnector common.CodeConnector
 }
 
 // Start starts the app
@@ -57,6 +59,7 @@ func (app *App) Stop() {
 // NewApp constructs an app
 func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.DocumentStorer, userStorer db.UserStorer) App {
 	hub := NewHub()
+	codeConnector := NewCodeConnector()
 	gin.ForceConsoleColor()
 	router := gin.Default()
 
@@ -80,15 +83,16 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 		router.Use(requestLoggerMiddleware())
 	}
 
-	reactApp := ui.New(cfg, userStorer)
+	reactApp := ui.New(cfg, userStorer, codeConnector)
 
 	app := App{
-		router:     router,
-		cfg:        cfg,
-		docStorer:  docStorer,
-		userStorer: userStorer,
-		hub:        hub,
-		ui:         reactApp,
+		router:        router,
+		cfg:           cfg,
+		docStorer:     docStorer,
+		userStorer:    userStorer,
+		hub:           hub,
+		ui:            reactApp,
+		codeConnector: codeConnector,
 	}
 
 	router.Use(requestLoggerMiddleware())
