@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from "react";
 import { useAuthState } from "./useAuthContext";
-const ROOT_URL = "http://localhost:3000/ui/api";
+const ROOT_URL = `${window.location.origin}/ui/api`;
 
 const useFetch = (url) => {
   const [loading, setLoading] = useState(true);

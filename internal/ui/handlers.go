@@ -80,7 +80,7 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(12 * time.Hour).Unix(),
 			Issuer:    "rmFake WEB",
-			Subject:   common.WebUsage,
+			Audience:  common.WebUsage,
 		},
 	}
 	if user.IsAdmin {

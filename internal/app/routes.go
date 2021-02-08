@@ -51,7 +51,8 @@ func (app *App) registerRoutes(router *gin.Engine) {
 		authRoutes.POST("/api/v1/page", app.handleHwr)
 		//livesync
 		authRoutes.GET("/livesync/ws/json/2/:authid/sub", func(c *gin.Context) {
-			app.hub.ConnectWs(c.Writer, c.Request)
+			uid := c.GetString(userID)
+			app.hub.ConnectWs(uid, c.Writer, c.Request)
 		})
 	}
 }

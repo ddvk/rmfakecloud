@@ -241,7 +241,7 @@ func (app *App) deleteDocument(c *gin.Context) {
 				ok = false
 			}
 			msg := newWs(metadata, "DocDeleted")
-			app.hub.Send(msg)
+			app.hub.Send(uid, msg)
 		}
 		result = append(result, messages.StatusResponse{Id: r.Id, Success: ok})
 	}
@@ -271,7 +271,7 @@ func (app *App) updateStatus(c *gin.Context) {
 			ok = true
 			//fix it: id of subscriber
 			msg := newWs(&r, event)
-			app.hub.Send(msg)
+			app.hub.Send(uid, msg)
 		} else {
 			message = err.Error()
 			log.Error(err)
@@ -337,6 +337,6 @@ func (app *App) handleHwr(c *gin.Context) {
 func (app *App) connectWebSocket(c *gin.Context) {
 	uid := c.GetString(userID)
 	log.Info("accepting websocket from:", uid)
-	app.hub.ConnectWs(c.Writer, c.Request)
+	app.hub.ConnectWs(uid, c.Writer, c.Request)
 	log.Println("closing the ws")
 }

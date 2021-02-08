@@ -65,7 +65,7 @@ func (app *ReactAppWrapper) authMiddleware() gin.HandlerFunc {
 		}
 
 		if claims.Audience != common.WebUsage {
-			log.Warn("wrong token subject: ", claims.Subject)
+			log.Warn("wrong token audience: ", claims.Audience)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing or incorrect token"})
 			return
 		}
