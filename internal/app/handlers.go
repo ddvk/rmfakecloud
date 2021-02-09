@@ -36,7 +36,7 @@ func (app *App) getDeviceClaims(c *gin.Context) (*common.DeviceClaims, error) {
 
 func (app *App) getUserClaims(c *gin.Context) (*common.UserClaims, error) {
 	token, err := common.GetToken(c)
-	log.Info("Token:", token)
+	log.Debug("Token: ", token)
 	if err != nil {
 		return nil, err
 	}

@@ -111,7 +111,7 @@ func (fs *Storage) parseToken(token string) (*common.StorageClaim, error) {
 
 func (fs *Storage) uploadDocument(c *gin.Context) {
 	strToken := c.Param("token")
-	log.Info("uploading with token:", strToken)
+	log.Debug("[storage] uploading with token:", strToken)
 	token, err := fs.parseToken(strToken)
 
 	if err != nil {
@@ -120,7 +120,7 @@ func (fs *Storage) uploadDocument(c *gin.Context) {
 		return
 	}
 	id := token.DocumentId
-	log.Printf("Uploading id %s\n", id)
+	log.Debug("[storage] uploading documentId: ", id)
 	body := c.Request.Body
 	defer body.Close()
 
