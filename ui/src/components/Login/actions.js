@@ -1,5 +1,5 @@
 //const ROOT_URL = process.env.REACT_APP_SECRET_CODE;
-const ROOT_URL = "http://localhost:3000/ui/api";
+const ROOT_URL = "ui/api";
 
 export async function loginUser(dispatch, loginPayload) {
   const requestOptions = {
