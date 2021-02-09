@@ -151,8 +151,61 @@ func (app *ReactAppWrapper) getAppUsers(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, uilist)
 }
+
+// updateUser updates the password for a given user.
 func (app *ReactAppWrapper) updateUser(c *gin.Context) {
+
+	var form resetPasswordForm
+
+	if err := c.ShouldBindJSON(&form); err != nil {
+		log.Error(err)
+		badReq(c, err.Error())
+		return
+	}
+
+	user, err := app.userStorer.GetUser(form.Email)
+
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	if (!c.GetBool("admin")) {
+
+		uid := c.GetString(userID)
+		if uid == "" {
+			log.Error("Unable to find userId in context")
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+			return
+		}
+
+		if (user.Id != uid) {
+			log.Error("Trying to change password for a different user.")
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+			return
+		}
+
+		if ok, err := user.CheckPassword(form.CurrentPassword); err != nil || !ok {
+			log.Error(err)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
+			return
+		}
+	}
+
+	user.SetPassword(form.NewPassword);
+
+	err = app.userStorer.UpdateUser(user)
+
+	if err != nil {
+		log.Error(err)
+		badReq(c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
 }
+
 func (app *ReactAppWrapper) getUser(c *gin.Context) {
 	uid := c.Param("userid")
 	log.Info("Requested: ", uid)

@@ -29,14 +29,14 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	gr := r.Group("")
 	gr.Use(app.authMiddleware())
 
-	gr.GET("newcode", app.newCode)
+	gr.GET("newcode", app.newCode)	
 	gr.GET("list", app.listDocuments)
+	gr.PUT("users", app.updateUser)
 
 	admin := gr.Group("")
 	admin.Use(app.adminMiddleware())
 	admin.GET("users/:userid", app.getUser)
 	admin.GET("users", app.getAppUsers)
-	admin.PUT("users", app.updateUser)
 }
 
 func (app *ReactAppWrapper) adminMiddleware() gin.HandlerFunc {
