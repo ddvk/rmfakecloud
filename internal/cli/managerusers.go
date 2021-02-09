@@ -2,6 +2,7 @@ package cli
 
 import (
 	"flag"
+	"fmt"
 
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/model"
@@ -9,40 +10,88 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func Handler(cfg *config.Config, args []string) bool {
-	if len(args) > 1 && args[1] == "setuser" {
-		userParam := flag.NewFlagSet("adduser", flag.ExitOnError)
-		username := userParam.String("u", "", "username")
-		pass := userParam.String("p", "", "password")
-		admin := userParam.Bool("a", false, "admin role")
+func (cli *Cli) ListUsers(args []string) {
+	users, err := cli.storage.GetUsers()
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, u := range users {
+		fmt.Print(u.Id)
+		if u.IsAdmin {
+			fmt.Println("\tadmin")
+		} else {
+			fmt.Println()
 
-		userParam.Parse(args[2:])
-		if *username != "" && *pass != "" {
+		}
+	}
+	return
+}
+func (cli *Cli) SetUser(args []string) {
+	userParam := flag.NewFlagSet("adduser", flag.ExitOnError)
+	username := userParam.String("u", "", "username")
+	pass := userParam.String("p", "", "password")
+	admin := userParam.Bool("a", false, "isadmmin")
 
-			storage := fs.Storage{
-				Cfg: cfg,
-			}
+	userParam.Parse(args)
+	if *username == "" {
+		userParam.PrintDefaults()
+		return
+	}
 
-			usr, err := storage.GetUser(*username)
-			if err != nil {
-				usr = &model.User{
-					Id:    *username,
-					Email: *username,
-				}
-
-			}
-			usr.SetPassword(*pass)
-			usr.IsAdmin = *admin
-			err = storage.UpdateUser(usr)
+	usr, err := cli.storage.GetUser(*username)
+	if err != nil {
+		usr = &model.User{
+			Id:    *username,
+			Email: *username,
+		}
+		if *pass == "" {
+			*pass, err = model.GenPassword()
 			if err != nil {
 				log.Fatal(err)
 			}
-			log.Info("Updated/created the user")
-		} else {
-			userParam.PrintDefaults()
+			log.Info("new password:", *pass)
+		}
+	}
+	if *pass != "" {
+		usr.SetPassword(*pass)
+	}
+	usr.IsAdmin = *admin
+	err = cli.storage.UpdateUser(usr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Info("Updated/created the user")
+}
+
+type Cli struct {
+	storage *fs.Storage
+}
+
+func New(cfg *config.Config) *Cli {
+	storage := &fs.Storage{
+		Cfg: cfg,
+	}
+	return &Cli{
+		storage: storage,
+	}
+
+}
+func (cli *Cli) Handle(args []string) bool {
+	if len(args) > 1 {
+		cmd := args[1]
+		otherarg := args[2:]
+		switch cmd {
+		case "setuser":
+			cli.SetUser(otherarg)
+		case "listusers":
+			cli.ListUsers(otherarg)
+		case "rmuser":
+		default:
+			log.Warn("unknown command: ", cmd)
 		}
 		return true
 	}
+
 	return false
 
 }

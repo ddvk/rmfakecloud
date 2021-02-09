@@ -37,9 +37,7 @@ func (fs *Storage) GetAllMetadata(uid string, withBlob bool) (result []*messages
 
 // GetMetadata loads a document's metadata
 func (fs *Storage) GetMetadata(uid, id string, withBlob bool) (*messages.RawDocument, error) {
-	dataDir := path.Join(fs.Cfg.DataDir, userDir, uid)
-	filePath := id + ".metadata"
-	fullPath := path.Join(dataDir, filepath.Base(filePath))
+	fullPath := fs.getPathFromUser(uid, id+".metadata")
 	f, err := os.Open(fullPath)
 	if err != nil {
 		return nil, err
@@ -85,7 +83,12 @@ func (fs *Storage) GetMetadata(uid, id string, withBlob bool) (*messages.RawDocu
 
 // UpdateMetadata updates the metadata of a document
 func (fs *Storage) UpdateMetadata(uid string, r *messages.RawDocument) error {
-	filepath := fs.getSanitizedFileName(uid, r.Id+".metadata")
+	filepath := fs.getPathFromUser(uid, r.Id+".metadata")
+
+	err := os.MkdirAll(userDir, 0700)
+	if err != nil {
+		return err
+	}
 
 	js, err := json.Marshal(r)
 	if err != nil {

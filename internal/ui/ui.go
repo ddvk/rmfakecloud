@@ -11,13 +11,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type CodeGenerator interface {
+	NewCode(string) (string, error)
+}
+
 /// ReactAppWrapper wrap some stuff
 type ReactAppWrapper struct {
 	fs            http.FileSystem
 	prefix        string
 	cfg           *config.Config
 	userStorer    db.UserStorer
-	codeConnector common.CodeConnector
+	codeConnector CodeGenerator
 }
 
 const indexReplacement = "/default"

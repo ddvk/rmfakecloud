@@ -23,7 +23,7 @@ func (app *App) authMiddleware() gin.HandlerFunc {
 
 		uid := strings.TrimPrefix(claims.Profile.UserId, "auth0|")
 		c.Set(userID, uid)
-		log.Info("got a user from token: ", uid)
+		log.Info("got a userId from token: ", uid)
 		c.Next()
 	}
 }

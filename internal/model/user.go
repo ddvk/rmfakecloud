@@ -38,17 +38,17 @@ type User struct {
 	IsAdmin       bool
 }
 
-func genId() (string, error) {
-	b := make([]byte, 45)
+func GenPassword() (string, error) {
+	b := make([]byte, 10)
 
 	if _, err := rand.Read(b); err != nil {
 		return "", err
 	}
 
-	return base32.StdEncoding.EncodeToString(b), nil
+	return base32.HexEncoding.EncodeToString(b), nil
 }
 
-func genPassword(raw string) (string, error) {
+func hashPassword(raw string) (string, error) {
 	salt := make([]byte, 16)
 	if _, err := rand.Read(salt); err != nil {
 		return "", err
@@ -82,7 +82,7 @@ func NewUser(email string, rawPassword string) (*User, error) {
 	// 	return nil, err
 	// }
 
-	password, err := genPassword(rawPassword)
+	password, err := hashPassword(rawPassword)
 	if err != nil {
 		return nil, err
 	}
@@ -98,12 +98,11 @@ func NewUser(email string, rawPassword string) (*User, error) {
 }
 
 func (u *User) GenId() (err error) {
-	u.Id, err = genId()
-	return
+	return errors.New("not implemented")
 }
 
 func (u *User) SetPassword(raw string) (err error) {
-	u.Password, err = genPassword(raw)
+	u.Password, err = hashPassword(raw)
 	return
 }
 

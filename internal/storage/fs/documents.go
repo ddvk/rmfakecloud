@@ -24,13 +24,17 @@ type Storage struct {
 	Cfg *config.Config
 }
 
-func (fs *Storage) getSanitizedFileName(uid, path string) string {
-	return filepath.Join(fs.Cfg.DataDir, userDir, uid, filepath.Base(path))
+func (fs *Storage) getUserPath(uid string) string {
+
+	return filepath.Join(fs.Cfg.DataDir, filepath.Base(userDir), filepath.Base(uid))
+}
+func (fs *Storage) getPathFromUser(uid, path string) string {
+	return filepath.Join(fs.getUserPath(uid), filepath.Base(path))
 }
 
 // GetDocument Opens a document by id
 func (fs *Storage) GetDocument(uid, id string) (io.ReadCloser, error) {
-	fullPath := fs.getSanitizedFileName(uid, id+".zip")
+	fullPath := fs.getPathFromUser(uid, id+".zip")
 	log.Debugln("Fullpath:", fullPath)
 	reader, err := os.Open(fullPath)
 	return reader, err
@@ -39,7 +43,7 @@ func (fs *Storage) GetDocument(uid, id string) (io.ReadCloser, error) {
 // RemoveDocument removes document (moves it to trash)
 func (fs *Storage) RemoveDocument(uid, id string) error {
 
-	trashDir := path.Join(fs.Cfg.DataDir, userDir, uid, config.DefaultTrashDir)
+	trashDir := fs.getPathFromUser(uid, config.DefaultTrashDir)
 	err := os.MkdirAll(trashDir, 0700)
 	if err != nil {
 		return err
@@ -47,13 +51,13 @@ func (fs *Storage) RemoveDocument(uid, id string) error {
 	//do not delete, move to trash
 	log.Info(trashDir)
 	meta := filepath.Base(fmt.Sprintf("%s.metadata", id))
-	fullPath := fs.getSanitizedFileName(uid, meta)
+	fullPath := fs.getPathFromUser(uid, meta)
 	err = os.Rename(fullPath, path.Join(trashDir, meta))
 	if err != nil {
 		return err
 	}
 	zipfile := filepath.Base(fmt.Sprintf("%s.zip", id))
-	fullPath = fs.getSanitizedFileName(uid, zipfile)
+	fullPath = fs.getPathFromUser(uid, zipfile)
 	err = os.Rename(fullPath, path.Join(trashDir, zipfile))
 	if err != nil {
 		return err
@@ -64,7 +68,7 @@ func (fs *Storage) RemoveDocument(uid, id string) error {
 // GetStorageURL return a url for a file to store
 func (fs *Storage) GetStorageURL(uid string, exp time.Time, id string) (string, error) {
 	uploadRL := fs.Cfg.StorageURL
-	log.Debugln("url", uploadRL)
+	log.Debugln("uploadUrl: ", uploadRL)
 	claim := &common.StorageClaim{
 		DocumentId: id,
 		UserId:     uid,
@@ -83,8 +87,7 @@ func (fs *Storage) GetStorageURL(uid string, exp time.Time, id string) (string, 
 
 // StoreDocument stores a document
 func (fs *Storage) StoreDocument(uid string, stream io.ReadCloser, id string) error {
-	dataDir := fs.Cfg.DataDir
-	fullPath := path.Join(dataDir, userDir, uid, filepath.Base(fmt.Sprintf("%s.zip", id)))
+	fullPath := fs.getPathFromUser(uid, fmt.Sprintf("%s.zip", id))
 	file, err := os.Create(fullPath)
 	if err != nil {
 		return err
@@ -93,10 +96,6 @@ func (fs *Storage) StoreDocument(uid string, stream io.ReadCloser, id string) er
 	io.Copy(file, stream)
 	return nil
 }
-
-// func (st *storageToken) Valid() error {
-// 	return st.StandardClaims.Valid()
-// }
 
 func (fs *Storage) parseToken(token string) (*common.StorageClaim, error) {
 	claim := &common.StorageClaim{}
@@ -112,7 +111,7 @@ func (fs *Storage) parseToken(token string) (*common.StorageClaim, error) {
 
 func (fs *Storage) uploadDocument(c *gin.Context) {
 	strToken := c.Param("token")
-	log.Info("Token", strToken)
+	log.Info("uploading with token:", strToken)
 	token, err := fs.parseToken(strToken)
 
 	if err != nil {

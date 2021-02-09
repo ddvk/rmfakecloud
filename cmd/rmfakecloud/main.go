@@ -68,7 +68,8 @@ myScript hwr (needs a developer account):
 
 	cfg := config.FromEnv()
 	//cli
-	if cli.Handler(cfg, os.Args) {
+	cmd := cli.New(cfg)
+	if cmd.Handle(os.Args) {
 		return
 	}
 
