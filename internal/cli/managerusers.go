@@ -31,13 +31,40 @@ func Handler(cfg *config.Config, args []string) bool {
 				}
 
 			}
-			usr.SetPassword(*pass)
-			usr.IsAdmin = *admin
-			err = storage.UpdateUser(usr)
-			if err != nil {
-				log.Fatal(err)
+			
+			if (usr == nil) {
+
+				newUser, err := model.NewUser(*username, *pass)
+
+				if err != nil {
+					log.Error("error NewUser:", err)					
+					return false;
+				}
+
+				newUser.SetPassword(*pass)
+				newUser.IsAdmin = *admin
+			
+				err = storage.RegisterUser(newUser)
+				if err != nil {
+					log.Error("error RegisterUser:", err)					
+					return false;
+				}
+
+				log.Info("Created the user")
+
+			} else {
+
+				usr.SetPassword(*pass)
+				usr.IsAdmin = *admin
+				err = storage.UpdateUser(usr)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				log.Info("Updated the user")
 			}
-			log.Info("Updated/created the user")
+
+
 		} else {
 			userParam.PrintDefaults()
 		}

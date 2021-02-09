@@ -15,10 +15,14 @@ const (
 	profileName = ".userprofile"
 )
 
-// GetUser blah
+// GetUser returns the user using id/email
 func (fs *Storage) GetUser(id string) (response *model.User, err error) {
 	dataDir := fs.Cfg.DataDir
 	fullPath := path.Join(dataDir, userDir, id, profileName)
+
+	if _, _err := os.Stat(fullPath); os.IsNotExist(_err) {		
+		return
+	}
 
 	var f *os.File
 	f, err = os.Open(fullPath)
