@@ -43,7 +43,7 @@ run: ui/build
 	go run -tags dev $(CMD)
 
 dev: ui/build
-	find . -path ui -prune -false -o -iname "*.go" | entr -r go run -tags dev $(CMD)
+	find . -path ui -prune -false -o -iname "*.go" | JWT_SECRET_KEY=dev entr -r  go run -tags dev $(CMD)
 
 ui/build: $(UIFILES) ui/yarn.lock
 	$(YARN) build

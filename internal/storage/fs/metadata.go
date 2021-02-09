@@ -85,11 +85,6 @@ func (fs *Storage) GetMetadata(uid, id string, withBlob bool) (*messages.RawDocu
 func (fs *Storage) UpdateMetadata(uid string, r *messages.RawDocument) error {
 	filepath := fs.getPathFromUser(uid, r.Id+".metadata")
 
-	err := os.MkdirAll(userDir, 0700)
-	if err != nil {
-		return err
-	}
-
 	js, err := json.Marshal(r)
 	if err != nil {
 		return err

@@ -16,10 +16,19 @@ const (
 )
 
 func (app *ReactAppWrapper) register(c *gin.Context) {
-	if !app.cfg.RegistrationOpen {
+	client := c.ClientIP()
+	log.Info(client)
+
+	if client != "localhost" &&
+		client != "::1" &&
+		client != "127.0.0.1" {
 		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Registrations are closed"})
 		return
 	}
+
+	usr := c.PostForm("email")
+	pass := c.PostForm("password")
+	log.Info(usr, " ", pass)
 
 	var form loginForm
 	if err := c.ShouldBindJSON(&form); err != nil {
