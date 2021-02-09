@@ -34,6 +34,10 @@ func (app *App) getDeviceClaims(c *gin.Context) (*common.DeviceClaims, error) {
 	return claims, nil
 }
 
+const (
+	HandlerLog = "[handler]"
+)
+
 func (app *App) getUserClaims(c *gin.Context) (*common.UserClaims, error) {
 	token, err := common.GetToken(c)
 	log.Debug("Token: ", token)
@@ -140,15 +144,13 @@ func (app *App) newUserToken(c *gin.Context) {
 }
 
 func (app *App) sendEmail(c *gin.Context) {
-	log.Println("Sending email")
-	uid := c.GetString(userID)
-
+	uid := c.GetString(UserID)
 	log.Info("Sending mail for: ", uid)
 
 	form, err := c.MultipartForm()
 	if err != nil {
 		log.Error(err)
-		internalError(c, "not multipart form")
+		badReq(c, "not multiform")
 		return
 	}
 	for k := range form.File {
@@ -170,21 +172,21 @@ func (app *App) sendEmail(c *gin.Context) {
 		f, err := file.Open()
 		defer f.Close()
 		if err != nil {
-			log.Error(err)
-			internalError(c, "cant open attachment")
+			log.Error(HandlerLog, err)
+			badReq(c, "cant open attachment")
 			return
 		}
 		data, err := ioutil.ReadAll(f)
 		if err != nil {
-			log.Error(err)
-			internalError(c, "cant read attachment")
+			log.Error(HandlerLog, err)
+			badReq(c, "cant read attachment")
 			return
 		}
 		emailClient.AddFile(file.Filename, data, file.Header.Get("Content-Type"))
 	}
 	err = emailClient.Send()
 	if err != nil {
-		log.Error(err)
+		log.Error(HandlerLog, err)
 		internalError(c, "cant send email")
 		return
 	}
@@ -192,10 +194,10 @@ func (app *App) sendEmail(c *gin.Context) {
 }
 func (app *App) listDocuments(c *gin.Context) {
 
-	uid := c.GetString(userID)
+	uid := c.GetString(UserID)
 	withBlob, _ := strconv.ParseBool(c.Query("withBlob"))
 	docID := c.Query("doc")
-	log.Println("params: withBlob, docId", withBlob, docID)
+	log.Debug(HandlerLog, "params: withBlob, docId", withBlob, docID)
 	result := []*messages.RawDocument{}
 
 	var err error
@@ -213,19 +215,20 @@ func (app *App) listDocuments(c *gin.Context) {
 
 	if err != nil {
 		log.Error(err)
-		internalError(c, "blah")
+		internalError(c, "cant get metadata")
 		return
 	}
 
 	c.JSON(http.StatusOK, result)
 }
 func (app *App) deleteDocument(c *gin.Context) {
-	uid := c.GetString(userID)
+	uid := c.GetString(UserID)
+	deviceId := c.GetString(DeviceId)
 
 	var req []messages.IdRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		log.Warn("bad request")
+		log.Warn(err)
 		badReq(c, err.Error())
 		return
 	}
@@ -240,7 +243,7 @@ func (app *App) deleteDocument(c *gin.Context) {
 				log.Error(err)
 				ok = false
 			}
-			msg := newWs(metadata, "DocDeleted")
+			msg := NewNotification(uid, deviceId, metadata, "DocDeleted")
 			app.hub.Send(uid, msg)
 		}
 		result = append(result, messages.StatusResponse{Id: r.Id, Success: ok})
@@ -249,7 +252,8 @@ func (app *App) deleteDocument(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 func (app *App) updateStatus(c *gin.Context) {
-	uid := c.GetString(userID)
+	uid := c.GetString(UserID)
+	deviceId := c.GetString(DeviceId)
 	var req []messages.RawDocument
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -270,7 +274,7 @@ func (app *App) updateStatus(c *gin.Context) {
 		if err == nil {
 			ok = true
 			//fix it: id of subscriber
-			msg := newWs(&r, event)
+			msg := NewNotification(uid, deviceId, &r, event)
 			app.hub.Send(uid, msg)
 		} else {
 			message = err.Error()
@@ -289,7 +293,7 @@ func (app *App) locateService(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 func (app *App) uploadRequest(c *gin.Context) {
-	uid := c.GetString(userID)
+	uid := c.GetString(UserID)
 	var req []messages.UploadRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Error(err)
@@ -335,8 +339,9 @@ func (app *App) handleHwr(c *gin.Context) {
 	c.Data(http.StatusOK, hwr.JIIX, response)
 }
 func (app *App) connectWebSocket(c *gin.Context) {
-	uid := c.GetString(userID)
+	uid := c.GetString(UserID)
+	deviceId := c.GetString(DeviceId)
 	log.Info("accepting websocket from:", uid)
-	app.hub.ConnectWs(uid, c.Writer, c.Request)
+	app.hub.ConnectWs(uid, deviceId, c.Writer, c.Request)
 	log.Println("closing the ws")
 }

@@ -19,7 +19,8 @@ import (
 )
 
 const (
-	userID = "UserID"
+	UserID   = "UserID"
+	DeviceId = "DeviceID"
 )
 
 // App web app
@@ -111,7 +112,7 @@ func badReq(c *gin.Context, message string) {
 }
 
 func internalError(c *gin.Context, message string) {
-	c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": message})
+	c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": message})
 }
 
 /// remove remarkable ads

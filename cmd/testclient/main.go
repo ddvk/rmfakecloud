@@ -24,12 +24,18 @@ func main() {
 	if host == "" {
 		host = "localhost:3000"
 	}
+	host = "localhost:3000"
 	config, err := websocket.NewConfig("ws://"+host+"/notifications/ws/json/1", "http://none")
 	if err != nil {
 		log.Fatal(err)
 	}
+	token := "blah.blah.blah"
+	if len(os.Args) > 1 {
+		token = os.Args[1]
+	}
+
 	config.Header = http.Header{
-		"Authorization": {"Bearer 1234.1234.123"},
+		"Authorization": {"Bearer " + token},
 	}
 	conn, err := websocket.DialConfig(config)
 

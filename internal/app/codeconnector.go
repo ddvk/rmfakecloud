@@ -67,7 +67,7 @@ func newUserCode() (code string, err error) {
 	return code, nil
 }
 
-// ConsumeCode return the userId matching the code
+// ConsumeCode return the userId matching the 
 func (conn *inMemoryCodeConnector) ConsumeCode(code string) (string, error) {
 	conn.lock.Lock()
 	defer conn.lock.Unlock()

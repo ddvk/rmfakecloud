@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ddvk/rmfakecloud/internal/messages"
@@ -22,7 +23,7 @@ type Hub struct {
 
 // Send sends a message to all connected clients
 func (h *Hub) Send(uid string, msg messages.WsMessage) {
-	log.Info("Sending notification, uid:", uid)
+	log.Info("Broadcast notification, uid:", uid)
 	if clients, ok := h.userClients[uid]; ok {
 		for c := range clients {
 			c.ntf <- msg
@@ -65,7 +66,12 @@ func (h *Hub) start() {
 		case c := <-h.additions:
 			log.Info("hub: adding a client")
 			h.clients[c] = true
-			h.userClients[c.uid][c] = true
+			clients, ok := h.userClients[c.uid]
+			if !ok {
+				clients = make(map[*wsClient]bool)
+				h.userClients[c.uid] = clients
+			}
+			clients[c] = true
 		case c := <-h.removals:
 			h.removeClient(c)
 		}
@@ -73,9 +79,10 @@ func (h *Hub) start() {
 }
 
 type wsClient struct {
-	uid string
-	ntf chan messages.WsMessage
-	hub *Hub
+	uid      string
+	deviceId string
+	ntf      chan messages.WsMessage
+	hub      *Hub
 }
 
 func (c *wsClient) Read(ws *websocket.Conn) {
@@ -99,7 +106,7 @@ func (c *wsClient) Write(ws *websocket.Conn) {
 				log.Debugln("done")
 				return
 			}
-			log.Debugln("sending notification")
+			log.Debugln("sending notification to", c.deviceId)
 			ws.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			err := ws.WriteJSON(m)
 			if err != nil {
@@ -112,7 +119,7 @@ func (c *wsClient) Write(ws *websocket.Conn) {
 }
 
 // ConnectWs upgrade the connection to websocket
-func (h *Hub) ConnectWs(uid string, w http.ResponseWriter, r *http.Request) {
+func (h *Hub) ConnectWs(uid, deviceId string, w http.ResponseWriter, r *http.Request) {
 	var upgrader = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true
@@ -124,9 +131,10 @@ func (h *Hub) ConnectWs(uid string, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	client := &wsClient{
-		uid: uid,
-		hub: h,
-		ntf: make(chan messages.WsMessage),
+		uid:      uid,
+		deviceId: deviceId,
+		hub:      h,
+		ntf:      make(chan messages.WsMessage),
 	}
 	h.additions <- client
 	go client.Read(c)
@@ -136,21 +144,23 @@ func (h *Hub) ConnectWs(uid string, w http.ResponseWriter, r *http.Request) {
 	h.removals <- client
 }
 
-func newWs(doc *messages.RawDocument, typ string) messages.WsMessage {
+func NewNotification(uid, deviceId string, doc *messages.RawDocument, eventType string) messages.WsMessage {
 	tt := time.Now().UTC().Format(time.RFC3339Nano)
+	messageId := uuid.New().String()
+
 	msg := messages.WsMessage{
 		Message: messages.NotificationMessage{
-			MessageId:  "1234",
-			MessageId2: "1234",
+			MessageId:  messageId,
+			MessageId2: messageId,
 			Attributes: messages.Attributes{
-				Auth0UserID:      "auth0|12341234123412",
-				Event:            typ,
+				Auth0UserID:      uid,
+				Event:            eventType,
 				Id:               doc.Id,
 				Type:             doc.Type,
 				Version:          strconv.Itoa(doc.Version),
 				VissibleName:     doc.VissibleName,
 				SourceDeviceDesc: "some-client",
-				SourceDeviceId:   "12345",
+				SourceDeviceId:   deviceId,
 				Parent:           doc.Parent,
 			},
 			PublishTime:  tt,
