@@ -19,7 +19,8 @@ import (
 )
 
 const (
-	userID = "UserID"
+	UserID   = "UserID"
+	DeviceId = "DeviceID"
 )
 
 // App web app
@@ -90,6 +91,7 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 		cfg:           cfg,
 		docStorer:     docStorer,
 		userStorer:    userStorer,
+		metaStorer:    metaStorer,
 		hub:           hub,
 		ui:            reactApp,
 		codeConnector: codeConnector,
@@ -110,7 +112,7 @@ func badReq(c *gin.Context, message string) {
 }
 
 func internalError(c *gin.Context, message string) {
-	c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": message})
+	c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": message})
 }
 
 /// remove remarkable ads
@@ -122,4 +124,5 @@ func stripAds(msg string) string {
 	}
 	return msg
 }
-	// router.Use(ginlogrus.Logger(std.Out), gin.Recovery())
+
+// router.Use(ginlogrus.Logger(std.Out), gin.Recovery())

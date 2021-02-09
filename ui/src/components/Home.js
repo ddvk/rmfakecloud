@@ -9,7 +9,7 @@ const Home = () => {
       <Jumbo
         fluid
         style={{
-          background: `url(${booksImage})`,
+          //background: `url(${booksImage})`,
           backgroundSize: "cover",
           color: "white",
         }}

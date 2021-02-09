@@ -11,19 +11,25 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	AuthLog    = "[auth-middleware]"
+	RequestLog = "[requestlogging-middleware]"
+)
+
 func (app *App) authMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		claims, err := app.getUserClaims(c)
 
 		if err != nil {
-			log.Warn("token parsing", err)
+			log.Warn(AuthLog, "token parsing:", err)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing or incorrect token"})
 			return
 		}
 
 		uid := strings.TrimPrefix(claims.Profile.UserId, "auth0|")
-		c.Set(userID, uid)
-		log.Info("got a user token: ", uid)
+		c.Set(UserID, uid)
+		c.Set(DeviceId, claims.DeviceId)
+		log.Infof("%s got userId: %s deviceId: %s ", AuthLog, uid, claims.DeviceId)
 		c.Next()
 	}
 }
@@ -33,9 +39,9 @@ var ignoreBodyLogging = []string{"/storage", "/api/v2/document"}
 func requestLoggerMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
-		log.Debugln("header ", c.Request.Header)
+		log.Debugln(RequestLog, "header ", c.Request.Header)
 		for _, skip := range ignoreBodyLogging {
-			if skip == c.Request.URL.Path {
+			if strings.Index(c.Request.URL.Path, skip) == 0 {
 				log.Debugln("body logging ignored")
 				c.Next()
 				return
@@ -46,7 +52,7 @@ func requestLoggerMiddleware() gin.HandlerFunc {
 		tee := io.TeeReader(c.Request.Body, &buf)
 		body, _ := ioutil.ReadAll(tee)
 		c.Request.Body = ioutil.NopCloser(&buf)
-		log.Debugln("body: ", string(body))
+		log.Debugln(RequestLog, "body: ", string(body))
 		c.Next()
 	}
 }

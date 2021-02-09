@@ -3,14 +3,18 @@
 package main
 
 import (
-	"github.com/ddvk/rmfakecloud/internal/webassets"
-	"github.com/shurcooL/vfsgen"
+	"fmt"
 	"log"
+	"net/http"
+
+	"github.com/shurcooL/vfsgen"
 )
 
 // embeds the ui/build into WebAssets
 func main() {
-	err := vfsgen.Generate(webassets.Assets, vfsgen.Options{
+	fmt.Println("generating assets")
+	fs := http.Dir("../../ui/build")
+	err := vfsgen.Generate(fs, vfsgen.Options{
 		PackageName:  "webassets",
 		BuildTags:    "!dev",
 		VariableName: "Assets",

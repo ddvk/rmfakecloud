@@ -31,7 +31,8 @@ jobs:
         fi
 
     - name: Build
-      run: go build -v ./cmd/rmfakecloud
+      run: |
+        go build -tags dev -v ./cmd/rmfakecloud
 
     - name: Test
-      run: go test -v ./...
+      run: go test -tags dev -v ./...

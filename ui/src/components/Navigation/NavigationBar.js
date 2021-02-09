@@ -42,6 +42,11 @@ const NavigationBar = () => {
                   Users
                 </Nav.Link>
               </Nav.Item>
+              <Nav.Item>
+                <Nav.Link as={NavLink} to="/generatecode">
+                  Code
+                </Nav.Link>
+              </Nav.Item>
             </Nav>
           </Navbar.Collapse>
 

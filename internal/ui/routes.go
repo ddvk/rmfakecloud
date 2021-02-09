@@ -52,20 +52,20 @@ func (app *ReactAppWrapper) authMiddleware() gin.HandlerFunc {
 		token, err := common.GetToken(c)
 
 		if err != nil {
-			log.Warn("token parsing, ", err)
+			log.Warn("[ui] token parsing, ", err)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing or incorrect token"})
 			return
 		}
 		claims := &common.WebUserClaims{}
 		err = common.ClaimsFromToken(claims, token, app.cfg.JWTSecretKey)
 		if err != nil {
-			log.Warn("token verification, ", err)
+			log.Warn("[ui] token verification, ", err)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing or incorrect token"})
 			return
 		}
 
-		if claims.Subject != common.WebUsage {
-			log.Warn("wrong token subject: ", claims.Subject)
+		if claims.Audience != common.WebUsage {
+			log.Warn("wrong token audience: ", claims.Audience)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing or incorrect token"})
 			return
 		}

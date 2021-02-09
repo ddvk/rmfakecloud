@@ -15,11 +15,8 @@ import (
 
 // GetAllMetadata load all metadata
 func (fs *Storage) GetAllMetadata(uid string, withBlob bool) (result []*messages.RawDocument, err error) {
-	files, err := ioutil.ReadDir(fs.Cfg.DataDir)
-	if err != nil {
-		return
-	}
-	result = []*messages.RawDocument{}
+	folder := path.Join(fs.Cfg.DataDir, userDir, uid)
+	files, err := ioutil.ReadDir(folder)
 
 	for _, f := range files {
 		ext := filepath.Ext(f.Name())
@@ -40,9 +37,7 @@ func (fs *Storage) GetAllMetadata(uid string, withBlob bool) (result []*messages
 
 // GetMetadata loads a document's metadata
 func (fs *Storage) GetMetadata(uid, id string, withBlob bool) (*messages.RawDocument, error) {
-	dataDir := fs.Cfg.DataDir
-	filePath := id + ".metadata"
-	fullPath := path.Join(dataDir, filepath.Base(filePath))
+	fullPath := fs.getPathFromUser(uid, id+".metadata")
 	f, err := os.Open(fullPath)
 	if err != nil {
 		return nil, err
@@ -83,5 +78,23 @@ func (fs *Storage) GetMetadata(uid, id string, withBlob bool) (*messages.RawDocu
 	response.ModifiedClient = tt.UTC().Format(time.RFC3339)
 
 	return &response, nil
+
+}
+
+// UpdateMetadata updates the metadata of a document
+func (fs *Storage) UpdateMetadata(uid string, r *messages.RawDocument) error {
+	filepath := fs.getPathFromUser(uid, r.Id+".metadata")
+
+	err := os.MkdirAll(userDir, 0700)
+	if err != nil {
+		return err
+	}
+
+	js, err := json.Marshal(r)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(filepath, js, 0600)
+	return err
 
 }

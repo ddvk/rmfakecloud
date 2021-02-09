@@ -11,39 +11,44 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type InMemConnector struct {
+type inMemoryCodeConnector struct {
 	dict         map[string]string
+	uids         map[string]string
 	lock         sync.Mutex
 	codeValidity time.Duration
 }
 
 func NewCodeConnector() common.CodeConnector {
-	return &InMemConnector{
+	return &inMemoryCodeConnector{
 		dict:         make(map[string]string),
-		codeValidity: time.Second * 10,
+		uids:         make(map[string]string),
+		codeValidity: time.Minute * 5,
 	}
 
 }
 
-func (conn *InMemConnector) codeExpiry() {
+func (conn *inMemoryCodeConnector) codeExpiry() {
 
 }
 
-func (conn *InMemConnector) NewCode(uid string) (string, error) {
+func (conn *inMemoryCodeConnector) NewCode(uid string) (string, error) {
 	code, err := newUserCode()
 	if err != nil {
 		return "", err
 	}
 	conn.lock.Lock()
 	conn.dict[code] = uid
+	if oldcode, ok := conn.uids[uid]; ok {
+		delete(conn.dict, oldcode)
+	}
+	conn.uids[uid] = code
 	conn.lock.Unlock()
 	go func() {
 		select {
 		case <-time.After(conn.codeValidity):
-			conn.lock.Lock()
-			delete(conn.dict, code)
-			conn.lock.Unlock()
-			log.Info("removed unused code: ", code)
+			if _, err := conn.ConsumeCode(code); err == nil {
+				log.Infof("removed unused code: %s for uid: %s ", code, uid)
+			}
 		}
 
 	}()
@@ -61,11 +66,14 @@ func newUserCode() (code string, err error) {
 
 	return code, nil
 }
-func (conn *InMemConnector) ConsumeCode(code string) (string, error) {
+
+// ConsumeCode return the userId matching the 
+func (conn *inMemoryCodeConnector) ConsumeCode(code string) (string, error) {
 	conn.lock.Lock()
 	defer conn.lock.Unlock()
 	if uid, ok := conn.dict[code]; ok {
 		delete(conn.dict, code)
+		delete(conn.uids, uid)
 		return uid, nil
 	}
 	return "", errors.New("code not found")

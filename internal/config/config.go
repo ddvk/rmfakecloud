@@ -2,20 +2,20 @@ package config
 
 import (
 	"crypto/rand"
-	"encoding/hex"
+	"crypto/sha256"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"strconv"
 
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/crypto/pbkdf2"
 )
 
 const (
 	DefaultPort     = "3000"
 	DefaultDataDir  = "data"
-	defaultTrashDir = "trash"
+	DefaultTrashDir = "trash"
 
 	// DefaultHost fake url
 	DefaultHost = "local.appspot.com"
@@ -45,7 +45,6 @@ type Config struct {
 	Port             string
 	StorageURL       string
 	DataDir          string
-	TrashDir         string
 	JWTSecretKey     []byte
 	RegistrationOpen bool
 }
@@ -63,11 +62,6 @@ func FromEnv() *Config {
 			panic(err)
 		}
 	}
-	trashDir := path.Join(dataDir, defaultTrashDir)
-	err = os.MkdirAll(trashDir, 0700)
-	if err != nil {
-		panic(err)
-	}
 
 	port := os.Getenv(EnvPort)
 	if port == "" {
@@ -84,8 +78,8 @@ func FromEnv() *Config {
 		uploadURL = fmt.Sprintf("http://%s:%s", host, port)
 	}
 
-	jwtSecretKey, err := hex.DecodeString(os.Getenv(envJWTSecretKey))
-	if err != nil || len(jwtSecretKey) == 0 {
+	jwtSecretKey := []byte(os.Getenv(envJWTSecretKey))
+	if len(jwtSecretKey) == 0 {
 		jwtSecretKey = make([]byte, 32)
 		_, err := rand.Read(jwtSecretKey)
 		if err != nil {
@@ -95,6 +89,7 @@ func FromEnv() *Config {
 		log.Warnf("%s=%X", envJWTSecretKey, jwtSecretKey)
 		log.Warn("The authentication will fail, the next time you start the server")
 	}
+	dk := pbkdf2.Key(jwtSecretKey, []byte("todo some salt"), 10000, 32, sha256.New)
 
 	openRegistration, _ := strconv.ParseBool(os.Getenv(envRegistrationOpen))
 
@@ -102,8 +97,7 @@ func FromEnv() *Config {
 		Port:             port,
 		StorageURL:       uploadURL,
 		DataDir:          dataDir,
-		TrashDir:         trashDir,
-		JWTSecretKey:     jwtSecretKey,
+		JWTSecretKey:     dk,
 		RegistrationOpen: openRegistration,
 	}
 	return &cfg
