@@ -16,7 +16,6 @@ const Login = ({ history }) => {
     let payload = { email, password };
     try {
       let response = await loginUser(dispatch, payload);
-      if (!response.user) return;
 
       history.push("/"); //TODO: usenavigate or return redirect
     } catch (error) {

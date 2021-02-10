@@ -8,6 +8,7 @@ import (
 
 	"github.com/ddvk/rmfakecloud/internal/model"
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -29,12 +30,14 @@ func (fs *Storage) GetUser(uid string) (response *model.User, err error) {
 	var content []byte
 	content, err = ioutil.ReadAll(f)
 	if err != nil {
+		log.Error("Cannot read the user profile:", profilePath)
 		return
 	}
 
 	response = &model.User{}
-	err = json.Unmarshal(content, response)
+	err = yaml.Unmarshal(content, response)
 	if err != nil {
+		log.Error("Cannot deserialize the user profile", profilePath)
 		return
 	}
 
@@ -101,7 +104,7 @@ func (fs *Storage) UpdateUser(u *model.User) (err error) {
 	profilePath := fs.getPathFromUser(u.Id, profileName)
 	// Overwrite the profile
 	var js []byte
-	js, err = json.Marshal(u)
+	js, err = yaml.Marshal(u)
 	if err != nil {
 		return err
 	}

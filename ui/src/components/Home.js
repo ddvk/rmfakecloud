@@ -1,7 +1,6 @@
 import React from "react";
 import Jumbo from "react-bootstrap/Jumbotron";
 import Container from "react-bootstrap/Container";
-import booksImage from "../assets/books.jpeg";
 
 const Home = () => {
   return (
@@ -9,7 +8,6 @@ const Home = () => {
       <Jumbo
         fluid
         style={{
-          //background: `url(${booksImage})`,
           backgroundSize: "cover",
           color: "white",
         }}

@@ -28,20 +28,18 @@ const NavigationBar = () => {
           <Navbar.Collapse>
             <Nav>
               <Nav.Item>
-                <Nav.Link as={NavLink} to="/filelist">
-                  FileList
+                <Nav.Link as={NavLink} to="/documents">
+                  Documents
                 </Nav.Link>
               </Nav.Item>
-              <Nav.Item>
-                <Nav.Link as={NavLink} to="/filelistFunctional">
-                  FileList Functional
-                </Nav.Link>
-              </Nav.Item>
-              <Nav.Item>
-                <Nav.Link as={NavLink} to="/userList">
-                  Users
-                </Nav.Link>
-              </Nav.Item>
+              {
+                authState.user.isAdmin && (
+                  <Nav.Item>
+                    <Nav.Link as={NavLink} to="/userList">
+                      Users
+                  </Nav.Link>
+                  </Nav.Item>)
+              }
               <Nav.Item>
                 <Nav.Link as={NavLink} to="/generatecode">
                   Code
@@ -53,7 +51,7 @@ const NavigationBar = () => {
           <Navbar>
             <Nav>
               <Nav.Item>
-                <Button onClick={handleLogout}>Logout</Button>
+                <Button onClick={handleLogout}>Logout {authState.user.UserID}</Button>
               </Nav.Item>
             </Nav>
           </Navbar>

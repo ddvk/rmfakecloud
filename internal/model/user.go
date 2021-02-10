@@ -22,17 +22,14 @@ const (
 )
 
 type User struct {
-	Id            string `json:"userid"`
-	Email         string `json:"email"`
+	Id            string
+	Email         string
 	EmailVerified bool
-	Password      string    `json:"password"`
-	CurrentCode   string    `json:"code"`
-	CodeExpire    time.Time `json:"code_exp"`
+	Password      string
 	Name          string
 	Nickname      string
 	GivenName     string
 	FamilyName    string
-	Picture       string
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 	IsAdmin       bool

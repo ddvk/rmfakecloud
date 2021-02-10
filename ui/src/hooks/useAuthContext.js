@@ -15,7 +15,7 @@ export function useAuthState() {
 
 export function useAuthDispatch() {
   const context = React.useContext(AuthDispatchContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error("useAuthDispatch must be used within a AuthProvider");
   }
 

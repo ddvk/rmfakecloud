@@ -73,13 +73,13 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 	user, err := app.userStorer.GetUser(form.Email)
 	if err != nil {
 		log.Error(err)
-		c.AbortWithStatus(http.StatusBadRequest)
+		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
 
 	if ok, err := user.CheckPassword(form.Password); err != nil || !ok {
 		log.Error(err)
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
+		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
 
@@ -105,7 +105,7 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 	}
 	c.SetCookie(".AuthCookie", tokenString, 1, "/", "rmfakecloud", true, true)
 
-	c.JSON(http.StatusOK, gin.H{"auth_token": tokenString, "user": gin.H{}})
+	c.String(http.StatusOK, tokenString)
 
 }
 
