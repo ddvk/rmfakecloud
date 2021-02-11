@@ -51,7 +51,7 @@ const NavigationBar = () => {
           <Navbar>
             <Nav>
               <Nav.Item>
-                <Button onClick={handleLogout}>Logout {authState.user.UserID}</Button>
+                <Button onClick={handleLogout}>Logout {authState.user?.UserID}</Button>
               </Nav.Item>
             </Nav>
           </Navbar>

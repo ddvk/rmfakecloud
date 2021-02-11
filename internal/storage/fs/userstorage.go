@@ -1,14 +1,13 @@
 package fs
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"os"
 	"path"
 
+	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/model"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -16,8 +15,23 @@ const (
 	profileName = ".userprofile"
 )
 
+func NewStorage(cfg *config.Config) *Storage {
+	fs := &Storage{
+		Cfg: cfg,
+	}
+
+	usersPath := fs.getUserPath("")
+	err := os.MkdirAll(usersPath, 0700)
+	if err != nil {
+		log.Panic("cannot create the user path " + usersPath)
+	}
+
+	return fs
+
+}
+
 // GetUser blah
-func (fs *Storage) GetUser(uid string) (response *model.User, err error) {
+func (fs *Storage) GetUser(uid string) (user *model.User, err error) {
 	profilePath := fs.getPathFromUser(uid, profileName)
 
 	var f *os.File
@@ -34,8 +48,7 @@ func (fs *Storage) GetUser(uid string) (response *model.User, err error) {
 		return
 	}
 
-	response = &model.User{}
-	err = yaml.Unmarshal(content, response)
+	user, err = model.DeserializeUser(content)
 	if err != nil {
 		log.Error("Cannot deserialize the user profile", profilePath)
 		return
@@ -74,11 +87,11 @@ func (fs *Storage) RegisterUser(u *model.User) (err error) {
 
 	profilePath := fs.getPathFromUser(u.Id, profileName)
 	// Create the profile file
-	var js []byte
-	js, err = json.Marshal(u)
+	js, err := u.Serialize()
 	if err != nil {
 		return err
 	}
+
 	f, err := os.OpenFile(profilePath, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0600)
 	if err != nil {
 		log.Warn("cant open: ", profilePath)
@@ -103,8 +116,7 @@ func (fs *Storage) UpdateUser(u *model.User) (err error) {
 
 	profilePath := fs.getPathFromUser(u.Id, profileName)
 	// Overwrite the profile
-	var js []byte
-	js, err = yaml.Marshal(u)
+	js, err := u.Serialize()
 	if err != nil {
 		return err
 	}

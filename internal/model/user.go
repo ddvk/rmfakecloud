@@ -12,6 +12,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/argon2"
+	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -135,4 +136,14 @@ func (u *User) CheckPassword(raw string) (bool, error) {
 	comparisonHash := argon2.IDKey([]byte(raw), salt, time, memory, threads, keyLen)
 
 	return (subtle.ConstantTimeCompare(decodedHash, comparisonHash) == 1), nil
+}
+func (u User) Serialize() ([]byte, error) {
+	return yaml.Marshal(u)
+}
+func DeserializeUser(b []byte) (*User, error) {
+	usr := &User{}
+	if err := yaml.Unmarshal(b, usr); err != nil {
+		return nil, err
+	}
+	return usr, nil
 }

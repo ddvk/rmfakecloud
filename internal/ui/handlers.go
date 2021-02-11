@@ -26,9 +26,8 @@ func (app *ReactAppWrapper) register(c *gin.Context) {
 		return
 	}
 
-	usr := c.PostForm("email")
-	pass := c.PostForm("password")
-	log.Info(usr, " ", pass)
+	// usr := c.PostForm("email")
+	// pass := c.PostForm("password")
 
 	var form loginForm
 	if err := c.ShouldBindJSON(&form); err != nil {
@@ -67,6 +66,25 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 		log.Error(err)
 		badReq(c, err.Error())
 		return
+	}
+	// not really thread safe
+	if app.cfg.CreateFirstUser {
+		log.Info("Creating an admin user")
+		user, err := model.NewUser(form.Email, form.Password)
+		if err != nil {
+			log.Error("[login]", err)
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+		user.IsAdmin = true
+		err = app.userStorer.RegisterUser(user)
+		if err != nil {
+			log.Error("[login] Register ", err)
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+		app.cfg.CreateFirstUser = false
+
 	}
 
 	// Try to find the user
