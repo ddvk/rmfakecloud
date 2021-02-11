@@ -16,6 +16,7 @@ const (
 )
 
 func (app *ReactAppWrapper) register(c *gin.Context) {
+
 	client := c.ClientIP()
 	log.Info(client)
 
@@ -84,7 +85,6 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 			return
 		}
 		app.cfg.CreateFirstUser = false
-
 	}
 
 	// Try to find the user

@@ -10,6 +10,7 @@ import {
 } from "react-router-dom";
 
 import styles from "./NavigationBar.module.css";
+import authContext from "./authContext";
 
 const NavigationBar = () => {
   const authDispatch = useAuthDispatch();

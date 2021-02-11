@@ -1,9 +1,9 @@
 package fs
 
 import (
+	"errors"
 	"io/ioutil"
 	"os"
-	"path"
 
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/model"
@@ -32,7 +32,15 @@ func NewStorage(cfg *config.Config) *Storage {
 
 // GetUser blah
 func (fs *Storage) GetUser(uid string) (user *model.User, err error) {
+	if uid == "" {
+		err = errors.New("empty user")
+		return
+	}
 	profilePath := fs.getPathFromUser(uid, profileName)
+	_, err = os.Stat(profilePath)
+	if err != nil {
+		return
+	}
 
 	var f *os.File
 	f, err = os.Open(profilePath)
@@ -59,7 +67,7 @@ func (fs *Storage) GetUser(uid string) (user *model.User, err error) {
 
 // GetUsers blah
 func (fs *Storage) GetUsers() (users []*model.User, err error) {
-	usersDir := path.Join(fs.Cfg.DataDir, userDir)
+	usersDir := fs.getUserPath("")
 
 	entries, err := ioutil.ReadDir(usersDir)
 	if err != nil {
@@ -77,6 +85,10 @@ func (fs *Storage) GetUsers() (users []*model.User, err error) {
 
 // RegisterUser blah
 func (fs *Storage) RegisterUser(u *model.User) (err error) {
+	if u.Id == "" {
+		err = errors.New("empty id")
+		return
+	}
 	userPath := fs.getUserPath(u.Id)
 
 	// Create the user's directory
@@ -108,6 +120,10 @@ func (fs *Storage) RegisterUser(u *model.User) (err error) {
 }
 
 func (fs *Storage) UpdateUser(u *model.User) (err error) {
+	if u.Id == "" {
+		err = errors.New("empty id")
+		return
+	}
 
 	err = os.MkdirAll(fs.getUserPath(u.Id), 0700)
 	if err != nil {
@@ -118,7 +134,7 @@ func (fs *Storage) UpdateUser(u *model.User) (err error) {
 	// Overwrite the profile
 	js, err := u.Serialize()
 	if err != nil {
-		return err
+		return
 	}
 	err = ioutil.WriteFile(profilePath, js, 0600)
 

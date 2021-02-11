@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from "react";
 import { useAuthState } from "./useAuthContext";
-const ROOT_URL = `${window.location.origin}/ui/api`;
+const ROOT_URL = "/ui/api";
 
 const useFetch = (url) => {
   const [loading, setLoading] = useState(true);
@@ -22,7 +22,12 @@ const useFetch = (url) => {
         if (response.ok) {
           const json = await response.json();
           setData(json);
-        } else {
+        } else if (response.status == 401) {
+          //TODO: fix this hack
+          localStorage.removeItem("token")
+          localStorage.removeItem("currentUser")
+          window.location = "/"
+        } else{ 
           throw response;
         }
       } catch (e) {

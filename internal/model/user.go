@@ -137,9 +137,11 @@ func (u *User) CheckPassword(raw string) (bool, error) {
 
 	return (subtle.ConstantTimeCompare(decodedHash, comparisonHash) == 1), nil
 }
+
 func (u User) Serialize() ([]byte, error) {
 	return yaml.Marshal(u)
 }
+
 func DeserializeUser(b []byte) (*User, error) {
 	usr := &User{}
 	if err := yaml.Unmarshal(b, usr); err != nil {

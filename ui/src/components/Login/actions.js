@@ -1,6 +1,5 @@
 import jwt_decode from "jwt-decode";
 
-//const ROOT_URL = process.env.REACT_APP_SECRET_CODE;
 const ROOT_URL = "ui/api";
 
 export async function loginUser(dispatch, loginPayload) {
@@ -29,11 +28,12 @@ export async function loginUser(dispatch, loginPayload) {
     console.log(user)
 
     if (user) {
-      dispatch({ type: "LOGIN_SUCCESS", payload: {
-        "user": user,
-        "token":token
-      }
-     });
+      dispatch({
+        type: "LOGIN_SUCCESS", payload: {
+          "user": user,
+          "token": token
+        }
+      });
       localStorage.setItem("token", token);
       localStorage.setItem("currentUser", JSON.stringify(user))
       return user
