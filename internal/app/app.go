@@ -59,6 +59,10 @@ func (app *App) Stop() {
 
 // NewApp constructs an app
 func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.DocumentStorer, userStorer db.UserStorer) App {
+	debugMode := log.GetLevel() == log.DebugLevel
+	if !debugMode {
+		gin.SetMode(gin.ReleaseMode)
+	}
 	hub := NewHub()
 	codeConnector := NewCodeConnector()
 	gin.ForceConsoleColor()
@@ -80,7 +84,7 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 
 	// router.Use(ginlogrus.Logger(std.Out), gin.Recovery())
 
-	if log.GetLevel() == log.DebugLevel {
+	if debugMode {
 		router.Use(requestLoggerMiddleware())
 	}
 
