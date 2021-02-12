@@ -8,7 +8,7 @@ FROM golang:1-alpine as gobuilder
 ARG VERSION
 WORKDIR /src
 COPY . .
-COPY --from=uibuilder /src/build ./ui
+COPY --from=uibuilder /src/build ./ui/build
 RUN go generate ./... && CGO_ENABLED=0 go build -ldflags "-s -w -X main.version=${VERSION}" -o rmfakecloud-docker ./cmd/rmfakecloud/
 
 FROM scratch
