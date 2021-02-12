@@ -25,9 +25,8 @@ export default function App() {
         <Layout>
           <Switch>
             <PrivateRoute exact path="/" component={Home} />
-            <PrivateRoute path="/fileList" component={FileList} />
             <PrivateRoute
-              path="/fileListFunctional"
+              path="/documents"
               component={FileListFunctional}
             />
 

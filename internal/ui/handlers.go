@@ -16,10 +16,19 @@ const (
 )
 
 func (app *ReactAppWrapper) register(c *gin.Context) {
-	if !app.cfg.RegistrationOpen {
+
+	client := c.ClientIP()
+	log.Info(client)
+
+	if client != "localhost" &&
+		client != "::1" &&
+		client != "127.0.0.1" {
 		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Registrations are closed"})
 		return
 	}
+
+	// usr := c.PostForm("email")
+	// pass := c.PostForm("password")
 
 	var form loginForm
 	if err := c.ShouldBindJSON(&form); err != nil {
@@ -59,18 +68,36 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 		badReq(c, err.Error())
 		return
 	}
+	// not really thread safe
+	if app.cfg.CreateFirstUser {
+		log.Info("Creating an admin user")
+		user, err := model.NewUser(form.Email, form.Password)
+		if err != nil {
+			log.Error("[login]", err)
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+		user.IsAdmin = true
+		err = app.userStorer.RegisterUser(user)
+		if err != nil {
+			log.Error("[login] Register ", err)
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+		app.cfg.CreateFirstUser = false
+	}
 
 	// Try to find the user
 	user, err := app.userStorer.GetUser(form.Email)
 	if err != nil {
 		log.Error(err)
-		c.AbortWithStatus(http.StatusBadRequest)
+		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
 
 	if ok, err := user.CheckPassword(form.Password); err != nil || !ok {
 		log.Error(err)
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
+		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
 
@@ -96,7 +123,7 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 	}
 	c.SetCookie(".AuthCookie", tokenString, 1, "/", "rmfakecloud", true, true)
 
-	c.JSON(http.StatusOK, gin.H{"auth_token": tokenString, "user": gin.H{}})
+	c.String(http.StatusOK, tokenString)
 
 }
 

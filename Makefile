@@ -13,7 +13,7 @@ UIFILES += ui/package.json
 TARGETS := $(addprefix $(OUT_DIR)/$(BINARY)-, x64 armv6 armv7 win64 docker)
 YARN	= yarn --cwd ui  
 
-.PHONY: all run dev devui clean test
+.PHONY: all run dev devui clean test 
 all: $(TARGETS)
 
 build: $(OUT_DIR)/$(BINARY)-x64
@@ -42,8 +42,8 @@ $(ASSETS): ui/build
 run: ui/build
 	go run -tags dev $(CMD)
 
-dev: ui/build
-	find . -path ui -prune -false -o -iname "*.go" | entr -r go run -tags dev $(CMD)
+dev: 
+	find . -path ui -prune -false -o -iname "*.go" | entr -r  go run -tags dev $(CMD)
 
 ui/build: $(UIFILES) ui/yarn.lock
 	$(YARN) build

@@ -19,8 +19,13 @@ export default function CodeGenerator() {
   }
 
   return (
-    <div>
-      {code}
-      </div>
+    <>
+
+    <div style={{"margin":"auto", "width":"30%"}}>
+      <p>Onetime Code</p>
+        <h1>{code}</h1>
+    </div>
+    </>
+      
   );
 }

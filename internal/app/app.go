@@ -66,17 +66,17 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 
 	corsConfig := cors.DefaultConfig()
 
-	corsConfig.AllowOrigins = []string{"*"}
+	// corsConfig.AllowOrigins = []string{"*"}
 
 	// To be able to send tokens to the server.
-	corsConfig.AllowCredentials = true
+	// corsConfig.AllowCredentials = true
 
 	// OPTIONS method for ReactJS
 	corsConfig.AddAllowMethods("OPTIONS")
 	corsConfig.AddAllowHeaders("Authorization")
 
 	// Register the middleware
-	router.Use(cors.New(corsConfig))
+	// router.Use(cors.New(corsConfig))
 
 	// router.Use(ginlogrus.Logger(std.Out), gin.Recovery())
 

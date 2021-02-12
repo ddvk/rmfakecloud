@@ -20,15 +20,30 @@ run
 
 or clone an do: `go run .`  
 or `make run`  
-or `make all` artifacts are in the `dist` folder. the Arm binaries work on pi3 / Synology etc  
+or `make` artifacts are in the `dist` folder. the Arm binaries work on pi3 / Synology etc  
 or `make docker && ./rundocker.sh`  
 
 
 env variables:  
+`JWT_SECRET_KEY` needed for the whole auth thing to work, set something long
 `PORT` port number (default: 3000)  
 `DATADIR` to set data/files directory (default: data in current dir)  
-`STORAGE_URL` the storage url resolvable from the device (default: http://hostname:port)  
+`STORAGE_URL` the storage url resolvable from the device, especially if the host is behind a reverse proxy (default: http://hostname:port)  
 `LOGLEVEL` default to **info** (set to **debug** for more logging or **warn**, **error** for less)
+
+## Docker
+`docker run -it --rm -p 3000:3000 ddvk/rmfakecloud` (you can pass `-h` to see the available options
+
+# Initial Login
+open `http://localhost:3000` or wherever it was installed
+if no users exist, the first login creates a user
+
+# Resetting a user's password
+`DATADIR=dirwherethedatais rmfakecloud setuser -u username -p newpassword`
+
+## Caveats
+make sure to set the DATADIR env
+Execute it  in the context of user under witch the service is running, otherwis
 
 # Handwriting Recognition
 In order to get hwr running with myScript register for a developer account and set the env variables: 
@@ -50,62 +65,31 @@ If you want to provide custom FROM header for your mails, you can use:
 RM_SMTP_FROM='"ReMarkable self-hosted" <user@domain.com>'
 ```
 
-# [HTTPS](docs/https.md)
+# [HTTPS HowTO](docs/https.md)
 
-# Prerequisites / Device Modifications
+# [Device Prerequisite](docs/tablet.md)
+A reverse proxy [rmfakecloud-proxy](https://github.com/ddvk/rmfakecloud-proxy/releases) has to be installed
+
+## Automagic to be run on the device
+```
+sh -c "$(wget https://raw.githubusercontent.com/ddvk/rmfakecloud/master/scripts/device/automagic.sh -O-)"
+```
 
 ## Without patching the binary
-all needed artifacts are in `scripts/device/` folder
-For Automatic script check [Automagic](scripts/device/readme.md)
-
-Install a root CA on the device, you can use the `device/gencert.sh` script
-- generate a CA and host certificate for *.appspot.com []()
-- create the CA folder: `mkdir -p /usr/local/share/ca-certificates`
-- copy the CA.crt file to `/usr/local/share/ca-certificates` and run `update-ca-certificates`
-- modify the hosts file `/etc/hosts`
-	- so the options are:
-        1. run a reverse https proxy on the rm tablet as a service, e.g. [secure](https://github.com/yi-jiayu/secure)
-            - stop xochitl `systemctl stop xochitl`
-            - add to /etc/hosts
-                ```
-                127.0.0.1 hwr-production-dot-remarkable-production.appspot.com
-                127.0.0.1 service-manager-production-dot-remarkable-production.appspot.com
-                127.0.0.1 local.appspot.com
-                127.0.0.1 my.remarkable.com
-                ```
-            - set the address of your api host:port in the reverse proxy
-                `secure -cert proxy.crt -key proxy.key http://host_where_the_api_is_running:3000`
-                or use the provided systemd unit file and put the config in proxycfg
-
-            - run the host
-            - run `fixsync.sh` on the device to mark all files as new (not to be deleted from the device)
-            - start xochitl `systemctl start xochitl`
-		2. run the fakeapi on port 443 with a certificate signed by the CA you installed
-        - modify the hosts files to point to this host
-        3. install only the CA certificate on the device
-        - modify your DNS Server/router to resolve the aforementioned addesses to a https reverse proxy
-        - install the hosts certificate on the proxy and route to the api e.g:
-            - on a ubiquity router /etc/dnsmasq.d/rm.conf
-               address=/my.remarkable.com/192.168.0.10
-               etc
-            - on a synology there is an application portal which you can configure as a reverse proxy
-        - ***CONS*** this will affect ALL devices, but you use the mobile apps and windows clients without modifications
 
 # Caveats/ WARNING
 - connecting to the api will delete all your files, unless you mark them as not synced `synced:false` prior to syncing
 
 # TODO
 
-- [ ] auth / authz
-- [ ] multi tenant
-- [ ] fix go stuff
+- [x] auth / authz
+- [x] multi tenant
 - [ ] storage providers (dropbox, fs etc)
 - [ ] db (fs, sqlite etc)
 - [ ] liveview
-- [ ] ui (react)
+- [-] ui (react)
 - [ ] ut
-- [ ] ci/cd
-- [ ] refactor
+- [x] ci/cd
 
 
 # How the cloud sync works or (will I lose my files) requested by @torwag

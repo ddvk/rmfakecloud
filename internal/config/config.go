@@ -47,6 +47,7 @@ type Config struct {
 	DataDir          string
 	JWTSecretKey     []byte
 	RegistrationOpen bool
+	CreateFirstUser  bool
 }
 
 // FromEnv config from environment values

@@ -30,9 +30,9 @@ type UserClaims struct {
 
 // Auth0profile is the oauth user struct.
 type Auth0profile struct {
-	UserId        string `json:"UserID'`
+	UserId        string `json:"UserID"`
 	IsSocial      bool
-	ClientId      string `json:"ClientID'`
+	ClientId      string `json:"ClientID"`
 	Connection    string
 	Name          string `json:"Name"`
 	Nickname      string `json:"NickName"`
@@ -46,7 +46,7 @@ type Auth0profile struct {
 }
 
 type WebUserClaims struct {
-	UserId string `json:"UserID'`
+	UserId string `json:"UserID"`
 	Email  string
 	Scopes string `json:"scopes,omitempty"`
 	Roles  []string

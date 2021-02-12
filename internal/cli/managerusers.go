@@ -40,16 +40,17 @@ func (cli *Cli) SetUser(args []string) {
 
 	usr, err := cli.storage.GetUser(*username)
 	if err != nil {
-		usr = &model.User{
-			Id:    *username,
-			Email: *username,
-		}
 		if *pass == "" {
 			*pass, err = model.GenPassword()
 			if err != nil {
 				log.Fatal(err)
 			}
 			log.Info("new password:", *pass)
+		}
+		usr, err = model.NewUser(*username, *pass)
+		if err != nil {
+			log.Error(err)
+			return
 		}
 	}
 

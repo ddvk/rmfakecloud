@@ -263,23 +263,21 @@ func (app *App) updateStatus(c *gin.Context) {
 	}
 	result := []messages.StatusResponse{}
 	for _, r := range req {
-		log.Println("For Id: ", r.Id)
-		log.Println(" Name: ", r.VissibleName)
+		log.Info("Id: ", r.Id)
+		log.Info("Name: ", r.VissibleName)
 
 		ok := false
 		event := "DocAdded"
 		message := ""
 
 		err := app.metaStorer.UpdateMetadata(uid, &r)
-		if err == nil {
-			ok = true
-			//fix it: id of subscriber
-			msg := NewNotification(uid, deviceId, &r, event)
-			app.hub.Send(uid, msg)
-		} else {
-			message = err.Error()
+		if err != nil {
 			log.Error(err)
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
 		}
+		msg := NewNotification(uid, deviceId, &r, event)
+		app.hub.Send(uid, msg)
 		result = append(result, messages.StatusResponse{Id: r.Id, Success: ok, Message: message})
 	}
 

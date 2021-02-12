@@ -16,7 +16,6 @@ const Login = ({ history }) => {
     let payload = { email, password };
     try {
       let response = await loginUser(dispatch, payload);
-      if (!response.user) return;
 
       history.push("/"); //TODO: usenavigate or return redirect
     } catch (error) {
@@ -26,8 +25,7 @@ const Login = ({ history }) => {
 
   return (
     <div className={styles.container}>
-      <div className={{ width: 200 }}>
-        <h1>Login Page</h1>
+      <div style={{ width: 200 }}>
         {errorMessage ? <p className={styles.error}>{errorMessage}</p> : null}
         <form>
           <div className={styles.loginForm}>
@@ -39,6 +37,7 @@ const Login = ({ history }) => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={loading}
+                autoFocus
               />
             </div>
             <div className={styles.loginFormItem}>

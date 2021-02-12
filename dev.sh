@@ -2,7 +2,7 @@
 
 # This starts the webpack devserver and proxies the api requests to the backend
 
-export JWT_SECRET_KEY=DEVE
+export JWT_SECRET_KEY=dev
 export LOGLEVEL=DEBUG
 #make prep
 make devui &

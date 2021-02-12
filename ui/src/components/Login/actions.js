@@ -1,4 +1,5 @@
-//const ROOT_URL = process.env.REACT_APP_SECRET_CODE;
+import jwt_decode from "jwt-decode";
+
 const ROOT_URL = "ui/api";
 
 export async function loginUser(dispatch, loginPayload) {
@@ -12,22 +13,36 @@ export async function loginUser(dispatch, loginPayload) {
     dispatch({ type: "REQUEST_LOGIN" });
 
     let response = await fetch(`${ROOT_URL}/login`, requestOptions);
-
-    let data = await response.json();
-
-    if (data.user) {
-      dispatch({ type: "LOGIN_SUCCESS", payload: data });
-      localStorage.setItem("currentUser", JSON.stringify(data));
-      return data;
+    if (!response.ok) {
+      dispatch({ type: "LOGIN_ERROR", error: 'login failed' });
+      return
     }
 
-    //TODO: update API to return error property.
-    dispatch({ type: "LOGIN_ERROR", error: data });
+    var token = await response.text();
+    if (!token) {
+      throw new Error('cant retrieve the token')
+    }
+
+    var user = jwt_decode(token)
+
+    console.log(user)
+
+    if (user) {
+      dispatch({
+        type: "LOGIN_SUCCESS", payload: {
+          "user": user,
+          "token": token
+        }
+      });
+      localStorage.setItem("token", token);
+      localStorage.setItem("currentUser", JSON.stringify(user))
+      return user
+    }
 
     return;
   } catch (error) {
     console.log(error)
-    dispatch({ type: "LOGIN_ERROR", error: error });
+    dispatch({ type: "LOGIN_ERROR", error: 'Something went wrong'});
   }
 }
 

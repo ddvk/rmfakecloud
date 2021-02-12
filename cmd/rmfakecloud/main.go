@@ -87,9 +87,17 @@ myScript hwr (needs a developer account):
 	log.Println("Url the device should use:", cfg.StorageURL)
 	log.Println("Listening on port:", cfg.Port)
 
-	fsStorage := &fs.Storage{
-		Cfg: cfg,
+	fsStorage := fs.NewStorage(cfg)
+	usrs, err := fsStorage.GetUsers()
+	if err != nil {
+		log.Warn(err)
 	}
+	if len(usrs) == 0 {
+		log.Warn("No users found, the first login will create a user")
+		cfg.CreateFirstUser = true
+
+	}
+
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 

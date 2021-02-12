@@ -1,11 +1,11 @@
 package fs
 
 import (
-	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"os"
-	"path"
 
+	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/model"
 	log "github.com/sirupsen/logrus"
 )
@@ -15,11 +15,29 @@ const (
 	profileName = ".userprofile"
 )
 
-// GetUser returns the user using id/email
-func (fs *Storage) GetUser(uid string) (response *model.User, err error) {
-	profilePath := fs.getPathFromUser(uid, profileName)
+func NewStorage(cfg *config.Config) *Storage {
+	fs := &Storage{
+		Cfg: cfg,
+	}
 
-	if _, _err := os.Stat(profilePath); os.IsNotExist(_err) {		
+	usersPath := fs.getUserPath("")
+	err := os.MkdirAll(usersPath, 0700)
+	if err != nil {
+		log.Panic("cannot create the user path " + usersPath)
+	}
+
+	return fs
+
+}
+
+func (fs *Storage) GetUser(uid string) (user *model.User, err error) {
+	if uid == "" {
+		err = errors.New("empty user")
+		return
+	}
+	profilePath := fs.getPathFromUser(uid, profileName)
+	_, err = os.Stat(profilePath)
+	if err != nil {
 		return
 	}
 
@@ -33,12 +51,13 @@ func (fs *Storage) GetUser(uid string) (response *model.User, err error) {
 	var content []byte
 	content, err = ioutil.ReadAll(f)
 	if err != nil {
+		log.Error("Cannot read the user profile:", profilePath)
 		return
 	}
 
-	response = &model.User{}
-	err = json.Unmarshal(content, response)
+	user, err = model.DeserializeUser(content)
 	if err != nil {
+		log.Error("Cannot deserialize the user profile", profilePath)
 		return
 	}
 
@@ -47,7 +66,7 @@ func (fs *Storage) GetUser(uid string) (response *model.User, err error) {
 
 // GetUsers blah
 func (fs *Storage) GetUsers() (users []*model.User, err error) {
-	usersDir := path.Join(fs.Cfg.DataDir, userDir)
+	usersDir := fs.getUserPath("")
 
 	entries, err := ioutil.ReadDir(usersDir)
 	if err != nil {
@@ -65,6 +84,10 @@ func (fs *Storage) GetUsers() (users []*model.User, err error) {
 
 // RegisterUser blah
 func (fs *Storage) RegisterUser(u *model.User) (err error) {
+	if u.Id == "" {
+		err = errors.New("empty id")
+		return
+	}
 	userPath := fs.getUserPath(u.Id)
 
 	// Create the user's directory
@@ -75,11 +98,11 @@ func (fs *Storage) RegisterUser(u *model.User) (err error) {
 
 	profilePath := fs.getPathFromUser(u.Id, profileName)
 	// Create the profile file
-	var js []byte
-	js, err = json.Marshal(u)
+	js, err := u.Serialize()
 	if err != nil {
 		return err
 	}
+
 	f, err := os.OpenFile(profilePath, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0600)
 	if err != nil {
 		log.Warn("cant open: ", profilePath)
@@ -96,6 +119,10 @@ func (fs *Storage) RegisterUser(u *model.User) (err error) {
 }
 
 func (fs *Storage) UpdateUser(u *model.User) (err error) {
+	if u.Id == "" {
+		err = errors.New("empty id")
+		return
+	}
 
 	err = os.MkdirAll(fs.getUserPath(u.Id), 0700)
 	if err != nil {
@@ -104,10 +131,9 @@ func (fs *Storage) UpdateUser(u *model.User) (err error) {
 
 	profilePath := fs.getPathFromUser(u.Id, profileName)
 	// Overwrite the profile
-	var js []byte
-	js, err = json.Marshal(u)
+	js, err := u.Serialize()
 	if err != nil {
-		return err
+		return
 	}
 	err = ioutil.WriteFile(profilePath, js, 0600)
 
