@@ -1,16 +1,10 @@
 import React from "react";
-import { Nav, Navbar, Button } from "react-bootstrap";
+import { Nav, Navbar, Button, NavDropdown } from "react-bootstrap";
 import { logout } from "../Login/actions";
 import { useAuthDispatch, useAuthState } from "../../hooks/useAuthContext";
-import {
-  Route,
-  NavLink,
-  BrowserRouter as Router,
-  Switch,
-} from "react-router-dom";
-
+import { NavLink } from "react-router-dom";
 import styles from "./NavigationBar.module.css";
-import authContext from "./authContext";
+import { FaUser } from "react-icons/fa";
 
 const NavigationBar = () => {
   const authDispatch = useAuthDispatch();
@@ -28,19 +22,19 @@ const NavigationBar = () => {
         <>
           <Navbar.Collapse>
             <Nav>
+              {" "}
               <Nav.Item>
                 <Nav.Link as={NavLink} to="/documents">
                   Documents
                 </Nav.Link>
               </Nav.Item>
-              {
-                authState.user.isAdmin && (
-                  <Nav.Item>
-                    <Nav.Link as={NavLink} to="/userList">
-                      Users
+              {authState.user.isAdmin && (
+                <Nav.Item>
+                  <Nav.Link as={NavLink} to="/userList">
+                    Users
                   </Nav.Link>
-                  </Nav.Item>)
-              }
+                </Nav.Item>
+              )}
               <Nav.Item>
                 <Nav.Link as={NavLink} to="/generatecode">
                   Code
@@ -48,14 +42,29 @@ const NavigationBar = () => {
               </Nav.Item>
             </Nav>
           </Navbar.Collapse>
-
-          <Navbar>
-            <Nav>
-              <Nav.Item>
-                <Button onClick={handleLogout}>Logout {authState.user?.UserID}</Button>
-              </Nav.Item>
+          <Navbar.Collapse>
+            <Nav className="ml-auto">
+              <NavDropdown
+                alignRight
+                title={
+                  <span>
+                    <FaUser size={30} />
+                  </span>
+                }
+              >
+                <NavDropdown.Item as={NavLink} to="/profile">
+                  Profile
+                </NavDropdown.Item>
+                <NavDropdown.Item as={NavLink} to="/resetPassword">
+                  Reset Password
+                </NavDropdown.Item>
+                <NavDropdown.Divider />
+                <NavDropdown.Item as={Button} onClick={handleLogout}>
+                  Log out
+                </NavDropdown.Item>
+              </NavDropdown>
             </Nav>
-          </Navbar>
+          </Navbar.Collapse>
         </>
       )}
     </Navbar>

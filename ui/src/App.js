@@ -25,11 +25,7 @@ export default function App() {
         <Layout>
           <Switch>
             <PrivateRoute exact path="/" component={Home} />
-            <PrivateRoute
-              path="/documents"
-              component={FileListFunctional}
-            />
-
+            <PrivateRoute path="/documents" component={FileListFunctional} />
             <PrivateRoute path="/userList/:userid" component={UserProfile} />
             <PrivateRoute path="/userList" component={UserList} />
             <PrivateRoute path="/generatecode" component={CodeGenerator} />
