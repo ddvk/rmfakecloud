@@ -80,49 +80,8 @@ sh -c "$(wget https://raw.githubusercontent.com/ddvk/rmfakecloud/master/scripts/
 # Caveats/ WARNING
 - connecting to the api will delete all your files, unless you mark them as not synced `synced:false` prior to syncing
 
-# TODO
-
-- [x] auth / authz
-- [x] multi tenant
-- [ ] storage providers (dropbox, fs etc)
-- [ ] db (fs, sqlite etc)
-- [ ] liveview
-- [-] ui (react)
-- [ ] ut
-- [x] ci/cd
-
-
-# How the cloud sync works or (will I lose my files) requested by @torwag
-(my interpretation and flawed observations)
-
-Given a new unregistered device, all the files that are generated locally have a status `synced:false`
-
-Registration:
-
-the device sends a post request to: `my.remarkable.com/token/json/2/device/new`
-containing the random key (currently any key will be accepted) and gets a device token
-
-with the device token it obtains expiring access tokens: `my.remarkable.com/token/json/2/user/new`
-
-having a user access token: 
-
-sends a request to the services locator to get the urls of additional services:
-`/service/json/1/(web|mail|notification|storage)`(now always local.appspot.com)
-it gets a list of all documents
-
-
-Gets the list of documents from the server: `/document-storage/json/2/docs`
-the order may be not correct at all:
-- ***deletes*** all documents not in the list and having `synced: false`
-- ***deletes*** all documents from the cloud that have `deleted: true`
-- applies renames, page changes
-- sends all new and marks them `synced: true`
-- sends all modified documents (having a greater Version number?)
-- it doesn't re-download any changed/newer documents
-
-
-So if you just point the device to a new empty server, all documents will be deleted from the device. 
-Going back will again, delete all documents and put what was on the server
+# [TODO](docs/todo.md)
+# [How the cloud works](docs/cloud.md)
 
 # Troubleshooting
 - check the connectivity between the tablet and the host:

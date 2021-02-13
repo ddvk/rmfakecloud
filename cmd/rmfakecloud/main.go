@@ -27,7 +27,9 @@ Commands:
 	setuser		create users / reset passwords
 
 Environment Variables:
-	General:
+
+General:
+	%s	secret for signgin JWT tokens
 	%s	Log verbosity level (debug, info, warn) (default: info)
 	%s		Port (default: %s)
 	%s		Local storage folder (default: %s)
@@ -45,6 +47,7 @@ myScript hwr (needs a developer account):
 	%s
 	%s
 `,
+			config.EnvJWTSecretKey,
 			config.EnvLogLevel,
 			config.EnvPort,
 			config.DefaultPort,
@@ -64,7 +67,7 @@ myScript hwr (needs a developer account):
 		)
 	}
 	flag.Parse()
-	fmt.Println("run with -h for all available env variables")
+	fmt.Fprintln(os.Stderr, "run with -h for all available env variables")
 
 	cfg := config.FromEnv()
 	//cli
