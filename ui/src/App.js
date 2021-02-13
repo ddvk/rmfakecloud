@@ -14,6 +14,7 @@ import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
 import { AuthProvider } from "./hooks/useAuthContext";
 import { PrivateRoute } from "./components/PrivateRoute";
 import CodeGenerator from "./components/User/CodeGenerator";
+import ResetPassword from "./components/User/ResetPassword";
 import Role from "./components/Login/Role";
 
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -28,7 +29,8 @@ export default function App() {
             <PrivateRoute exact path="/" component={Home} />
             <PrivateRoute path="/documents" component={FileListFunctional} />
             <PrivateRoute path="/generatecode" component={CodeGenerator} />
-            <PrivateRoute path="/userList/:userid" component={UserProfile} />
+            <PrivateRoute path="/resetPassword" component={ResetPassword} />
+            {/* <PrivateRoute path="/userList/:userid" component={UserProfile} /> */}
             <PrivateRoute
               path="/userList"
               roles={[Role.Admin]}

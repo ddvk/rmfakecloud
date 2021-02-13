@@ -48,17 +48,7 @@ const NavigationBar = () => {
           </Navbar.Collapse>
           <Navbar.Collapse>
             <Nav className="ml-auto">
-              <NavDropdown
-                alignRight
-                title={
-                  <span>
-                    <FaUser size={30} />
-                  </span>
-                }
-              >
-                <NavDropdown.Item as={NavLink} to="/profile">
-                  Profile
-                </NavDropdown.Item>
+              <NavDropdown alignRight title={<FaUser size={20} />}>
                 <NavDropdown.Item as={NavLink} to="/resetPassword">
                   Reset Password
                 </NavDropdown.Item>
