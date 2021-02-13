@@ -111,7 +111,9 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 		},
 	}
 	if user.IsAdmin {
-		claims.Roles = []string{"admin"}
+		claims.Roles = []string{"Admin"}
+	} else {
+		claims.Roles = []string{"User"}
 	}
 
 	tokenString, err := common.SignClaims(claims, app.cfg.JWTSecretKey)

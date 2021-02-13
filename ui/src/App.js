@@ -14,6 +14,7 @@ import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
 import { AuthProvider } from "./hooks/useAuthContext";
 import { PrivateRoute } from "./components/PrivateRoute";
 import CodeGenerator from "./components/User/CodeGenerator";
+import Role from "./components/Login/Role";
 
 import "bootstrap/dist/css/bootstrap.min.css";
 
@@ -26,10 +27,13 @@ export default function App() {
           <Switch>
             <PrivateRoute exact path="/" component={Home} />
             <PrivateRoute path="/documents" component={FileListFunctional} />
-            <PrivateRoute path="/userList/:userid" component={UserProfile} />
-            <PrivateRoute path="/userList" component={UserList} />
             <PrivateRoute path="/generatecode" component={CodeGenerator} />
-
+            <PrivateRoute path="/userList/:userid" component={UserProfile} />
+            <PrivateRoute
+              path="/userList"
+              roles={[Role.Admin]}
+              component={UserList}
+            />
             <Route path="/login" component={Login} />
             <Route component={NoMatch} />
           </Switch>

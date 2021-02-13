@@ -8,17 +8,21 @@ import { FaUser } from "react-icons/fa";
 
 const NavigationBar = () => {
   const authDispatch = useAuthDispatch();
-  const authState = useAuthState();
+  const { user } = useAuthState();
 
-  const handleLogout = (e) => {
+  function isAdmin(user) {
+    return user && user.Roles && user.Roles[0] === "Admin";
+  }
+
+  function handleLogout(e) {
     logout(authDispatch);
-  };
+  }
 
   return (
     <Navbar bg="dark" variant="dark">
       <Navbar.Brand href="/">freeMarkable</Navbar.Brand>
       <Navbar.Toggle />
-      {authState.user && (
+      {user && (
         <>
           <Navbar.Collapse>
             <Nav>
@@ -28,7 +32,7 @@ const NavigationBar = () => {
                   Documents
                 </Nav.Link>
               </Nav.Item>
-              {authState.user.isAdmin && (
+              {isAdmin(user) && (
                 <Nav.Item>
                   <Nav.Link as={NavLink} to="/userList">
                     Users
