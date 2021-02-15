@@ -53,36 +53,15 @@ func (cli *Cli) SetUser(args []string) {
 			return
 		}
 	}
-
-	if (usr == nil) {
-
-		newUser, err := model.NewUser(*username, *pass)
-
-		if err != nil {
-			log.Error("error NewUser:", err)					
-		}
-
-		newUser.SetPassword(*pass)
-		newUser.IsAdmin = *admin
-	
-		err = cli.storage.RegisterUser(newUser)
-		if err != nil {
-			log.Error("error RegisterUser:", err)					
-		}
-
-		log.Info("Created the user")
-
-	} else {
-
+	if *pass != "" {
 		usr.SetPassword(*pass)
-		usr.IsAdmin = *admin
-		err = cli.storage.UpdateUser(usr)
-		if err != nil {
-			log.Fatal("error UpdateUser:", err)
-		}
-
-		log.Info("Updated the user")
-	}	
+	}
+	usr.IsAdmin = *admin
+	err = cli.storage.UpdateUser(usr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Info("Updated/created the user")
 }
 
 type Cli struct {
