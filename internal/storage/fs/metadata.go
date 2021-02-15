@@ -18,6 +18,8 @@ func (fs *Storage) GetAllMetadata(uid string, withBlob bool) (result []*messages
 	folder := path.Join(fs.Cfg.DataDir, userDir, uid)
 	files, err := ioutil.ReadDir(folder)
 
+	result = []*messages.RawDocument{}
+
 	for _, f := range files {
 		ext := filepath.Ext(f.Name())
 		id := strings.TrimSuffix(f.Name(), ext)
