@@ -10,6 +10,13 @@ type loginForm struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
+
+type resetPasswordForm struct {
+	Email    string `json:"email"`
+	CurrentPassword string `json:"currentPassword"`
+	NewPassword string `json:"newPassword"`
+}
+
 type DocumentTree struct {
 	Entries   []Entry
 	folderMap map[string]*Directory

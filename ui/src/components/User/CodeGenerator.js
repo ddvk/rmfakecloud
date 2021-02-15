@@ -1,17 +1,12 @@
 import React from "react";
 
-import NoMatch from "../NoMatch";
-import Form from "react-bootstrap/Form";
-import Button from "react-bootstrap/Button";
 import Spinner from "../Spinner";
 import useFetch from "../../hooks/useFetch";
 
-import { useParams } from "react-router-dom";
-
-const userListUrl = "newcode";
+const codeUrl = "newcode";
 
 export default function CodeGenerator() {
-  const { data: code, loading, error } = useFetch(`${userListUrl}`);
+  const { data: code, loading, error } = useFetch(`${codeUrl}`);
 
   if (loading) return <Spinner />;
   if (error) {
@@ -20,12 +15,10 @@ export default function CodeGenerator() {
 
   return (
     <>
-
-    <div style={{"margin":"auto", "width":"30%"}}>
-      <p>Onetime Code</p>
+      <div style={{ margin: "auto", width: "30%" }}>
+        <p>Onetime Code</p>
         <h1>{code}</h1>
-    </div>
+      </div>
     </>
-      
   );
 }

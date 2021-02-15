@@ -59,8 +59,8 @@ func (app *ReactAppWrapper) register(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, user)
-
 }
+
 func (app *ReactAppWrapper) login(c *gin.Context) {
 	var form loginForm
 	if err := c.ShouldBindJSON(&form); err != nil {
@@ -111,7 +111,9 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 		},
 	}
 	if user.IsAdmin {
-		claims.Roles = []string{"admin"}
+		claims.Roles = []string{"Admin"}
+	} else {
+		claims.Roles = []string{"User"}
 	}
 
 	tokenString, err := common.SignClaims(claims, app.cfg.JWTSecretKey)
@@ -124,7 +126,56 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 	c.SetCookie(".AuthCookie", tokenString, 1, "/", "rmfakecloud", true, true)
 
 	c.String(http.StatusOK, tokenString)
+}
 
+func (app *ReactAppWrapper) resetPassword(c *gin.Context) {
+	
+	var form resetPasswordForm
+
+	if err := c.ShouldBindJSON(&form); err != nil {
+		log.Error(err)
+		badReq(c, err.Error())
+		return
+	}
+
+	user, err := app.userStorer.GetUser(form.Email)
+
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	uid := c.GetString(userID)
+	if uid == "" {
+		log.Error("Unable to find userId in context")
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+		return
+	}
+
+	if (user.Id != uid) {
+		log.Error("Trying to change password for a different user.")
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+		return
+	}
+
+	if ok, err := user.CheckPassword(form.CurrentPassword); err != nil || !ok {
+		log.Error(err)
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
+		return
+	}
+
+	user.SetPassword(form.NewPassword);
+
+	err = app.userStorer.UpdateUser(user)
+
+	if err != nil {
+		log.Error("error updating user", err)
+		badReq(c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
 }
 
 func (app *ReactAppWrapper) newCode(c *gin.Context) {
@@ -178,8 +229,7 @@ func (app *ReactAppWrapper) getAppUsers(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, uilist)
 }
-func (app *ReactAppWrapper) updateUser(c *gin.Context) {
-}
+
 func (app *ReactAppWrapper) getUser(c *gin.Context) {
 	uid := c.Param("userid")
 	log.Info("Requested: ", uid)

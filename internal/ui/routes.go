@@ -25,23 +25,24 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	r := router.Group("/ui/api")
 	r.POST("register", app.register)
 	r.POST("login", app.login)
+	
 
 	gr := r.Group("")
 	gr.Use(app.authMiddleware())
 
-	gr.GET("newcode", app.newCode)
+	gr.GET("newcode", app.newCode)	
 	gr.GET("list", app.listDocuments)
+	gr.POST("resetPassword", app.resetPassword)
 
 	admin := gr.Group("")
 	admin.Use(app.adminMiddleware())
 	admin.GET("users/:userid", app.getUser)
 	admin.GET("users", app.getAppUsers)
-	admin.PUT("users", app.updateUser)
 }
 
 func (app *ReactAppWrapper) adminMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if !c.GetBool("admin") {
+		if !c.GetBool("Admin") {
 			log.Warn("not admin")
 			c.AbortWithStatus(http.StatusForbidden)
 		}
@@ -74,8 +75,8 @@ func (app *ReactAppWrapper) authMiddleware() gin.HandlerFunc {
 		uid := claims.UserId
 		c.Set(userID, uid)
 		for _, r := range claims.Roles {
-			if r == "admin" {
-				c.Set("admin", true)
+			if r == "Admin" {
+				c.Set("Admin", true)
 				break
 			}
 		}

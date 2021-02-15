@@ -30,7 +30,6 @@ func NewStorage(cfg *config.Config) *Storage {
 
 }
 
-// GetUser blah
 func (fs *Storage) GetUser(uid string) (user *model.User, err error) {
 	if uid == "" {
 		err = errors.New("empty user")
