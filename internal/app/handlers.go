@@ -266,7 +266,6 @@ func (app *App) updateStatus(c *gin.Context) {
 		log.Info("Id: ", r.Id)
 		log.Info("Name: ", r.VissibleName)
 
-		ok := false
 		event := "DocAdded"
 		message := ""
 
@@ -278,7 +277,7 @@ func (app *App) updateStatus(c *gin.Context) {
 		}
 		msg := NewNotification(uid, deviceId, &r, event)
 		app.hub.Send(uid, msg)
-		result = append(result, messages.StatusResponse{Id: r.Id, Success: ok, Message: message})
+		result = append(result, messages.StatusResponse{Id: r.Id, Success: true, Message: message, Version: r.Version})
 	}
 
 	c.JSON(http.StatusOK, result)
