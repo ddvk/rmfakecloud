@@ -18,6 +18,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	docAddedEvent   = "DocAdded"
+	docDeletedEvent = "DocDeleted"
+
+	internalErrorMessage = "Internal Error"
+)
+
 func (app *App) getDeviceClaims(c *gin.Context) (*common.DeviceClaims, error) {
 	token, err := common.GetToken(c)
 	if err != nil {
@@ -35,7 +42,7 @@ func (app *App) getDeviceClaims(c *gin.Context) (*common.DeviceClaims, error) {
 }
 
 const (
-	HandlerLog = "[handler]"
+	handlerLog = "[handler]"
 )
 
 func (app *App) getUserClaims(c *gin.Context) (*common.UserClaims, error) {
@@ -144,7 +151,7 @@ func (app *App) newUserToken(c *gin.Context) {
 }
 
 func (app *App) sendEmail(c *gin.Context) {
-	uid := c.GetString(UserID)
+	uid := c.GetString(userIDKey)
 	log.Info("Sending mail for: ", uid)
 
 	form, err := c.MultipartForm()
@@ -172,13 +179,13 @@ func (app *App) sendEmail(c *gin.Context) {
 		f, err := file.Open()
 		defer f.Close()
 		if err != nil {
-			log.Error(HandlerLog, err)
+			log.Error(handlerLog, err)
 			badReq(c, "cant open attachment")
 			return
 		}
 		data, err := ioutil.ReadAll(f)
 		if err != nil {
-			log.Error(HandlerLog, err)
+			log.Error(handlerLog, err)
 			badReq(c, "cant read attachment")
 			return
 		}
@@ -186,7 +193,7 @@ func (app *App) sendEmail(c *gin.Context) {
 	}
 	err = emailClient.Send()
 	if err != nil {
-		log.Error(HandlerLog, err)
+		log.Error(handlerLog, err)
 		internalError(c, "cant send email")
 		return
 	}
@@ -194,10 +201,10 @@ func (app *App) sendEmail(c *gin.Context) {
 }
 func (app *App) listDocuments(c *gin.Context) {
 
-	uid := c.GetString(UserID)
+	uid := c.GetString(userIDKey)
 	withBlob, _ := strconv.ParseBool(c.Query("withBlob"))
 	docID := c.Query("doc")
-	log.Debug(HandlerLog, "params: withBlob, docId", withBlob, docID)
+	log.Debug(handlerLog, "params: withBlob, docId", withBlob, docID)
 	result := []*messages.RawDocument{}
 
 	var err error
@@ -222,8 +229,8 @@ func (app *App) listDocuments(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 func (app *App) deleteDocument(c *gin.Context) {
-	uid := c.GetString(UserID)
-	deviceId := c.GetString(DeviceId)
+	uid := c.GetString(userIDKey)
+	deviceID := c.GetString(deviceIDKey)
 
 	var req []messages.IdRequest
 
@@ -236,15 +243,16 @@ func (app *App) deleteDocument(c *gin.Context) {
 	result := []messages.StatusResponse{}
 	for _, r := range req {
 		metadata, err := app.metaStorer.GetMetadata(uid, r.Id, false)
-		ok := true
+		ok := false
 		if err == nil {
 			err := app.docStorer.RemoveDocument(uid, r.Id)
 			if err != nil {
 				log.Error(err)
-				ok = false
+			} else {
+				ok = true
+				msg := NewNotification(uid, deviceID, metadata, docDeletedEvent)
+				app.hub.Send(uid, msg)
 			}
-			msg := NewNotification(uid, deviceId, metadata, "DocDeleted")
-			app.hub.Send(uid, msg)
 		}
 		result = append(result, messages.StatusResponse{Id: r.Id, Success: ok})
 	}
@@ -252,8 +260,8 @@ func (app *App) deleteDocument(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 func (app *App) updateStatus(c *gin.Context) {
-	uid := c.GetString(UserID)
-	deviceId := c.GetString(DeviceId)
+	uid := c.GetString(userIDKey)
+	deviceID := c.GetString(deviceIDKey)
 	var req []messages.RawDocument
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -263,21 +271,21 @@ func (app *App) updateStatus(c *gin.Context) {
 	}
 	result := []messages.StatusResponse{}
 	for _, r := range req {
-		log.Info("Id: ", r.Id)
-		log.Info("Name: ", r.VissibleName)
+		log.Info("Id: ", r.Id, " Name: ", r.VissibleName)
 
-		event := "DocAdded"
 		message := ""
 
+		ok := false
 		err := app.metaStorer.UpdateMetadata(uid, &r)
 		if err != nil {
+			message = internalErrorMessage
 			log.Error(err)
-			c.AbortWithStatus(http.StatusInternalServerError)
-			return
+		} else {
+			ok = true
+			msg := NewNotification(uid, deviceID, &r, docAddedEvent)
+			app.hub.Send(uid, msg)
 		}
-		msg := NewNotification(uid, deviceId, &r, event)
-		app.hub.Send(uid, msg)
-		result = append(result, messages.StatusResponse{Id: r.Id, Success: true, Message: message, Version: r.Version})
+		result = append(result, messages.StatusResponse{Id: r.Id, Success: ok, Message: message, Version: r.Version})
 	}
 
 	c.JSON(http.StatusOK, result)
@@ -290,7 +298,7 @@ func (app *App) locateService(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 func (app *App) uploadRequest(c *gin.Context) {
-	uid := c.GetString(UserID)
+	uid := c.GetString(userIDKey)
 	var req []messages.UploadRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Error(err)
@@ -336,9 +344,9 @@ func (app *App) handleHwr(c *gin.Context) {
 	c.Data(http.StatusOK, hwr.JIIX, response)
 }
 func (app *App) connectWebSocket(c *gin.Context) {
-	uid := c.GetString(UserID)
-	deviceId := c.GetString(DeviceId)
+	uid := c.GetString(userIDKey)
+	deviceID := c.GetString(deviceIDKey)
 	log.Info("accepting websocket from:", uid)
-	app.hub.ConnectWs(uid, deviceId, c.Writer, c.Request)
+	app.hub.ConnectWs(uid, deviceID, c.Writer, c.Request)
 	log.Println("closing the ws")
 }

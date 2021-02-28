@@ -18,6 +18,7 @@ type inMemoryCodeConnector struct {
 	codeValidity time.Duration
 }
 
+// NewCodeConnector constructor
 func NewCodeConnector() common.CodeConnector {
 	return &inMemoryCodeConnector{
 		dict:         make(map[string]string),
@@ -67,7 +68,7 @@ func newUserCode() (code string, err error) {
 	return code, nil
 }
 
-// ConsumeCode return the userId matching the 
+// ConsumeCode return the userId matching the
 func (conn *inMemoryCodeConnector) ConsumeCode(code string) (string, error) {
 	conn.lock.Lock()
 	defer conn.lock.Unlock()

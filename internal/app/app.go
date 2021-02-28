@@ -19,8 +19,8 @@ import (
 )
 
 const (
-	UserID   = "UserID"
-	DeviceId = "DeviceID"
+	userIDKey   = "UserID"
+	deviceIDKey = "DeviceID"
 )
 
 // App web app

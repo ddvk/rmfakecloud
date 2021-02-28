@@ -80,7 +80,7 @@ func (h *Hub) start() {
 
 type wsClient struct {
 	uid      string
-	deviceId string
+	deviceID string
 	ntf      chan messages.WsMessage
 	hub      *Hub
 }
@@ -106,7 +106,7 @@ func (c *wsClient) Write(ws *websocket.Conn) {
 				log.Debugln("done")
 				return
 			}
-			log.Debugln("sending notification to", c.deviceId)
+			log.Debugln("sending notification to", c.deviceID)
 			ws.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			err := ws.WriteJSON(m)
 			if err != nil {
@@ -119,7 +119,7 @@ func (c *wsClient) Write(ws *websocket.Conn) {
 }
 
 // ConnectWs upgrade the connection to websocket
-func (h *Hub) ConnectWs(uid, deviceId string, w http.ResponseWriter, r *http.Request) {
+func (h *Hub) ConnectWs(uid, deviceID string, w http.ResponseWriter, r *http.Request) {
 	var upgrader = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true
@@ -132,7 +132,7 @@ func (h *Hub) ConnectWs(uid, deviceId string, w http.ResponseWriter, r *http.Req
 	}
 	client := &wsClient{
 		uid:      uid,
-		deviceId: deviceId,
+		deviceID: deviceID,
 		hub:      h,
 		ntf:      make(chan messages.WsMessage),
 	}
@@ -144,14 +144,15 @@ func (h *Hub) ConnectWs(uid, deviceId string, w http.ResponseWriter, r *http.Req
 	h.removals <- client
 }
 
-func NewNotification(uid, deviceId string, doc *messages.RawDocument, eventType string) messages.WsMessage {
+// NewNotification Creates a notification message
+func NewNotification(uid, deviceID string, doc *messages.RawDocument, eventType string) messages.WsMessage {
 	tt := time.Now().UTC().Format(time.RFC3339Nano)
-	messageId := uuid.New().String()
+	messageID := uuid.New().String()
 
 	msg := messages.WsMessage{
 		Message: messages.NotificationMessage{
-			MessageId:  messageId,
-			MessageId2: messageId,
+			MessageId:  messageID,
+			MessageId2: messageID,
 			Attributes: messages.Attributes{
 				Auth0UserID:      uid,
 				Event:            eventType,
@@ -160,7 +161,7 @@ func NewNotification(uid, deviceId string, doc *messages.RawDocument, eventType 
 				Version:          strconv.Itoa(doc.Version),
 				VissibleName:     doc.VissibleName,
 				SourceDeviceDesc: "some-client",
-				SourceDeviceId:   deviceId,
+				SourceDeviceId:   deviceID,
 				Parent:           doc.Parent,
 			},
 			PublishTime:  tt,
