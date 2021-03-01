@@ -10,13 +10,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// ListUsers lists
 func (cli *Cli) ListUsers(args []string) {
 	users, err := cli.storage.GetUsers()
 	if err != nil {
 		log.Fatal(err)
 	}
 	for _, u := range users {
-		fmt.Print(u.Id)
+		fmt.Print(u.ID)
 		if u.IsAdmin {
 			fmt.Println("\tadmin")
 		} else {
@@ -26,6 +27,8 @@ func (cli *Cli) ListUsers(args []string) {
 	}
 	return
 }
+
+// SetUser updates or creates the users if not exists
 func (cli *Cli) SetUser(args []string) {
 	userParam := flag.NewFlagSet("adduser", flag.ExitOnError)
 	username := userParam.String("u", "", "username")
@@ -64,10 +67,12 @@ func (cli *Cli) SetUser(args []string) {
 	log.Info("Updated/created the user")
 }
 
+// Cli cli interface
 type Cli struct {
 	storage *fs.Storage
 }
 
+// New creates
 func New(cfg *config.Config) *Cli {
 	storage := &fs.Storage{
 		Cfg: cfg,
@@ -77,6 +82,8 @@ func New(cfg *config.Config) *Cli {
 	}
 
 }
+
+// Handle handles the args
 func (cli *Cli) Handle(args []string) bool {
 	if len(args) > 1 {
 		cmd := args[1]
@@ -94,5 +101,4 @@ func (cli *Cli) Handle(args []string) bool {
 	}
 
 	return false
-
 }

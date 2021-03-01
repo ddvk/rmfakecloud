@@ -70,8 +70,8 @@ func (fs *Storage) GetStorageURL(uid string, exp time.Time, id string) (string, 
 	uploadRL := fs.Cfg.StorageURL
 	log.Debugln("uploadUrl: ", uploadRL)
 	claim := &common.StorageClaim{
-		DocumentId: id,
-		UserId:     uid,
+		DocumentID: id,
+		UserID:     uid,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: exp.Unix(),
 			Audience:  common.StorageUsage,
@@ -119,12 +119,12 @@ func (fs *Storage) uploadDocument(c *gin.Context) {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
-	id := token.DocumentId
+	id := token.DocumentID
 	log.Debug("[storage] uploading documentId: ", id)
 	body := c.Request.Body
 	defer body.Close()
 
-	err = fs.StoreDocument(token.UserId, body, id)
+	err = fs.StoreDocument(token.UserID, body, id)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -142,12 +142,12 @@ func (fs *Storage) downloadDocument(c *gin.Context) {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
-	id := token.DocumentId
+	id := token.DocumentID
 
 	//todo: storage provider
 	log.Printf("Requestng Id: %s\n", id)
 
-	reader, err := fs.GetDocument(token.UserId, id)
+	reader, err := fs.GetDocument(token.UserID, id)
 	defer reader.Close()
 
 	if err != nil {

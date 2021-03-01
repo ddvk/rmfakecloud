@@ -1,4 +1,4 @@
-package ui
+package viewmodel
 
 import (
 	"time"
@@ -6,35 +6,39 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/messages"
 )
 
-type loginForm struct {
+// LoginForm the login form
+type LoginForm struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
-type resetPasswordForm struct {
-	Email    string `json:"email"`
+// ResetPasswordForm reset password
+type ResetPasswordForm struct {
+	Email           string `json:"email"`
 	CurrentPassword string `json:"currentPassword"`
-	NewPassword string `json:"newPassword"`
+	NewPassword     string `json:"newPassword"`
 }
 
+// DocumentTree a tree of documents
 type DocumentTree struct {
 	Entries   []Entry
 	folderMap map[string]*Directory
 }
 
+// Add adds and entry to the tree
 func (tree *DocumentTree) Add(d *messages.RawDocument) {
 	var entry Entry
 	switch d.Type {
 	case "CollectionType":
 		dir := &Directory{
-			ID:   d.Id,
+			ID:   d.ID,
 			Name: d.VissibleName,
 		}
 		entry = dir
-		tree.folderMap[d.Id] = dir
+		tree.folderMap[d.ID] = dir
 	default:
 		entry = &Document{
-			ID:           d.Id,
+			ID:           d.ID,
 			Name:         d.VissibleName,
 			DocumentType: d.Type,
 		}
@@ -55,8 +59,11 @@ func (tree *DocumentTree) Add(d *messages.RawDocument) {
 
 }
 
+// Entry just an entry
 type Entry interface {
 }
+
+// Directory entry
 type Directory struct {
 	ID           string  `json:"id"`
 	Name         string  `json:"name"`
@@ -77,7 +84,9 @@ type Document struct {
 type DocumentList struct {
 	Documents []Document `json:"entries"`
 }
-type user struct {
+
+// User user model
+type User struct {
 	ID        string `json:"userid"`
 	Email     string `json:"email"`
 	Name      string `json:"name"`

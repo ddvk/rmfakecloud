@@ -151,17 +151,17 @@ func NewNotification(uid, deviceID string, doc *messages.RawDocument, eventType 
 
 	msg := messages.WsMessage{
 		Message: messages.NotificationMessage{
-			MessageId:  messageID,
-			MessageId2: messageID,
+			MessageID:  messageID,
+			MessageID2: messageID,
 			Attributes: messages.Attributes{
 				Auth0UserID:      uid,
 				Event:            eventType,
-				Id:               doc.Id,
+				ID:               doc.ID,
 				Type:             doc.Type,
 				Version:          strconv.Itoa(doc.Version),
 				VissibleName:     doc.VissibleName,
 				SourceDeviceDesc: "some-client",
-				SourceDeviceId:   deviceID,
+				SourceDeviceID:   deviceID,
 				Parent:           doc.Parent,
 			},
 			PublishTime:  tt,

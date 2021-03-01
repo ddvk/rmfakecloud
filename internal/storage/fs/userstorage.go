@@ -15,6 +15,7 @@ const (
 	profileName = ".userprofile"
 )
 
+// NewStorage create a new instance
 func NewStorage(cfg *config.Config) *Storage {
 	fs := &Storage{
 		Cfg: cfg,
@@ -30,6 +31,7 @@ func NewStorage(cfg *config.Config) *Storage {
 
 }
 
+// GetUser retrieves a user from the storage
 func (fs *Storage) GetUser(uid string) (user *model.User, err error) {
 	if uid == "" {
 		err = errors.New("empty user")
@@ -64,7 +66,7 @@ func (fs *Storage) GetUser(uid string) (user *model.User, err error) {
 	return
 }
 
-// GetUsers blah
+// GetUsers gets all users
 func (fs *Storage) GetUsers() (users []*model.User, err error) {
 	usersDir := fs.getUserPath("")
 
@@ -84,11 +86,11 @@ func (fs *Storage) GetUsers() (users []*model.User, err error) {
 
 // RegisterUser blah
 func (fs *Storage) RegisterUser(u *model.User) (err error) {
-	if u.Id == "" {
+	if u.ID == "" {
 		err = errors.New("empty id")
 		return
 	}
-	userPath := fs.getUserPath(u.Id)
+	userPath := fs.getUserPath(u.ID)
 
 	// Create the user's directory
 	err = os.MkdirAll(userPath, 0700)
@@ -96,7 +98,7 @@ func (fs *Storage) RegisterUser(u *model.User) (err error) {
 		return
 	}
 
-	profilePath := fs.getPathFromUser(u.Id, profileName)
+	profilePath := fs.getPathFromUser(u.ID, profileName)
 	// Create the profile file
 	js, err := u.Serialize()
 	if err != nil {
@@ -118,18 +120,19 @@ func (fs *Storage) RegisterUser(u *model.User) (err error) {
 	return
 }
 
+// UpdateUser updates the user
 func (fs *Storage) UpdateUser(u *model.User) (err error) {
-	if u.Id == "" {
+	if u.ID == "" {
 		err = errors.New("empty id")
 		return
 	}
 
-	err = os.MkdirAll(fs.getUserPath(u.Id), 0700)
+	err = os.MkdirAll(fs.getUserPath(u.ID), 0700)
 	if err != nil {
 		return
 	}
 
-	profilePath := fs.getPathFromUser(u.Id, profileName)
+	profilePath := fs.getPathFromUser(u.ID, profileName)
 	// Overwrite the profile
 	js, err := u.Serialize()
 	if err != nil {

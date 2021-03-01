@@ -60,7 +60,7 @@ func (fs *Storage) GetMetadata(uid, id string, withBlob bool) (*messages.RawDocu
 
 	if withBlob {
 		exp := time.Now().Add(time.Second * 60)
-		storageURL, err := fs.GetStorageURL(uid, exp, response.Id)
+		storageURL, err := fs.GetStorageURL(uid, exp, response.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -85,7 +85,7 @@ func (fs *Storage) GetMetadata(uid, id string, withBlob bool) (*messages.RawDocu
 
 // UpdateMetadata updates the metadata of a document
 func (fs *Storage) UpdateMetadata(uid string, r *messages.RawDocument) error {
-	filepath := fs.getPathFromUser(uid, r.Id+".metadata")
+	filepath := fs.getPathFromUser(uid, r.ID+".metadata")
 
 	js, err := json.Marshal(r)
 	if err != nil {

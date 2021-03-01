@@ -56,7 +56,7 @@ func (app *App) getUserClaims(c *gin.Context) (*common.UserClaims, error) {
 	if err != nil {
 		return nil, err
 	}
-	if claims.Profile.UserId == "" {
+	if claims.Profile.UserID == "" {
 		return nil, fmt.Errorf("wrong token, missing userid")
 	}
 	return claims, nil
@@ -84,10 +84,10 @@ func (app *App) newDevice(c *gin.Context) {
 	// generate the JWT token
 	claims := &common.DeviceClaims{
 		DeviceDesc: tokenRequest.DeviceDesc,
-		DeviceId:   tokenRequest.DeviceId,
+		DeviceID:   tokenRequest.DeviceID,
 		UserID:     uid,
 		StandardClaims: jwt.StandardClaims{
-			Audience: common.ApiUsage,
+			Audience: common.APIUSage,
 		},
 	}
 
@@ -124,7 +124,7 @@ func (app *App) newUserToken(c *gin.Context) {
 	expirationTime := time.Now().Add(24 * time.Hour)
 	claims := &common.UserClaims{
 		Profile: common.Auth0profile{
-			UserId:        deviceToken.UserID,
+			UserID:        deviceToken.UserID,
 			IsSocial:      false,
 			Name:          user.Name,
 			Nickname:      user.Nickname,
@@ -135,7 +135,7 @@ func (app *App) newUserToken(c *gin.Context) {
 			UpdatedAt:     time.Now(),
 		},
 		DeviceDesc: deviceToken.DeviceDesc,
-		DeviceId:   deviceToken.DeviceId,
+		DeviceID:   deviceToken.DeviceID,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 			Subject:   "rM User Token",
@@ -167,7 +167,7 @@ func (app *App) sendEmail(c *gin.Context) {
 		log.Debugln("form value", k)
 	}
 
-	emailClient := email.EmailBuilder{
+	emailClient := email.Builder{
 		Subject: form.Value["subject"][0],
 		ReplyTo: form.Value["reply-to"][0],
 		From:    form.Value["from"][0],
@@ -232,7 +232,7 @@ func (app *App) deleteDocument(c *gin.Context) {
 	uid := c.GetString(userIDKey)
 	deviceID := c.GetString(deviceIDKey)
 
-	var req []messages.IdRequest
+	var req []messages.IDRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Warn(err)
@@ -242,10 +242,10 @@ func (app *App) deleteDocument(c *gin.Context) {
 
 	result := []messages.StatusResponse{}
 	for _, r := range req {
-		metadata, err := app.metaStorer.GetMetadata(uid, r.Id, false)
+		metadata, err := app.metaStorer.GetMetadata(uid, r.ID, false)
 		ok := false
 		if err == nil {
-			err := app.docStorer.RemoveDocument(uid, r.Id)
+			err := app.docStorer.RemoveDocument(uid, r.ID)
 			if err != nil {
 				log.Error(err)
 			} else {
@@ -254,7 +254,7 @@ func (app *App) deleteDocument(c *gin.Context) {
 				app.hub.Send(uid, msg)
 			}
 		}
-		result = append(result, messages.StatusResponse{Id: r.Id, Success: ok})
+		result = append(result, messages.StatusResponse{ID: r.ID, Success: ok})
 	}
 
 	c.JSON(http.StatusOK, result)
@@ -271,7 +271,7 @@ func (app *App) updateStatus(c *gin.Context) {
 	}
 	result := []messages.StatusResponse{}
 	for _, r := range req {
-		log.Info("Id: ", r.Id, " Name: ", r.VissibleName)
+		log.Info("Id: ", r.ID, " Name: ", r.VissibleName)
 
 		message := ""
 
@@ -285,7 +285,7 @@ func (app *App) updateStatus(c *gin.Context) {
 			msg := NewNotification(uid, deviceID, &r, docAddedEvent)
 			app.hub.Send(uid, msg)
 		}
-		result = append(result, messages.StatusResponse{Id: r.Id, Success: ok, Message: message, Version: r.Version})
+		result = append(result, messages.StatusResponse{ID: r.ID, Success: ok, Message: message, Version: r.Version})
 	}
 
 	c.JSON(http.StatusOK, result)
@@ -309,7 +309,7 @@ func (app *App) uploadRequest(c *gin.Context) {
 	response := []messages.UploadResponse{}
 
 	for _, r := range req {
-		documentID := r.Id
+		documentID := r.ID
 		if documentID == "" {
 			badReq(c, "no id")
 		}
@@ -321,7 +321,7 @@ func (app *App) uploadRequest(c *gin.Context) {
 			return
 		}
 		log.Debugln("StorageUrl: ", url)
-		dr := messages.UploadResponse{BlobUrlPut: url, Id: documentID, Success: true, Version: r.Version}
+		dr := messages.UploadResponse{BlobURLPut: url, ID: documentID, Success: true, Version: r.Version}
 		response = append(response, dr)
 	}
 

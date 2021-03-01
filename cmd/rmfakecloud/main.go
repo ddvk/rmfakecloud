@@ -25,47 +25,11 @@ func main() {
 		fmt.Printf(`
 Commands:
 	setuser		create users / reset passwords
-
-Environment Variables:
-
-General:
-	%s	secret for signgin JWT tokens
-	%s	Log verbosity level (debug, info, warn) (default: info)
-	%s		Port (default: %s)
-	%s		Local storage folder (default: %s)
-	%s	Url the tablet can resolve (default: http://hostname:port)
-
-email sending, smtp:
-	%s
-	%s
-	%s
-	%s	don't check the server certificate (not recommended)
-	%s	custom HELO (if your email server needs it)
-	%s	override the email's From:
-
-myScript hwr (needs a developer account):
-	%s
-	%s
-`,
-			config.EnvJWTSecretKey,
-			config.EnvLogLevel,
-			config.EnvPort,
-			config.DefaultPort,
-			config.EnvDataDir,
-			config.DefaultDataDir,
-			config.EnvStorageURL,
-
-			config.EnvSmtpServer,
-			config.EnvSmtpUsername,
-			config.EnvSmtpPassword,
-			config.EnvSmtpInsecureTLS,
-			config.EnvSmtpHelo,
-			config.EnvSmtpFrom,
-
-			config.EnvHwrApplicationKey,
-			config.EnvHwrHmac,
-		)
+	listusers	lists available users
+`)
+		fmt.Println(config.EnvVars())
 	}
+
 	flag.Parse()
 	fmt.Fprintln(os.Stderr, "run with -h for all available env variables")
 
@@ -92,9 +56,11 @@ myScript hwr (needs a developer account):
 
 	fsStorage := fs.NewStorage(cfg)
 	usrs, err := fsStorage.GetUsers()
+
 	if err != nil {
 		log.Warn(err)
 	}
+
 	if len(usrs) == 0 {
 		log.Warn("No users found, the first login will create a user")
 		cfg.CreateFirstUser = true

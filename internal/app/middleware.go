@@ -26,10 +26,10 @@ func (app *App) authMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		uid := strings.TrimPrefix(claims.Profile.UserId, "auth0|")
+		uid := strings.TrimPrefix(claims.Profile.UserID, "auth0|")
 		c.Set(userIDKey, uid)
-		c.Set(deviceIDKey, claims.DeviceId)
-		log.Infof("%s got userId: %s deviceId: %s ", authLog, uid, claims.DeviceId)
+		c.Set(deviceIDKey, claims.DeviceID)
+		log.Infof("%s got userId: %s deviceId: %s ", authLog, uid, claims.DeviceID)
 		c.Next()
 	}
 }

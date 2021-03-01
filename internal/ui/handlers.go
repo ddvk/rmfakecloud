@@ -6,6 +6,7 @@ import (
 
 	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/model"
+	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
@@ -30,7 +31,7 @@ func (app *ReactAppWrapper) register(c *gin.Context) {
 	// usr := c.PostForm("email")
 	// pass := c.PostForm("password")
 
-	var form loginForm
+	var form viewmodel.LoginForm
 	if err := c.ShouldBindJSON(&form); err != nil {
 		log.Error(err)
 		badReq(c, err.Error())
@@ -62,7 +63,7 @@ func (app *ReactAppWrapper) register(c *gin.Context) {
 }
 
 func (app *ReactAppWrapper) login(c *gin.Context) {
-	var form loginForm
+	var form viewmodel.LoginForm
 	if err := c.ShouldBindJSON(&form); err != nil {
 		log.Error(err)
 		badReq(c, err.Error())
@@ -102,7 +103,7 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 	}
 
 	claims := &common.WebUserClaims{
-		UserId: user.Id,
+		UserID: user.ID,
 		Email:  user.Email,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(12 * time.Hour).Unix(),
@@ -129,8 +130,8 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 }
 
 func (app *ReactAppWrapper) resetPassword(c *gin.Context) {
-	
-	var form resetPasswordForm
+
+	var form viewmodel.ResetPasswordForm
 
 	if err := c.ShouldBindJSON(&form); err != nil {
 		log.Error(err)
@@ -153,7 +154,7 @@ func (app *ReactAppWrapper) resetPassword(c *gin.Context) {
 		return
 	}
 
-	if (user.Id != uid) {
+	if user.ID != uid {
 		log.Error("Trying to change password for a different user.")
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
 		return
@@ -165,7 +166,7 @@ func (app *ReactAppWrapper) resetPassword(c *gin.Context) {
 		return
 	}
 
-	user.SetPassword(form.NewPassword);
+	user.SetPassword(form.NewPassword)
 
 	err = app.userStorer.UpdateUser(user)
 
@@ -193,7 +194,7 @@ func (app *ReactAppWrapper) newCode(c *gin.Context) {
 		return
 	}
 
-	code, err := app.codeConnector.NewCode(user.Id)
+	code, err := app.codeConnector.NewCode(user.ID)
 	if err != nil {
 		log.Error("Unable to generate new device code: ", err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Unable to generate new code"})
@@ -203,7 +204,7 @@ func (app *ReactAppWrapper) newCode(c *gin.Context) {
 	c.JSON(http.StatusOK, code)
 }
 func (app *ReactAppWrapper) listDocuments(c *gin.Context) {
-	tree := DocumentTree{}
+	tree := viewmodel.DocumentTree{}
 
 	c.JSON(http.StatusOK, tree)
 }
@@ -218,10 +219,10 @@ func (app *ReactAppWrapper) getAppUsers(c *gin.Context) {
 		return
 	}
 
-	uilist := make([]user, 0)
+	uilist := make([]viewmodel.User, 0)
 	for _, u := range users {
-		usr := user{
-			ID:    u.Id,
+		usr := viewmodel.User{
+			ID:    u.ID,
 			Email: u.Email,
 			Name:  u.Name,
 		}

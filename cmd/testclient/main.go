@@ -11,10 +11,6 @@ import (
 	"golang.org/x/net/websocket"
 )
 
-type Test struct {
-	name *string
-}
-
 func main() {
 	logger := logrus.New()
 

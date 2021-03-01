@@ -72,7 +72,7 @@ func (app *ReactAppWrapper) authMiddleware() gin.HandlerFunc {
 		}
 		log.Debug(claims)
 
-		uid := claims.UserId
+		uid := claims.UserID
 		c.Set(userID, uid)
 		for _, r := range claims.Roles {
 			if r == "Admin" {
