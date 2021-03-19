@@ -2,8 +2,8 @@ package app
 
 import (
 	"crypto/rand"
-	"encoding/base32"
 	"errors"
+	"math/big"
 	"sync"
 	"time"
 
@@ -56,16 +56,30 @@ func (conn *inMemoryCodeConnector) NewCode(uid string) (string, error) {
 	return code, nil
 }
 
-func newUserCode() (code string, err error) {
-	b := make([]byte, 5)
+var letters = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
-	if _, err = rand.Read(b); err != nil {
-		return
+func randSeq(n int) (string, error) {
+	b := make([]rune, n)
+	for i := range b {
+		ri, err := rand.Int(rand.Reader, big.NewInt(26))
+		if err != nil {
+			return "", err
+		}
+		b[i] = letters[int(ri.Int64())]
 	}
+	return string(b), nil
+}
+func newUserCode() (code string, err error) {
+	return randSeq(8)
+	// b := make([]byte, 5)
 
-	code = base32.StdEncoding.EncodeToString(b)
+	// if _, err = rand.Read(b); err != nil {
+	// 	return
+	// }
 
-	return code, nil
+	// code = base32.StdEncoding.EncodeToString(b)
+
+	// return code, nil
 }
 
 // ConsumeCode return the userId matching the
