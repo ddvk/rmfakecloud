@@ -26,6 +26,12 @@ func (app *App) authMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		if claims.Scopes != "sync:default" {
+			log.Warn(authLog, " wrong scope, proably old token")
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing scope"})
+			return
+		}
+
 		uid := strings.TrimPrefix(claims.Profile.UserID, "auth0|")
 		c.Set(userIDKey, uid)
 		c.Set(deviceIDKey, claims.DeviceID)

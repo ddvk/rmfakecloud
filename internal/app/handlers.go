@@ -121,13 +121,15 @@ func (app *App) newUserToken(c *gin.Context) {
 		return
 	}
 
-	expirationTime := time.Now().Add(24 * time.Hour)
+	now := time.Now()
+	expirationTime := now.Add(24 * time.Hour)
 	claims := &common.UserClaims{
 		Profile: common.Auth0profile{
-			UserID:        deviceToken.UserID,
+			UserID:        "auth0|" + deviceToken.UserID,
 			IsSocial:      false,
-			Name:          user.Name,
-			Nickname:      user.Nickname,
+			Connection:    "Username-Password-Authentication",
+			Name:          user.Email,
+			Nickname:      user.Email, // user.Nickname,
 			Email:         user.Email,
 			EmailVerified: true,
 			Picture:       "image.png",
@@ -136,9 +138,14 @@ func (app *App) newUserToken(c *gin.Context) {
 		},
 		DeviceDesc: deviceToken.DeviceDesc,
 		DeviceID:   deviceToken.DeviceID,
+		Scopes:     "sync:default",
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
+			NotBefore: now.Unix(),
+			IssuedAt:  now.Unix(),
 			Subject:   "rM User Token",
+			Issuer:    "rM WebApp",
+			Id:        "1234",
 		},
 	}
 

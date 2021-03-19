@@ -41,6 +41,7 @@ func ClaimsFromToken(claim jwt.Claims, token string, key []byte) error {
 // SignClaims signs the claims i.e. creates a token
 func SignClaims(claims jwt.Claims, key []byte) (string, error) {
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	jwtToken.Header["kid"] = "1"
 	return jwtToken.SignedString(key)
 }
 
