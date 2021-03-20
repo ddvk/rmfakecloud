@@ -72,6 +72,7 @@ Install a root CA on the device, you can use the `device/gencert.sh` script
                 127.0.0.1 service-manager-production-dot-remarkable-production.appspot.com
                 127.0.0.1 local.appspot.com
                 127.0.0.1 my.remarkable.com
+                127.0.0.1 internal.cloud.remarkable.com
                 ```
             - set the address of your api host:port in the reverse proxy
                 `secure -cert proxy.crt -key proxy.key http://host_where_the_api_is_running:3000`
