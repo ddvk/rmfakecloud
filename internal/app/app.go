@@ -170,6 +170,10 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 
 	docStorer.RegisterRoutes(router)
 
+    router.GET("/settings/v1/beta", func(c *gin.Context) {
+        c.JSON(http.StatusOK, gin.H{"enrolled": true})
+    })
+
 	router.GET("/", func(c *gin.Context) {
 		count := hub.ClientCount()
 		c.String(200, "Working, %d clients", count)
