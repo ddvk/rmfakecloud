@@ -1,9 +1,12 @@
 package app
 
 import (
+	"encoding/hex"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
 )
 
 func (app *App) registerRoutes(router *gin.Engine) {
@@ -20,6 +23,22 @@ func (app *App) registerRoutes(router *gin.Engine) {
 
 	//service locator
 	router.GET("/service/json/1/:service", app.locateService)
+
+	//some beta stuff from internal.cloud
+	router.GET("/settings/v1/beta", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"enrolled": true})
+	})
+
+	//some telemetry stuff from ping.
+	router.POST("/v1/reports", func(c *gin.Context) {
+		body, err := ioutil.ReadAll(c.Request.Body)
+		if err != nil {
+			c.AbortWithStatus(500)
+			return
+		}
+		log.Info(hex.Dump(body))
+		c.Status(400)
+	})
 
 	app.docStorer.RegisterRoutes(router)
 	app.ui.RegisterRoutes(router)

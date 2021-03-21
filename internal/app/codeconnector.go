@@ -56,7 +56,7 @@ func (conn *inMemoryCodeConnector) NewCode(uid string) (string, error) {
 	return code, nil
 }
 
-var letters = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+var letters = []rune("abcdefghijklmnopqrstuvwxyz")
 
 func randSeq(n int) (string, error) {
 	b := make([]rune, n)

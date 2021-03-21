@@ -101,7 +101,6 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 		codeConnector: codeConnector,
 	}
 
-	router.Use(requestLoggerMiddleware())
 	app.registerRoutes(router)
 
 	return app

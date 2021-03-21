@@ -35,12 +35,12 @@ func (app *App) authMiddleware() gin.HandlerFunc {
 		uid := strings.TrimPrefix(claims.Profile.UserID, "auth0|")
 		c.Set(userIDKey, uid)
 		c.Set(deviceIDKey, claims.DeviceID)
-		log.Infof("%s got userId: %s deviceId: %s ", authLog, uid, claims.DeviceID)
+		log.Infof("%s UserId: %s deviceId: %s ", authLog, uid, claims.DeviceID)
 		c.Next()
 	}
 }
 
-var ignoreBodyLogging = []string{"/storage", "/api/v2/document"}
+var ignoreBodyLogging = []string{"/storage", "/api/v2/document", "/v1/reports"}
 
 func requestLoggerMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {

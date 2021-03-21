@@ -19,18 +19,22 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 
 	//hack for index.html
 	router.NoRoute(func(c *gin.Context) {
-		c.FileFromFS(indexReplacement, app)
+		method := c.Request.Method
+		if method == http.MethodGet {
+			c.FileFromFS(indexReplacement, app)
+		} else {
+			c.AbortWithStatus(http.StatusNotFound)
+		}
 	})
 
 	r := router.Group("/ui/api")
 	r.POST("register", app.register)
 	r.POST("login", app.login)
-	
 
 	gr := r.Group("")
 	gr.Use(app.authMiddleware())
 
-	gr.GET("newcode", app.newCode)	
+	gr.GET("newcode", app.newCode)
 	gr.GET("list", app.listDocuments)
 	gr.POST("resetPassword", app.resetPassword)
 

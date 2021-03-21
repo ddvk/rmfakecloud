@@ -42,12 +42,12 @@ func (app *App) getDeviceClaims(c *gin.Context) (*common.DeviceClaims, error) {
 }
 
 const (
-	handlerLog = "[handler]"
+	handlerLog = "[handler] "
 )
 
 func (app *App) getUserClaims(c *gin.Context) (*common.UserClaims, error) {
 	token, err := common.GetToken(c)
-	log.Debug("Token: ", token)
+	log.Debug(handlerLog, "Token: ", token)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func (app *App) newDevice(c *gin.Context) {
 		return
 	}
 
-	code := strings.ToUpper(tokenRequest.Code)
+	code := strings.ToLower(tokenRequest.Code)
 	log.Info("Got code ", code)
 
 	uid, err := app.codeConnector.ConsumeCode(code)
@@ -211,7 +211,7 @@ func (app *App) listDocuments(c *gin.Context) {
 	uid := c.GetString(userIDKey)
 	withBlob, _ := strconv.ParseBool(c.Query("withBlob"))
 	docID := c.Query("doc")
-	log.Debug(handlerLog, "params: withBlob, docId", withBlob, docID)
+	log.Debug(handlerLog, "params: withBlob: ", withBlob, ", DocId: ", docID)
 	result := []*messages.RawDocument{}
 
 	var err error
