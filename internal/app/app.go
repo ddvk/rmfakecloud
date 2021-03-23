@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io"
@@ -106,7 +107,7 @@ func authMiddleware() gin.HandlerFunc {
 	}
 }
 
-var ignored = []string{"/storage", "/api/v2/document"}
+var ignored = []string{"/storage", "/api/v2/document", "/v1/reports"}
 
 func requestLoggerMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -171,6 +172,19 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 
 	docStorer.RegisterRoutes(router)
 
+	router.GET("/settings/v1/beta", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"enrolled": true})
+	})
+
+	router.POST("/v1/reports", func(c *gin.Context) {
+		body, err := ioutil.ReadAll(c.Request.Body)
+		if err != nil {
+			c.AbortWithStatus(500)
+			return
+		}
+		log.Info(hex.Dump(body))
+		c.Status(400)
+	})
 	router.GET("/", func(c *gin.Context) {
 		count := hub.ClientCount()
 		c.String(200, "Working, %d clients", count)
