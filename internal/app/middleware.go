@@ -40,7 +40,7 @@ func (app *App) authMiddleware() gin.HandlerFunc {
 	}
 }
 
-var ignoreBodyLogging = []string{"/storage", "/api/v2/document", "/v1/reports"}
+var ignoreBodyLogging = []string{"/storage", "/api/v2/document"} //, "/v1/reports"}
 
 func requestLoggerMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {

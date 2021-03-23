@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -26,16 +27,19 @@ func (app *App) registerRoutes(router *gin.Engine) {
 
 	//some beta stuff from internal.cloud
 	router.GET("/settings/v1/beta", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"enrolled": true})
+		c.JSON(http.StatusOK, gin.H{"enrolled": false, "available": true})
 	})
 
 	//some telemetry stuff from ping.
 	router.POST("/v1/reports", func(c *gin.Context) {
 		body, err := ioutil.ReadAll(c.Request.Body)
+
 		if err != nil {
 			c.AbortWithStatus(500)
 			return
 		}
+		name := uuid.New().String() + ".dump"
+		ioutil.WriteFile(name, body, 0644)
 		log.Info(hex.Dump(body))
 		c.Status(400)
 	})
