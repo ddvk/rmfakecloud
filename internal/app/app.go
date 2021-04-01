@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -36,13 +37,29 @@ type App struct {
 
 // Start starts the app
 func (app *App) Start() {
+
+	var tlsConfig *tls.Config
+	if app.cfg.Certificate.Certificate != nil {
+		tlsConfig = &tls.Config{
+			Certificates: []tls.Certificate{
+				app.cfg.Certificate,
+			},
+		}
+	}
 	app.srv = &http.Server{
-		Addr:    ":" + app.cfg.Port,
-		Handler: app.router,
+		Addr:      ":" + app.cfg.Port,
+		Handler:   app.router,
+		TLSConfig: tlsConfig,
 	}
 
-	if err := app.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		log.Fatalf("listen: %s\n", err)
+	if tlsConfig != nil {
+		if err := app.srv.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("listen: %s\n", err)
+		}
+	} else {
+		if err := app.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("listen: %s\n", err)
+		}
 	}
 }
 func (app *App) Stop() {
@@ -57,7 +74,7 @@ type auth0token struct {
 	Profile auth0profile `json:"auth0-profile"`
 }
 type auth0profile struct {
-	UserId string `json:"UserID'`
+	UserId string `json:"UserID"`
 }
 
 func getToken(c *gin.Context) (parsed *auth0token, err error) {

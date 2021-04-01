@@ -1,6 +1,7 @@
 package config
 
 import (
+	"crypto/tls"
 	"fmt"
 	"os"
 	"path"
@@ -21,6 +22,8 @@ const (
 	EnvDataDir    = "DATADIR"
 	EnvPort       = "PORT"
 	EnvStorageURL = "STORAGE_URL"
+	EnvTLSCert    = "TLS_CERT"
+	EnvTLSKey     = "TLS_KEY"
 
 	// smtp
 	EnvSmtpServer      = "RM_SMTP_SERVER"
@@ -37,10 +40,11 @@ const (
 
 // Config config
 type Config struct {
-	Port       string
-	StorageURL string
-	DataDir    string
-	TrashDir   string
+	Port        string
+	StorageURL  string
+	DataDir     string
+	TrashDir    string
+	Certificate tls.Certificate
 }
 
 // FromEnv config from environment values
@@ -81,11 +85,23 @@ func FromEnv() *Config {
 		panic(err)
 	}
 
+	var cert tls.Certificate
+	certPath := os.Getenv(EnvTLSCert)
+	keyPath := os.Getenv(EnvTLSKey)
+	if certPath != "" && keyPath != "" {
+
+		cert, err = tls.LoadX509KeyPair(certPath, keyPath)
+		if err != nil {
+			panic(fmt.Errorf("unable to load certificate: %w", err))
+		}
+	}
+
 	cfg := Config{
-		Port:       port,
-		StorageURL: uploadURL,
-		DataDir:    dataDir,
-		TrashDir:   trashDir,
+		Port:        port,
+		StorageURL:  uploadURL,
+		DataDir:     dataDir,
+		TrashDir:    trashDir,
+		Certificate: cert,
 	}
 	return &cfg
 }

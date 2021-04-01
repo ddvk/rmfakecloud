@@ -27,7 +27,9 @@ General:
 %s	Log verbosity level (debug, info, warn) (default: info)
 %s		Port (default: %s)
 %s		Local storage folder (default: %s)
-%s	Url the tablet can resolve (default: http://hostname:port)
+%s	Url the tablet can resolve (default: http(s)://hostname:port)
+%s	Path to the server certificate.
+%s		Path to the server certificate key.
 
 email sending, smtp:
 %s
@@ -47,6 +49,9 @@ myScript hwr (needs a developer account):
 			config.EnvDataDir,
 			config.DefaultDataDir,
 			config.EnvStorageURL,
+
+			config.EnvTLSCert,
+			config.EnvTLSKey,
 
 			config.EnvSmtpServer,
 			config.EnvSmtpUsername,
