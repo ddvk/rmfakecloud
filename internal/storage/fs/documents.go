@@ -32,6 +32,8 @@ func (fs *Storage) getPathFromUser(uid, path string) string {
 	return filepath.Join(fs.getUserPath(uid), filepath.Base(path))
 }
 
+const tokenParam = "token"
+
 // GetDocument Opens a document by id
 func (fs *Storage) GetDocument(uid, id string) (io.ReadCloser, error) {
 	fullPath := fs.getPathFromUser(uid, id+".zip")
@@ -93,8 +95,8 @@ func (fs *Storage) StoreDocument(uid string, stream io.ReadCloser, id string) er
 		return err
 	}
 	defer file.Close()
-	io.Copy(file, stream)
-	return nil
+	_, err = io.Copy(file, stream)
+	return err
 }
 
 func (fs *Storage) parseToken(token string) (*common.StorageClaim, error) {
@@ -110,7 +112,7 @@ func (fs *Storage) parseToken(token string) (*common.StorageClaim, error) {
 }
 
 func (fs *Storage) uploadDocument(c *gin.Context) {
-	strToken := c.Param("token")
+	strToken := c.Param(tokenParam)
 	log.Debug("[storage] uploading with token:", strToken)
 	token, err := fs.parseToken(strToken)
 
@@ -134,7 +136,7 @@ func (fs *Storage) uploadDocument(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{})
 }
 func (fs *Storage) downloadDocument(c *gin.Context) {
-	strToken := c.Param("token")
+	strToken := c.Param(tokenParam)
 	token, err := fs.parseToken(strToken)
 
 	if err != nil {
@@ -162,6 +164,6 @@ func (fs *Storage) downloadDocument(c *gin.Context) {
 // RegisterRoutes blah
 func (fs *Storage) RegisterRoutes(router *gin.Engine) {
 
-	router.GET("/storage/:token", fs.downloadDocument)
-	router.PUT("/storage/:token", fs.uploadDocument)
+	router.GET("/storage/:"+tokenParam, fs.downloadDocument)
+	router.PUT("/storage/:"+tokenParam, fs.uploadDocument)
 }

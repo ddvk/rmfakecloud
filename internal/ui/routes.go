@@ -52,19 +52,20 @@ func (app *ReactAppWrapper) adminMiddleware() gin.HandlerFunc {
 		}
 	}
 }
+
 func (app *ReactAppWrapper) authMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token, err := common.GetToken(c)
 
 		if err != nil {
-			log.Warn("[ui] token parsing, ", err)
+			log.Warn("[ui-authmiddleware] token parsing, ", err)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing or incorrect token"})
 			return
 		}
 		claims := &common.WebUserClaims{}
 		err = common.ClaimsFromToken(claims, token, app.cfg.JWTSecretKey)
 		if err != nil {
-			log.Warn("[ui] token verification, ", err)
+			log.Warn("[ui-authmiddleware] token verification, ", err)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing or incorrect token"})
 			return
 		}
@@ -84,7 +85,7 @@ func (app *ReactAppWrapper) authMiddleware() gin.HandlerFunc {
 				break
 			}
 		}
-		log.Info("got a user from token: ", uid)
+		log.Info("[ui-authmiddleware] User from token: ", uid)
 		c.Next()
 	}
 }

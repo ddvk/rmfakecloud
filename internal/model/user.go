@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -73,8 +74,12 @@ func hashPassword(raw string) (string, error) {
 }
 
 func sanitizeEmail(email string) string {
-	//remove all non ascii
-	return email
+	rg, err := regexp.Compile("[^a-zA-Z0-9.@-_]+")
+	if err != nil {
+		log.Fatal(err)
+	}
+	//remove all not whitelisted
+	return rg.ReplaceAllString(email, "")
 }
 
 // NewUser create a new user object

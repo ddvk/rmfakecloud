@@ -55,7 +55,7 @@ func (app *ReactAppWrapper) register(c *gin.Context) {
 	err = app.userStorer.RegisterUser(user)
 	if err != nil {
 		log.Error(err)
-		badReq(c, err.Error())
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
@@ -124,7 +124,7 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	c.SetCookie(".AuthCookie", tokenString, 1, "/", "rmfakecloud", true, true)
+	//c.SetCookie(".AuthCookie", tokenString, 1, "/", "rmfakecloud", true, true)
 
 	c.String(http.StatusOK, tokenString)
 }
@@ -148,21 +148,21 @@ func (app *ReactAppWrapper) resetPassword(c *gin.Context) {
 	}
 
 	uid := c.GetString(userID)
-	if uid == "" {
-		log.Error("Unable to find userId in context")
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
-		return
-	}
+	// if uid == "" {
+	// 	log.Error("Unable to find userId in context")
+	// 	c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+	// 	return
+	// }
 
 	if user.ID != uid {
 		log.Error("Trying to change password for a different user.")
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "cannt do that"})
 		return
 	}
 
 	if ok, err := user.CheckPassword(form.CurrentPassword); err != nil || !ok {
 		log.Error(err)
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid email or password"})
 		return
 	}
 
@@ -172,7 +172,7 @@ func (app *ReactAppWrapper) resetPassword(c *gin.Context) {
 
 	if err != nil {
 		log.Error("error updating user", err)
-		badReq(c, err.Error())
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
@@ -181,11 +181,11 @@ func (app *ReactAppWrapper) resetPassword(c *gin.Context) {
 
 func (app *ReactAppWrapper) newCode(c *gin.Context) {
 	uid := c.GetString(userID)
-	if uid == "" {
-		log.Error("Unable to find userId in context")
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
-		return
-	}
+	// if uid == "" {
+	// 	log.Error("Unable to find userId in context")
+	// 	c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+	// 	return
+	// }
 
 	user, err := app.userStorer.GetUser(uid)
 	if err != nil {

@@ -31,11 +31,7 @@ func ClaimsFromToken(claim jwt.Claims, token string, key []byte) error {
 			return key, nil
 		})
 
-	if err != nil {
-		return err
-	}
-	return nil
-
+	return err
 }
 
 // SignClaims signs the claims i.e. creates a token

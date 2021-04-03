@@ -13,6 +13,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const storageExpiration = 60
+
 // GetAllMetadata load all metadata
 func (fs *Storage) GetAllMetadata(uid string, withBlob bool) (result []*messages.RawDocument, err error) {
 	folder := path.Join(fs.Cfg.DataDir, userDir, uid)
@@ -59,7 +61,7 @@ func (fs *Storage) GetMetadata(uid, id string, withBlob bool) (*messages.RawDocu
 	response.Success = true
 
 	if withBlob {
-		exp := time.Now().Add(time.Second * 60)
+		exp := time.Now().Add(time.Second * storageExpiration)
 		storageURL, err := fs.GetStorageURL(uid, exp, response.ID)
 		if err != nil {
 			return nil, err

@@ -1,13 +1,9 @@
 package app
 
 import (
-	"encoding/hex"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
-	log "github.com/sirupsen/logrus"
 )
 
 func (app *App) registerRoutes(router *gin.Engine) {
@@ -32,16 +28,21 @@ func (app *App) registerRoutes(router *gin.Engine) {
 
 	//some telemetry stuff from ping.
 	router.POST("/v1/reports", func(c *gin.Context) {
-		body, err := ioutil.ReadAll(c.Request.Body)
+		c.Status(http.StatusOK)
+		/*
+			TODO: reverse this protobuf thing
 
-		if err != nil {
-			c.AbortWithStatus(500)
-			return
-		}
-		name := uuid.New().String() + ".dump"
-		ioutil.WriteFile(name, body, 0644)
-		log.Info(hex.Dump(body))
-		c.Status(400)
+			body, err := ioutil.ReadAll(c.Request.Body)
+
+			if err != nil {
+				c.AbortWithStatus(500)
+				return
+			}
+			name := uuid.New().String() + ".dump"
+			ioutil.WriteFile(name, body, 0644)
+			log.Info(hex.Dump(body))
+			c.Status(400)
+		*/
 	})
 
 	app.docStorer.RegisterRoutes(router)
