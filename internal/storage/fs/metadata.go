@@ -13,7 +13,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const storageExpiration = 60
+const storageExpiration = 180
 
 // GetAllMetadata load all metadata
 func (fs *Storage) GetAllMetadata(uid string, withBlob bool) (result []*messages.RawDocument, err error) {
