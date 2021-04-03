@@ -92,7 +92,7 @@ func (c *wsClient) Read(ws *websocket.Conn) {
 		_, p, err := ws.ReadMessage()
 		if err != nil {
 			log.Warn("Hub Read ", err)
-			// c.hub.removals <- c
+			c.hub.removals <- c
 			return
 		}
 		log.Println("Message: ", string(p))
@@ -112,7 +112,7 @@ func (c *wsClient) Write(ws *websocket.Conn) {
 			err := ws.WriteJSON(m)
 			if err != nil {
 				log.Warn("Hub write ", err)
-				// c.hub.removals <- c
+				c.hub.removals <- c
 				return
 			}
 		}
