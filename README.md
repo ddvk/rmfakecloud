@@ -3,9 +3,8 @@
 
 rmfakecloud is fake of the cloud sync the remarkable tablet is using, in case you want to sync/backup your files and have full control of the hosting/storage environment and don't trust Google.
 
-# Status 
-early prototype (sync and notifications work). no security and a lot of quick and dirty hacks.
-currently only a single device is "supported" to work reliably i.e. clients not distingished due to the lack of auth
+# Breaking Changes
+- after v0.0.3 the files in `/data` will have to be manually move to the user that will be created
 
 # Installation
 
