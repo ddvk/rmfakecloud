@@ -61,7 +61,7 @@ devui: ui/yarn.lock
 	$(YARN) start
 
 clean:
-	rm $(ASSETS) || true
+	rm -f $(ASSETS)
 	rm -f $(OUT_DIR)/*
 	rm -fr ui/build
 
