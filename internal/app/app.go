@@ -65,7 +65,6 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 	}
 	hub := NewHub()
 	codeConnector := NewCodeConnector()
-	gin.ForceConsoleColor()
 	router := gin.Default()
 
 	corsConfig := cors.DefaultConfig()
