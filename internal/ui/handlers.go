@@ -18,6 +18,11 @@ const (
 
 func (app *ReactAppWrapper) register(c *gin.Context) {
 
+	if !app.cfg.RegistrationOpen {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
 	client := c.ClientIP()
 	log.Info(client)
 
@@ -34,7 +39,7 @@ func (app *ReactAppWrapper) register(c *gin.Context) {
 	var form viewmodel.LoginForm
 	if err := c.ShouldBindJSON(&form); err != nil {
 		log.Error(err)
-		badReq(c, err.Error())
+		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
@@ -66,7 +71,7 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 	var form viewmodel.LoginForm
 	if err := c.ShouldBindJSON(&form); err != nil {
 		log.Error(err)
-		badReq(c, err.Error())
+		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 	// not really thread safe
@@ -97,7 +102,11 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 	}
 
 	if ok, err := user.CheckPassword(form.Password); err != nil || !ok {
-		log.Error(err)
+		if err != nil {
+			log.Error(err)
+		} else if !ok {
+			log.Warn("password mismatch for: ", form.Email)
+		}
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}

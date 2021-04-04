@@ -17,8 +17,9 @@ import (
 )
 
 const (
-	argon2configTime    = 1
-	argon2configMemory  = 64 * 1024
+	//TODO: make it configurable
+	argon2configTime    = 5
+	argon2configMemory  = 3 * 1024
 	argon2configThreads = 4
 	argon2configKeylen  = 32
 )
@@ -119,7 +120,6 @@ func (u *User) SetPassword(raw string) (err error) {
 func (u *User) CheckPassword(raw string) (bool, error) {
 	parts := strings.Split(u.Password, "$")
 	if len(parts) < 3 {
-		log.Error("invalid password format")
 		return false, errors.New("invalid password format")
 	}
 

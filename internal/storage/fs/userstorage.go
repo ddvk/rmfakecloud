@@ -2,6 +2,7 @@ package fs
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 
@@ -53,14 +54,12 @@ func (fs *Storage) GetUser(uid string) (user *model.User, err error) {
 	var content []byte
 	content, err = ioutil.ReadAll(f)
 	if err != nil {
-		log.Error("Cannot read the user profile:", profilePath)
-		return
+		return nil, fmt.Errorf("cannot read profile: %s, %w", profilePath, err)
 	}
 
 	user, err = model.DeserializeUser(content)
 	if err != nil {
-		log.Error("Cannot deserialize the user profile", profilePath)
-		return
+		return nil, fmt.Errorf("cannot parse profile: %s, %w", profilePath, err)
 	}
 
 	return
