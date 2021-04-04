@@ -1,37 +1,45 @@
 package messages
 
+// StatusResponse what else
 type StatusResponse struct {
-	Id      string `json:"ID"`
+	ID      string `json:"ID"`
 	Message string `json:"Message"`
 	Success bool   `json:"Success"`
 	Version int    `json:"Version"`
 }
+
+// WsMessage websocket notification
 type WsMessage struct {
 	Message      NotificationMessage `json:"message"`
 	Subscription string              `json:"subscription"`
 }
+
+// NotificationMessage child object
 type NotificationMessage struct {
 	Attributes   Attributes `json:"attributes"`
-	MessageId    string     `json:"messageId"`
-	MessageId2   string     `json:"message_id"`
+	MessageID    string     `json:"messageId"`
+	MessageID2   string     `json:"message_id"`
 	PublishTime  string     `json:"publishTime"`
 	PublishTime2 string     `json:"publish_time"`
 }
+
+// Attributes child object
 type Attributes struct {
 	Auth0UserID      string `json:"auth0UserID"`
 	Bookmarked       bool   `json:"bookmarked"`
 	Event            string `json:"event"`
-	Id               string `json:"id"`
+	ID               string `json:"id"`
 	Parent           string `json:"parent"`
 	SourceDeviceDesc string `json:"sourceDeviceDesc"`
-	SourceDeviceId   string `json:"sourceDeviceID"`
+	SourceDeviceID   string `json:"sourceDeviceID"`
 	Type             string `json:"type"`
 	Version          string `json:"version"`
 	VissibleName     string `json:"vissibleName"`
 }
 
+// RawDocument just a raw document
 type RawDocument struct {
-	Id                string `json:"ID"`
+	ID                string `json:"ID"`
 	Version           int    `json:"Version"`
 	Message           string `json:"Message"`
 	Success           bool   `json:"Success"`
@@ -45,31 +53,38 @@ type RawDocument struct {
 	Parent            string `json:"Parent"`
 }
 
-// request with id
-type IdRequest struct {
-	Id string `json:"ID"`
+// IDRequest request with only an id
+type IDRequest struct {
+	ID string `json:"ID"`
 }
+
+// UploadRequest upload reuquest
 type UploadRequest struct {
-	Id      string `json:"ID"`
+	ID      string `json:"ID"`
 	Parent  string `json:"Parent"`
 	Type    string `json:"Type"`
 	Version int    `json:"Version"`
 }
+
+// UploadResponse surprise
 type UploadResponse struct {
-	Id                string `json:"ID"`
+	ID                string `json:"ID"`
 	Message           string `json:"Mesasge"`
 	Success           bool   `json:"Success"`
-	BlobUrlPut        string `json:"BlobURLPut"`
+	BlobURLPut        string `json:"BlobURLPut"`
 	BlobURLPutExpires string `json:"BlobURLPutExpires"`
 	Version           int    `json:"Version"`
 }
+
+// HostResponse what the host responded
 type HostResponse struct {
 	Host   string `json:"Host"`
 	Status string `json:"Status"`
 }
 
+// DeviceTokenRequest give me token
 type DeviceTokenRequest struct {
 	Code       string `json:"code"`
 	DeviceDesc string `json:"deviceDesc"`
-	DeviceId   string `json:"deviceID"`
+	DeviceID   string `json:"deviceID"`
 }
