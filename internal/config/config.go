@@ -3,6 +3,7 @@ package config
 import (
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/tls"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -29,6 +30,8 @@ const (
 	envDataDir    = "DATADIR"
 	envPort       = "PORT"
 	envStorageURL = "STORAGE_URL"
+	EnvTLSCert    = "TLS_CERT"
+	EnvTLSKey     = "TLS_KEY"
 
 	// auth
 	envJWTSecretKey     = "JWT_SECRET_KEY"
@@ -61,6 +64,7 @@ type Config struct {
 	JWTSecretKey     []byte
 	RegistrationOpen bool
 	CreateFirstUser  bool
+	Certificate      tls.Certificate
 }
 
 // FromEnv config from environment values
@@ -105,6 +109,16 @@ func FromEnv() *Config {
 	}
 	dk := pbkdf2.Key(jwtSecretKey, []byte("todo some salt"), 10000, 32, sha256.New)
 
+	var cert tls.Certificate
+	certPath := os.Getenv(EnvTLSCert)
+	keyPath := os.Getenv(EnvTLSKey)
+	if certPath != "" && keyPath != "" {
+
+		cert, err = tls.LoadX509KeyPair(certPath, keyPath)
+		if err != nil {
+			panic(fmt.Errorf("unable to load certificate: %w", err))
+		}
+	}
 	openRegistration, _ := strconv.ParseBool(os.Getenv(envRegistrationOpen))
 
 	cfg := Config{
@@ -112,6 +126,7 @@ func FromEnv() *Config {
 		StorageURL:       uploadURL,
 		DataDir:          dataDir,
 		JWTSecretKey:     dk,
+		Certificate:      cert,
 		RegistrationOpen: openRegistration,
 	}
 	return &cfg
@@ -127,7 +142,9 @@ General:
 	%s	Log verbosity level (debug, info, warn) (default: info)
 	%s		Port (default: %s)
 	%s		Local storage folder (default: %s)
-	%s	Url the tablet can resolve (default: http://hostname:port)
+	%s	Url the tablet can resolve (default: http(s)://hostname:port)
+	%s	Path to the server certificate.
+	%s	Path to the server certificate key.
 
 email sending, smtp:
 	%s
@@ -148,6 +165,8 @@ myScript hwr (needs a developer account):
 		envDataDir,
 		DefaultDataDir,
 		envStorageURL,
+		EnvTLSCert,
+		EnvTLSKey,
 
 		EnvSMTPServer,
 		EnvSMTPUsername,
