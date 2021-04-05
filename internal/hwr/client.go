@@ -27,9 +27,14 @@ func init() {
 	}
 }
 
-const url = "https://cloud.myscript.com/api/v4.0/iink/batch"
-const JIIX = "application/vnd.myscript.jiix"
+const (
+	url = "https://cloud.myscript.com/api/v4.0/iink/batch"
 
+	// JIIX jiix type
+	JIIX = "application/vnd.myscript.jiix"
+)
+
+// SendRequest sends the request
 func SendRequest(data []byte) (body []byte, err error) {
 	if key == "" || hmackey == "" {
 		return nil, fmt.Errorf("no hwr key set")

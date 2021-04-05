@@ -1,0 +1,25 @@
+.container {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.formContainer {
+  width: 200px;
+}
+.error {
+  font-size: 0.8rem;
+  color: #bb0000;
+}
+
+.loginForm {
+  display: flex;
+  flex-direction: column;
+}
+
+.loginFormItem {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+}

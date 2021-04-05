@@ -7,7 +7,7 @@ import (
 )
 
 func TestParseEmptyAddress(t *testing.T) {
-	addreses := TrimAddresses(", email@domain.com , blah@blah, ")
+	addreses := trimAddresses(", email@domain.com , blah@blah, ")
 	to, err := mail.ParseAddressList(addreses)
 	if err != nil {
 		t.Error(err)
@@ -22,7 +22,7 @@ func TestRead(t *testing.T) {
 	t.Skip("TODO: fake the sending")
 
 	file, _ := ioutil.ReadFile("test.txt")
-	sender := EmailBuilder{
+	sender := Builder{
 		To:      "bingobango@mailinator.com",
 		From:    "bingo.bongo@gmail.com",
 		Subject: "testing",
