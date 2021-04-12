@@ -37,12 +37,15 @@ env variables:
 open `http://localhost:3000` or wherever it was installed
 if no users exist, the first login creates a user
 
-# Resetting a user's password
+
+# Resetting a user's password or creating other users
+It is advisable to set the rmfakecloud's user to the user it is running under and set the sid bit (`chmod 4700 rmfakecloud`)  
+also make sure the user has write permissions for the `data` directory
 `DATADIR=dirwherethedatais rmfakecloud setuser -u username -p newpassword`
 
 ## Caveats
 make sure to set the DATADIR env
-Execute it  in the context of user under witch the service is running, otherwis
+Execute it in the context of user under witch the service is running, otherwise the profile will have the wrong user/permissions
 
 # Handwriting Recognition
 In order to get hwr running with myScript register for a developer account and set the env variables: 
@@ -77,7 +80,9 @@ sh -c "$(wget https://raw.githubusercontent.com/ddvk/rmfakecloud/master/scripts/
 ## Without patching the binary
 
 # Caveats/ WARNING
-- connecting to the api will delete all your files, unless you mark them as not synced `synced:false` prior to syncing
+- (applies when you don't have security) connecting to the api will delete all your files, unless you mark them as not synced `synced:false` prior to syncing (advisable just to disconnect, reconnect the cloud)
+- **if you delete files from the users directory** on the host, on the next sync those will be deleted from the device
+- if you delete the whole user directory (by mistake) on the host, you should disconnect the cloud from the device and reconnect it
 
 # [TODO](docs/todo.md)
 # [How the cloud works](docs/cloud.md)
