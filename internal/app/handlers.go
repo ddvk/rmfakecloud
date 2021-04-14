@@ -78,8 +78,7 @@ func (app *App) newDevice(c *gin.Context) {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
-	log.Info("Request: ", tokenRequest)
-	log.Info("Token for:", uid)
+	log.Info("Request: ", tokenRequest, "Token for:", uid)
 
 	// generate the JWT token
 	claims := &common.DeviceClaims{
@@ -94,11 +93,22 @@ func (app *App) newDevice(c *gin.Context) {
 	tokenString, err := common.SignClaims(claims, app.cfg.JWTSecretKey)
 	if err != nil {
 		log.Warn(err)
-		c.AbortWithStatus(http.StatusBadRequest)
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
 	c.String(http.StatusOK, tokenString)
+}
+
+func (app *App) deleteDevice(c *gin.Context) {
+	deviceToken, err := app.getDeviceClaims(c)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	log.Info("Logging out: ", deviceToken.UserID)
+	c.String(http.StatusNoContent, "")
 }
 
 func (app *App) newUserToken(c *gin.Context) {

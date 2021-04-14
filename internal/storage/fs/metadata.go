@@ -71,16 +71,7 @@ func (fs *Storage) GetMetadata(uid, id string, withBlob bool) (*messages.RawDocu
 		response.BlobURLGetExpires = exp.UTC().Format(time.RFC3339Nano)
 	} else {
 		response.BlobURLGetExpires = time.Time{}.Format(time.RFC3339Nano)
-
 	}
-
-	//fix time to utc
-	tt, err := time.Parse(time.RFC3339, response.ModifiedClient)
-	if err != nil {
-		log.Errorln("cant parse time", err)
-		tt = time.Now()
-	}
-	response.ModifiedClient = tt.UTC().Format(time.RFC3339)
 
 	return &response, nil
 

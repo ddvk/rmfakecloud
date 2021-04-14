@@ -18,6 +18,9 @@ func (app *App) registerRoutes(router *gin.Engine) {
 	// renew device acces token
 	router.POST("/token/json/2/user/new", app.newUserToken)
 
+	//unregister device
+	router.POST("/token/json/3/device/delete", app.deleteDevice)
+
 	//service locator
 	router.GET("/service/json/1/:service", app.locateService)
 
@@ -52,11 +55,6 @@ func (app *App) registerRoutes(router *gin.Engine) {
 	authRoutes := router.Group("/")
 	authRoutes.Use(app.authMiddleware())
 	{
-
-		//unregister device
-		authRoutes.POST("/token/json/3/device/delete", func(c *gin.Context) {
-			c.String(http.StatusNoContent, "")
-		})
 
 		// doucment notifications
 		authRoutes.GET("/notifications/ws/json/1", app.connectWebSocket)
