@@ -97,7 +97,7 @@ sh -c "$(wget https://raw.githubusercontent.com/ddvk/rmfakecloud/master/scripts/
     
 - check that the proxy is running and certs are installed:
     ```
-    echo Q | openssl s_client -connect localhost:443  -verify_hostname local.appspot.com 2>&1 | grep Verify
+    echo Q | openssl s_client -connect localhost:443  -verify_hostname local.appspot.com -CAfile /etc/ssl/certs/ca-certificates.crt 2>&1 | grep Verify
     ```
     You should see: *Verify return code: 0 (ok)*
 
