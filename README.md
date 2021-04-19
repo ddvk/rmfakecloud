@@ -37,6 +37,8 @@ env variables:
 open `http://localhost:3000` or wherever it was installed
 if no users exist, the first login creates a user
 
+# [Tablet Setup](docs/tablet.md)
+Modifications that the tablet needs
 
 # Resetting a user's password or creating other users
 It is advisable to set the rmfakecloud's user to the user it is running under and set the sid bit (`chmod 4700 rmfakecloud`)  
@@ -69,8 +71,6 @@ RM_SMTP_FROM='"ReMarkable self-hosted" <user@domain.com>'
 
 # [HTTPS HowTO](docs/https.md)
 
-# [Client Setup](docs/tablet.md)
-A reverse proxy [rmfakecloud-proxy](https://github.com/ddvk/rmfakecloud-proxy/releases) has to be installed
 
 ## Automagic to be run on the device
 ```

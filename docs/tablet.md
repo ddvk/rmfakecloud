@@ -1,10 +1,10 @@
 # Tablet Setup
-For Automatic script check [Automagic](scripts/device/readme.md)  
-
 There are several ways to make it work, choose whatever works for you
+For an Automatic script, check out [Automagic](scripts/device/readme.md)  
 
 
 # Variant 1
+A reverse proxy [rmfakecloud-proxy](https://github.com/ddvk/rmfakecloud-proxy/releases) has to be installed
 run rmfakecloud on whichever port you want, you can use either HTTP (not recommended) or HTTPS, generate a new cert for the url you chose e.g with Let's Encrypt
 
 Steps (done by the automagic scripts):
