@@ -1,3 +1,12 @@
+# HTTPS
+Now you can run it with TLS via
+```
+TLS_CERT=somecert
+TLS_CERT_KEY=somecertkey
+```
+
+
+# Behind a Reverse Proxy
 From @zeigerpuppy
 
 I have rmfakecloud up and running (reMarkable 2 client, Debian 9 server).  It's working great, sync, emails and handwriting recognition are all good.
