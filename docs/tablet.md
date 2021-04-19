@@ -36,8 +36,8 @@ Windows/Mac Desktop Client:
 - run a reverse proxy on the host or somewhere else pointing it to rmfakecloud with the same certs
 - profit
 
-**PROS**: easy setup, you can use whichever port you want, you can get a real trusted ca cert from let's encrypt, if running in a trusted network you may chose to use HTTP
-**CONS**: you have to configure HTTPS on the host yourself, additional Desktop config 
+**PROS**: easy setup, you can use whichever port you want, you can get a real trusted ca cert from let's encrypt, if running in a trusted network you may chose to use HTTP  
+**CONS**: you have to configure HTTPS on the host yourself, additional Desktop config   
 
 # Variant 2
 Connect to the host directly, without a reverse proxy, with HTTPS on :443
@@ -57,7 +57,7 @@ Windows/Mac Desktop Client:
 - modify the hosts file (\system32\drivers\etc\hosts) add the same entries as on the tablet
 - profit
  
-**PROS**: you can use the windows/mac clients, no need for a proxy on the device
+**PROS**: you can use the windows/mac clients, no need for a proxy on the device  
 **CONS**: a bit harder to setup, each host has to trust the ca and modify the hosts file, you have to use port 443
 
 # Variant 3
@@ -66,5 +66,5 @@ Same as Variant2, but instead of modifying any hosts file, make the changes on y
 - trust the ca.crt
 - profit
 
-**PROS**: a bit easier, you can you even the mobile apps if you manage to install the root ca
+**PROS**: a bit easier, you can you even the mobile apps if you manage to install the root ca  
 **CONS**: you can't use the official cloud anymore due to the mangled DNS
