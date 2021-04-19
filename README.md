@@ -69,7 +69,7 @@ RM_SMTP_FROM='"ReMarkable self-hosted" <user@domain.com>'
 
 # [HTTPS HowTO](docs/https.md)
 
-# [Device Prerequisite](docs/tablet.md)
+# [Client Setup](docs/tablet.md)
 A reverse proxy [rmfakecloud-proxy](https://github.com/ddvk/rmfakecloud-proxy/releases) has to be installed
 
 ## Automagic to be run on the device
