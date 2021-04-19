@@ -10,7 +10,7 @@ GOFILES += $(ASSETS)
 UIFILES := $(shell find ui/src)
 UIFILES += $(shell find ui/public)
 UIFILES += ui/package.json
-TARGETS := $(addprefix $(OUT_DIR)/$(BINARY)-, x64 armv6 armv7 win64 docker)
+TARGETS := $(addprefix $(OUT_DIR)/$(BINARY)-, x64 armv6 armv7 arm64 win64 docker)
 YARN	= yarn --cwd ui  
 
 .PHONY: all run dev devui clean test 
@@ -29,6 +29,9 @@ $(OUT_DIR)/$(BINARY)-armv7:$(GOFILES)
 
 $(OUT_DIR)/$(BINARY)-win64:$(GOFILES)
 	GOOS=windows $(BUILD)
+
+$(OUT_DIR)/$(BINARY)-arm64:$(GOFILES)
+	GOARCH=arm64 $(BUILD)
 
 $(OUT_DIR)/$(BINARY)-docker:$(GOFILES)
 	CGO_ENABLED=0 $(BUILD)
