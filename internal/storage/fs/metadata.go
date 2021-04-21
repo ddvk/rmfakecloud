@@ -9,12 +9,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	log "github.com/sirupsen/logrus"
 )
-
-// time the download/upload url is valid
-const storageExpirationInMinutes = 5
 
 // GetAllMetadata load all metadata
 func (fs *Storage) GetAllMetadata(uid string, withBlob bool) (result []*messages.RawDocument, err error) {
@@ -62,7 +60,7 @@ func (fs *Storage) GetMetadata(uid, id string, withBlob bool) (*messages.RawDocu
 	response.Success = true
 
 	if withBlob {
-		exp := time.Now().Add(time.Minute * storageExpirationInMinutes)
+		exp := time.Now().Add(time.Minute * config.ReadStorageExpirationInMinutes)
 		storageURL, err := fs.GetStorageURL(uid, exp, response.ID)
 		if err != nil {
 			return nil, err

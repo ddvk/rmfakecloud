@@ -28,10 +28,6 @@ func NewCodeConnector() common.CodeConnector {
 
 }
 
-func (conn *inMemoryCodeConnector) codeExpiry() {
-
-}
-
 func (conn *inMemoryCodeConnector) NewCode(uid string) (string, error) {
 	code, err := newUserCode()
 	if err != nil {
@@ -45,11 +41,9 @@ func (conn *inMemoryCodeConnector) NewCode(uid string) (string, error) {
 	conn.uids[uid] = code
 	conn.lock.Unlock()
 	go func() {
-		select {
-		case <-time.After(conn.codeValidity):
-			if _, err := conn.ConsumeCode(code); err == nil {
-				log.Infof("removed unused code: %s for uid: %s ", code, uid)
-			}
+		<-time.After(conn.codeValidity)
+		if _, err := conn.ConsumeCode(code); err == nil {
+			log.Infof("removed unused code: %s for uid: %s ", code, uid)
 		}
 
 	}()

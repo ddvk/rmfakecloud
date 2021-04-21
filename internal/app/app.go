@@ -122,10 +122,6 @@ func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.
 	return app
 }
 
-func accessDenied(c *gin.Context, message string) {
-	c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": message})
-}
-
 func badReq(c *gin.Context, message string) {
 	c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": message})
 }

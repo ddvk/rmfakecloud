@@ -22,13 +22,15 @@ func (app *App) authMiddleware() gin.HandlerFunc {
 
 		if err != nil {
 			log.Warn(authLog, "token parsing:", err)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing or incorrect token"})
+			c.String(http.StatusUnauthorized, "Unauthorized")
+			c.Abort()
 			return
 		}
 
 		if claims.Scopes != "sync:default" {
 			log.Warn(authLog, " wrong scope, proably old token")
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing scope"})
+			c.String(http.StatusUnauthorized, "missing scope")
+			c.Abort()
 			return
 		}
 

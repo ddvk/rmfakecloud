@@ -1,16 +1,28 @@
 package app
 
 import (
+	"encoding/hex"
+	"io/ioutil"
 	"net/http"
+	"runtime"
 
 	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
 )
+
+var mb uint64 = 2 << 20
+var kb uint64 = 2 << 10
 
 func (app *App) registerRoutes(router *gin.Engine) {
 
 	router.GET("/health", func(c *gin.Context) {
 		count := app.hub.ClientCount()
-		c.String(http.StatusOK, "Working, %d clients", count)
+		gnum := runtime.NumGoroutine()
+		ms := runtime.MemStats{}
+		runtime.ReadMemStats(&ms)
+		live := (ms.Mallocs - ms.Frees) / kb
+		sysmb := ms.Sys / mb
+		c.String(http.StatusOK, "Working, %d clients, gn: %d, mem: %dkb sys: %dmb", count, gnum, live, sysmb)
 	})
 	// register  a new device
 	router.POST("/token/json/2/device/new", app.newDevice)
@@ -29,23 +41,23 @@ func (app *App) registerRoutes(router *gin.Engine) {
 		c.JSON(http.StatusOK, gin.H{"enrolled": false, "available": true})
 	})
 
+	router.POST("/settings/v1/beta", func(c *gin.Context) {
+		body, _ := ioutil.ReadAll(c.Request.Body)
+		log.Info("enrolling in the beta:", string(body))
+		c.Status(http.StatusOK)
+	})
+
 	//some telemetry stuff from ping.
 	router.POST("/v1/reports", func(c *gin.Context) {
+		body, err := ioutil.ReadAll(c.Request.Body)
+
+		if err != nil {
+			log.Warn("cant parse telemetry, ignored")
+			c.Status(http.StatusOK)
+			return
+		}
+		log.Info(hex.Dump(body))
 		c.Status(http.StatusOK)
-		/*
-			TODO: reverse this protobuf thing
-
-			body, err := ioutil.ReadAll(c.Request.Body)
-
-			if err != nil {
-				c.AbortWithStatus(500)
-				return
-			}
-			name := uuid.New().String() + ".dump"
-			ioutil.WriteFile(name, body, 0644)
-			log.Info(hex.Dump(body))
-			c.Status(400)
-		*/
 	})
 
 	app.docStorer.RegisterRoutes(router)
@@ -71,11 +83,11 @@ func (app *App) registerRoutes(router *gin.Engine) {
 		authRoutes.POST("/api/v2/document", app.sendEmail)
 		// hwr
 		authRoutes.POST("/api/v1/page", app.handleHwr)
+
 		//livesync
 		authRoutes.GET("/livesync/ws/json/2/:authid/sub", func(c *gin.Context) {
-			uid := c.GetString(userIDKey)
-			deviceID := c.GetString(deviceIDKey)
-			app.hub.ConnectWs(uid, deviceID, c.Writer, c.Request)
+			//TODO: not implemented yet
+			c.AbortWithStatus(http.StatusNoContent)
 		})
 	}
 }
