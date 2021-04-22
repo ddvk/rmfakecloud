@@ -40,6 +40,16 @@ if no users exist, the first login creates a user
 # [Tablet Setup](docs/tablet.md)
 Modifications that the tablet needs
 
+# Uploading / managing documents
+For the time being, until the UI is done, [rmapi](https://github.com/juruen/rmapi) is the easist option.
+```
+export RMAPI_AUTH=http(s)://yourcloud
+export RMAPI_DOC=http(s)://yourcloud
+export RMAPI_CONFIG=~/.rmapi.fake
+rmapi
+```
+
+
 # Resetting a user's password or creating other users
 It is advisable to set the rmfakecloud's user to the user it is running under and set the sid bit (`chmod 4700 rmfakecloud`)  
 also make sure the user has write permissions for the `data` directory

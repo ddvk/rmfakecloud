@@ -1,5 +1,5 @@
 # HTTPS
-Now you can run it with TLS via
+Now you can run TLS directly on rmfakecloud:
 ```
 TLS_CERT=somecert
 TLS_CERT_KEY=somecertkey
@@ -20,7 +20,8 @@ I would like to have this working on public IP networks too and have set up a NA
 > note that once HTTPS is working, direct forwarding of port 3000 should be disabled!
 
 So, to get it working via HTTPS, I think all we need to do is to set up a reverse HTTPS proxy on the server.
-I initially tried this with Apache2 but couldn't get the websockets working.  The error on the server was this:
+
+NB: **I initially tried this with Apache2 but couldn't get the websockets working**.  The error on the server was this:
 
 ```
 INFO[0387] accepting websocket abc

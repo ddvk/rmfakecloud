@@ -22,7 +22,7 @@ export default function FileListFunctional() {
   }
 
   if (!documentList.length) {
-    return <div>No documents</div>;
+    return <div>Not implmeneted yet</div>;
   }
 
   return (
