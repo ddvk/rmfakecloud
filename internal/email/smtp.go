@@ -16,35 +16,38 @@ import (
 )
 
 const (
-	MaxLineLength = 76 // MaxLineLength is the maximum line length per RFC 2045
+	// MaxLineLength is the maximum line length per RFC 2045
+	MaxLineLength = 76
 )
 
 // SSL/TLS Email Example
-var servername, username, password, fromOverride, helo, insecureTls string
+var servername, username, password, fromOverride, helo, insecureTLS string
 
 func init() {
 	//TODO: remove env dependency
-	servername = os.Getenv(config.EnvSmtpServer)
-	username = os.Getenv(config.EnvSmtpUsername)
-	password = os.Getenv(config.EnvSmtpPassword)
+	servername = os.Getenv(config.EnvSMTPServer)
+	username = os.Getenv(config.EnvSMTPUsername)
+	password = os.Getenv(config.EnvSMTPPassword)
 	if servername == "" {
 		log.Warnln("smtp not configured, no emails will be sent")
 	}
-	helo = os.Getenv(config.EnvSmtpHelo)
-	insecureTls = os.Getenv(config.EnvSmtpInsecureTLS)
-	fromOverride = os.Getenv(config.EnvSmtpFrom)
+	helo = os.Getenv(config.EnvSMTPHelo)
+	insecureTLS = os.Getenv(config.EnvSMTPInsecureTLS)
+	fromOverride = os.Getenv(config.EnvSMTPFrom)
 }
 
-type EmailBuilder struct {
+// Builder builds emails
+type Builder struct {
 	From    string
 	To      string
 	ReplyTo string
 	Body    string
 	Subject string
 
-	attachments []Attachment
+	attachments []emailAttachment
 }
-type Attachment struct {
+
+type emailAttachment struct {
 	filename    string
 	contentType string
 	data        []byte
@@ -54,18 +57,19 @@ func sanitizeAttachmentName(name string) string {
 	return filepath.Base(name)
 }
 
-// workaround for go < 1.15
-func TrimAddresses(address string) string {
+// trimAddresses workaround for go < 1.15
+func trimAddresses(address string) string {
 	return strings.Trim(strings.Trim(address, " "), ",")
 }
 
-func (b *EmailBuilder) AddFile(name string, data []byte, contentType string) {
+// AddFile adds a file attachment
+func (b *Builder) AddFile(name string, data []byte, contentType string) {
 	log.Debugln("Adding file: ", name, " contentType: ", contentType)
 	if contentType == "" {
 		log.Warnln("no contentType, setting to binary")
 		contentType = "application/octet-stream"
 	}
-	attachment := Attachment{
+	attachment := emailAttachment{
 		contentType: contentType,
 		filename:    sanitizeAttachmentName(name),
 		data:        data,
@@ -73,7 +77,8 @@ func (b *EmailBuilder) AddFile(name string, data []byte, contentType string) {
 	b.attachments = append(b.attachments, attachment)
 }
 
-func (b *EmailBuilder) Send() (err error) {
+// Send sends the email
+func (b *Builder) Send() (err error) {
 	if servername == "" {
 		return fmt.Errorf("not configured")
 	}
@@ -86,7 +91,7 @@ func (b *EmailBuilder) Send() (err error) {
 	if err != nil {
 		return err
 	}
-	to, err := mail.ParseAddressList(TrimAddresses(b.To))
+	to, err := mail.ParseAddressList(trimAddresses(b.To))
 	if err != nil {
 		return err
 	}
@@ -97,7 +102,7 @@ func (b *EmailBuilder) Send() (err error) {
 	host, _, _ := net.SplitHostPort(servername)
 
 	tlsconfig := &tls.Config{
-		InsecureSkipVerify: insecureTls != "",
+		InsecureSkipVerify: insecureTLS != "",
 		ServerName:         host,
 	}
 
