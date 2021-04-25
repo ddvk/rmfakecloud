@@ -3,7 +3,6 @@ import { Nav, Navbar, Button, NavDropdown } from "react-bootstrap";
 import { logout } from "../Login/actions";
 import { useAuthDispatch, useAuthState } from "../../hooks/useAuthContext";
 import { NavLink } from "react-router-dom";
-import styles from "./NavigationBar.module.css";
 import { FaUser } from "react-icons/fa";
 
 const NavigationBar = () => {
@@ -20,7 +19,7 @@ const NavigationBar = () => {
 
   return (
     <Navbar bg="dark" variant="dark">
-      <Navbar.Brand href="/">freeMarkable</Navbar.Brand>
+      <Navbar.Brand href="/">rmfakecloud</Navbar.Brand>
       <Navbar.Toggle />
       {user && (
         <>

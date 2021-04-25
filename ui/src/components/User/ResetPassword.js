@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { handleResponse, handleError } from "./apiUtils";
+import apiservice from "../../services/api.service";
 import Form from "react-bootstrap/Form";
 import Button from "react-bootstrap/Button";
 import { useAuthState, useAuthDispatch } from "../../hooks/useAuthContext";
@@ -10,7 +10,6 @@ export default function OwnUserProfile() {
   const { user: loggedInUser } = useAuthState();
   const authDispatch = useAuthDispatch();
 
-  const { token } = useAuthState();
   const [formErrors, setFormErrors] = useState({});
   const [resetPasswordForm, setResetPasswordForm] = useState({
     email: loggedInUser.Email,
@@ -47,24 +46,32 @@ export default function OwnUserProfile() {
 
     if (!formIsValid()) return;
 
-    resetPassword(resetPasswordForm).then(logout(authDispatch));
-  }
-
-  function resetPassword(resetPasswordForm) {
-    var _headers = {
-      "content-type": "application/json",
-      Authorization: `Bearer ${token}`,
-    };
-
-    return fetch("/ui/api/resetPassword", {
-      method: "POST",
-      headers: _headers,
-      body: JSON.stringify({
-        ...resetPasswordForm,
-      }),
+    apiservice.resetPassword(resetPasswordForm)
+    .then(r => {
+      if (r.ok) {
+        logout(authDispatch)
+        return
+      }
+      if (r.status === 400) {
+        return r.json()
+      }
+      throw new Error("unknown error: " + r.status)
     })
-      .then(handleResponse)
-      .catch(handleError);
+    .then(j => {
+      if (j && j.error){
+        setFormErrors(j)
+        return
+      } else {
+        setFormErrors({error:"invalid data"})
+      }
+    })
+    .catch(e => {
+      console.log(e)
+      setFormErrors({
+        error:e.toString()
+      })
+    })
+    
   }
 
   return (
@@ -118,6 +125,12 @@ export default function OwnUserProfile() {
           </div>
         )}
       </Form.Group>
+        {formErrors.error && (
+          <div className="alert alert-danger">
+            {formErrors.error}
+          </div>
+        )}
+
       <Button variant="primary" type="submit">
         Save
       </Button>

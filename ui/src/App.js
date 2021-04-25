@@ -1,13 +1,11 @@
 import React from "react";
 
-import Layout from "./components/Layout/Layout";
 import Navigationbar from "./components/Navigation/NavigationBar";
 import Login from "./components/Login/Login";
 import UserList from "./components/User/UserList";
-import UserProfile from "./components/User/UserProfile";
+// import UserProfile from "./components/User/UserProfile";
 import Home from "./components/Home";
-import FileList from "./components/File/FileList";
-import FileListFunctional from "./components/File/FileListFunction";
+import Documents from "./components/Documents";
 import NoMatch from "./components/NoMatch";
 
 import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
@@ -24,10 +22,9 @@ export default function App() {
     <AuthProvider>
       <Router>
         <Navigationbar />
-        <Layout>
           <Switch>
             <PrivateRoute exact path="/" component={Home} />
-            <PrivateRoute path="/documents" component={FileListFunctional} />
+            <PrivateRoute path="/documents" component={Documents} />
             <PrivateRoute path="/generatecode" component={CodeGenerator} />
             <PrivateRoute path="/resetPassword" component={ResetPassword} />
             {/* <PrivateRoute path="/userList/:userid" component={UserProfile} /> */}
@@ -39,7 +36,6 @@ export default function App() {
             <Route path="/login" component={Login} />
             <Route component={NoMatch} />
           </Switch>
-        </Layout>
       </Router>
     </AuthProvider>
   );

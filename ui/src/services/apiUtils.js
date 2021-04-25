@@ -1,5 +1,4 @@
 export async function handleResponse(response) {
-  debugger;
 
   if (response.ok) return response.json();
   if (response.status === 400) {
@@ -8,8 +7,9 @@ export async function handleResponse(response) {
     const error = await response.text();
     throw new Error(error);
   }
+  
 
-  throw new Error("Network response was not ok.");
+  throw new Error("Network response was not ok." + response.status);
 }
 
 // In a real app, would likely call an error logging service.

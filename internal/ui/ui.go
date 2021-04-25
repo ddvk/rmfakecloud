@@ -1,11 +1,14 @@
 package ui
 
 import (
+	"io"
 	"net/http"
 	"path"
 
+	"github.com/ddvk/rmfakecloud/internal/app/hub"
 	"github.com/ddvk/rmfakecloud/internal/config"
-	"github.com/ddvk/rmfakecloud/internal/db"
+	"github.com/ddvk/rmfakecloud/internal/messages"
+	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/webassets"
 	"github.com/gin-gonic/gin"
 )
@@ -14,13 +17,21 @@ type codeGenerator interface {
 	NewCode(string) (string, error)
 }
 
+type documentHandler interface {
+	CreateDocument(uid, filename string, stream io.ReadCloser) (doc *messages.RawDocument, err error)
+	GetAllMetadata(uid string) (do []*messages.RawDocument, err error)
+	ExportDocument(uid, id, format string, exportOption storage.ExportOption) (stream io.ReadCloser, err error)
+}
+
 // ReactAppWrapper wrap some stuff
 type ReactAppWrapper struct {
-	fs            http.FileSystem
-	prefix        string
-	cfg           *config.Config
-	userStorer    db.UserStorer
-	codeConnector codeGenerator
+	fs              http.FileSystem
+	prefix          string
+	cfg             *config.Config
+	userStorer      storage.UserStorer
+	codeConnector   codeGenerator
+	h               *hub.Hub
+	documentHandler documentHandler
 }
 
 const indexReplacement = "/default"
@@ -42,13 +53,17 @@ func badReq(c *gin.Context, message string) {
 }
 
 // New Create a React app
-func New(cfg *config.Config, userStorer db.UserStorer, codeConnector codeGenerator) *ReactAppWrapper {
+func New(cfg *config.Config, userStorer storage.UserStorer,
+	codeConnector codeGenerator, h *hub.Hub,
+	docHandler documentHandler) *ReactAppWrapper {
 	staticWrapper := ReactAppWrapper{
-		fs:            webassets.Assets,
-		prefix:        "/static",
-		cfg:           cfg,
-		userStorer:    userStorer,
-		codeConnector: codeConnector,
+		fs:              webassets.Assets,
+		prefix:          "/static",
+		cfg:             cfg,
+		userStorer:      userStorer,
+		codeConnector:   codeConnector,
+		h:               h,
+		documentHandler: docHandler,
 	}
 	return &staticWrapper
 }

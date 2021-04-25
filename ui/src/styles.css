@@ -1,9 +1,16 @@
-/* fuck react syling */
+:root {
+}
 
 body {
-    background-color: blanchedalmond;
+    background-color: black;
+    color:white; 
 }
 
 .myClass {
     background-color: red;
+}
+
+.documentEntry {
+    border: 1px solid black;
+
 }

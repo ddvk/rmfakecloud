@@ -1,7 +1,7 @@
 import jwt_decode from "jwt-decode";
-import Role from "./Role";
+// import Role from "./Role";
+import constants from "../../common/constants"
 
-const ROOT_URL = "ui/api";
 
 export async function loginUser(dispatch, loginPayload) {
   const requestOptions = {
@@ -13,7 +13,7 @@ export async function loginUser(dispatch, loginPayload) {
   try {
     dispatch({ type: "REQUEST_LOGIN" });
 
-    let response = await fetch(`${ROOT_URL}/login`, requestOptions);
+    let response = await fetch(`${constants.ROOT_URL}/login`, requestOptions);
     if (!response.ok) {
       dispatch({ type: "LOGIN_ERROR", error: "login failed" });
       return;
