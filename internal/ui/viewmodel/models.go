@@ -91,18 +91,18 @@ func NewTree(documents []*messages.RawDocument) *DocumentTree {
 		if parent, ok := folders[parentId]; ok {
 
 			//check for  loops and cross adds (a->b->c  c->a)
-			if parentId, ok := childParent[parentId]; ok {
-				//todo forloop
-				if parentId == d.ID {
-					log.Warn("loop detected: ", parentId, " -> ", d.ID)
-					rootEntries = append(rootEntries, entry)
-					continue
-				}
-			} else {
-				parent.Entries = append(parent.Entries, entry)
-				childParent[d.ID] = d.Parent
-			}
+			// if parentId, ok := childParent[parentId]; ok {
+			// 	//todo forloop
+			// 	if parentId == d.ID {
+			// 		log.Warn("loop detected: ", parentId, " -> ", d.ID)
+			// 		rootEntries = append(rootEntries, entry)
+			// 		continue
+			// 	}
+			// } else {
+			// }
 
+			parent.Entries = append(parent.Entries, entry)
+			childParent[d.ID] = d.Parent
 			continue
 		}
 
