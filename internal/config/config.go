@@ -18,8 +18,9 @@ const (
 	DefaultPort = "3000"
 	// DefaultDataDir default folder for storage
 	DefaultDataDir = "data"
-	// DefaultTrashDir name of the trash dir
-	DefaultTrashDir = "trash"
+
+	ReadStorageExpirationInMinutes  = 5
+	WriteStorageExpirationInMinutes = 5
 
 	// DefaultHost fake url
 	DefaultHost = "local.appspot.com"

@@ -41,8 +41,11 @@ func SignClaims(claims jwt.Claims, key []byte) (string, error) {
 	return jwtToken.SignedString(key)
 }
 
-// CodeConnector matches a code a to users
+// CodeConnector matches a code to users
 type CodeConnector interface {
-	NewCode(string) (string, error)
-	ConsumeCode(string) (string, error)
+	//NewCode generates one time code for a user
+	NewCode(uid string) (code string, err error)
+
+	//ConsumeCode a code and returns the uid if ofound
+	ConsumeCode(code string) (uid string, err error)
 }

@@ -1,21 +1,23 @@
 import React from "react";
-import Jumbo from "react-bootstrap/Jumbotron";
 import Container from "react-bootstrap/Container";
 
 const Home = () => {
   return (
     <>
-      <Jumbo
-        fluid
-        style={{
-          backgroundSize: "cover",
-          color: "white",
-        }}
-      >
-        <Container>
-          <h1>Welcome to freeMarkable Cloud.</h1>
-        </Container>
-      </Jumbo>
+    <Container>
+    <div>
+        <h3>Welcome to your own rm cloud</h3>
+        <h3>About</h3>
+        <p>This is still a work in progress</p>
+        <h3>TODO</h3>
+        <p>
+          <ul>
+          <li>token is expiration is not checked, so you'll be logged out when that happens</li>
+          <li>you can you rmapi (https://github.com/juruen/rmapi) for managing files</li>
+          </ul>
+          </p>
+    </div>
+  </Container>
     </>
   );
 };

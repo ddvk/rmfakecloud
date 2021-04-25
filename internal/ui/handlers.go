@@ -1,9 +1,11 @@
 package ui
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/ddvk/rmfakecloud/internal/app/hub"
 	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/model"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
@@ -13,7 +15,8 @@ import (
 )
 
 const (
-	userID = "userID"
+	userID   = "userID"
+	uiLogger = "[ui] "
 )
 
 func (app *ReactAppWrapper) register(c *gin.Context) {
@@ -33,9 +36,6 @@ func (app *ReactAppWrapper) register(c *gin.Context) {
 		return
 	}
 
-	// usr := c.PostForm("email")
-	// pass := c.PostForm("password")
-
 	var form viewmodel.LoginForm
 	if err := c.ShouldBindJSON(&form); err != nil {
 		log.Error(err)
@@ -44,13 +44,13 @@ func (app *ReactAppWrapper) register(c *gin.Context) {
 	}
 
 	// Check this user doesn't already exist
-	user, err := app.userStorer.GetUser(form.Email)
-	if user != nil {
+	_, err := app.userStorer.GetUser(form.Email)
+	if err == nil {
 		badReq(c, "alread taken")
 		return
 	}
 
-	user, err = model.NewUser(form.Email, form.Password)
+	user, err := model.NewUser(form.Email, form.Password)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -70,7 +70,7 @@ func (app *ReactAppWrapper) register(c *gin.Context) {
 func (app *ReactAppWrapper) login(c *gin.Context) {
 	var form viewmodel.LoginForm
 	if err := c.ShouldBindJSON(&form); err != nil {
-		log.Error(err)
+		log.Error(uiLogger, err)
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
@@ -105,7 +105,7 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 		if err != nil {
 			log.Error(err)
 		} else if !ok {
-			log.Warn("password mismatch for: ", form.Email)
+			log.Warn(uiLogger, "password mismatch for: ", form.Email)
 		}
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
@@ -157,11 +157,6 @@ func (app *ReactAppWrapper) resetPassword(c *gin.Context) {
 	}
 
 	uid := c.GetString(userID)
-	// if uid == "" {
-	// 	log.Error("Unable to find userId in context")
-	// 	c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
-	// 	return
-	// }
 
 	if user.ID != uid {
 		log.Error("Trying to change password for a different user.")
@@ -169,8 +164,11 @@ func (app *ReactAppWrapper) resetPassword(c *gin.Context) {
 		return
 	}
 
-	if ok, err := user.CheckPassword(form.CurrentPassword); err != nil || !ok {
-		log.Error(err)
+	ok, err := user.CheckPassword(form.CurrentPassword)
+	if !ok {
+		if err != nil {
+			log.Error(err)
+		}
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid email or password"})
 		return
 	}
@@ -190,11 +188,6 @@ func (app *ReactAppWrapper) resetPassword(c *gin.Context) {
 
 func (app *ReactAppWrapper) newCode(c *gin.Context) {
 	uid := c.GetString(userID)
-	// if uid == "" {
-	// 	log.Error("Unable to find userId in context")
-	// 	c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
-	// 	return
-	// }
 
 	user, err := app.userStorer.GetUser(uid)
 	if err != nil {
@@ -213,9 +206,87 @@ func (app *ReactAppWrapper) newCode(c *gin.Context) {
 	c.JSON(http.StatusOK, code)
 }
 func (app *ReactAppWrapper) listDocuments(c *gin.Context) {
-	tree := viewmodel.DocumentTree{}
+	uid := c.GetString(userID)
+	documents, err := app.documentHandler.GetAllMetadata(uid)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	tree := viewmodel.NewTree(documents)
 
 	c.JSON(http.StatusOK, tree)
+}
+func (app *ReactAppWrapper) getDocument(c *gin.Context) {
+	uid := c.GetString(userID)
+	docid := c.Param("docid")
+	log.Info("exporting ", docid)
+	reader, err := app.documentHandler.ExportDocument(uid, docid, "pdf", 0)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	defer reader.Close()
+	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
+}
+
+type UpdateDoc struct {
+}
+
+func (app *ReactAppWrapper) updateDocument(c *gin.Context) {
+	upd := UpdateDoc{}
+	if err := c.ShouldBindJSON(&upd); err != nil {
+		log.Error(err)
+		badReq(c, err.Error())
+		return
+	}
+	// uid := c.GetString(userID)
+	// docid := c.Param("docid")
+
+	c.Status(http.StatusOK)
+}
+func (app *ReactAppWrapper) deleteDocument(c *gin.Context) {
+	// uid := c.GetString(userID)
+	// docid := c.Param("docid")
+
+	c.Status(http.StatusOK)
+}
+func (app *ReactAppWrapper) createDocument(c *gin.Context) {
+	uid := c.GetString(userID)
+	log.Info("uploading documents from: ", uid)
+
+	form, err := c.MultipartForm()
+	if err != nil {
+		log.Error(err)
+		badReq(c, "not multiform")
+		return
+	}
+
+	for _, file := range form.File["file"] {
+		f, err := file.Open()
+		if err != nil {
+			log.Error("[ui] ", err)
+			badReq(c, "cant open attachment")
+			return
+		}
+
+		defer f.Close()
+		//do the stuff
+		log.Info(uiLogger, fmt.Sprintf("Uploading %s , size: %d", file.Filename, file.Size))
+
+		doc, err := app.documentHandler.CreateDocument(uid, file.Filename, f)
+		if err != nil {
+			log.Error(err)
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+		log.Info(uiLogger, "Uploaded document id", doc.ID)
+		app.h.Notify(uid, "web", doc, hub.DocAddedEvent)
+	}
+	c.Status(http.StatusOK)
 }
 
 func (app *ReactAppWrapper) getAppUsers(c *gin.Context) {

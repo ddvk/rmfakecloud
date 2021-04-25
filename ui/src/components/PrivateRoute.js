@@ -19,8 +19,6 @@ export const PrivateRoute = ({ component: Component, roles, ...rest }) => {
           );
         }
 
-        debugger;
-
         // check if route is restricted by role
         if (roles && user.Roles && roles.indexOf(user.Roles[0]) === -1) {
           // role not authorised ==> logout

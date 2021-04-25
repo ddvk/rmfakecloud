@@ -1,9 +1,11 @@
 package viewmodel
 
 import (
+	"sort"
 	"time"
 
 	"github.com/ddvk/rmfakecloud/internal/messages"
+	log "github.com/sirupsen/logrus"
 )
 
 // LoginForm the login form
@@ -21,42 +23,98 @@ type ResetPasswordForm struct {
 
 // DocumentTree a tree of documents
 type DocumentTree struct {
-	Entries   []Entry
-	folderMap map[string]*Directory
+	Entries    []Entry
+	allEntries []Entry
 }
 
-// Add adds and entry to the tree
-func (tree *DocumentTree) Add(d *messages.RawDocument) {
-	var entry Entry
-	switch d.Type {
-	case "CollectionType":
-		dir := &Directory{
-			ID:   d.ID,
-			Name: d.VissibleName,
+const CollectionType = "CollectionType"
+
+func makeFolder(d *messages.RawDocument) (entry *Directory) {
+	entry = &Directory{
+		ID:   d.ID,
+		Name: d.VissibleName,
+		// LastModified: d.ModifiedClient,
+		Entries: make([]Entry, 0),
+	}
+	return
+}
+func makeDocument(d *messages.RawDocument) (entry Entry) {
+	entry = &Document{
+		ID:   d.ID,
+		Name: d.VissibleName,
+		// LastModified: d.ModifiedClient,
+		DocumentType: d.Type,
+	}
+	return
+}
+
+func NewTree(documents []*messages.RawDocument) *DocumentTree {
+	childParent := make(map[string]string)
+	folders := make(map[string]*Directory)
+	rootEntries := make([]Entry, 0)
+
+	sort.Slice(documents, func(i, j int) bool {
+		a, b := documents[i], documents[j]
+		if a.Type != b.Type {
+			return a.Type == CollectionType
 		}
-		entry = dir
-		tree.folderMap[d.ID] = dir
-	default:
-		entry = &Document{
-			ID:           d.ID,
-			Name:         d.VissibleName,
-			DocumentType: d.Type,
+
+		return a.VissibleName < b.VissibleName
+	})
+
+	// add all folders
+	for _, d := range documents {
+		switch d.Type {
+		case CollectionType:
+			folders[d.ID] = makeFolder(d)
 		}
 	}
 
-	if d.Parent == "" {
-		tree.Entries = append(tree.Entries, entry)
-	} else {
-		folder, ok := tree.folderMap[d.Parent]
-		if ok {
-			folder.Entries = append(folder.Entries, entry)
-		} else {
-			//missing parent
+	// create parent child relationships
+	for _, d := range documents {
+		var entry Entry
+		var ok bool
 
+		// look it up in folders fist
+		if entry, ok = folders[d.ID]; !ok {
+			entry = makeDocument(d)
 		}
 
+		parentId := d.Parent
+
+		if parentId == "" {
+			// empty parent = root
+			rootEntries = append(rootEntries, entry)
+			continue
+		}
+
+		if parent, ok := folders[parentId]; ok {
+
+			//check for  loops and cross adds (a->b->c  c->a)
+			if parentId, ok := childParent[parentId]; ok {
+				//todo forloop
+				if parentId == d.ID {
+					log.Warn("loop detected: ", parentId, " -> ", d.ID)
+					rootEntries = append(rootEntries, entry)
+					continue
+				}
+			} else {
+				parent.Entries = append(parent.Entries, entry)
+				childParent[d.ID] = d.Parent
+			}
+
+			continue
+		}
+
+		log.Warn("parent not found: ", parentId)
+		rootEntries = append(rootEntries, entry)
 	}
 
+	tree := DocumentTree{
+		Entries: rootEntries,
+	}
+
+	return &tree
 }
 
 // Entry just an entry
@@ -67,7 +125,7 @@ type Entry interface {
 type Directory struct {
 	ID           string  `json:"id"`
 	Name         string  `json:"name"`
-	Entries      []Entry `json:"entries"`
+	Entries      []Entry `json:"children"`
 	LastModified time.Time
 }
 

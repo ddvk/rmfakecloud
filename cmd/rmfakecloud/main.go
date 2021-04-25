@@ -10,9 +10,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/app"
 	"github.com/ddvk/rmfakecloud/internal/cli"
 	"github.com/ddvk/rmfakecloud/internal/config"
-	"github.com/ddvk/rmfakecloud/internal/storage/fs"
 	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -40,8 +38,8 @@ Commands:
 		return
 	}
 
-	logger := logrus.StandardLogger()
-	logger.SetFormatter(&logrus.TextFormatter{})
+	logger := log.StandardLogger()
+	logger.SetFormatter(&log.TextFormatter{})
 
 	if lvl, err := log.ParseLevel(os.Getenv(config.EnvLogLevel)); err == nil {
 		fmt.Println("Log level:", lvl)
@@ -54,28 +52,12 @@ Commands:
 	log.Println("Url the device should use:", cfg.StorageURL)
 	log.Println("Listening on port:", cfg.Port)
 
-	fsStorage := fs.NewStorage(cfg)
-	usrs, err := fsStorage.GetUsers()
-
-	if err != nil {
-		log.Warn(err)
-	}
-
-	if len(usrs) == 0 {
-		log.Warn("No users found, the first login will create a user")
-		cfg.CreateFirstUser = true
-
-	}
-
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-
 	gin.DefaultWriter = logger.Writer()
 
-	a := app.NewApp(cfg, fsStorage, fsStorage, fsStorage)
+	a := app.NewApp(cfg)
 	go a.Start()
 
-	quit := make(chan os.Signal)
+	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 	<-quit
 	log.Println("Stopping the service...")

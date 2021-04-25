@@ -31,13 +31,21 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	r.POST("register", app.register)
 	r.POST("login", app.login)
 
+	//with authentication
 	gr := r.Group("")
 	gr.Use(app.authMiddleware())
 
 	gr.GET("newcode", app.newCode)
-	gr.GET("list", app.listDocuments)
 	gr.POST("resetPassword", app.resetPassword)
 
+	gr.GET("documents", app.listDocuments)
+	gr.GET("documents/:docid", app.getDocument)
+	gr.POST("documents/upload", app.createDocument)
+	gr.DELETE("documents/:docid", app.deleteDocument)
+	//move, rename
+	gr.PUT("documents", app.updateDocument)
+
+	//admin
 	admin := gr.Group("")
 	admin.Use(app.adminMiddleware())
 	admin.GET("users/:userid", app.getUser)
@@ -75,8 +83,6 @@ func (app *ReactAppWrapper) authMiddleware() gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing or incorrect token"})
 			return
 		}
-		log.Debug(claims)
-
 		uid := claims.UserID
 		c.Set(userID, uid)
 		for _, r := range claims.Roles {
