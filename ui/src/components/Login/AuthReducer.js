@@ -3,8 +3,6 @@ let user = localStorage.getItem("currentUser")
 : null
 let token = localStorage.getItem("token")
 
-console.log(token)
-console.log(user)
 export const initialState = {
   user: "" || user,
   token: "" || token,

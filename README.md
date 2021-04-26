@@ -10,11 +10,12 @@ rmfakecloud is fake of the cloud sync the remarkable tablet is using, in case yo
 
 ## From source
 
-Install and build the project:  
-`go get -u github.com/ddvk/rmfakecloud`
+Install and build the project, under Linux:  
+`git clone https://github.com/ddvk/rmfakecloud`  
+`make`
 
 run  
-`~/go/bin/rmfakecloud`  
+`~/dist/rmfakecloud-x64`
 
 
 or clone an do: `go run .`  
@@ -93,9 +94,6 @@ sh -c "$(wget https://raw.githubusercontent.com/ddvk/rmfakecloud/master/scripts/
 - (applies when you don't have security) connecting to the api will delete all your files, unless you mark them as not synced `synced:false` prior to syncing (advisable just to disconnect, reconnect the cloud)
 - **if you delete files from the users directory** on the host, on the next sync those will be deleted from the device
 - if you delete the whole user directory (by mistake) on the host, you should disconnect the cloud from the device and reconnect it
-
-# [TODO](docs/todo.md)
-# [How the cloud works](docs/cloud.md)
 
 # Troubleshooting
 - check the connectivity between the tablet and the host:

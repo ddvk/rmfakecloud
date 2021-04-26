@@ -4,18 +4,17 @@ import (
 	"context"
 	"crypto/tls"
 	"net/http"
-	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/ddvk/rmfakecloud/internal/app/hub"
 	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/config"
-	"github.com/ddvk/rmfakecloud/internal/db"
 	"github.com/ddvk/rmfakecloud/internal/storage"
+	"github.com/ddvk/rmfakecloud/internal/storage/fs"
 	"github.com/ddvk/rmfakecloud/internal/ui"
 
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -30,10 +29,9 @@ type App struct {
 	cfg           *config.Config
 	srv           *http.Server
 	docStorer     storage.DocumentStorer
-	userStorer    db.UserStorer
-	metaStorer    db.MetadataStorer
-	hub           *Hub
-	ui            *ui.ReactAppWrapper
+	userStorer    storage.UserStorer
+	metaStorer    storage.MetadataStorer
+	hub           *hub.Hub
 	codeConnector common.CodeConnector
 }
 
@@ -69,61 +67,68 @@ func (app *App) Start() {
 func (app *App) Stop() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+	// app.hub.Stop()
 	if err := app.srv.Shutdown(ctx); err != nil {
 		log.Fatal("Server Shutdown:", err)
 	}
 }
 
 // NewApp constructs an app
-func NewApp(cfg *config.Config, metaStorer db.MetadataStorer, docStorer storage.DocumentStorer, userStorer db.UserStorer) App {
+func NewApp(cfg *config.Config) App {
 	debugMode := log.GetLevel() == log.DebugLevel
 	if !debugMode {
 		gin.SetMode(gin.ReleaseMode)
 	}
-	hub := NewHub()
+
+	fsStorage := fs.NewStorage(cfg)
+	usrs, err := fsStorage.GetUsers()
+
+	if err != nil {
+		log.Warn(err)
+	}
+
+	if len(usrs) == 0 {
+		log.Warn("No users found, the first login will create a user")
+		//TODO: not thread safe
+		cfg.CreateFirstUser = true
+	}
+	h := hub.NewHub()
 	codeConnector := NewCodeConnector()
 	router := gin.Default()
 
-	corsConfig := cors.DefaultConfig()
+	// corsConfig := cors.DefaultConfig()
 
-	// corsConfig.AllowOrigins = []string{"*"}
+	// // corsConfig.AllowOrigins = []string{"*"}
 
-	// To be able to send tokens to the server.
-	// corsConfig.AllowCredentials = true
+	// // To be able to send tokens to the server.
+	// // corsConfig.AllowCredentials = true
 
-	// OPTIONS method for ReactJS
-	corsConfig.AddAllowMethods("OPTIONS")
-	corsConfig.AddAllowHeaders("Authorization")
+	// // OPTIONS method for ReactJS
+	// corsConfig.AddAllowMethods("OPTIONS")
+	// corsConfig.AddAllowHeaders("Authorization")
 
 	// Register the middleware
 	// router.Use(cors.New(corsConfig))
-
-	// router.Use(ginlogrus.Logger(std.Out), gin.Recovery())
 
 	if debugMode {
 		router.Use(requestLoggerMiddleware())
 	}
 
-	reactApp := ui.New(cfg, userStorer, codeConnector)
-
 	app := App{
 		router:        router,
 		cfg:           cfg,
-		docStorer:     docStorer,
-		userStorer:    userStorer,
-		metaStorer:    metaStorer,
-		hub:           hub,
-		ui:            reactApp,
+		docStorer:     fsStorage,
+		userStorer:    fsStorage,
+		metaStorer:    fsStorage,
+		hub:           h,
 		codeConnector: codeConnector,
 	}
+	reactApp := ui.New(cfg, fsStorage, codeConnector, h, fsStorage)
 
 	app.registerRoutes(router)
-
+	fsStorage.RegisterRoutes(router)
+	reactApp.RegisterRoutes(router)
 	return app
-}
-
-func accessDenied(c *gin.Context, message string) {
-	c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": message})
 }
 
 func badReq(c *gin.Context, message string) {
@@ -133,15 +138,3 @@ func badReq(c *gin.Context, message string) {
 func internalError(c *gin.Context, message string) {
 	c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": message})
 }
-
-/// remove remarkable ads
-func stripAds(msg string) string {
-	br := "<br>--<br>"
-	i := strings.Index(msg, br)
-	if i > 0 {
-		return msg[:i]
-	}
-	return msg
-}
-
-// router.Use(ginlogrus.Logger(std.Out), gin.Recovery())

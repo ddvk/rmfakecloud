@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ddvk/rmfakecloud/internal/app/hub"
 	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/email"
@@ -15,14 +16,13 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 )
 
 const (
-	docAddedEvent   = "DocAdded"
-	docDeletedEvent = "DocDeleted"
-
 	internalErrorMessage = "Internal Error"
+	handlerLog           = "[handler] "
 )
 
 func (app *App) getDeviceClaims(c *gin.Context) (*common.DeviceClaims, error) {
@@ -40,10 +40,6 @@ func (app *App) getDeviceClaims(c *gin.Context) (*common.DeviceClaims, error) {
 	}
 	return claims, nil
 }
-
-const (
-	handlerLog = "[handler] "
-)
 
 func (app *App) getUserClaims(c *gin.Context) (*common.UserClaims, error) {
 	token, err := common.GetToken(c)
@@ -194,12 +190,14 @@ func (app *App) sendEmail(c *gin.Context) {
 
 	for _, file := range form.File["attachment"] {
 		f, err := file.Open()
-		defer f.Close()
 		if err != nil {
 			log.Error(handlerLog, err)
 			badReq(c, "cant open attachment")
 			return
 		}
+		defer f.Close()
+
+		//TODO: reader
 		data, err := ioutil.ReadAll(f)
 		if err != nil {
 			log.Error(handlerLog, err)
@@ -228,19 +226,35 @@ func (app *App) listDocuments(c *gin.Context) {
 	if docID != "" {
 		//load single document
 		var doc *messages.RawDocument
-		doc, err = app.metaStorer.GetMetadata(uid, docID, withBlob)
+		doc, err = app.metaStorer.GetMetadata(uid, docID)
 		if err == nil {
 			result = append(result, doc)
 		}
 	} else {
 		//load all
-		result, err = app.metaStorer.GetAllMetadata(uid, withBlob)
+		result, err = app.metaStorer.GetAllMetadata(uid)
 	}
 
 	if err != nil {
 		log.Error(err)
 		internalError(c, "cant get metadata")
 		return
+	}
+
+	for _, response := range result {
+		if withBlob {
+			storageURL, exp, err := app.docStorer.GetStorageURL(uid, response.ID)
+			if err != nil {
+				response.Success = false
+				log.Warn("Cant get storage url for : ", response.ID)
+				continue
+			}
+			response.BlobURLGet = storageURL
+			response.BlobURLGetExpires = exp.UTC().Format(time.RFC3339Nano)
+		} else {
+			response.BlobURLGetExpires = time.Time{}.Format(time.RFC3339Nano)
+		}
+		response.Success = true
 	}
 
 	c.JSON(http.StatusOK, result)
@@ -259,7 +273,7 @@ func (app *App) deleteDocument(c *gin.Context) {
 
 	result := []messages.StatusResponse{}
 	for _, r := range req {
-		metadata, err := app.metaStorer.GetMetadata(uid, r.ID, false)
+		metadata, err := app.metaStorer.GetMetadata(uid, r.ID)
 		ok := false
 		if err == nil {
 			err := app.docStorer.RemoveDocument(uid, r.ID)
@@ -267,8 +281,7 @@ func (app *App) deleteDocument(c *gin.Context) {
 				log.Error(err)
 			} else {
 				ok = true
-				msg := NewNotification(uid, deviceID, metadata, docDeletedEvent)
-				app.hub.Send(uid, msg)
+				app.hub.Notify(uid, deviceID, metadata, hub.DocDeletedEvent)
 			}
 		}
 		result = append(result, messages.StatusResponse{ID: r.ID, Success: ok})
@@ -299,8 +312,7 @@ func (app *App) updateStatus(c *gin.Context) {
 			log.Error(err)
 		} else {
 			ok = true
-			msg := NewNotification(uid, deviceID, &r, docAddedEvent)
-			app.hub.Send(uid, msg)
+			app.hub.Notify(uid, deviceID, &r, hub.DocAddedEvent)
 		}
 		result = append(result, messages.StatusResponse{ID: r.ID, Success: ok, Message: message, Version: r.Version})
 	}
@@ -330,15 +342,20 @@ func (app *App) uploadRequest(c *gin.Context) {
 		if documentID == "" {
 			badReq(c, "no id")
 		}
-		exp := time.Now().Add(time.Minute)
-		url, err := app.docStorer.GetStorageURL(uid, exp, documentID)
+		url, exp, err := app.docStorer.GetStorageURL(uid, documentID)
 		if err != nil {
 			log.Error(err)
 			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
 		log.Debugln("StorageUrl: ", url)
-		dr := messages.UploadResponse{BlobURLPut: url, ID: documentID, Success: true, Version: r.Version}
+		dr := messages.UploadResponse{
+			BlobURLPut:        url,
+			BlobURLPutExpires: exp.UTC().Format(time.RFC3339Nano),
+			ID:                documentID,
+			Success:           true,
+			Version:           r.Version,
+		}
 		response = append(response, dr)
 	}
 
@@ -363,7 +380,31 @@ func (app *App) handleHwr(c *gin.Context) {
 func (app *App) connectWebSocket(c *gin.Context) {
 	uid := c.GetString(userIDKey)
 	deviceID := c.GetString(deviceIDKey)
-	log.Info("accepting websocket from:", uid)
-	app.hub.ConnectWs(uid, deviceID, c.Writer, c.Request)
-	log.Println("closing the ws")
+
+	log.Info("trying websocket from:", uid)
+
+	var upgrader = websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
+	connection, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+
+	if err != nil {
+		log.Warn("can't upgrade websocket to ws ", err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	go app.hub.ConnectWs(uid, deviceID, connection)
+}
+
+/// remove remarkable ads
+func stripAds(msg string) string {
+	br := "<br>--<br>"
+	i := strings.Index(msg, br)
+	if i > 0 {
+		return msg[:i]
+	}
+	return msg
 }

@@ -14,7 +14,7 @@ export default function UserProfile() {
   const { userid } = useParams();
   const { data: user, loading, error } = useFetch(`${userListUrl}/${userid}`);
 
-  const [formErrors, setFormErrors] = useState({});
+  const [_, setFormErrors] = useState({});
   const [resetPasswordForm, setResetPasswordForm] = useState({
     email: user.email,
     currentPassword: null,
