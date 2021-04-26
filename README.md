@@ -94,9 +94,6 @@ sh -c "$(wget https://raw.githubusercontent.com/ddvk/rmfakecloud/master/scripts/
 - **if you delete files from the users directory** on the host, on the next sync those will be deleted from the device
 - if you delete the whole user directory (by mistake) on the host, you should disconnect the cloud from the device and reconnect it
 
-# [TODO](docs/todo.md)
-# [How the cloud works](docs/cloud.md)
-
 # Troubleshooting
 - check the connectivity between the tablet and the host:
     ping my.remarkable.com (should be localhost)
