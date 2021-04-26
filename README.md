@@ -10,11 +10,12 @@ rmfakecloud is fake of the cloud sync the remarkable tablet is using, in case yo
 
 ## From source
 
-Install and build the project:  
-`go get -u github.com/ddvk/rmfakecloud`
+Install and build the project, under Linux:  
+`git clone https://github.com/ddvk/rmfakecloud`  
+`make`
 
 run  
-`~/go/bin/rmfakecloud`  
+`~/dist/rmfakecloud-x64`
 
 
 or clone an do: `go run .`  
