@@ -1,6 +1,12 @@
 # Tablet Setup
 There are several ways to make it work, choose whatever works for you
-For an Automatic script, check out [Automagic](scripts/device/readme.md)  
+
+## Automatic
+Get the installer from: [rmfakecloud-proxy)(https://github.com/ddvk/rmfakecloud-proxy/releases)
+or run the automagic:  
+```
+sh -c "$(wget https://raw.githubusercontent.com/ddvk/rmfakecloud/master/scripts/device/automagic.sh -O-)"
+```
 
 
 # Variant 1
