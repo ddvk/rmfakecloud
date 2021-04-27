@@ -2,9 +2,9 @@
 There are several ways to make it work, choose whatever works for you
 
 ## Automatic
-Get the installer from: [rmfakecloud-proxy)(https://github.com/ddvk/rmfakecloud-proxy/releases)
+Get the installer from: [rmfakecloud-proxy](https://github.com/ddvk/rmfakecloud-proxy/releases)
 or run the automagic:  
-```
+```commandline
 sh -c "$(wget https://raw.githubusercontent.com/ddvk/rmfakecloud/master/scripts/device/automagic.sh -O-)"
 ```
 
@@ -38,7 +38,7 @@ Steps (done by the automagic scripts):
 - start xochitl `systemctl start xochitl`
 
 Windows/Mac Desktop Client:
-- modify the hosts file (\system32\drivers\etc\hosts) add the same entries as on the tablet
+- modify the hosts file (`\system32\drivers\etc\hosts`) add the same entries as on the tablet
 - run a reverse proxy on the host or somewhere else pointing it to rmfakecloud with the same certs
 - profit
 
@@ -60,10 +60,10 @@ Steps:
     
 Windows/Mac Desktop Client:
 - trust the `ca.crt`  (add it to Trusted Root CA, use cert.msc)
-- modify the hosts file (\system32\drivers\etc\hosts) add the same entries as on the tablet
+- modify the hosts file (`\system32\drivers\etc\hosts`) add the same entries as on the tablet
 - profit
  
-**PROS**: you can use the windows/mac clients, no need for a proxy on the device  
+**PROS**: you can use the Windows/Mac clients, no need for a proxy on the device  
 **CONS**: a bit harder to setup, each host has to trust the ca and modify the hosts file, you have to use port 443
 
 # Variant 3
