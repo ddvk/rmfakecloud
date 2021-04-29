@@ -4,36 +4,29 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"net"
 	"net/mail"
 	"net/smtp"
-	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/ddvk/rmfakecloud/internal/config"
 	log "github.com/sirupsen/logrus"
 )
 
 const (
 	// MaxLineLength is the maximum line length per RFC 2045
 	MaxLineLength = 76
+	delimeter     = "**=myohmy689407924327898338383"
 )
 
-// SSL/TLS Email Example
-var servername, username, password, fromOverride, helo, insecureTLS string
-
-func init() {
-	//TODO: remove env dependency
-	servername = os.Getenv(config.EnvSMTPServer)
-	username = os.Getenv(config.EnvSMTPUsername)
-	password = os.Getenv(config.EnvSMTPPassword)
-	if servername == "" {
-		log.Warnln("smtp not configured, no emails will be sent")
-	}
-	helo = os.Getenv(config.EnvSMTPHelo)
-	insecureTLS = os.Getenv(config.EnvSMTPInsecureTLS)
-	fromOverride = os.Getenv(config.EnvSMTPFrom)
+type SmtpConfig struct {
+	Server       string
+	Username     string
+	Password     string
+	FromOverride string
+	Helo         string
+	InsecureTLS  bool
 }
 
 // Builder builds emails
@@ -50,7 +43,7 @@ type Builder struct {
 type emailAttachment struct {
 	filename    string
 	contentType string
-	data        []byte
+	data        io.Reader
 }
 
 func sanitizeAttachmentName(name string) string {
@@ -63,7 +56,7 @@ func trimAddresses(address string) string {
 }
 
 // AddFile adds a file attachment
-func (b *Builder) AddFile(name string, data []byte, contentType string) {
+func (b *Builder) AddFile(name string, data io.Reader, contentType string) {
 	log.Debugln("Adding file: ", name, " contentType: ", contentType)
 	if contentType == "" {
 		log.Warnln("no contentType, setting to binary")
@@ -77,14 +70,43 @@ func (b *Builder) AddFile(name string, data []byte, contentType string) {
 	b.attachments = append(b.attachments, attachment)
 }
 
+func (b *Builder) WriteAttachments(w io.Writer) (err error) {
+	for _, attachment := range b.attachments {
+		log.Debugln("File attachment: ", attachment.filename)
+
+		fileHeader := fmt.Sprintf("\r\n--%s\r\n", delimeter)
+		fileHeader += "Content-Type: " + attachment.contentType + "; charset=\"utf-8\"\r\n"
+		fileHeader += "Content-Transfer-Encoding: base64\r\n"
+		fileHeader += "Content-Disposition: attachment;filename=\"" + attachment.filename + "\"\r\n\r\n"
+		_, err = w.Write([]byte(fileHeader))
+		if err != nil {
+			return err
+		}
+
+		splittingEncoder := &SplittingWritter{
+			innerWriter:    w,
+			maxLineLength:  MaxLineLength,
+			lineTerminator: "\r\n",
+		}
+		base64Encoder := base64.NewEncoder(base64.StdEncoding, splittingEncoder)
+		_, err := io.Copy(base64Encoder, attachment.data)
+
+		if err != nil {
+			return err
+		}
+		base64Encoder.Close()
+	}
+	return nil
+}
+
 // Send sends the email
-func (b *Builder) Send() (err error) {
-	if servername == "" {
-		return fmt.Errorf("not configured")
+func (b *Builder) Send(cfg *SmtpConfig) (err error) {
+	if cfg == nil {
+		return fmt.Errorf("no smtp config")
 	}
 	frm := b.From
-	if fromOverride != "" {
-		frm = fromOverride
+	if cfg.FromOverride != "" {
+		frm = cfg.FromOverride
 	}
 	//if not defined
 	from, err := mail.ParseAddress(frm)
@@ -99,16 +121,16 @@ func (b *Builder) Send() (err error) {
 	log.Debug("from:", from)
 	log.Debug("to:", to)
 
-	host, _, _ := net.SplitHostPort(servername)
+	host, _, _ := net.SplitHostPort(cfg.Server)
 
 	tlsconfig := &tls.Config{
-		InsecureSkipVerify: insecureTLS != "",
+		InsecureSkipVerify: cfg.InsecureTLS,
 		ServerName:         host,
 	}
 
-	conn, err := tls.Dial("tcp", servername, tlsconfig)
+	conn, err := tls.Dial("tcp", cfg.Server, tlsconfig)
 	if err != nil {
-		log.Panic(err)
+		return err
 	}
 
 	c, err := smtp.NewClient(conn, host)
@@ -116,15 +138,15 @@ func (b *Builder) Send() (err error) {
 		return err
 	}
 
-	if helo != "" {
-		err = c.Hello(helo)
+	if cfg.Helo != "" {
+		err = c.Hello(cfg.Helo)
 		if err != nil {
 			return err
 		}
 	}
 
-	if username != "" {
-		auth := smtp.PlainAuth("", username, password, host)
+	if cfg.Username != "" {
+		auth := smtp.PlainAuth("", cfg.Username, cfg.Password, host)
 		if err = c.Auth(auth); err != nil {
 			return err
 		}
@@ -144,7 +166,6 @@ func (b *Builder) Send() (err error) {
 	if err != nil {
 		return err
 	}
-	delimeter := "**=myohmy689407924327898338383"
 	//basic email headers
 	msg := fmt.Sprintf("From: %s\r\n", from)
 	msg += fmt.Sprintf("To: %s\r\n", b.To)
@@ -167,23 +188,10 @@ func (b *Builder) Send() (err error) {
 	if err != nil {
 		return err
 	}
-	//Add attachments
-	for _, attachment := range b.attachments {
-		log.Debugln("File attachment: ", attachment.filename)
 
-		file := fmt.Sprintf("\r\n--%s\r\n", delimeter)
-		file += "Content-Type: " + attachment.contentType + "; charset=\"utf-8\"\r\n"
-		file += "Content-Transfer-Encoding: base64\r\n"
-		file += "Content-Disposition: attachment;filename=\"" + attachment.filename + "\"\r\n\r\n"
-		_, err = w.Write([]byte(file))
-		if err != nil {
-			return err
-		}
-		fileData := base64.StdEncoding.EncodeToString(attachment.data)
-		_, err = w.Write([]byte(chunkSplit(fileData, MaxLineLength, "\r\n")))
-		if err != nil {
-			return err
-		}
+	err = b.WriteAttachments(w)
+	if err != nil {
+		return err
 	}
 
 	// Add last boundary delimeter, with trailing -- according to RFC 1341
@@ -201,6 +209,47 @@ func (b *Builder) Send() (err error) {
 	c.Quit()
 	log.Info("Message sent")
 	return nil
+}
+
+// SplittingWritter writes a stream and inserts a terminar
+type SplittingWritter struct {
+	innerWriter       io.Writer
+	currentLineLength int
+	maxLineLength     int
+	lineTerminator    string
+}
+
+func (w *SplittingWritter) Write(p []byte) (n int, err error) {
+	length := len(p)
+	total := 0
+	for to, from := 0, 0; from < length; from = to {
+		delta := w.maxLineLength - w.currentLineLength
+
+		to = from + delta
+		if to > length {
+			to = length
+			delta = length - from
+		}
+
+		n, err = w.innerWriter.Write(p[from:to])
+		total += n
+		if err != nil {
+			return total, err
+		}
+
+		w.currentLineLength += delta
+
+		if w.currentLineLength == w.maxLineLength {
+			n, err = w.innerWriter.Write([]byte(w.lineTerminator))
+			total += n
+			if err != nil {
+				return total, err
+			}
+			w.currentLineLength = 0
+		}
+	}
+
+	return total, nil
 }
 
 func chunkSplit(body string, limit int, end string) string {
