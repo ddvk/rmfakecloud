@@ -23,20 +23,23 @@ func main() {
 		fmt.Printf(`
 Commands:
 	setuser		create users / reset passwords
-	listusers	lists available users
+	listusers	list available users
 `)
 		fmt.Println(config.EnvVars())
 	}
 
 	flag.Parse()
-	fmt.Fprintln(os.Stderr, "run with -h for all available env variables")
 
 	cfg := config.FromEnv()
+
 	//cli
 	cmd := cli.New(cfg)
 	if cmd.Handle(os.Args) {
 		return
 	}
+
+	fmt.Fprintln(os.Stderr, "run with -h for all available env variables")
+	cfg.Verify()
 
 	logger := log.StandardLogger()
 	logger.SetFormatter(&log.TextFormatter{})
