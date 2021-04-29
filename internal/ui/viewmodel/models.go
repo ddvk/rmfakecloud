@@ -23,8 +23,8 @@ type ResetPasswordForm struct {
 
 // DocumentTree a tree of documents
 type DocumentTree struct {
-	Entries    []Entry
-	allEntries []Entry
+	Entries []Entry
+	Trash   []Entry
 }
 
 const CollectionType = "CollectionType"
@@ -48,10 +48,13 @@ func makeDocument(d *messages.RawDocument) (entry Entry) {
 	return
 }
 
+const trashId = "trash"
+
 func NewTree(documents []*messages.RawDocument) *DocumentTree {
 	childParent := make(map[string]string)
 	folders := make(map[string]*Directory)
 	rootEntries := make([]Entry, 0)
+	trashEntries := make([]Entry, 0)
 
 	sort.Slice(documents, func(i, j int) bool {
 		a, b := documents[i], documents[j]
@@ -81,6 +84,11 @@ func NewTree(documents []*messages.RawDocument) *DocumentTree {
 		}
 
 		parentId := d.Parent
+
+		if parentId == trashId {
+			trashEntries = append(trashEntries, entry)
+			continue
+		}
 
 		if parentId == "" {
 			// empty parent = root
@@ -112,6 +120,7 @@ func NewTree(documents []*messages.RawDocument) *DocumentTree {
 
 	tree := DocumentTree{
 		Entries: rootEntries,
+		Trash:   trashEntries,
 	}
 
 	return &tree
