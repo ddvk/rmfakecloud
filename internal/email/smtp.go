@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/mail"
 	"net/smtp"
+	"net/url"
 	"path/filepath"
 	"strings"
 
@@ -77,7 +78,7 @@ func (b *Builder) WriteAttachments(w io.Writer) (err error) {
 		fileHeader := fmt.Sprintf("\r\n--%s\r\n", delimeter)
 		fileHeader += "Content-Type: " + attachment.contentType + "; charset=\"utf-8\"\r\n"
 		fileHeader += "Content-Transfer-Encoding: base64\r\n"
-		fileHeader += "Content-Disposition: attachment;filename=\"" + attachment.filename + "\"\r\n\r\n"
+		fileHeader += "Content-Disposition: attachment;filename*=utf-8''" + url.QueryEscape(attachment.filename) + "\r\n\r\n"
 		_, err = w.Write([]byte(fileHeader))
 		if err != nil {
 			return err
