@@ -1,7 +1,7 @@
 # rmfakecloud
 
 
-rmfakecloud is fake of the cloud sync the remarkable tablet is using, in case you want to sync/backup your files and have full control of the hosting/storage environment and don't trust Google.
+rmfakecloud is a clone of the cloud sync the remarkable tablet is using, in case you want to sync/backup your files and have full control of the hosting/storage environment and don't trust Google.
 
 # Breaking Changes
 - after v0.0.3 the files in `/data` will have to be manually move to the user that will be created
