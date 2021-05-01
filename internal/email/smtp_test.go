@@ -44,24 +44,31 @@ func TestAttachments(t *testing.T) {
 		t.Error("doesn't match", result)
 	}
 }
-func TestRead(t *testing.T) {
-	t.Skip("TODO: fake the sending")
+func TestSendMail(t *testing.T) {
+	sendTo := os.Getenv("RM_SMTP_TO")
+	if sendTo == "" {
+		t.Skip("manual test")
+	}
+
+	cfg := &SmtpConfig{
+		Server:       os.Getenv("RM_SMTP_SERVER"),
+		Username:     os.Getenv("RM_SMTP_USERNAME"),
+		Password:     os.Getenv("RM_SMTP_PASSWORD"),
+		FromOverride: os.Getenv("RM_SMTP_FROM"),
+	}
 
 	file, _ := os.Open("test.txt")
 	sender := Builder{
-		To:      "bingobango@mailinator.com",
-		From:    "bingo.bongo@gmail.com",
-		Subject: "testing",
+		To:      sendTo,
+		From:    "from@test.com",
+		Subject: "subj test 鬼 тест",
 		Body: `<!DOCTYPE html>
 		<html><body><h1>blah</h1></body></html>`,
-		// FileName: []string{"sometest.txt"},
-		// File:     files,
 	}
-	sender.AddFile("tst", file, "text/plain")
+	sender.AddFile("test 鬼 тест ", file, "text/plain")
 
-	err := sender.Send(nil)
+	err := sender.Send(cfg)
 	if err != nil && err.Error() != "not configured" {
 		t.Error(err)
 	}
-
 }

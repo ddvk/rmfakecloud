@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"mime"
 	"net"
 	"net/mail"
 	"net/smtp"
@@ -78,7 +79,7 @@ func (b *Builder) WriteAttachments(w io.Writer) (err error) {
 		fileHeader := fmt.Sprintf("\r\n--%s\r\n", delimeter)
 		fileHeader += "Content-Type: " + attachment.contentType + "; charset=\"utf-8\"\r\n"
 		fileHeader += "Content-Transfer-Encoding: base64\r\n"
-		fileHeader += "Content-Disposition: attachment;filename*=utf-8''" + url.QueryEscape(attachment.filename) + "\r\n\r\n"
+		fileHeader += "Content-Disposition: attachment;filename*=utf-8''" + url.PathEscape(attachment.filename) + "\r\n\r\n"
 		_, err = w.Write([]byte(fileHeader))
 		if err != nil {
 			return err
@@ -98,6 +99,10 @@ func (b *Builder) WriteAttachments(w io.Writer) (err error) {
 		base64Encoder.Close()
 	}
 	return nil
+}
+
+func utf8encode(s string) string {
+	return mime.QEncoding.Encode("utf-8", s)
 }
 
 // Send sends the email
@@ -168,9 +173,9 @@ func (b *Builder) Send(cfg *SmtpConfig) (err error) {
 		return err
 	}
 	//basic email headers
-	msg := fmt.Sprintf("From: %s\r\n", from)
-	msg += fmt.Sprintf("To: %s\r\n", b.To)
-	msg += fmt.Sprintf("Subject: %s\r\n", b.Subject)
+	msg := fmt.Sprintf("From: %s\r\n", utf8encode(from.String()))
+	msg += fmt.Sprintf("To: %s\r\n", utf8encode(b.To))
+	msg += fmt.Sprintf("Subject: %s\r\n", utf8encode(b.Subject))
 	// msg += fmt.Sprintf("ReplyTo: %s\r\n", b.ReplyTo)
 
 	msg += "MIME-Version: 1.0\r\n"
@@ -212,7 +217,7 @@ func (b *Builder) Send(cfg *SmtpConfig) (err error) {
 	return nil
 }
 
-// SplittingWritter writes a stream and inserts a terminar
+// SplittingWritter writes a stream and inserts a terminator
 type SplittingWritter struct {
 	innerWriter       io.Writer
 	currentLineLength int
@@ -251,31 +256,4 @@ func (w *SplittingWritter) Write(p []byte) (n int, err error) {
 	}
 
 	return total, nil
-}
-
-func chunkSplit(body string, limit int, end string) string {
-	var charSlice []rune
-
-	// push characters to slice
-	for _, char := range body {
-		charSlice = append(charSlice, char)
-	}
-
-	var result = ""
-
-	for len(charSlice) >= 1 {
-		// convert slice/array back to string
-		// but insert end at specified limit
-		result = result + string(charSlice[:limit]) + end
-
-		// discard the elements that were copied over to result
-		charSlice = charSlice[limit:]
-
-		// change the limit
-		// to cater for the last few words in
-		if len(charSlice) < limit {
-			limit = len(charSlice)
-		}
-	}
-	return result
 }
