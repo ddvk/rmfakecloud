@@ -1,7 +1,7 @@
 # rmfakecloud
 
 
-rmfakecloud is fake of the cloud sync the remarkable tablet is using, in case you want to sync/backup your files and have full control of the hosting/storage environment and don't trust Google.
+rmfakecloud is a clone of the cloud sync the remarkable tablet is using, in case you want to sync/backup your files and have full control of the hosting/storage environment and don't trust Google.
 
 # Breaking Changes
 - after v0.0.3 the files in `/data` will have to be manually move to the user that will be created
@@ -82,14 +82,6 @@ RM_SMTP_FROM='"ReMarkable self-hosted" <user@domain.com>'
 
 # [HTTPS HowTO](docs/https.md)
 
-
-## Automagic to be run on the device
-```
-sh -c "$(wget https://raw.githubusercontent.com/ddvk/rmfakecloud/master/scripts/device/automagic.sh -O-)"
-```
-
-## Without patching the binary
-
 # Caveats/ WARNING
 - (applies when you don't have security) connecting to the api will delete all your files, unless you mark them as not synced `synced:false` prior to syncing (advisable just to disconnect, reconnect the cloud)
 - **if you delete files from the users directory** on the host, on the next sync those will be deleted from the device
@@ -131,4 +123,15 @@ sh -c "$(wget https://raw.githubusercontent.com/ddvk/rmfakecloud/master/scripts/
     ```
     if you see *SSL Handshake failed* then something is wrong with the certs
 
-
+# TODO
+[ ] UI specify folder on upload
+[ ] UI add/remove users
+[ ] UI move files around
+[ ] UI rename files
+[ ] UI realtime notifications
+[ ] UI document preview
+[ ] UI archive / restore documents
+[ ] UI share files between users
+[ ] UI refactoring
+[ ] UI sent emails history
+[ ] livepreview

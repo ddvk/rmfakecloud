@@ -25,7 +25,7 @@ func NewStorage(cfg *config.Config) *Storage {
 	usersPath := fs.getUserPath("")
 	err := os.MkdirAll(usersPath, 0700)
 	if err != nil {
-		log.Panic("cannot create the user path " + usersPath)
+		log.Fatal("cannot create the user path " + usersPath)
 	}
 
 	return fs

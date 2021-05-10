@@ -197,16 +197,9 @@ func (app *App) sendEmail(c *gin.Context) {
 		}
 		defer f.Close()
 
-		//TODO: reader
-		data, err := ioutil.ReadAll(f)
-		if err != nil {
-			log.Error(handlerLog, err)
-			badReq(c, "cant read attachment")
-			return
-		}
-		emailClient.AddFile(file.Filename, data, file.Header.Get("Content-Type"))
+		emailClient.AddFile(file.Filename, f, file.Header.Get("Content-Type"))
 	}
-	err = emailClient.Send()
+	err = emailClient.Send(app.cfg.SmtpConfig)
 	if err != nil {
 		log.Error(handlerLog, err)
 		internalError(c, "cant send email")

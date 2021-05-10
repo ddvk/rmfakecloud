@@ -37,9 +37,7 @@ export default function StyledDropzone(props) {
   var onDrop = async (acceptedFiles) => {
     try {
       setUploading(true);
-      await apiservice.upload(
-        acceptedFiles
-      )
+      await apiservice.upload(acceptedFiles)
       setLastError(null)
       props.filesUploaded()
     } catch (e) {
