@@ -144,7 +144,7 @@ func (app *App) newUserToken(c *gin.Context) {
 		},
 		DeviceDesc: deviceToken.DeviceDesc,
 		DeviceID:   deviceToken.DeviceID,
-		Scopes:     "sync:default",
+		Scopes:     "sync:default intgr screenshare mail:-1 hwcmail:-1",
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 			NotBefore: now.Unix(),
