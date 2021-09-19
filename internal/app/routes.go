@@ -38,7 +38,11 @@ func (app *App) registerRoutes(router *gin.Engine) {
 
 	//some beta stuff from internal.cloud
 	router.GET("/settings/v1/beta", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"enrolled": false, "available": true})
+		c.JSON(http.StatusOK, gin.H{"enrolled": false, "updated_at": "2021-09-18T18:01:30.36233Z", "channel":"External_Beta-3f1caf0e-7961-4ed1-a321-ef04bd973aa6"})
+	})
+
+	router.GET("/integrations/v1", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"integraionts": []string{} })
 	})
 
 	router.POST("/settings/v1/beta", func(c *gin.Context) {

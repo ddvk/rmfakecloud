@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 )
@@ -27,12 +28,24 @@ func (app *App) authMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		if claims.Scopes != "sync:default" {
-			log.Warn(authLog, " wrong scope, proably old token")
-			c.String(http.StatusUnauthorized, "missing scope")
-			c.Abort()
+
+		if claims.Audience != common.APIUsage {
+			log.Warn("wrong token audience: ", claims.Audience)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing or incorrect token"})
 			return
 		}
+        scopes := strings.Split(claims.Scopes, " ")
+
+        var isDefault = false
+        for _, s := range scopes {
+            if s == "sync:default" {
+                isDefault = true
+            }
+        }
+        if !isDefault {
+            log.Warn("missing sync:default scope")
+        }
+
 
 		uid := strings.TrimPrefix(claims.Profile.UserID, "auth0|")
 		c.Set(userIDKey, uid)

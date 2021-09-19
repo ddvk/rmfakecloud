@@ -63,5 +63,5 @@ const (
 	// StorageUsage for file retrieval
 	StorageUsage = "storage"
 	// APIUSage for the device api
-	APIUSage = "api"
+	APIUsage = "api"
 )

@@ -82,7 +82,7 @@ func (app *App) newDevice(c *gin.Context) {
 		DeviceID:   tokenRequest.DeviceID,
 		UserID:     uid,
 		StandardClaims: jwt.StandardClaims{
-			Audience: common.APIUSage,
+			Audience: common.APIUsage,
 		},
 	}
 
@@ -144,7 +144,7 @@ func (app *App) newUserToken(c *gin.Context) {
 		},
 		DeviceDesc: deviceToken.DeviceDesc,
 		DeviceID:   deviceToken.DeviceID,
-		Scopes:     "sync:default intgr screenshare mail:-1 hwcmail:-1",
+		Scopes:     "sync:default hsu intgr screenshare mail:-1 hwcmail:-1",
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 			NotBefore: now.Unix(),
@@ -152,6 +152,7 @@ func (app *App) newUserToken(c *gin.Context) {
 			Subject:   "rM User Token",
 			Issuer:    "rM WebApp",
 			Id:        "1234",
+			Audience: common.APIUsage,
 		},
 	}
 
