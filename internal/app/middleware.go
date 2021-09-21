@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 )
@@ -29,12 +28,7 @@ func (app *App) authMiddleware() gin.HandlerFunc {
 		}
 
 
-		if claims.Audience != common.APIUsage {
-			log.Warn("wrong token audience: ", claims.Audience)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing or incorrect token"})
-			return
-		}
-        scopes := strings.Split(claims.Scopes, " ")
+        scopes := strings.Fields(claims.Scopes)
 
         var isDefault = false
         for _, s := range scopes {

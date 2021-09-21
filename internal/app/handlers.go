@@ -144,7 +144,7 @@ func (app *App) newUserToken(c *gin.Context) {
 		},
 		DeviceDesc: deviceToken.DeviceDesc,
 		DeviceID:   deviceToken.DeviceID,
-		Scopes:     "sync:default hsu intgr screenshare mail:-1 hwcmail:-1",
+		Scopes:     "sync:fox",
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 			NotBefore: now.Unix(),
@@ -152,7 +152,6 @@ func (app *App) newUserToken(c *gin.Context) {
 			Subject:   "rM User Token",
 			Issuer:    "rM WebApp",
 			Id:        "1234",
-			Audience: common.APIUsage,
 		},
 	}
 
@@ -317,9 +316,52 @@ func (app *App) updateStatus(c *gin.Context) {
 func (app *App) locateService(c *gin.Context) {
 	svc := c.Param("service")
 	log.Printf("Requested: %s\n", svc)
-	response := messages.HostResponse{Host: config.DefaultHost, Status: "OK"}
+	host := config.DefaultHost
+	if svc == "blob-storage" {
+		host = "https://" + config.DefaultHost
+	}
+	response := messages.HostResponse{Host: host, Status: "OK"}
 	c.JSON(http.StatusOK, response)
 }
+func (app *App) blobStorageDownload(c *gin.Context) {
+	var req messages.BlobStorageRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Error(err)
+		badReq(c, err.Error())
+		return
+	}
+
+	other := "/list"
+	if req.RelativePath != "root" {
+		other = "/download/" + req.RelativePath
+	}
+
+	response := messages.BlobStorageResponse{
+		Method:       "GET",
+		RelativePath: "root",
+		Url:          "https://" + config.DefaultHost + other,
+	}
+	c.JSON(http.StatusOK, response)
+}
+func (app *App) blobStorageUpload(c *gin.Context) {
+	var req messages.BlobStorageRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Error(err)
+		badReq(c, err.Error())
+		return
+	}
+	other := "/list"
+	if req.RelativePath != "root" {
+		other = "/upload/" + req.RelativePath
+	}
+	response := messages.BlobStorageResponse{
+		Method:       "PUT",
+		RelativePath: "root",
+		Url:          "https://" + config.DefaultHost + other,
+	}
+	c.JSON(http.StatusOK, response)
+}
+
 func (app *App) uploadRequest(c *gin.Context) {
 	uid := c.GetString(userIDKey)
 	var req []messages.UploadRequest
