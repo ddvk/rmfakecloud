@@ -37,6 +37,7 @@ type User struct {
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 	IsAdmin       bool
+	Sync15        bool
 }
 
 // GenPassword generates a new random password

@@ -28,11 +28,16 @@ const (
 	DefaultTrashDir = ".trash"
 	CacheDir        = ".cache"
 	Archive         = "archive"
+	Sync            = "sync"
 )
 
 // Storage file system document storage
 type Storage struct {
 	Cfg *config.Config
+}
+
+func (fs *Storage) getUserSyncPath(uid string) string {
+	return filepath.Join(fs.getUserPath(uid), Sync)
 }
 
 func (fs *Storage) getUserPath(uid string) string {
@@ -161,7 +166,7 @@ func (fs *Storage) RemoveDocument(uid, id string) error {
 }
 
 // GetStorageURL return a url for a file to store
-func (fs *Storage) GetStorageURL(uid string, id string) (docurl string, expiration time.Time, err error) {
+func (fs *Storage) GetStorageURL(uid, id, urltype string) (docurl string, expiration time.Time, err error) {
 	uploadRL := fs.Cfg.StorageURL
 	exp := time.Now().Add(time.Minute * config.ReadStorageExpirationInMinutes)
 
@@ -179,7 +184,28 @@ func (fs *Storage) GetStorageURL(uid string, id string) (docurl string, expirati
 		return "", exp, err
 	}
 
-	return fmt.Sprintf("%s/storage/%s", uploadRL, url.QueryEscape(signedToken)), exp, nil
+	return fmt.Sprintf("%s/%s/%s", uploadRL, urltype, url.QueryEscape(signedToken)), exp, nil
+}
+
+// GetDocument Opens a document by id
+func (fs *Storage) GetBlob(uid, id string) (io.ReadCloser, error) {
+	fullPath := path.Join(fs.getUserSyncPath(uid), sanitize(id))
+	log.Debugln("Fullpath:", fullPath)
+	reader, err := os.Open(fullPath)
+	return reader, err
+}
+
+// StoreDocument stores a document
+func (fs *Storage) StoreBlob(uid, id string, stream io.ReadCloser) error {
+	//todo sanitite id
+	fullPath := path.Join(fs.getUserSyncPath(uid), sanitize(id))
+	file, err := os.Create(fullPath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	_, err = io.Copy(file, stream)
+	return err
 }
 
 // StoreDocument stores a document
@@ -255,9 +281,68 @@ func (fs *Storage) downloadDocument(c *gin.Context) {
 	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
 }
 
+func (fs *Storage) downloadBlob(c *gin.Context) {
+	strToken := c.Param(tokenParam)
+	token, err := fs.parseToken(strToken)
+
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	id := token.DocumentID
+	log.Info("Requestng blob Id: ", id)
+
+	reader, err := fs.GetBlob(token.UserID, id)
+	//TODO: empty root
+	if t, ok := err.(*os.PathError); ok && id == "root" {
+		log.Warn(t.Err)
+		c.Status(http.StatusOK)
+		return
+	}
+
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	//TODO: read generation
+	c.Header("x-goog-generation", "1")
+	defer reader.Close()
+	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
+}
+
+func (fs *Storage) uploadBlob(c *gin.Context) {
+	strToken := c.Param(tokenParam)
+	token, err := fs.parseToken(strToken)
+
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	id := token.DocumentID
+	body := c.Request.Body
+	defer body.Close()
+
+	err = fs.StoreBlob(token.UserID, id, body)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{})
+
+}
+
 // RegisterRoutes blah
 func (fs *Storage) RegisterRoutes(router *gin.Engine) {
 
 	router.GET("/storage/:"+tokenParam, fs.downloadDocument)
 	router.PUT("/storage/:"+tokenParam, fs.uploadDocument)
+
+	//sync15
+	router.GET("/blobstorage/:"+tokenParam, fs.downloadBlob)
+	router.PUT("/blobstorage/:"+tokenParam, fs.uploadBlob)
 }

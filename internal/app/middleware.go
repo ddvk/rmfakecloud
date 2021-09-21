@@ -27,19 +27,17 @@ func (app *App) authMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		scopes := strings.Fields(claims.Scopes)
 
-        scopes := strings.Fields(claims.Scopes)
-
-        var isDefault = false
-        for _, s := range scopes {
-            if s == "sync:default" {
-                isDefault = true
-            }
-        }
-        if !isDefault {
-            log.Warn("missing sync:default scope")
-        }
-
+		var isDefault = false
+		for _, s := range scopes {
+			if s == "sync:default" {
+				isDefault = true
+			}
+		}
+		if !isDefault {
+			// log.Warn("missing sync:default scope")
+		}
 
 		uid := strings.TrimPrefix(claims.Profile.UserID, "auth0|")
 		c.Set(userIDKey, uid)
@@ -49,12 +47,12 @@ func (app *App) authMiddleware() gin.HandlerFunc {
 	}
 }
 
-var ignoreBodyLogging = []string{"/storage", "/api/v2/document", "/ui/api/documents/upload"} //, "/v1/reports"}
+var ignoreBodyLogging = []string{"/storage", "/blobstorage", "/api/v2/document", "/ui/api/documents/upload", "/v1/reports"}
 
 func requestLoggerMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
-		log.Debugln(requestLog, "header ", c.Request.Header)
+		// log.Debugln(requestLog, "header ", c.Request.Header)
 		for _, skip := range ignoreBodyLogging {
 			if strings.Index(c.Request.URL.Path, skip) == 0 {
 				log.Debugln("body logging ignored")

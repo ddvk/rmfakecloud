@@ -89,7 +89,7 @@ func (fs *Storage) RegisterUser(u *model.User) (err error) {
 		err = errors.New("empty id")
 		return
 	}
-	userPath := fs.getUserPath(u.ID)
+	userPath := fs.getUserSyncPath(u.ID)
 
 	// Create the user's directory
 	err = os.MkdirAll(userPath, 0700)

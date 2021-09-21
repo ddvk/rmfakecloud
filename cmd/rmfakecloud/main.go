@@ -11,6 +11,8 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/cli"
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/gin-gonic/gin"
+	"github.com/rifflock/lfshook"
+	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -43,6 +45,15 @@ Commands:
 
 	logger := log.StandardLogger()
 	logger.SetFormatter(&log.TextFormatter{})
+
+	var file, err = os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		fmt.Println("cannot open log file for writing")
+	} else {
+		defer file.Close()
+		hook := lfshook.NewHook(file, &logrus.TextFormatter{DisableColors: true})
+		logger.Hooks.Add(hook)
+	}
 
 	if lvl, err := log.ParseLevel(os.Getenv(config.EnvLogLevel)); err == nil {
 		fmt.Println("Log level:", lvl)

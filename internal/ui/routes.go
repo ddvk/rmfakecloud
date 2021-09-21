@@ -32,21 +32,21 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	r.POST("login", app.login)
 
 	//with authentication
-	gr := r.Group("")
-	gr.Use(app.authMiddleware())
+	auth := r.Group("")
+	auth.Use(app.authMiddleware())
 
-	gr.GET("newcode", app.newCode)
-	gr.POST("resetPassword", app.resetPassword)
+	auth.GET("newcode", app.newCode)
+	auth.POST("resetPassword", app.resetPassword)
 
-	gr.GET("documents", app.listDocuments)
-	gr.GET("documents/:docid", app.getDocument)
-	gr.POST("documents/upload", app.createDocument)
-	gr.DELETE("documents/:docid", app.deleteDocument)
+	auth.GET("documents", app.listDocuments)
+	auth.GET("documents/:docid", app.getDocument)
+	auth.POST("documents/upload", app.createDocument)
+	auth.DELETE("documents/:docid", app.deleteDocument)
 	//move, rename
-	gr.PUT("documents", app.updateDocument)
+	auth.PUT("documents", app.updateDocument)
 
 	//admin
-	admin := gr.Group("")
+	admin := auth.Group("")
 	admin.Use(app.adminMiddleware())
 	admin.GET("users/:userid", app.getUser)
 	admin.GET("users", app.getAppUsers)

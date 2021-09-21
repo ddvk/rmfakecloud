@@ -1,0 +1,13 @@
+[Unit]
+Description=rmfakecloud
+
+[Service]
+EnvironmentFile=/etc/rmfakecloud.env
+ExecStart=/usr/bin/rmfakecloud-arm64
+User=rmfakecloud
+Group=rmfakecloud
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

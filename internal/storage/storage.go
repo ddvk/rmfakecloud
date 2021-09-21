@@ -24,7 +24,7 @@ type DocumentStorer interface {
 	ExportDocument(uid, docid, outputType string, exportOption ExportOption) (io.ReadCloser, error)
 
 	// GetStorageURL creates a short lived url
-	GetStorageURL(uid, docid string) (string, time.Time, error)
+	GetStorageURL(uid, docid, urltype string) (string, time.Time, error)
 
 	RegisterRoutes(*gin.Engine)
 }

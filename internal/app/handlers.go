@@ -43,7 +43,7 @@ func (app *App) getDeviceClaims(c *gin.Context) (*common.DeviceClaims, error) {
 
 func (app *App) getUserClaims(c *gin.Context) (*common.UserClaims, error) {
 	token, err := common.GetToken(c)
-	log.Debug(handlerLog, "Token: ", token)
+	// log.Debug(handlerLog, "Token: ", token)
 	if err != nil {
 		return nil, err
 	}
@@ -127,11 +127,21 @@ func (app *App) newUserToken(c *gin.Context) {
 		return
 	}
 
+	sync10 := "sync:default"
+	sync15 := "sync:fox"
+	scopes := []string{"hcu", "intgr", "screenshare"}
+
+	if user.Sync15 {
+		scopes = append(scopes, sync15)
+	} else {
+		scopes = append(scopes, sync10)
+	}
+	scopesStr := strings.Join(scopes, " ")
 	now := time.Now()
 	expirationTime := now.Add(24 * time.Hour)
 	claims := &common.UserClaims{
 		Profile: common.Auth0profile{
-			UserID:        "auth0|" + deviceToken.UserID,
+			UserID:        deviceToken.UserID,
 			IsSocial:      false,
 			Connection:    "Username-Password-Authentication",
 			Name:          user.Email,
@@ -144,7 +154,7 @@ func (app *App) newUserToken(c *gin.Context) {
 		},
 		DeviceDesc: deviceToken.DeviceDesc,
 		DeviceID:   deviceToken.DeviceID,
-		Scopes:     "sync:fox",
+		Scopes:     scopesStr,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 			NotBefore: now.Unix(),
@@ -236,7 +246,7 @@ func (app *App) listDocuments(c *gin.Context) {
 
 	for _, response := range result {
 		if withBlob {
-			storageURL, exp, err := app.docStorer.GetStorageURL(uid, response.ID)
+			storageURL, exp, err := app.docStorer.GetStorageURL(uid, response.ID, "storage")
 			if err != nil {
 				response.Success = false
 				log.Warn("Cant get storage url for : ", response.ID)
@@ -323,7 +333,12 @@ func (app *App) locateService(c *gin.Context) {
 	response := messages.HostResponse{Host: host, Status: "OK"}
 	c.JSON(http.StatusOK, response)
 }
+func (app *App) syncComplete(c *gin.Context) {
+	log.Info("Sync complete")
+	c.Status(http.StatusOK)
+}
 func (app *App) blobStorageDownload(c *gin.Context) {
+	uid := c.GetString(userIDKey)
 	var req messages.BlobStorageRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Error(err)
@@ -331,15 +346,16 @@ func (app *App) blobStorageDownload(c *gin.Context) {
 		return
 	}
 
-	other := "/list"
-	if req.RelativePath != "root" {
-		other = "/download/" + req.RelativePath
+	url, _, err := app.docStorer.GetStorageURL(uid, req.RelativePath, "blobstorage")
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
 	}
-
 	response := messages.BlobStorageResponse{
 		Method:       "GET",
-		RelativePath: "root",
-		Url:          "https://" + config.DefaultHost + other,
+		RelativePath: req.RelativePath,
+		Url:          url,
 	}
 	c.JSON(http.StatusOK, response)
 }
@@ -350,14 +366,17 @@ func (app *App) blobStorageUpload(c *gin.Context) {
 		badReq(c, err.Error())
 		return
 	}
-	other := "/list"
-	if req.RelativePath != "root" {
-		other = "/upload/" + req.RelativePath
+	uid := c.GetString(userIDKey)
+	url, _, err := app.docStorer.GetStorageURL(uid, req.RelativePath, "blobstorage")
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
 	}
 	response := messages.BlobStorageResponse{
 		Method:       "PUT",
-		RelativePath: "root",
-		Url:          "https://" + config.DefaultHost + other,
+		RelativePath: req.RelativePath,
+		Url:          url,
 	}
 	c.JSON(http.StatusOK, response)
 }
@@ -378,7 +397,7 @@ func (app *App) uploadRequest(c *gin.Context) {
 		if documentID == "" {
 			badReq(c, "no id")
 		}
-		url, exp, err := app.docStorer.GetStorageURL(uid, documentID)
+		url, exp, err := app.docStorer.GetStorageURL(uid, documentID, "storage")
 		if err != nil {
 			log.Error(err)
 			c.AbortWithStatus(http.StatusInternalServerError)
