@@ -92,7 +92,7 @@ func NewApp(cfg *config.Config) App {
 		//TODO: not thread safe
 		cfg.CreateFirstUser = true
 	}
-	h := hub.NewHub()
+	ntfHub := hub.NewHub()
 	codeConnector := NewCodeConnector()
 	router := gin.Default()
 
@@ -120,14 +120,16 @@ func NewApp(cfg *config.Config) App {
 		docStorer:     fsStorage,
 		userStorer:    fsStorage,
 		metaStorer:    fsStorage,
-		hub:           h,
+		hub:           ntfHub,
 		codeConnector: codeConnector,
 	}
-	reactApp := ui.New(cfg, fsStorage, codeConnector, h, fsStorage)
+	uiApp := ui.New(cfg, fsStorage, codeConnector, ntfHub, fsStorage)
+
+	storageapp := storage.NewApp(cfg, fsStorage, ntfHub)
 
 	app.registerRoutes(router)
-	fsStorage.RegisterRoutes(router)
-	reactApp.RegisterRoutes(router)
+	storageapp.RegisterRoutes(router)
+	uiApp.RegisterRoutes(router)
 	return app
 }
 

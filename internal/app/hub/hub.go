@@ -14,6 +14,7 @@ import (
 const (
 	DocAddedEvent   = "DocAdded"
 	DocDeletedEvent = "DocDeleted"
+	SyncUpdated     = "NotificationsSyncUpdated"
 )
 
 type ntf struct {
@@ -43,18 +44,21 @@ func (h *Hub) Notify(uid, deviceID string, doc *messages.RawDocument, eventType 
 			Attributes: messages.Attributes{
 				Auth0UserID:      uid,
 				Event:            eventType,
-				ID:               doc.ID,
-				Type:             doc.Type,
-				Version:          strconv.Itoa(doc.Version),
-				VissibleName:     doc.VissibleName,
 				SourceDeviceDesc: "some-client",
 				SourceDeviceID:   deviceID,
-				Parent:           doc.Parent,
 			},
 			PublishTime:  timeStamp,
 			PublishTime2: timeStamp,
 		},
 		Subscription: "dummy-subscription",
+	}
+	if doc != nil {
+		msg.Message.Attributes.ID = doc.ID
+		msg.Message.Attributes.Type = doc.Type
+		msg.Message.Attributes.Version = strconv.Itoa(doc.Version)
+		msg.Message.Attributes.VissibleName = doc.VissibleName
+		msg.Message.Attributes.Parent = doc.Parent
+
 	}
 
 	h.notifications <- ntf{

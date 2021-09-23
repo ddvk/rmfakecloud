@@ -6,7 +6,6 @@ import (
 
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/model"
-	"github.com/gin-gonic/gin"
 )
 
 type ExportOption int
@@ -26,7 +25,9 @@ type DocumentStorer interface {
 	// GetStorageURL creates a short lived url
 	GetStorageURL(uid, docid, urltype string) (string, time.Time, error)
 
-	RegisterRoutes(*gin.Engine)
+	StoreBlob(uid, blobId string, s io.ReadCloser) error
+	LoadBlob(uid, blobId string) (io.ReadCloser, error)
+	RootGen(uid string) int
 }
 
 // MetadataStorer manages document metadata

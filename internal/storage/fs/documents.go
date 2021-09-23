@@ -2,10 +2,11 @@ package fs
 
 import (
 	"archive/zip"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
+	"io/ioutil"
 	"net/url"
 	"os"
 	"path"
@@ -13,12 +14,12 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt"
+	"github.com/juju/fslock"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/storage"
-	"github.com/gin-gonic/gin"
 	rm2pdf2 "github.com/juruen/rmapi/annotations"
 	rm2pdf "github.com/poundifdef/go-remarkable2pdf"
 )
@@ -47,8 +48,6 @@ func (fs *Storage) getUserPath(uid string) string {
 func (fs *Storage) getPathFromUser(uid, path string) string {
 	return filepath.Join(fs.getUserPath(uid), filepath.Base(path))
 }
-
-const tokenParam = "token"
 
 func sanitize(id string) string {
 	//TODO: more
@@ -188,7 +187,7 @@ func (fs *Storage) GetStorageURL(uid, id, urltype string) (docurl string, expira
 }
 
 // GetDocument Opens a document by id
-func (fs *Storage) GetBlob(uid, id string) (io.ReadCloser, error) {
+func (fs *Storage) LoadBlob(uid, id string) (io.ReadCloser, error) {
 	fullPath := path.Join(fs.getUserSyncPath(uid), sanitize(id))
 	log.Debugln("Fullpath:", fullPath)
 	reader, err := os.Open(fullPath)
@@ -197,15 +196,69 @@ func (fs *Storage) GetBlob(uid, id string) (io.ReadCloser, error) {
 
 // StoreDocument stores a document
 func (fs *Storage) StoreBlob(uid, id string, stream io.ReadCloser) error {
-	//todo sanitite id
+
+	reader := stream
+	//todo: locking
+	if id == "root" {
+		history := path.Join(fs.getUserSyncPath(uid), "root.history")
+
+		lock := fslock.New(history)
+		err := lock.LockWithTimeout(time.Duration(time.Second * 5))
+		if err != nil {
+			log.Error("cannot obtain lock")
+		}
+		defer lock.Unlock()
+
+		var buf bytes.Buffer
+		tee := io.TeeReader(stream, &buf)
+
+		hist, err := os.OpenFile(history, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			return err
+		}
+		defer hist.Close()
+		t := time.Now().UTC().Format(time.RFC3339) + " "
+		hist.WriteString(t)
+		_, err = io.Copy(hist, tee)
+		if err != nil {
+			return err
+		}
+		hist.WriteString("\n")
+
+		reader = ioutil.NopCloser(&buf)
+	}
+
 	fullPath := path.Join(fs.getUserSyncPath(uid), sanitize(id))
 	file, err := os.Create(fullPath)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
-	_, err = io.Copy(file, stream)
-	return err
+	_, err = io.Copy(file, reader)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (fs *Storage) RootGen(uid string) int {
+	history := path.Join(fs.getUserSyncPath(uid), "root.history")
+	lock := fslock.New(history)
+	err := lock.Lock()
+	if err != nil {
+		log.Error("cannot obtain lock")
+		return 0
+	}
+	defer lock.Unlock()
+
+	f, err := os.Stat(history)
+	if err != nil {
+		return 0
+	}
+	//time len + 1 + k64 bytes for the hash + newline
+	return int(f.Size() / 86)
+
 }
 
 // StoreDocument stores a document
@@ -218,131 +271,4 @@ func (fs *Storage) StoreDocument(uid, id string, stream io.ReadCloser) error {
 	defer file.Close()
 	_, err = io.Copy(file, stream)
 	return err
-}
-
-func (fs *Storage) parseToken(token string) (*common.StorageClaim, error) {
-	claim := &common.StorageClaim{}
-	err := common.ClaimsFromToken(claim, token, fs.Cfg.JWTSecretKey)
-	if err != nil {
-		return nil, err
-	}
-	if claim.StandardClaims.Audience != common.StorageUsage {
-		return nil, errors.New("not a storage token")
-	}
-	return claim, nil
-}
-
-func (fs *Storage) uploadDocument(c *gin.Context) {
-	strToken := c.Param(tokenParam)
-	log.Debug("[storage] uploading with token:", strToken)
-	token, err := fs.parseToken(strToken)
-
-	if err != nil {
-		log.Error(err)
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
-	id := token.DocumentID
-	log.Debug("[storage] uploading documentId: ", id)
-	body := c.Request.Body
-	defer body.Close()
-
-	err = fs.StoreDocument(token.UserID, id, body)
-	if err != nil {
-		log.Error(err)
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{})
-}
-func (fs *Storage) downloadDocument(c *gin.Context) {
-	strToken := c.Param(tokenParam)
-	token, err := fs.parseToken(strToken)
-
-	if err != nil {
-		log.Error(err)
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
-	id := token.DocumentID
-
-	//todo: storage provider
-	log.Info("Requestng Id: ", id)
-
-	reader, err := fs.GetDocument(token.UserID, id)
-
-	if err != nil {
-		log.Error(err)
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-	defer reader.Close()
-	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
-}
-
-func (fs *Storage) downloadBlob(c *gin.Context) {
-	strToken := c.Param(tokenParam)
-	token, err := fs.parseToken(strToken)
-
-	if err != nil {
-		log.Error(err)
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
-	id := token.DocumentID
-	log.Info("Requestng blob Id: ", id)
-
-	reader, err := fs.GetBlob(token.UserID, id)
-	//TODO: empty root
-	if t, ok := err.(*os.PathError); ok && id == "root" {
-		log.Warn(t.Err)
-		c.Status(http.StatusOK)
-		return
-	}
-
-	if err != nil {
-		log.Error(err)
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-	//TODO: read generation
-	c.Header("x-goog-generation", "1")
-	defer reader.Close()
-	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
-}
-
-func (fs *Storage) uploadBlob(c *gin.Context) {
-	strToken := c.Param(tokenParam)
-	token, err := fs.parseToken(strToken)
-
-	if err != nil {
-		log.Error(err)
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
-	id := token.DocumentID
-	body := c.Request.Body
-	defer body.Close()
-
-	err = fs.StoreBlob(token.UserID, id, body)
-	if err != nil {
-		log.Error(err)
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{})
-
-}
-
-// RegisterRoutes blah
-func (fs *Storage) RegisterRoutes(router *gin.Engine) {
-
-	router.GET("/storage/:"+tokenParam, fs.downloadDocument)
-	router.PUT("/storage/:"+tokenParam, fs.uploadDocument)
-
-	//sync15
-	router.GET("/blobstorage/:"+tokenParam, fs.downloadBlob)
-	router.PUT("/blobstorage/:"+tokenParam, fs.uploadBlob)
 }

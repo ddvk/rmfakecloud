@@ -325,7 +325,7 @@ func (app *App) updateStatus(c *gin.Context) {
 
 func (app *App) locateService(c *gin.Context) {
 	svc := c.Param("service")
-	log.Printf("Requested: %s\n", svc)
+	log.Infof("Requested: %s\n", svc)
 	host := config.DefaultHost
 	if svc == "blob-storage" {
 		host = "https://" + config.DefaultHost
@@ -334,8 +334,11 @@ func (app *App) locateService(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 func (app *App) syncComplete(c *gin.Context) {
-	log.Info("Sync complete")
+	log.Warn("Sync complete")
+	uid := c.GetString(userIDKey)
+	deviceID := c.GetString(deviceIDKey)
 	log.Warn(c.Request.Header)
+	app.hub.Notify(uid, deviceID, nil, hub.SyncUpdated)
 	c.Status(http.StatusOK)
 }
 func (app *App) blobStorageDownload(c *gin.Context) {
