@@ -245,7 +245,7 @@ func (fs *Storage) StoreBlob(uid, id string, stream io.ReadCloser) error {
 func (fs *Storage) RootGen(uid string) int {
 	history := path.Join(fs.getUserSyncPath(uid), "root.history")
 	lock := fslock.New(history)
-	err := lock.Lock()
+	err := lock.LockWithTimeout(time.Duration(time.Second * 5))
 	if err != nil {
 		log.Error("cannot obtain lock")
 		return 0
