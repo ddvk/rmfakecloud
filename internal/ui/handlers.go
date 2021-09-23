@@ -9,8 +9,8 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/model"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt"
 	log "github.com/sirupsen/logrus"
 )
 

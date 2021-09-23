@@ -14,6 +14,8 @@ import (
 const (
 	authLog    = "[auth-middleware]"
 	requestLog = "[requestlogging-middleware]"
+	sync10     = "sync:default"
+	sync15     = "sync:fox"
 )
 
 func (app *App) authMiddleware() gin.HandlerFunc {
@@ -31,12 +33,15 @@ func (app *App) authMiddleware() gin.HandlerFunc {
 
 		var isDefault = false
 		for _, s := range scopes {
-			if s == "sync:default" {
+			if s == sync10 {
 				isDefault = true
+				break
 			}
 		}
-		if !isDefault {
-			// log.Warn("missing sync:default scope")
+		if isDefault {
+			log.Warn("missing sync:fox")
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
 		}
 
 		uid := strings.TrimPrefix(claims.Profile.UserID, "auth0|")

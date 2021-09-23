@@ -14,8 +14,8 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/email"
 	"github.com/ddvk/rmfakecloud/internal/hwr"
 	"github.com/ddvk/rmfakecloud/internal/messages"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 )
@@ -127,8 +127,6 @@ func (app *App) newUserToken(c *gin.Context) {
 		return
 	}
 
-	sync10 := "sync:default"
-	sync15 := "sync:fox"
 	scopes := []string{"hcu", "intgr", "screenshare"}
 
 	if user.Sync15 {
@@ -137,6 +135,7 @@ func (app *App) newUserToken(c *gin.Context) {
 		scopes = append(scopes, sync10)
 	}
 	scopesStr := strings.Join(scopes, " ")
+	log.Info("setting scopes: ", scopesStr)
 	now := time.Now()
 	expirationTime := now.Add(24 * time.Hour)
 	claims := &common.UserClaims{
@@ -161,7 +160,8 @@ func (app *App) newUserToken(c *gin.Context) {
 			IssuedAt:  now.Unix(),
 			Subject:   "rM User Token",
 			Issuer:    "rM WebApp",
-			Id:        "1234",
+			Id:        user.Email,
+			Audience:  common.APIUsage,
 		},
 	}
 
@@ -335,6 +335,7 @@ func (app *App) locateService(c *gin.Context) {
 }
 func (app *App) syncComplete(c *gin.Context) {
 	log.Info("Sync complete")
+	log.Warn(c.Request.Header)
 	c.Status(http.StatusOK)
 }
 func (app *App) blobStorageDownload(c *gin.Context) {
@@ -365,6 +366,9 @@ func (app *App) blobStorageUpload(c *gin.Context) {
 		log.Error(err)
 		badReq(c, err.Error())
 		return
+	}
+	if req.Initial {
+		log.Warn("--- Initial Sync ---")
 	}
 	uid := c.GetString(userIDKey)
 	url, _, err := app.docStorer.GetStorageURL(uid, req.RelativePath, "blobstorage")
