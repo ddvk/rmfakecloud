@@ -14,8 +14,8 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/email"
 	"github.com/ddvk/rmfakecloud/internal/hwr"
 	"github.com/ddvk/rmfakecloud/internal/messages"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 )
@@ -152,7 +152,7 @@ func (app *App) newUserToken(c *gin.Context) {
 			Subject:   "rM User Token",
 			Issuer:    "rM WebApp",
 			Id:        "1234",
-			Audience: common.APIUsage,
+			Audience:  common.APIUsage,
 		},
 	}
 

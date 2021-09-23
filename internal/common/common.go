@@ -4,8 +4,8 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt"
 )
 
 // GetToken gets the token from the headers

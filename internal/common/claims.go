@@ -3,7 +3,7 @@ package common
 import (
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 )
 
 // StorageClaim used for file retrieval
