@@ -199,6 +199,7 @@ func (fs *Storage) GetStorageURL(uid, id, urltype string) (docurl string, expira
 	return fmt.Sprintf("%s/%s/%s", uploadRL, urltype, url.QueryEscape(signedToken)), exp, nil
 }
 
+//severs as root modification log and generation number source
 const historyName = ".root.history"
 const root = "root"
 
@@ -235,6 +236,7 @@ func (fs *Storage) LoadBlob(uid, id string) (io.ReadCloser, int, error) {
 		err := lock.LockWithTimeout(time.Duration(time.Second * 5))
 		if err != nil {
 			log.Error("cannot obtain lock")
+			return nil, 0, err
 		}
 		defer lock.Unlock()
 
@@ -243,7 +245,8 @@ func (fs *Storage) LoadBlob(uid, id string) (io.ReadCloser, int, error) {
 			generation = calcGen(fi.Size())
 		}
 	}
-	if _, err := os.Stat(blobPath); err != nil {
+
+	if fi, err := os.Stat(blobPath); err != nil || fi.IsDir() {
 		return nil, 0, storage.ErrorNotFound
 	}
 
@@ -315,7 +318,9 @@ func (fs *Storage) StoreBlob(uid, id string, stream io.ReadCloser, matchGen int)
 
 	return
 }
+
+//use file size as generation
 func calcGen(size int64) int {
-	//time len + 1 + k64 bytes for the hash + newline
+	//time + 1 space + 64 hash + 1 newline
 	return int(size / 86)
 }
