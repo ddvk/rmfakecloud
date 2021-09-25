@@ -3,7 +3,6 @@ package storage
 import (
 	"errors"
 	"net/http"
-	"os"
 	"strconv"
 
 	"github.com/ddvk/rmfakecloud/internal/app/hub"
@@ -109,8 +108,6 @@ func (fs *StorageApp) downloadDocument(c *gin.Context) {
 	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
 }
 
-const root = "root"
-
 func (fs *StorageApp) downloadBlob(c *gin.Context) {
 	strToken := c.Param(tokenParam)
 	token, err := fs.parseToken(strToken)
@@ -124,27 +121,20 @@ func (fs *StorageApp) downloadBlob(c *gin.Context) {
 	id := token.DocumentID
 	log.Info("Requestng blob Id: ", id)
 
-	reader, err := fs.fs.LoadBlob(token.UserID, id)
-	//TODO: empty root
-	if id == root {
-		if t, ok := err.(*os.PathError); ok && id == root {
-			log.Warn(t.Err)
-			c.Status(http.StatusOK)
+	reader, generation, err := fs.fs.LoadBlob(uid, id)
+	if err != nil {
+		if err == ErrorNotFound {
+			c.AbortWithStatus(http.StatusNotFound)
 			return
 		}
-		gen := fs.fs.RootGen(uid)
-
-		log.Info("Root gen: ", gen)
-
-		c.Header(GenerationHeader, strconv.Itoa(gen))
-	}
-
-	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 	defer reader.Close()
+
+	log.Debug("Sending gen: ", generation)
+	c.Header(GenerationHeader, strconv.Itoa(generation))
 	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
 }
 
@@ -158,32 +148,33 @@ func (fs *StorageApp) uploadBlob(c *gin.Context) {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
-	id := token.DocumentID
+	blobId := token.DocumentID
 	body := c.Request.Body
 	defer body.Close()
-	if id == root {
-		gh := c.Request.Header.Get(GenerationMatchHeader)
+
+	generation := 0
+	gh := c.Request.Header.Get(GenerationMatchHeader)
+	if gh != "" {
 		log.Warn("Client sent generation:", gh)
-		gen, err := strconv.Atoi(gh)
+		generation, err = strconv.Atoi(gh)
 		if err != nil {
 			log.Warn(err)
 		}
-		lastgen := fs.fs.RootGen(uid)
-		if gen != lastgen {
-			log.Warnf("Wrong generation, got: %d but was %d", gen, lastgen)
+	}
+
+	newgen, err := fs.fs.StoreBlob(uid, blobId, body, generation)
+
+	if err != nil {
+		if err == ErrorWrongGeneration {
 			c.AbortWithStatus(http.StatusPreconditionFailed)
 			return
 		}
-	}
-
-	gen, err := fs.fs.StoreBlob(token.UserID, id, body)
-	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
-	c.Header(GenerationHeader, strconv.Itoa(gen))
+	c.Header(GenerationHeader, strconv.Itoa(newgen))
 	c.JSON(http.StatusOK, gin.H{})
 
 }

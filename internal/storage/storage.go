@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"errors"
 	"io"
 	"time"
 
@@ -25,10 +26,12 @@ type DocumentStorer interface {
 	// GetStorageURL creates a short lived url
 	GetStorageURL(uid, docid, urltype string) (string, time.Time, error)
 
-	StoreBlob(uid, blobId string, s io.ReadCloser) (int, error)
-	LoadBlob(uid, blobId string) (io.ReadCloser, error)
-	RootGen(uid string) int
+	StoreBlob(uid, blobId string, s io.ReadCloser, matchGeneration int) (int, error)
+	LoadBlob(uid, blobId string) (io.ReadCloser, int, error)
 }
+
+var ErrorNotFound = errors.New("not found")
+var ErrorWrongGeneration = errors.New("wrong generation")
 
 // MetadataStorer manages document metadata
 type MetadataStorer interface {

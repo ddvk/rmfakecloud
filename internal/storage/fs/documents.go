@@ -164,6 +164,18 @@ func (fs *Storage) RemoveDocument(uid, id string) error {
 	return nil
 }
 
+// StoreDocument stores a document
+func (fs *Storage) StoreDocument(uid, id string, stream io.ReadCloser) error {
+	fullPath := fs.getPathFromUser(uid, id+zipExtension)
+	file, err := os.Create(fullPath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	_, err = io.Copy(file, stream)
+	return err
+}
+
 // GetStorageURL return a url for a file to store
 func (fs *Storage) GetStorageURL(uid, id, urltype string) (docurl string, expiration time.Time, err error) {
 	uploadRL := fs.Cfg.StorageURL
@@ -186,34 +198,65 @@ func (fs *Storage) GetStorageURL(uid, id, urltype string) (docurl string, expira
 	return fmt.Sprintf("%s/%s/%s", uploadRL, urltype, url.QueryEscape(signedToken)), exp, nil
 }
 
+const historyName = ".root.history"
+const root = "root"
+
 // GetDocument Opens a document by id
-func (fs *Storage) LoadBlob(uid, id string) (io.ReadCloser, error) {
-	fullPath := path.Join(fs.getUserSyncPath(uid), sanitize(id))
-	log.Debugln("Fullpath:", fullPath)
-	reader, err := os.Open(fullPath)
-	return reader, err
+func (fs *Storage) LoadBlob(uid, id string) (io.ReadCloser, int, error) {
+	generation := 1
+	blobPath := path.Join(fs.getUserSyncPath(uid), sanitize(id))
+	log.Debugln("Fullpath:", blobPath)
+	if id == root {
+		historyPath := path.Join(fs.getUserSyncPath(uid), historyName)
+		lock := fslock.New(historyPath)
+		err := lock.LockWithTimeout(time.Duration(time.Second * 5))
+		if err != nil {
+			log.Error("cannot obtain lock")
+		}
+		defer lock.Unlock()
+
+		fi, err1 := os.Stat(historyPath)
+		if err1 == nil {
+			generation = calcGen(fi.Size())
+		}
+	}
+	if _, err := os.Stat(blobPath); err != nil {
+		return nil, 0, storage.ErrorNotFound
+	}
+
+	reader, err := os.Open(blobPath)
+	return reader, generation, err
 }
 
 // StoreDocument stores a document
-func (fs *Storage) StoreBlob(uid, id string, stream io.ReadCloser) (generation int, err error) {
+func (fs *Storage) StoreBlob(uid, id string, stream io.ReadCloser, matchGen int) (generation int, err error) {
 	generation = 1
 
 	reader := stream
-	if id == "root" {
-		history := path.Join(fs.getUserSyncPath(uid), "root.history")
-
-		lock := fslock.New(history)
+	if id == root {
+		historyPath := path.Join(fs.getUserSyncPath(uid), historyName)
+		lock := fslock.New(historyPath)
 		err = lock.LockWithTimeout(time.Duration(time.Second * 5))
 		if err != nil {
 			log.Error("cannot obtain lock")
 		}
 		defer lock.Unlock()
 
+		currentGen := 0
+		fi, err1 := os.Stat(historyPath)
+		if err1 == nil {
+			currentGen = calcGen(fi.Size())
+		}
+
+		if currentGen != matchGen {
+			return currentGen, storage.ErrorWrongGeneration
+		}
+
 		var buf bytes.Buffer
 		tee := io.TeeReader(stream, &buf)
 
 		var hist *os.File
-		hist, err = os.OpenFile(history, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		hist, err = os.OpenFile(historyPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			return
 		}
@@ -235,8 +278,8 @@ func (fs *Storage) StoreBlob(uid, id string, stream io.ReadCloser) (generation i
 		generation = calcGen(size)
 	}
 
-	fullPath := path.Join(fs.getUserSyncPath(uid), sanitize(id))
-	file, err := os.Create(fullPath)
+	blobPath := path.Join(fs.getUserSyncPath(uid), sanitize(id))
+	file, err := os.Create(blobPath)
 	if err != nil {
 		return
 	}
@@ -249,36 +292,6 @@ func (fs *Storage) StoreBlob(uid, id string, stream io.ReadCloser) (generation i
 	return
 }
 func calcGen(size int64) int {
-	return int(size / 86)
-}
-
-func (fs *Storage) RootGen(uid string) int {
-	history := path.Join(fs.getUserSyncPath(uid), "root.history")
-	lock := fslock.New(history)
-	err := lock.LockWithTimeout(time.Duration(time.Second * 5))
-	if err != nil {
-		log.Error("cannot obtain lock")
-		return 0
-	}
-	defer lock.Unlock()
-
-	f, err := os.Stat(history)
-	if err != nil {
-		return 0
-	}
 	//time len + 1 + k64 bytes for the hash + newline
-	return calcGen(f.Size())
-
-}
-
-// StoreDocument stores a document
-func (fs *Storage) StoreDocument(uid, id string, stream io.ReadCloser) error {
-	fullPath := fs.getPathFromUser(uid, id+zipExtension)
-	file, err := os.Create(fullPath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	_, err = io.Copy(file, stream)
-	return err
+	return int(size / 86)
 }

@@ -2,6 +2,7 @@ package app
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -57,10 +58,21 @@ var ignoreBodyLogging = []string{"/storage", "/blobstorage", "/api/v2/document",
 func requestLoggerMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
-		// log.Debugln(requestLog, "header ", c.Request.Header)
+		if log.IsLevelEnabled(log.DebugLevel) {
+			var str bytes.Buffer
+			for k, v := range c.Request.Header {
+				var ln string
+				if k != "Authorization" {
+					ln = fmt.Sprintf("%s\t%s\n", k, v)
+				} else {
+					ln = fmt.Sprintf("%s\t\n", k)
+				}
+				str.WriteString(ln)
+			}
+			log.Debugln(requestLog, "headers: \n", str.String())
+		}
 		for _, skip := range ignoreBodyLogging {
 			if strings.Index(c.Request.URL.Path, skip) == 0 {
-				log.Debugln("body logging ignored")
 				c.Next()
 				return
 			}

@@ -80,8 +80,7 @@ func (app *App) newDevice(c *gin.Context) {
 	claims := &common.DeviceClaims{
 		DeviceDesc: tokenRequest.DeviceDesc,
 		DeviceID:   tokenRequest.DeviceID,
-		// UserID:     uid,
-		UserID: uid,
+		UserID:     uid,
 		StandardClaims: jwt.StandardClaims{
 			Audience: common.APIUsage,
 		},
@@ -105,7 +104,7 @@ func (app *App) deleteDevice(c *gin.Context) {
 		return
 	}
 	log.Info("Logging out: ", deviceToken.UserID)
-	c.String(http.StatusNoContent, "")
+	c.Status(http.StatusNoContent)
 }
 
 func (app *App) newUserToken(c *gin.Context) {
@@ -217,7 +216,7 @@ func (app *App) sendEmail(c *gin.Context) {
 		internalError(c, "cant send email")
 		return
 	}
-	c.String(http.StatusOK, "")
+	c.Status(http.StatusOK)
 }
 func (app *App) listDocuments(c *gin.Context) {
 
@@ -344,6 +343,7 @@ func (app *App) syncComplete(c *gin.Context) {
 	res.ID = app.hub.NotifySync(uid, deviceID)
 	c.JSON(http.StatusOK, res)
 }
+
 func (app *App) blobStorageDownload(c *gin.Context) {
 	uid := c.GetString(userIDKey)
 	var req messages.BlobStorageRequest
@@ -366,6 +366,7 @@ func (app *App) blobStorageDownload(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, response)
 }
+
 func (app *App) blobStorageUpload(c *gin.Context) {
 	var req messages.BlobStorageRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
