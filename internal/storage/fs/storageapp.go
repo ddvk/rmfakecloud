@@ -1,4 +1,4 @@
-package storage
+package fs
 
 import (
 	"errors"
@@ -8,6 +8,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/app/hub"
 	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/config"
+	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 )
@@ -21,12 +22,12 @@ const (
 // Storage file system document storage
 type StorageApp struct {
 	cfg *config.Config
-	fs  DocumentStorer
+	fs  storage.DocumentStorer
 	h   *hub.Hub
 }
 
 // New Storage
-func NewApp(cfg *config.Config, fs DocumentStorer,
+func NewApp(cfg *config.Config, fs storage.DocumentStorer,
 	h *hub.Hub) *StorageApp {
 	staticWrapper := StorageApp{
 		fs:  fs,
@@ -131,7 +132,7 @@ func (fs *StorageApp) downloadBlob(c *gin.Context) {
 
 	reader, generation, err := fs.fs.LoadBlob(uid, blobId)
 	if err != nil {
-		if err == ErrorNotFound {
+		if err == storage.ErrorNotFound {
 			c.AbortWithStatus(http.StatusNotFound)
 			return
 		}
@@ -179,7 +180,7 @@ func (fs *StorageApp) uploadBlob(c *gin.Context) {
 	newgen, err := fs.fs.StoreBlob(uid, blobId, body, generation)
 
 	if err != nil {
-		if err == ErrorWrongGeneration {
+		if err == storage.ErrorWrongGeneration {
 			c.AbortWithStatus(http.StatusPreconditionFailed)
 			return
 		}
