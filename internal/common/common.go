@@ -1,14 +1,8 @@
 package common
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"crypto/subtle"
-	"encoding/hex"
 	"errors"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
@@ -45,33 +39,6 @@ func SignClaims(claims jwt.Claims, key []byte) (string, error) {
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	jwtToken.Header["kid"] = "1"
 	return jwtToken.SignedString(key)
-}
-
-func Sign(parts []string, key []byte) string {
-	h := hmac.New(sha256.New, key)
-	for _, s := range parts {
-		h.Write([]byte(s))
-	}
-	hs := h.Sum(nil)
-	s := hex.EncodeToString(hs)
-	return s
-}
-
-func VerifySignature(parts []string, exp, signature string, key []byte) error {
-	expected := Sign(parts, key)
-	expiration, err := strconv.Atoi(exp)
-	if err != nil {
-		return err
-	}
-	if expiration < int(time.Now().Unix()) {
-		return errors.New("expired")
-	}
-
-	if subtle.ConstantTimeCompare([]byte(expected), []byte(signature)) != 1 {
-		return errors.New("wrong signature")
-	}
-
-	return nil
 }
 
 // CodeConnector matches a code to users

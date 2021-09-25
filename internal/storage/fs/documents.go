@@ -207,17 +207,18 @@ func (fs *Storage) GetBlobURL(uid, blobid string) (docurl string, err error) {
 	uploadRL := fs.Cfg.StorageURL
 	exp := strconv.FormatInt(time.Now().Add(time.Minute*config.ReadStorageExpirationInMinutes).Unix(), 10)
 
-	signature := common.Sign([]string{uid, blobid, exp}, fs.Cfg.JWTSecretKey)
+	signature := Sign([]string{uid, blobid, exp}, fs.Cfg.JWTSecretKey)
 
-	log.Debugln("uploadUrl: ", uploadRL)
 	params := url.Values{
-		"uid":       {uid},
-		"blobid":    {blobid},
-		"exp":       {exp},
-		"signature": {signature},
+		paramUid:       {uid},
+		paramBlobId:    {blobid},
+		paramExp:       {exp},
+		paramSignature: {signature},
 	}
 
-	return fmt.Sprintf("%s/blobstorage?%s", uploadRL, params.Encode()), nil
+	blobUrl := uploadRL + routeBlob + "?" + params.Encode()
+	log.Debugln("blobUrl: ", blobUrl)
+	return blobUrl, nil
 }
 
 // GetDocument Opens a document by id
