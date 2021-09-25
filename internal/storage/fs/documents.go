@@ -207,7 +207,10 @@ func (fs *Storage) GetBlobURL(uid, blobid string) (docurl string, err error) {
 	uploadRL := fs.Cfg.StorageURL
 	exp := strconv.FormatInt(time.Now().Add(time.Minute*config.ReadStorageExpirationInMinutes).Unix(), 10)
 
-	signature := Sign([]string{uid, blobid, exp}, fs.Cfg.JWTSecretKey)
+	signature, err := Sign([]string{uid, blobid, exp}, fs.Cfg.JWTSecretKey)
+	if err != nil {
+		return "", err
+	}
 
 	params := url.Values{
 		paramUid:       {uid},
@@ -268,7 +271,8 @@ func (fs *Storage) StoreBlob(uid, id string, stream io.ReadCloser, matchGen int)
 			currentGen = calcGen(fi.Size())
 		}
 
-		if currentGen != matchGen {
+		if currentGen != matchGen && matchGen > 0 {
+			log.Warnf("wrong gen, has %d but is %d", matchGen, currentGen)
 			return currentGen, storage.ErrorWrongGeneration
 		}
 

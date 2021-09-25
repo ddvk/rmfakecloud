@@ -133,8 +133,6 @@ func (app *StorageApp) downloadBlob(c *gin.Context) {
 		return
 	}
 
-	log.Info(exp, signature)
-
 	if blobId == "" {
 		c.AbortWithStatus(http.StatusBadRequest)
 	}
@@ -180,7 +178,7 @@ func (app *StorageApp) uploadBlob(c *gin.Context) {
 	generation := 0
 	gh := c.Request.Header.Get(GenerationMatchHeader)
 	if gh != "" {
-		log.Warn("Client sent generation:", gh)
+		log.Info("Client sent generation:", gh)
 		var err error
 		generation, err = strconv.Atoi(gh)
 		if err != nil {
@@ -204,18 +202,24 @@ func (app *StorageApp) uploadBlob(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{})
 
 }
-func Sign(parts []string, key []byte) string {
+func Sign(parts []string, key []byte) (string, error) {
 	h := hmac.New(sha256.New, key)
 	for _, s := range parts {
+		if s == "" {
+			return "", errors.New("empty part")
+		}
 		h.Write([]byte(s))
 	}
 	hs := h.Sum(nil)
 	s := hex.EncodeToString(hs)
-	return s
+	return s, nil
 }
 
 func VerifySignature(parts []string, exp, signature string, key []byte) error {
-	expected := Sign(parts, key)
+	expected, err := Sign(parts, key)
+	if err != nil {
+		return err
+	}
 	expiration, err := strconv.Atoi(exp)
 	if err != nil {
 		return err

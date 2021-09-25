@@ -352,6 +352,10 @@ func (app *App) blobStorageDownload(c *gin.Context) {
 		badReq(c, err.Error())
 		return
 	}
+	if req.RelativePath == "" {
+		badReq(c, "no rel")
+		return
+	}
 
 	url, err := app.docStorer.GetBlobURL(uid, req.RelativePath)
 	if err != nil {
@@ -374,8 +378,12 @@ func (app *App) blobStorageUpload(c *gin.Context) {
 		badReq(c, err.Error())
 		return
 	}
+	if req.RelativePath == "" {
+		badReq(c, "no rel")
+		return
+	}
 	if req.Initial {
-		log.Warn("--- Initial Sync ---")
+		log.Info("--- Initial Sync ---")
 	}
 	uid := c.GetString(userIDKey)
 	url, err := app.docStorer.GetBlobURL(uid, req.RelativePath)
