@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt"
@@ -200,6 +201,24 @@ func (fs *Storage) GetStorageURL(uid, id, urltype string) (docurl string, expira
 
 const historyName = ".root.history"
 const root = "root"
+
+// GetStorageURL return a url for a file to store
+func (fs *Storage) GetBlobURL(uid, blobid string) (docurl string, err error) {
+	uploadRL := fs.Cfg.StorageURL
+	exp := strconv.FormatInt(time.Now().Add(time.Minute*config.ReadStorageExpirationInMinutes).Unix(), 10)
+
+	signature := common.Sign([]string{uid, blobid, exp}, fs.Cfg.JWTSecretKey)
+
+	log.Debugln("uploadUrl: ", uploadRL)
+	params := url.Values{
+		"uid":       {uid},
+		"blobid":    {blobid},
+		"exp":       {exp},
+		"signature": {signature},
+	}
+
+	return fmt.Sprintf("%s/blobstorage?%s", uploadRL, params.Encode()), nil
+}
 
 // GetDocument Opens a document by id
 func (fs *Storage) LoadBlob(uid, id string) (io.ReadCloser, int, error) {

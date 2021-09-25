@@ -25,6 +25,7 @@ type DocumentStorer interface {
 
 	// GetStorageURL creates a short lived url
 	GetStorageURL(uid, docid, urltype string) (string, time.Time, error)
+	GetBlobURL(uid, docid string) (string, error)
 
 	StoreBlob(uid, blobId string, s io.ReadCloser, matchGeneration int) (int, error)
 	LoadBlob(uid, blobId string) (io.ReadCloser, int, error)

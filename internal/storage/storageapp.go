@@ -43,8 +43,8 @@ func (fs *StorageApp) RegisterRoutes(router *gin.Engine) {
 	router.PUT("/storage/:"+tokenParam, fs.uploadDocument)
 
 	//sync15
-	router.GET("/blobstorage/:"+tokenParam, fs.downloadBlob)
-	router.PUT("/blobstorage/:"+tokenParam, fs.uploadBlob)
+	router.GET("/blobstorage", fs.downloadBlob)
+	router.PUT("/blobstorage", fs.uploadBlob)
 }
 
 func (fs *StorageApp) parseToken(token string) (*common.StorageClaim, error) {
@@ -109,19 +109,27 @@ func (fs *StorageApp) downloadDocument(c *gin.Context) {
 }
 
 func (fs *StorageApp) downloadBlob(c *gin.Context) {
-	strToken := c.Param(tokenParam)
-	token, err := fs.parseToken(strToken)
-	uid := token.UserID
+	uid := c.Query("uid")
+	blobId := c.Query("blobid")
+	exp := c.Query("exp")
+	signature := c.Query("signature")
 
+	err := common.VerifySignature([]string{uid, blobId, exp}, exp, signature, fs.cfg.JWTSecretKey)
 	if err != nil {
-		log.Error(err)
-		c.AbortWithStatus(http.StatusBadRequest)
+		log.Warn(err)
+		c.AbortWithStatus(http.StatusForbidden)
 		return
 	}
-	id := token.DocumentID
-	log.Info("Requestng blob Id: ", id)
 
-	reader, generation, err := fs.fs.LoadBlob(uid, id)
+	log.Info(exp, signature)
+
+	if blobId == "" {
+		c.AbortWithStatus(http.StatusBadRequest)
+	}
+
+	log.Info("Requestng blob Id: ", blobId)
+
+	reader, generation, err := fs.fs.LoadBlob(uid, blobId)
 	if err != nil {
 		if err == ErrorNotFound {
 			c.AbortWithStatus(http.StatusNotFound)
@@ -139,16 +147,21 @@ func (fs *StorageApp) downloadBlob(c *gin.Context) {
 }
 
 func (fs *StorageApp) uploadBlob(c *gin.Context) {
-	strToken := c.Param(tokenParam)
-	token, err := fs.parseToken(strToken)
-	uid := token.UserID
+	uid := c.Query("uid")
+	blobId := c.Query("blobid")
+	exp := c.Query("exp")
+	signature := c.Query("signature")
 
+	err := common.VerifySignature([]string{uid, blobId, exp}, exp, signature, fs.cfg.JWTSecretKey)
 	if err != nil {
-		log.Error(err)
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
+		c.AbortWithStatus(http.StatusForbidden)
 	}
-	blobId := token.DocumentID
+	log.Info(exp, signature)
+
+	if blobId == "" {
+		c.AbortWithStatus(http.StatusBadRequest)
+	}
+
 	body := c.Request.Body
 	defer body.Close()
 
@@ -156,6 +169,7 @@ func (fs *StorageApp) uploadBlob(c *gin.Context) {
 	gh := c.Request.Header.Get(GenerationMatchHeader)
 	if gh != "" {
 		log.Warn("Client sent generation:", gh)
+		var err error
 		generation, err = strconv.Atoi(gh)
 		if err != nil {
 			log.Warn(err)
