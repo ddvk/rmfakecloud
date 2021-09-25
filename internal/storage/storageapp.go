@@ -13,7 +13,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const tokenParam = "token"
+const (
+	tokenParam            = "token"
+	GenerationHeader      = "x-goog-generation"
+	GenerationMatchHeader = "x-goog-if-generation-match"
+)
 
 // Storage file system document storage
 type StorageApp struct {
@@ -132,8 +136,7 @@ func (fs *StorageApp) downloadBlob(c *gin.Context) {
 
 		log.Info("Root gen: ", gen)
 
-		//TODO: read generation
-		c.Header("x-goog-generation", strconv.Itoa(gen))
+		c.Header(GenerationHeader, strconv.Itoa(gen))
 	}
 
 	if err != nil {
@@ -158,33 +161,29 @@ func (fs *StorageApp) uploadBlob(c *gin.Context) {
 	id := token.DocumentID
 	body := c.Request.Body
 	defer body.Close()
-	gen := 0
 	if id == root {
-		gh := c.Request.Header.Get("x-goog-if-generation-match")
+		gh := c.Request.Header.Get(GenerationMatchHeader)
 		log.Warn("Client sent generation:", gh)
-		gen, err = strconv.Atoi(gh)
+		gen, err := strconv.Atoi(gh)
 		if err != nil {
 			log.Warn(err)
 		}
 		lastgen := fs.fs.RootGen(uid)
 		if gen != lastgen {
-			log.Warn("Wrong generation")
+			log.Warnf("Wrong generation, got: %d but was %d", gen, lastgen)
 			c.AbortWithStatus(http.StatusPreconditionFailed)
 			return
 		}
 	}
 
-	err = fs.fs.StoreBlob(token.UserID, id, body)
+	gen, err := fs.fs.StoreBlob(token.UserID, id, body)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
-	if id == root {
-		fs.h.Notify(uid, "TODO", nil, hub.SyncUpdated)
-	}
-
+	c.Header(GenerationHeader, strconv.Itoa(gen))
 	c.JSON(http.StatusOK, gin.H{})
 
 }

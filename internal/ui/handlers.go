@@ -11,12 +11,14 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 )
 
 const (
-	userID   = "userID"
-	uiLogger = "[ui] "
+	userID    = "userID"
+	browserID = "browserID"
+	uiLogger  = "[ui] "
 )
 
 func (app *ReactAppWrapper) register(c *gin.Context) {
@@ -112,8 +114,9 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 	}
 
 	claims := &common.WebUserClaims{
-		UserID: user.ID,
-		Email:  user.Email,
+		UserID:    user.ID,
+		BrowserID: uuid.NewString(),
+		Email:     user.Email,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(12 * time.Hour).Unix(),
 			Issuer:    "rmFake WEB",

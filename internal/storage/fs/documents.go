@@ -195,15 +195,15 @@ func (fs *Storage) LoadBlob(uid, id string) (io.ReadCloser, error) {
 }
 
 // StoreDocument stores a document
-func (fs *Storage) StoreBlob(uid, id string, stream io.ReadCloser) error {
+func (fs *Storage) StoreBlob(uid, id string, stream io.ReadCloser) (generation int, err error) {
+	generation = 1
 
 	reader := stream
-	//todo: locking
 	if id == "root" {
 		history := path.Join(fs.getUserSyncPath(uid), "root.history")
 
 		lock := fslock.New(history)
-		err := lock.LockWithTimeout(time.Duration(time.Second * 5))
+		err = lock.LockWithTimeout(time.Duration(time.Second * 5))
 		if err != nil {
 			log.Error("cannot obtain lock")
 		}
@@ -212,34 +212,44 @@ func (fs *Storage) StoreBlob(uid, id string, stream io.ReadCloser) error {
 		var buf bytes.Buffer
 		tee := io.TeeReader(stream, &buf)
 
-		hist, err := os.OpenFile(history, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		var hist *os.File
+		hist, err = os.OpenFile(history, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
-			return err
+			return
 		}
 		defer hist.Close()
 		t := time.Now().UTC().Format(time.RFC3339) + " "
 		hist.WriteString(t)
 		_, err = io.Copy(hist, tee)
 		if err != nil {
-			return err
+			return
 		}
 		hist.WriteString("\n")
 
 		reader = ioutil.NopCloser(&buf)
+		size, err1 := hist.Seek(0, os.SEEK_CUR)
+		if err1 != nil {
+			err = err1
+			return
+		}
+		generation = calcGen(size)
 	}
 
 	fullPath := path.Join(fs.getUserSyncPath(uid), sanitize(id))
 	file, err := os.Create(fullPath)
 	if err != nil {
-		return err
+		return
 	}
 	defer file.Close()
 	_, err = io.Copy(file, reader)
 	if err != nil {
-		return err
+		return
 	}
 
-	return nil
+	return
+}
+func calcGen(size int64) int {
+	return int(size / 86)
 }
 
 func (fs *Storage) RootGen(uid string) int {
@@ -257,7 +267,7 @@ func (fs *Storage) RootGen(uid string) int {
 		return 0
 	}
 	//time len + 1 + k64 bytes for the hash + newline
-	return int(f.Size() / 86)
+	return calcGen(f.Size())
 
 }
 

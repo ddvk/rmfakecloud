@@ -80,7 +80,8 @@ func (app *App) newDevice(c *gin.Context) {
 	claims := &common.DeviceClaims{
 		DeviceDesc: tokenRequest.DeviceDesc,
 		DeviceID:   tokenRequest.DeviceID,
-		UserID:     uid,
+		// UserID:     uid,
+		UserID: uid,
 		StandardClaims: jwt.StandardClaims{
 			Audience: common.APIUsage,
 		},
@@ -114,20 +115,21 @@ func (app *App) newUserToken(c *gin.Context) {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
+	uid := strings.TrimPrefix(deviceToken.UserID, "auth0|")
 
-	user, err := app.userStorer.GetUser(deviceToken.UserID)
+	user, err := app.userStorer.GetUser(uid)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
 	if user == nil {
-		log.Warn("User not found: ", deviceToken.UserID)
+		log.Warn("User not found: ", uid)
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
 
-	scopes := []string{"hcu", "intgr", "screenshare"}
+	scopes := []string{"hcu", "intgr", "screenshare", "hwcmail:-1", "mail:-1"}
 
 	if user.Sync15 {
 		scopes = append(scopes, sync15)
@@ -334,12 +336,13 @@ func (app *App) locateService(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 func (app *App) syncComplete(c *gin.Context) {
-	log.Warn("Sync complete")
+	log.Info("Sync complete")
 	uid := c.GetString(userIDKey)
 	deviceID := c.GetString(deviceIDKey)
-	log.Warn(c.Request.Header)
-	app.hub.Notify(uid, deviceID, nil, hub.SyncUpdated)
-	c.Status(http.StatusOK)
+
+	var res messages.SyncCompleted
+	res.ID = app.hub.NotifySync(uid, deviceID)
+	c.JSON(http.StatusOK, res)
 }
 func (app *App) blobStorageDownload(c *gin.Context) {
 	uid := c.GetString(userIDKey)

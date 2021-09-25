@@ -26,30 +26,31 @@ type StatusResponse struct {
 // WsMessage websocket notification
 type WsMessage struct {
 	Message      NotificationMessage `json:"message"`
-	Subscription string              `json:"subscription"`
+	Subscription string              `json:"subscription,omitempty"`
 }
 
 // NotificationMessage child object
 type NotificationMessage struct {
 	Attributes   Attributes `json:"attributes"`
-	MessageID    string     `json:"messageId"`
-	MessageID2   string     `json:"message_id"`
-	PublishTime  string     `json:"publishTime"`
-	PublishTime2 string     `json:"publish_time"`
+	MessageID    string     `json:"messageId,omitempty"`
+	MessageID2   string     `json:"message_id,omitempty"`
+	MessageID3   string     `json:"messageid,omitempty"`
+	PublishTime  string     `json:"publishTime,omitempty"`
+	PublishTime2 string     `json:"publish_time,omitempty"`
 }
 
 // Attributes child object
 type Attributes struct {
 	Auth0UserID      string `json:"auth0UserID"`
-	Bookmarked       bool   `json:"bookmarked"`
+	Bookmarked       bool   `json:"bookmarked,omitempty"`
 	Event            string `json:"event"`
-	ID               string `json:"id"`
-	Parent           string `json:"parent"`
+	ID               string `json:"id,omitempty"`
+	Parent           string `json:"parent,omitempty"`
 	SourceDeviceDesc string `json:"sourceDeviceDesc"`
 	SourceDeviceID   string `json:"sourceDeviceID"`
-	Type             string `json:"type"`
-	Version          string `json:"version"`
-	VissibleName     string `json:"vissibleName"`
+	Type             string `json:"type,omitempty"`
+	Version          string `json:"version,omitempty"`
+	VissibleName     string `json:"vissibleName,omitempty"`
 }
 
 // RawDocument just a raw document
@@ -102,4 +103,9 @@ type DeviceTokenRequest struct {
 	Code       string `json:"code"`
 	DeviceDesc string `json:"deviceDesc"`
 	DeviceID   string `json:"deviceID"`
+}
+
+// SyncCompleted what else
+type SyncCompleted struct {
+	ID string `json:"id"`
 }

@@ -50,10 +50,11 @@ type Auth0profile struct {
 
 // WebUserClaims the claims
 type WebUserClaims struct {
-	UserID string `json:"UserID"`
-	Email  string
-	Scopes string `json:"scopes,omitempty"`
-	Roles  []string
+	UserID    string `json:"UserID"`
+	BrowserID string `json:"BrowserID"`
+	Email     string
+	Scopes    string `json:"scopes,omitempty"`
+	Roles     []string
 	jwt.StandardClaims
 }
 

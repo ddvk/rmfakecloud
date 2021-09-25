@@ -39,7 +39,7 @@ func (app *App) authMiddleware() gin.HandlerFunc {
 			}
 		}
 		if isDefault {
-			log.Warn("missing sync:fox")
+			log.Warn("missing sync:")
 			// c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}

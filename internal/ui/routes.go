@@ -34,6 +34,12 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	//with authentication
 	auth := r.Group("")
 	auth.Use(app.authMiddleware())
+	auth.GET("sync", func(c *gin.Context) {
+		uid := c.GetString(userID)
+		br := c.GetString(browserID)
+		log.Info("browser", br)
+		app.h.NotifySync(uid, br)
+	})
 
 	auth.GET("newcode", app.newCode)
 	auth.POST("resetPassword", app.resetPassword)
@@ -84,7 +90,9 @@ func (app *ReactAppWrapper) authMiddleware() gin.HandlerFunc {
 			return
 		}
 		uid := claims.UserID
+		brid := claims.BrowserID
 		c.Set(userID, uid)
+		c.Set(browserID, brid)
 		for _, r := range claims.Roles {
 			if r == "Admin" {
 				c.Set("Admin", true)

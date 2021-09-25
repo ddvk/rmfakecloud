@@ -14,7 +14,7 @@ import (
 const (
 	DocAddedEvent   = "DocAdded"
 	DocDeletedEvent = "DocDeleted"
-	SyncUpdated     = "NotificationsSyncUpdated"
+	SyncCompleted   = "SyncComplete"
 )
 
 type ntf struct {
@@ -30,6 +30,28 @@ type Hub struct {
 	additions     chan *wsClient
 	removals      chan *wsClient
 	notifications chan ntf
+} // Notify sends a message to all connected clients
+
+func (h *Hub) NotifySync(uid, deviceID string) string {
+	timestamp := time.Now().UnixNano()
+	msgid := strconv.Itoa(int(timestamp))
+	msg := messages.WsMessage{
+		Message: messages.NotificationMessage{
+			MessageID3: msgid,
+			Attributes: messages.Attributes{
+				Auth0UserID:    uid,
+				Event:          SyncCompleted,
+				SourceDeviceID: deviceID,
+			},
+		},
+	}
+
+	h.notifications <- ntf{
+		uid:  uid,
+		from: deviceID,
+		msg:  &msg,
+	}
+	return msgid
 }
 
 // Notify sends a message to all connected clients
@@ -41,6 +63,7 @@ func (h *Hub) Notify(uid, deviceID string, doc *messages.RawDocument, eventType 
 		Message: messages.NotificationMessage{
 			MessageID:  messageID,
 			MessageID2: messageID,
+			MessageID3: messageID,
 			Attributes: messages.Attributes{
 				Auth0UserID:      uid,
 				Event:            eventType,
@@ -58,7 +81,6 @@ func (h *Hub) Notify(uid, deviceID string, doc *messages.RawDocument, eventType 
 		msg.Message.Attributes.Version = strconv.Itoa(doc.Version)
 		msg.Message.Attributes.VissibleName = doc.VissibleName
 		msg.Message.Attributes.Parent = doc.Parent
-
 	}
 
 	h.notifications <- ntf{
@@ -75,7 +97,8 @@ func (h *Hub) send(n ntf) {
 	if clients, ok := h.userClients[uid]; ok {
 		for c := range clients {
 			if c.deviceID == n.from {
-				log.Warn("sending to same device: ", c.deviceID)
+				continue
+				// log.Warn("sending to same device: ", c.deviceID)
 			}
 			select {
 			case c.notifications <- msg:
