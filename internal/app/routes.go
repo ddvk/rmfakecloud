@@ -89,6 +89,7 @@ func (app *App) registerRoutes(router *gin.Engine) {
 		})
 
 		// sync15
+		authRoutes.POST("/api/v1/integrations", app.integrations)
 		authRoutes.POST("/api/v1/signed-urls/downloads", app.blobStorageDownload)
 		authRoutes.POST("/api/v1/signed-urls/uploads", app.blobStorageUpload)
 		authRoutes.POST("/api/v1/sync-complete", app.syncComplete)

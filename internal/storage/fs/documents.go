@@ -200,29 +200,30 @@ func (fs *Storage) GetStorageURL(uid, id, urltype string) (docurl string, expira
 }
 
 //severs as root modification log and generation number source
-const historyName = ".root.history"
-const root = "root"
+const historyFile = ".root.history"
+const rootFile = "root"
 
 // GetStorageURL return a url for a file to store
-func (fs *Storage) GetBlobURL(uid, blobid string) (docurl string, err error) {
+func (fs *Storage) GetBlobURL(uid, blobid string) (docurl string, exp time.Time, err error) {
 	uploadRL := fs.Cfg.StorageURL
-	exp := strconv.FormatInt(time.Now().Add(time.Minute*config.ReadStorageExpirationInMinutes).Unix(), 10)
+	exp = time.Now().Add(time.Minute * config.ReadStorageExpirationInMinutes)
+	strExp := strconv.FormatInt(exp.Unix(), 10)
 
-	signature, err := Sign([]string{uid, blobid, exp}, fs.Cfg.JWTSecretKey)
+	signature, err := Sign([]string{uid, blobid, strExp}, fs.Cfg.JWTSecretKey)
 	if err != nil {
-		return "", err
+		return
 	}
 
 	params := url.Values{
 		paramUid:       {uid},
 		paramBlobId:    {blobid},
-		paramExp:       {exp},
+		paramExp:       {strExp},
 		paramSignature: {signature},
 	}
 
 	blobUrl := uploadRL + routeBlob + "?" + params.Encode()
 	log.Debugln("blobUrl: ", blobUrl)
-	return blobUrl, nil
+	return blobUrl, exp, nil
 }
 
 // GetDocument Opens a document by id
@@ -230,8 +231,8 @@ func (fs *Storage) LoadBlob(uid, id string) (io.ReadCloser, int, error) {
 	generation := 1
 	blobPath := path.Join(fs.getUserSyncPath(uid), sanitize(id))
 	log.Debugln("Fullpath:", blobPath)
-	if id == root {
-		historyPath := path.Join(fs.getUserSyncPath(uid), historyName)
+	if id == rootFile {
+		historyPath := path.Join(fs.getUserSyncPath(uid), historyFile)
 		lock := fslock.New(historyPath)
 		err := lock.LockWithTimeout(time.Duration(time.Second * 5))
 		if err != nil {
@@ -259,8 +260,8 @@ func (fs *Storage) StoreBlob(uid, id string, stream io.ReadCloser, matchGen int)
 	generation = 1
 
 	reader := stream
-	if id == root {
-		historyPath := path.Join(fs.getUserSyncPath(uid), historyName)
+	if id == rootFile {
+		historyPath := path.Join(fs.getUserSyncPath(uid), historyFile)
 		lock := fslock.New(historyPath)
 		err = lock.LockWithTimeout(time.Duration(time.Second * 5))
 		if err != nil {

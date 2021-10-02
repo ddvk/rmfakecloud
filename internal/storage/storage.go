@@ -25,7 +25,7 @@ type DocumentStorer interface {
 
 	// GetStorageURL creates a short lived url
 	GetStorageURL(uid, docid, urltype string) (string, time.Time, error)
-	GetBlobURL(uid, docid string) (string, error)
+	GetBlobURL(uid, docid string) (string, time.Time, error)
 
 	StoreBlob(uid, blobId string, s io.ReadCloser, matchGeneration int) (int, error)
 	LoadBlob(uid, blobId string) (io.ReadCloser, int, error)
@@ -47,4 +47,11 @@ type UserStorer interface {
 	GetUser(string) (*model.User, error)
 	RegisterUser(u *model.User) error
 	UpdateUser(u *model.User) error
+}
+
+type Document struct {
+	ID     string
+	Type   string
+	Parent string
+	Name   string
 }

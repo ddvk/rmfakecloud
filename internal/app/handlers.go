@@ -128,7 +128,7 @@ func (app *App) newUserToken(c *gin.Context) {
 		return
 	}
 
-	scopes := []string{"hcu", "intgr", "screenshare", "hwcmail:-1", "mail:-1"}
+	scopes := []string{"hsu", "intgr", "screenshare", "hwcmail:-1", "mail:-1"}
 
 	if user.Sync15 {
 		scopes = append(scopes, sync15)
@@ -277,7 +277,7 @@ func (app *App) deleteDocument(c *gin.Context) {
 
 	result := []messages.StatusResponse{}
 	for _, r := range req {
-		metadata, err := app.metaStorer.GetMetadata(uid, r.ID)
+		doc, err := app.metaStorer.GetMetadata(uid, r.ID)
 		ok := false
 		if err == nil {
 			err := app.docStorer.RemoveDocument(uid, r.ID)
@@ -285,7 +285,15 @@ func (app *App) deleteDocument(c *gin.Context) {
 				log.Error(err)
 			} else {
 				ok = true
-				app.hub.Notify(uid, deviceID, metadata, hub.DocDeletedEvent)
+
+				ntf := hub.DocumentNotification{
+					ID:      doc.ID,
+					Type:    doc.Type,
+					Version: doc.Version,
+					Parent:  doc.Parent,
+					Name:    doc.VissibleName,
+				}
+				app.hub.Notify(uid, deviceID, ntf, hub.DocDeletedEvent)
 			}
 		}
 		result = append(result, messages.StatusResponse{ID: r.ID, Success: ok})
@@ -304,21 +312,30 @@ func (app *App) updateStatus(c *gin.Context) {
 		return
 	}
 	result := []messages.StatusResponse{}
-	for _, r := range req {
-		log.Info("Id: ", r.ID, " Name: ", r.VissibleName)
+	for _, doc := range req {
+		log.Info("Id: ", doc.ID, " Name: ", doc.VissibleName)
 
 		message := ""
 
 		ok := false
-		err := app.metaStorer.UpdateMetadata(uid, &r)
+		err := app.metaStorer.UpdateMetadata(uid, &doc)
 		if err != nil {
 			message = internalErrorMessage
 			log.Error(err)
 		} else {
 			ok = true
-			app.hub.Notify(uid, deviceID, &r, hub.DocAddedEvent)
+
+			ntf := hub.DocumentNotification{
+				ID:      doc.ID,
+				Type:    doc.Type,
+				Version: doc.Version,
+				Parent:  doc.Parent,
+				Name:    doc.VissibleName,
+			}
+
+			app.hub.Notify(uid, deviceID, ntf, hub.DocAddedEvent)
 		}
-		result = append(result, messages.StatusResponse{ID: r.ID, Success: ok, Message: message, Version: r.Version})
+		result = append(result, messages.StatusResponse{ID: doc.ID, Success: ok, Message: message, Version: doc.Version})
 	}
 
 	c.JSON(http.StatusOK, result)
@@ -344,6 +361,10 @@ func (app *App) syncComplete(c *gin.Context) {
 	c.JSON(http.StatusOK, res)
 }
 
+func formatExpires(t time.Time) string {
+	return strconv.FormatInt(t.Unix(), 10)
+}
+
 func (app *App) blobStorageDownload(c *gin.Context) {
 	uid := c.GetString(userIDKey)
 	var req messages.BlobStorageRequest
@@ -357,16 +378,17 @@ func (app *App) blobStorageDownload(c *gin.Context) {
 		return
 	}
 
-	url, err := app.docStorer.GetBlobURL(uid, req.RelativePath)
+	url, exp, err := app.docStorer.GetBlobURL(uid, req.RelativePath)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 	response := messages.BlobStorageResponse{
-		Method:       "GET",
+		Method:       http.MethodGet,
 		RelativePath: req.RelativePath,
 		Url:          url,
+		Expires:      formatExpires(exp),
 	}
 	c.JSON(http.StatusOK, response)
 }
@@ -386,20 +408,26 @@ func (app *App) blobStorageUpload(c *gin.Context) {
 		log.Info("--- Initial Sync ---")
 	}
 	uid := c.GetString(userIDKey)
-	url, err := app.docStorer.GetBlobURL(uid, req.RelativePath)
+	url, exp, err := app.docStorer.GetBlobURL(uid, req.RelativePath)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 	response := messages.BlobStorageResponse{
-		Method:       "PUT",
+		Method:       http.MethodPut,
 		RelativePath: req.RelativePath,
 		Url:          url,
+		Expires:      formatExpires(exp),
 	}
 	c.JSON(http.StatusOK, response)
 }
 
+func (app *App) integrations(c *gin.Context) {
+	// uid := c.GetString(userIDKey)
+	var res messages.IntegrationsResponse
+	c.JSON(http.StatusOK, &res)
+}
 func (app *App) uploadRequest(c *gin.Context) {
 	uid := c.GetString(userIDKey)
 	var req []messages.UploadRequest

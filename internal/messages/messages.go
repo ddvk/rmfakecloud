@@ -10,7 +10,7 @@ type BlobStorageRequest struct {
 // BlobStorageResponse  what else
 type BlobStorageResponse struct {
 	Expires      string `json:"expires"`
-	Method       string `json:"http_method"`
+	Method       string `json:"method"`
 	RelativePath string `json:"relative_path"`
 	Url          string `json:"url"`
 }
@@ -108,4 +108,10 @@ type DeviceTokenRequest struct {
 // SyncCompleted what else
 type SyncCompleted struct {
 	ID string `json:"id"`
+}
+
+// IntegrationsResponse what else
+type IntegrationsResponse struct {
+	//TODO:
+	Integrations []string `json:"integrations"`
 }

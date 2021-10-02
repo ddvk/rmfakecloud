@@ -30,8 +30,9 @@ type Hub struct {
 	additions     chan *wsClient
 	removals      chan *wsClient
 	notifications chan ntf
-} // Notify sends a message to all connected clients
+}
 
+// Notify sends a message to all connected clients 1.5
 func (h *Hub) NotifySync(uid, deviceID string) string {
 	timestamp := time.Now().UnixNano()
 	msgid := strconv.Itoa(int(timestamp))
@@ -54,8 +55,16 @@ func (h *Hub) NotifySync(uid, deviceID string) string {
 	return msgid
 }
 
+type DocumentNotification struct {
+	ID      string
+	Type    string
+	Version int
+	Parent  string
+	Name    string
+}
+
 // Notify sends a message to all connected clients
-func (h *Hub) Notify(uid, deviceID string, doc *messages.RawDocument, eventType string) {
+func (h *Hub) Notify(uid, deviceID string, doc DocumentNotification, eventType string) {
 	timeStamp := time.Now().UTC().Format(time.RFC3339Nano)
 	messageID := uuid.New().String()
 
@@ -75,13 +84,11 @@ func (h *Hub) Notify(uid, deviceID string, doc *messages.RawDocument, eventType 
 		},
 		Subscription: "dummy-subscription",
 	}
-	if doc != nil {
-		msg.Message.Attributes.ID = doc.ID
-		msg.Message.Attributes.Type = doc.Type
-		msg.Message.Attributes.Version = strconv.Itoa(doc.Version)
-		msg.Message.Attributes.VissibleName = doc.VissibleName
-		msg.Message.Attributes.Parent = doc.Parent
-	}
+	msg.Message.Attributes.ID = doc.ID
+	msg.Message.Attributes.Type = doc.Type
+	msg.Message.Attributes.Version = strconv.Itoa(doc.Version)
+	msg.Message.Attributes.VissibleName = doc.Name
+	msg.Message.Attributes.Parent = doc.Parent
 
 	h.notifications <- ntf{
 		uid:  uid,

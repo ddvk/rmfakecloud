@@ -9,6 +9,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/storage"
+	"github.com/ddvk/rmfakecloud/internal/storage/fs/sync15"
 	"github.com/ddvk/rmfakecloud/internal/webassets"
 	"github.com/gin-gonic/gin"
 )
@@ -18,9 +19,12 @@ type codeGenerator interface {
 }
 
 type documentHandler interface {
-	CreateDocument(uid, filename string, stream io.ReadCloser) (doc *messages.RawDocument, err error)
+	CreateDocument(uid, filename string, stream io.ReadCloser) (doc *storage.Document, err error)
 	GetAllMetadata(uid string) (do []*messages.RawDocument, err error)
 	ExportDocument(uid, id, format string, exportOption storage.ExportOption) (stream io.ReadCloser, err error)
+
+	GetTree(uid string) (tree *sync15.HashTree, err error)
+	// CreateDocument15(uid, filename string, stream io.ReadCloser) (doc *storage.Document, err error)
 }
 
 // ReactAppWrapper wrap some stuff
@@ -32,6 +36,8 @@ type ReactAppWrapper struct {
 	codeConnector   codeGenerator
 	h               *hub.Hub
 	documentHandler documentHandler
+	blobbackend     backend
+	oldbbackend     backend
 }
 
 const indexReplacement = "/default"
@@ -64,6 +70,14 @@ func New(cfg *config.Config, userStorer storage.UserStorer,
 		codeConnector:   codeConnector,
 		h:               h,
 		documentHandler: docHandler,
+		blobbackend: &blobBackend{
+			documentHandler: docHandler,
+			h:               h,
+		},
+		oldbbackend: &oldhandler{
+			documentHandler: docHandler,
+			h:               h,
+		},
 	}
 	return &staticWrapper
 }

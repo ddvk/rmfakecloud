@@ -4,11 +4,13 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/ddvk/rmfakecloud/internal/messages"
+	"github.com/ddvk/rmfakecloud/internal/storage/fs/sync15"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -28,12 +30,39 @@ func createMedatadata(name, id string) *messages.RawDocument {
 
 }
 
+func (fs *Storage) GetTree(uid string) (t *sync15.HashTree, err error) {
+
+	syncFolder := fs.getUserSyncPath(uid)
+	ls := &LocalStore{
+		Folder: syncFolder,
+	}
+
+	cachePath := path.Join(fs.getUserPath(uid), ".tree")
+
+	tree, err := sync15.LoadTree(cachePath)
+	if err != nil {
+		return nil, err
+	}
+	changed, err := tree.Mirror(ls)
+	if err != nil {
+		return nil, err
+	}
+	if changed {
+		err = tree.Save(cachePath)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return tree, nil
+}
+
 // GetAllMetadata load all metadata
 func (fs *Storage) GetAllMetadata(uid string) (result []*messages.RawDocument, err error) {
-	folder := fs.getUserPath(uid)
-	files, err := ioutil.ReadDir(folder)
-
 	result = []*messages.RawDocument{}
+
+	var files []os.FileInfo
+	folder := fs.getUserPath(uid)
+	files, err = ioutil.ReadDir(folder)
 
 	for _, f := range files {
 		ext := filepath.Ext(f.Name())

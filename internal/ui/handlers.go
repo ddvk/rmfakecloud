@@ -17,6 +17,7 @@ import (
 
 const (
 	userID    = "userID"
+	isSync15  = "sync15"
 	browserID = "browserID"
 	uiLogger  = "[ui] "
 )
@@ -113,10 +114,15 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 		return
 	}
 
+	scopes := ""
+	if user.Sync15 {
+		scopes = "sync15"
+	}
 	claims := &common.WebUserClaims{
 		UserID:    user.ID,
 		BrowserID: uuid.NewString(),
 		Email:     user.Email,
+		Scopes:    scopes,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(12 * time.Hour).Unix(),
 			Issuer:    "rmFake WEB",
@@ -208,24 +214,57 @@ func (app *ReactAppWrapper) newCode(c *gin.Context) {
 
 	c.JSON(http.StatusOK, code)
 }
+
+func (app *ReactAppWrapper) getTree(sync15 bool, uid string) (*viewmodel.DocumentTree, error) {
+
+	if !sync15 {
+		documents, err := app.documentHandler.GetAllMetadata(uid)
+		if err != nil {
+			return nil, err
+		}
+
+		return viewmodel.NewTree(documents), nil
+	} else {
+
+		syncTree, err := app.documentHandler.GetTree(uid)
+		if err != nil {
+			return nil, err
+		}
+
+		return viewmodel.NewTreeFromSync(syncTree), nil
+	}
+}
+
+func getBackend(c *gin.Context) backend {
+	blah, ok := c.Get("backend")
+	if !ok {
+		panic("not there")
+
+	}
+	return blah.(backend)
+
+}
 func (app *ReactAppWrapper) listDocuments(c *gin.Context) {
 	uid := c.GetString(userID)
-	documents, err := app.documentHandler.GetAllMetadata(uid)
+
+	var tree *viewmodel.DocumentTree
+	// isSync15 := c.GetBool(isSync15)
+
+	backend := getBackend(c)
+	tree, err := backend.GetDocumentTree(uid)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-
-	tree := viewmodel.NewTree(documents)
-
 	c.JSON(http.StatusOK, tree)
 }
 func (app *ReactAppWrapper) getDocument(c *gin.Context) {
 	uid := c.GetString(userID)
-	docid := c.Param("docid")
-	log.Info("exporting ", docid)
-	reader, err := app.documentHandler.ExportDocument(uid, docid, "pdf", 0)
+	docId := c.Param("docid")
+	log.Info("exporting ", docId)
+	backend := getBackend(c)
+	reader, err := backend.Export(uid, docId, "pdf", 0)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -259,7 +298,10 @@ func (app *ReactAppWrapper) deleteDocument(c *gin.Context) {
 }
 func (app *ReactAppWrapper) createDocument(c *gin.Context) {
 	uid := c.GetString(userID)
+	// sync15 := c.GetBool(sync15)
 	log.Info("uploading documents from: ", uid)
+
+	backend := getBackend(c)
 
 	form, err := c.MultipartForm()
 	if err != nil {
@@ -280,15 +322,23 @@ func (app *ReactAppWrapper) createDocument(c *gin.Context) {
 		//do the stuff
 		log.Info(uiLogger, fmt.Sprintf("Uploading %s , size: %d", file.Filename, file.Size))
 
-		doc, err := app.documentHandler.CreateDocument(uid, file.Filename, f)
+		doc, err := backend.CreateDocument(uid, file.Filename, f)
 		if err != nil {
 			log.Error(err)
 			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
+		ntf := hub.DocumentNotification{
+			ID:      doc.ID,
+			Type:    doc.Type,
+			Version: -1,
+			Parent:  doc.Parent,
+			Name:    doc.Name,
+		}
 		log.Info(uiLogger, "Uploaded document id", doc.ID)
-		app.h.Notify(uid, "web", doc, hub.DocAddedEvent)
+		app.h.Notify(uid, "web", ntf, hub.DocAddedEvent)
 	}
+	backend.Sync(uid)
 	c.Status(http.StatusOK)
 }
 

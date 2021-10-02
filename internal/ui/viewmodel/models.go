@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ddvk/rmfakecloud/internal/messages"
+	"github.com/ddvk/rmfakecloud/internal/storage/fs/sync15"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -50,6 +51,19 @@ func makeDocument(d *messages.RawDocument) (entry Entry) {
 
 const trashId = "trash"
 
+func NewTreeFromSync(tree *sync15.HashTree) *DocumentTree {
+	docs := make([]*messages.RawDocument, 0)
+	for _, d := range tree.Docs {
+		docs = append(docs, &messages.RawDocument{
+			ID:           d.DocumentID,
+			Parent:       d.MetadataFile.Parent,
+			VissibleName: d.MetadataFile.DocName,
+		})
+
+	}
+
+	return NewTree(docs)
+}
 func NewTree(documents []*messages.RawDocument) *DocumentTree {
 	childParent := make(map[string]string)
 	folders := make(map[string]*Directory)

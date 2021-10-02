@@ -11,7 +11,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/ddvk/rmfakecloud/internal/messages"
+	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/google/uuid"
 )
 
@@ -57,7 +57,7 @@ func extractID(r io.Reader) (string, error) {
 }
 
 // CreateDocument creates a new document
-func (fs *Storage) CreateDocument(uid, filename string, stream io.ReadCloser) (doc *messages.RawDocument, err error) {
+func (fs *Storage) CreateDocument(uid, filename string, stream io.ReadCloser) (doc *storage.Document, err error) {
 	ext := path.Ext(filename)
 	switch ext {
 	case ".pdf":
@@ -120,11 +120,19 @@ func (fs *Storage) CreateDocument(uid, filename string, stream io.ReadCloser) (d
 	}
 
 	//create metadata
-	doc = createMedatadata(strings.TrimSuffix(filename, ext), docid)
+	name := strings.TrimSuffix(filename, ext)
+	doc1 := createMedatadata(name, docid)
 
-	jsn, err := json.Marshal(doc)
+	jsn, err := json.Marshal(doc1)
 	if err != nil {
 		return
+	}
+
+	doc = &storage.Document{
+		ID:     docid,
+		Type:   doc1.Type,
+		Parent: "",
+		Name:   name,
 	}
 	//save metadata
 	metafilePath := fs.getPathFromUser(uid, docid+metadataExtension)
