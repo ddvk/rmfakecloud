@@ -230,6 +230,11 @@ func (t *HashTree) Mirror(r RemoteStorage) (changed bool, err error) {
 	}
 
 	if rootHash == t.Hash {
+		if gen != t.Generation {
+			t.Generation = gen
+			return true, nil
+
+		}
 		return
 	}
 	log.Printf("remote root hash different")

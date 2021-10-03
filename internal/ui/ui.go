@@ -36,6 +36,7 @@ type documentHandler interface {
 type blobHandler interface {
 	GetTree(uid string) (tree *sync15.HashTree, err error)
 	CreateBlobDocument(uid, name string, reader io.Reader) (doc *storage.Document, err error)
+	Export(uid, docid string) (io.ReadCloser, error)
 }
 
 // ReactAppWrapper encapsulates an app

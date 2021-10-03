@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -17,6 +16,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/storage/fs/sync15"
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 )
 
 const cachedTreeName = ".tree"
@@ -51,6 +51,24 @@ func (fs *Storage) SaveTree(uid string, t *sync15.HashTree) error {
 	return t.Save(cachePath)
 }
 
+func (fs *Storage) Export(uid, docid string) (r io.ReadCloser, err error) {
+	tree, err := fs.GetTree(uid)
+	if err != nil {
+		return nil, err
+	}
+	doc, err := tree.FindDoc(docid)
+	if err != nil {
+		return nil, err
+	}
+	//todo: find the metadata
+	//find the payload
+	ls := &LocalBlobStorage{
+		fs:  fs,
+		uid: uid,
+	}
+	return ls.GetReader(doc.Hash)
+}
+
 // CreateDocument creates a new document
 func (fs *Storage) CreateBlobDocument(uid, filename string, stream io.Reader) (doc *storage.Document, err error) {
 	ext := path.Ext(filename)
@@ -74,11 +92,7 @@ func (fs *Storage) CreateBlobDocument(uid, filename string, stream io.Reader) (d
 	blobDoc := sync15.NewBlobDoc(name, docid, storage.DocumentType)
 
 	metahash, err := createMetadataFile(name, docid, syncpath)
-	fi := &sync15.Entry{
-		Hash:       metahash,
-		Type:       sync15.FileType,
-		DocumentID: uid + storage.MetadataFileExt,
-	}
+	fi := sync15.NewFileEntry(metahash, docid+storage.MetadataFileExt)
 	if err != nil {
 		return
 	}
@@ -91,11 +105,7 @@ func (fs *Storage) CreateBlobDocument(uid, filename string, stream io.Reader) (d
 	content := createContent(ext)
 	contentHash, err := sync15.Hash(strings.NewReader(content))
 	saveTo(strings.NewReader(content), contentHash, syncpath)
-	fi = &sync15.Entry{
-		Hash:       contentHash,
-		Type:       sync15.FileType,
-		DocumentID: docid + contentFileExt,
-	}
+	fi = sync15.NewFileEntry(contentHash, docid+contentFileExt)
 
 	blobDoc.AddFile(fi)
 
@@ -117,16 +127,13 @@ func (fs *Storage) CreateBlobDocument(uid, filename string, stream io.Reader) (d
 	if err != nil {
 		return nil, err
 	}
-	fi = &sync15.Entry{
-		Hash:       payloadHash,
-		Type:       sync15.FileType,
-		DocumentID: fmt.Sprintf("%s.%s", docid, ext),
-	}
+	fi = sync15.NewFileEntry(payloadHash, docid+ext)
 	err = blobDoc.AddFile(fi)
 	if err != nil {
 		return nil, err
 	}
 
+	//loop
 	err = tree.Add(blobDoc)
 	if err != nil {
 		return
@@ -138,7 +145,6 @@ func (fs *Storage) CreateBlobDocument(uid, filename string, stream io.Reader) (d
 		return
 	}
 
-	//loop
 	rootIndexReader, err := tree.RootIndex()
 	err = saveTo(rootIndexReader, tree.Hash, syncpath)
 	if err != nil {
@@ -149,8 +155,12 @@ func (fs *Storage) CreateBlobDocument(uid, filename string, stream io.Reader) (d
 		uid: uid,
 	}
 
-	//todo:check gen
+	//todo:check gen + locking
 	gen, err := blobStorage.WriteRootIndex(tree.Generation, tree.Hash)
+	if err != nil {
+		return
+	}
+	logrus.Info("got gen ", gen)
 	tree.Generation = gen
 	err = fs.SaveTree(uid, tree)
 
@@ -182,11 +192,13 @@ func saveTo(r io.Reader, hash, syncpath string) (err error) {
 
 func createMetadataFile(name, docid, spath string) (filehash string, err error) {
 	metadata := model.MetadataFile{
-		DocName:        name,
-		CollectionType: storage.DocumentType,
-		Parent:         "",
-		Version:        0,
-		LastModified:   strconv.FormatInt(time.Now().Unix(), 10),
+		DocName:          name,
+		CollectionType:   storage.DocumentType,
+		Parent:           "",
+		Version:          0,
+		LastModified:     strconv.FormatInt(time.Now().Unix(), 10),
+		Synced:           true,
+		MetadataModified: true,
 	}
 
 	jsn, err := json.Marshal(metadata)

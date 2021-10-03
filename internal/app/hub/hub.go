@@ -34,6 +34,7 @@ type Hub struct {
 
 // Notify sends a message to all connected clients 1.5
 func (h *Hub) NotifySync(uid, deviceID string) string {
+	log.Info("notify sync from: ", deviceID)
 	timestamp := time.Now().UnixNano()
 	msgid := strconv.Itoa(int(timestamp))
 	msg := messages.WsMessage{
@@ -99,7 +100,7 @@ func (h *Hub) Notify(uid, deviceID string, doc DocumentNotification, eventType s
 func (h *Hub) send(n ntf) {
 	uid := n.uid
 	msg := n.msg
-	log.Info("Broadcast notification, for all devices of  uid:", uid)
+	log.Info("Broadcast notification, for all devices of  uid:", uid, " id ", n.msg.Message.MessageID3)
 
 	if clients, ok := h.userClients[uid]; ok {
 		for c := range clients {

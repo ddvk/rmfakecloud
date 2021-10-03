@@ -4,6 +4,8 @@ import (
 	"io"
 	"io/ioutil"
 	"strings"
+
+	"github.com/ddvk/rmfakecloud/internal/storage"
 )
 
 type LocalBlobStorage struct {
@@ -13,6 +15,9 @@ type LocalBlobStorage struct {
 
 func (p *LocalBlobStorage) GetRootIndex() (string, int64, error) {
 	r, gen, err := p.fs.LoadBlob(p.uid, rootFile)
+	if err == storage.ErrorNotFound {
+		return "", 0, nil
+	}
 	if err != nil {
 		return "", 0, err
 	}

@@ -6,6 +6,8 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/app/hub"
 	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
+	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 )
 
 type backend15 struct {
@@ -13,23 +15,25 @@ type backend15 struct {
 	h           *hub.Hub
 }
 
-func (d *backend15) GetDocumentTree(uid string) (tree *viewmodel.DocumentTree, err error) {
-	syncTree, err := d.blobHandler.GetTree(uid)
+func (b *backend15) GetDocumentTree(uid string) (tree *viewmodel.DocumentTree, err error) {
+	syncTree, err := b.blobHandler.GetTree(uid)
 	if err != nil {
 		return nil, err
 	}
 
 	return viewmodel.NewTreeFromSync(syncTree), nil
 }
-func (*backend15) Export(uid, doc, exporttype string, opt storage.ExportOption) (stream io.ReadCloser, err error) {
-	return nil, nil
-}
-
-func (d *backend15) CreateDocument(uid, filename string, stream io.Reader) (doc *storage.Document, err error) {
-	doc, err = d.blobHandler.CreateBlobDocument(uid, filename, stream)
+func (b *backend15) Export(uid, docid, exporttype string, opt storage.ExportOption) (r io.ReadCloser, err error) {
+	r, err = b.blobHandler.Export(uid, docid)
 	return
 }
 
-func (d *backend15) Sync(uid string) {
-	d.h.NotifySync(uid, "web")
+func (b *backend15) CreateDocument(uid, filename string, stream io.Reader) (doc *storage.Document, err error) {
+	doc, err = b.blobHandler.CreateBlobDocument(uid, filename, stream)
+	return
+}
+
+func (b *backend15) Sync(uid string) {
+	logrus.Info("notifying")
+	b.h.NotifySync(uid, uuid.NewString())
 }

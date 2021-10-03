@@ -57,6 +57,7 @@ func NewTreeFromSync(tree *sync15.HashTree) *DocumentTree {
 			ID:           d.DocumentID,
 			Parent:       d.MetadataFile.Parent,
 			VissibleName: d.MetadataFile.DocName,
+			Type:         d.MetadataFile.CollectionType,
 		})
 
 	}

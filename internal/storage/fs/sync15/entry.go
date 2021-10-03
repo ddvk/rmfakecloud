@@ -5,6 +5,14 @@ import (
 	"strings"
 )
 
+func NewFileEntry(hash, documentId string) *Entry {
+	return &Entry{
+		Hash:       hash,
+		DocumentID: documentId,
+		Type:       FileType,
+	}
+}
+
 type Entry struct {
 	Hash       string
 	Type       string

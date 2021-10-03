@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/ddvk/rmfakecloud/internal/app/hub"
 	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/model"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
@@ -301,21 +300,12 @@ func (app *ReactAppWrapper) createDocument(c *gin.Context) {
 		//do the stuff
 		log.Info(uiLogger, fmt.Sprintf("Uploading %s , size: %d", file.Filename, file.Size))
 
-		doc, err := backend.CreateDocument(uid, file.Filename, f)
+		_, err = backend.CreateDocument(uid, file.Filename, f)
 		if err != nil {
 			log.Error(err)
 			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
-		ntf := hub.DocumentNotification{
-			ID:      doc.ID,
-			Type:    doc.Type,
-			Version: -1,
-			Parent:  doc.Parent,
-			Name:    doc.Name,
-		}
-		log.Info(uiLogger, "Uploaded document id", doc.ID)
-		app.h.Notify(uid, "web", ntf, hub.DocAddedEvent)
 	}
 	backend.Sync(uid)
 	c.Status(http.StatusOK)
