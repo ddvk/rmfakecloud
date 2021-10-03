@@ -49,10 +49,11 @@ func (app *ReactAppWrapper) authMiddleware() gin.HandlerFunc {
 				newsync = true
 			}
 		}
+
 		if newsync {
-			c.Set("backend", app.blobbackend)
+			c.Set("backend", app.backend15)
 		} else {
-			c.Set("backend", app.oldbbackend)
+			c.Set("backend", app.backend10)
 
 		}
 		uid := claims.UserID

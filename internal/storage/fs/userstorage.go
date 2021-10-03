@@ -16,7 +16,7 @@ const (
 	profileName = ".userprofile"
 )
 
-// NewStorage create a new instance
+// NewStorage new file system storage
 func NewStorage(cfg *config.Config) *Storage {
 	fs := &Storage{
 		Cfg: cfg,
@@ -29,7 +29,6 @@ func NewStorage(cfg *config.Config) *Storage {
 	}
 
 	return fs
-
 }
 
 // GetUser retrieves a user from the storage

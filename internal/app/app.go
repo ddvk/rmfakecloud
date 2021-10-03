@@ -9,7 +9,6 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ddvk/rmfakecloud/internal/app/hub"
-	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/storage/fs"
@@ -31,8 +30,9 @@ type App struct {
 	docStorer     storage.DocumentStorer
 	userStorer    storage.UserStorer
 	metaStorer    storage.MetadataStorer
+	blobStorer    storage.BlobStorage
 	hub           *hub.Hub
-	codeConnector common.CodeConnector
+	codeConnector CodeConnector
 }
 
 // Start starts the app
@@ -120,12 +120,13 @@ func NewApp(cfg *config.Config) App {
 		docStorer:     fsStorage,
 		userStorer:    fsStorage,
 		metaStorer:    fsStorage,
+		blobStorer:    fsStorage,
 		hub:           ntfHub,
 		codeConnector: codeConnector,
 	}
-	uiApp := ui.New(cfg, fsStorage, codeConnector, ntfHub, fsStorage)
+	uiApp := ui.New(cfg, fsStorage, codeConnector, ntfHub, fsStorage, fsStorage)
 
-	storageapp := fs.NewApp(cfg, fsStorage, ntfHub)
+	storageapp := fs.NewApp(cfg, fsStorage, fsStorage)
 
 	app.registerRoutes(router)
 	storageapp.RegisterRoutes(router)

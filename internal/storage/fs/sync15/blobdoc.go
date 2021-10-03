@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/ddvk/rmfakecloud/internal/model"
+	"github.com/ddvk/rmfakecloud/internal/storage"
 )
 
 type BlobDoc struct {
@@ -59,7 +60,7 @@ func (d *BlobDoc) MetadataHashAndReader() (hash string, reader io.Reader, err er
 	reader = bytes.NewReader(jsn)
 	found := false
 	for _, f := range d.Files {
-		if strings.HasSuffix(f.DocumentID, ".metadata") {
+		if strings.HasSuffix(f.DocumentID, storage.MetadataFileExt) {
 			f.Hash = hash
 			found = true
 			break

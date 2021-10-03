@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ddvk/rmfakecloud/internal/messages"
+	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/storage/fs/sync15"
 	log "github.com/sirupsen/logrus"
 )
@@ -27,8 +28,6 @@ type DocumentTree struct {
 	Entries []Entry
 	Trash   []Entry
 }
-
-const CollectionType = "CollectionType"
 
 func makeFolder(d *messages.RawDocument) (entry *Directory) {
 	entry = &Directory{
@@ -73,7 +72,7 @@ func NewTree(documents []*messages.RawDocument) *DocumentTree {
 	sort.Slice(documents, func(i, j int) bool {
 		a, b := documents[i], documents[j]
 		if a.Type != b.Type {
-			return a.Type == CollectionType
+			return a.Type == storage.CollectionType
 		}
 
 		return a.VissibleName < b.VissibleName
@@ -82,7 +81,7 @@ func NewTree(documents []*messages.RawDocument) *DocumentTree {
 	// add all folders
 	for _, d := range documents {
 		switch d.Type {
-		case CollectionType:
+		case storage.CollectionType:
 			folders[d.ID] = makeFolder(d)
 		}
 	}

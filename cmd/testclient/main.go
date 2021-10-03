@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 
 	"github.com/gorilla/websocket"
@@ -39,13 +38,13 @@ func getUrl(host string, tokens Tokens) (string, error) {
 	}
 	req, err := http.NewRequest("GET", host+serviceLocator, nil)
 	if err != nil {
-		return "", fmt.Errorf("Got error %w", err)
+		return "", fmt.Errorf("got error %w", err)
 	}
 	req.Header.Add("Authorization", "Bearrer "+tokens.UserToken)
 	req.Header.Add("Content-Type", "application/json")
 	response, err := client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("Got error %w", err)
+		return "", fmt.Errorf("got error %w", err)
 	}
 	defer response.Body.Close()
 	body, _ := ioutil.ReadAll(response.Body)
@@ -95,7 +94,7 @@ func loadToken(configFile string) (*Tokens, error) {
 
 func main() {
 	logger := logrus.New()
-	log.SetOutput(logger.Writer())
+	logrus.SetOutput(logger.Writer())
 
 	host := flag.String("h", "http://localhost:3001", "host, use origin for the real ip")
 	rmapiConf := flag.String("c", "", "rmapi .conf file")

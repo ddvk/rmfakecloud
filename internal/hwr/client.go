@@ -47,6 +47,9 @@ func SendRequest(data []byte) (body []byte, err error) {
 	client := http.Client{}
 
 	req, err := http.NewRequest("POST", url, bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
 	req.Header.Set("Accept", JIIX)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("applicationKey", key)
@@ -63,7 +66,7 @@ func SendRequest(data []byte) (body []byte, err error) {
 	}
 
 	if res.StatusCode != http.StatusOK {
-		err = fmt.Errorf("Not ok, Status: %d", res.StatusCode)
+		err = fmt.Errorf("not ok, Status: %d", res.StatusCode)
 		return
 	}
 

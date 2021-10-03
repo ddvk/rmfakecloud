@@ -24,6 +24,7 @@ type StatusResponse struct {
 }
 
 // WsMessage websocket notification
+
 type WsMessage struct {
 	Message      NotificationMessage `json:"message"`
 	Subscription string              `json:"subscription,omitempty"`

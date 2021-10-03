@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ddvk/rmfakecloud/internal/common"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -18,8 +17,17 @@ type inMemoryCodeConnector struct {
 	codeValidity time.Duration
 }
 
+// CodeConnector matches a code to users
+type CodeConnector interface {
+	//NewCode generates one time code for a user
+	NewCode(uid string) (code string, err error)
+
+	//ConsumeCode a code and returns the uid if ofound
+	ConsumeCode(code string) (uid string, err error)
+}
+
 // NewCodeConnector constructor
-func NewCodeConnector() common.CodeConnector {
+func NewCodeConnector() CodeConnector {
 	return &inMemoryCodeConnector{
 		dict:         make(map[string]string),
 		uids:         make(map[string]string),

@@ -378,7 +378,7 @@ func (app *App) blobStorageDownload(c *gin.Context) {
 		return
 	}
 
-	url, exp, err := app.docStorer.GetBlobURL(uid, req.RelativePath)
+	url, exp, err := app.blobStorer.GetBlobURL(uid, req.RelativePath)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -408,7 +408,7 @@ func (app *App) blobStorageUpload(c *gin.Context) {
 		log.Info("--- Initial Sync ---")
 	}
 	uid := c.GetString(userIDKey)
-	url, exp, err := app.docStorer.GetBlobURL(uid, req.RelativePath)
+	url, exp, err := app.blobStorer.GetBlobURL(uid, req.RelativePath)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)

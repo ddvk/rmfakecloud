@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ddvk/rmfakecloud/internal/config"
+	"github.com/ddvk/rmfakecloud/internal/storage"
 )
 
 func TestCreateDocument(t *testing.T) {
@@ -31,12 +32,12 @@ func TestCreateDocument(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = os.Stat(path.Join(userdir, d.ID+metadataExtension))
+	_, err = os.Stat(path.Join(userdir, d.ID+storage.MetadataFileExt))
 	if err != nil {
 		t.Error(err)
 	}
 
-	_, err = os.Stat(path.Join(userdir, d.ID+zipExtension))
+	_, err = os.Stat(path.Join(userdir, d.ID+ZipFileExt))
 	if err != nil {
 		t.Error(err)
 	}

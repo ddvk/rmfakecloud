@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -13,7 +14,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rifflock/lfshook"
 	"github.com/sirupsen/logrus"
-	log "github.com/sirupsen/logrus"
 )
 
 var version string
@@ -43,8 +43,8 @@ Commands:
 	fmt.Fprintln(os.Stderr, "run with -h for all available env variables")
 	cfg.Verify()
 
-	logger := log.StandardLogger()
-	logger.SetFormatter(&log.TextFormatter{})
+	logger := logrus.StandardLogger()
+	logger.SetFormatter(&logrus.TextFormatter{})
 
 	var file, err = os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
@@ -55,12 +55,12 @@ Commands:
 		logger.Hooks.Add(hook)
 	}
 
-	if lvl, err := log.ParseLevel(os.Getenv(config.EnvLogLevel)); err == nil {
+	if lvl, err := logrus.ParseLevel(os.Getenv(config.EnvLogLevel)); err == nil {
 		fmt.Println("Log level:", lvl)
 		logger.SetLevel(lvl)
 	}
 
-	log.Println("Version: ", version)
+	logrus.Println("Version: ", version)
 	// configs
 	log.Println("Documents will be saved in:", cfg.DataDir)
 	log.Println("Url the device should use:", cfg.StorageURL)

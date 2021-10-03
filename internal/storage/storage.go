@@ -11,10 +11,17 @@ import (
 
 type ExportOption int
 
+const DocumentType = "DocumentType"
+const CollectionType = "CollectionType"
+const MetadataFileExt = ".metadata"
+
 const (
 	ExportWithAnnotations ExportOption = iota
 	ExportOnlyAnnotations
 )
+
+var ErrorNotFound = errors.New("not found")
+var ErrorWrongGeneration = errors.New("wrong generation")
 
 // DocumentStorer stores documents
 type DocumentStorer interface {
@@ -25,14 +32,18 @@ type DocumentStorer interface {
 
 	// GetStorageURL creates a short lived url
 	GetStorageURL(uid, docid, urltype string) (string, time.Time, error)
-	GetBlobURL(uid, docid string) (string, time.Time, error)
+	// GetBlobURL(uid, docid string) (string, time.Time, error)
 
-	StoreBlob(uid, blobId string, s io.ReadCloser, matchGeneration int) (int, error)
-	LoadBlob(uid, blobId string) (io.ReadCloser, int, error)
+	// StoreBlob(uid, blobId string, s io.ReadCloser, matchGeneration int) (int, error)
+	// LoadBlob(uid, blobId string) (io.ReadCloser, int, error)
 }
 
-var ErrorNotFound = errors.New("not found")
-var ErrorWrongGeneration = errors.New("wrong generation")
+type BlobStorage interface {
+	GetBlobURL(uid, docid string) (string, time.Time, error)
+
+	StoreBlob(uid, blobId string, s io.Reader, matchGeneration int64) (int64, error)
+	LoadBlob(uid, blobId string) (io.ReadCloser, int64, error)
+}
 
 // MetadataStorer manages document metadata
 type MetadataStorer interface {
@@ -49,6 +60,7 @@ type UserStorer interface {
 	UpdateUser(u *model.User) error
 }
 
+// Document represents a document in storage
 type Document struct {
 	ID     string
 	Type   string

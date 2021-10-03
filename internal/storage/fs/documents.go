@@ -56,7 +56,7 @@ func sanitize(id string) string {
 }
 
 // poundifdef caligraphy pen is nice
-func render1(input, output string) (io.ReadCloser, error) {
+func render2(input, output string) (io.ReadCloser, error) {
 	reader, err := zip.OpenReader(input)
 	if err != nil {
 		return nil, fmt.Errorf("can't open file %w", err)
@@ -85,7 +85,7 @@ func render1(input, output string) (io.ReadCloser, error) {
 }
 
 //using rmapi (whole pdf)
-func render2(input, output string) (io.ReadCloser, error) {
+func render1(input, output string) (io.ReadCloser, error) {
 	options := rm2pdf2.PdfGeneratorOptions{
 		AllPages: true,
 	}
@@ -111,7 +111,7 @@ func (fs *Storage) ExportDocument(uid, id, outputType string, exportOption stora
 		return nil, err
 	}
 
-	fullPath := fs.getPathFromUser(uid, id+zipExtension)
+	fullPath := fs.getPathFromUser(uid, id+ZipFileExt)
 	log.Debugln("Fullpath:", fullPath)
 	rawStat, err := os.Stat(fullPath)
 	if err != nil {
@@ -133,7 +133,7 @@ func (fs *Storage) ExportDocument(uid, id, outputType string, exportOption stora
 
 // GetDocument Opens a document by id
 func (fs *Storage) GetDocument(uid, id string) (io.ReadCloser, error) {
-	fullPath := fs.getPathFromUser(uid, id+zipExtension)
+	fullPath := fs.getPathFromUser(uid, id+ZipFileExt)
 	log.Debugln("Fullpath:", fullPath)
 	reader, err := os.Open(fullPath)
 	return reader, err
@@ -149,14 +149,14 @@ func (fs *Storage) RemoveDocument(uid, id string) error {
 	}
 	//do not delete, move to trash
 	log.Info(trashDir)
-	meta := filepath.Base(id + metadataExtension)
+	meta := filepath.Base(id + storage.MetadataFileExt)
 	fullPath := fs.getPathFromUser(uid, meta)
 	err = os.Rename(fullPath, path.Join(trashDir, meta))
 	if err != nil {
 		return err
 	}
 
-	zipfile := filepath.Base(id + zipExtension)
+	zipfile := filepath.Base(id + ZipFileExt)
 	fullPath = fs.getPathFromUser(uid, zipfile)
 	err = os.Rename(fullPath, path.Join(trashDir, zipfile))
 	if err != nil {
@@ -167,7 +167,7 @@ func (fs *Storage) RemoveDocument(uid, id string) error {
 
 // StoreDocument stores a document
 func (fs *Storage) StoreDocument(uid, id string, stream io.ReadCloser) error {
-	fullPath := fs.getPathFromUser(uid, id+zipExtension)
+	fullPath := fs.getPathFromUser(uid, id+ZipFileExt)
 	file, err := os.Create(fullPath)
 	if err != nil {
 		return err
@@ -227,8 +227,8 @@ func (fs *Storage) GetBlobURL(uid, blobid string) (docurl string, exp time.Time,
 }
 
 // GetDocument Opens a document by id
-func (fs *Storage) LoadBlob(uid, id string) (io.ReadCloser, int, error) {
-	generation := 1
+func (fs *Storage) LoadBlob(uid, id string) (io.ReadCloser, int64, error) {
+	generation := int64(1)
 	blobPath := path.Join(fs.getUserSyncPath(uid), sanitize(id))
 	log.Debugln("Fullpath:", blobPath)
 	if id == rootFile {
@@ -256,7 +256,7 @@ func (fs *Storage) LoadBlob(uid, id string) (io.ReadCloser, int, error) {
 }
 
 // StoreDocument stores a document
-func (fs *Storage) StoreBlob(uid, id string, stream io.ReadCloser, matchGen int) (generation int, err error) {
+func (fs *Storage) StoreBlob(uid, id string, stream io.Reader, matchGen int64) (generation int64, err error) {
 	generation = 1
 
 	reader := stream
@@ -269,7 +269,7 @@ func (fs *Storage) StoreBlob(uid, id string, stream io.ReadCloser, matchGen int)
 		}
 		defer lock.Unlock()
 
-		currentGen := 0
+		currentGen := int64(0)
 		fi, err1 := os.Stat(historyPath)
 		if err1 == nil {
 			currentGen = calcGen(fi.Size())
@@ -321,7 +321,7 @@ func (fs *Storage) StoreBlob(uid, id string, stream io.ReadCloser, matchGen int)
 }
 
 //use file size as generation
-func calcGen(size int64) int {
+func calcGen(size int64) int64 {
 	//time + 1 space + 64 hash + 1 newline
-	return int(size / 86)
+	return size / 86
 }

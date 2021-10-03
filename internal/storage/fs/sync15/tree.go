@@ -36,6 +36,30 @@ func HashEntries(entries []*Entry) (string, error) {
 	hashStr := hex.EncodeToString(hash)
 	return hashStr, nil
 }
+
+func Hash(r io.Reader) (string, error) {
+	hasher := sha256.New()
+	_, err := io.Copy(hasher, r)
+	if err != nil {
+		return "", err
+	}
+	h := hasher.Sum(nil)
+	hstr := hex.EncodeToString(h)
+	return hstr, err
+}
+func FileHashAndSize(file string) ([]byte, int64, error) {
+	f, err := os.Open(file)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer f.Close()
+
+	hasher := sha256.New()
+	io.Copy(hasher, f)
+	h := hasher.Sum(nil)
+	size, err := f.Seek(0, os.SEEK_CUR)
+	return h, size, err
+}
 func LoadTree(cacheFile string) (*HashTree, error) {
 	tree := HashTree{}
 	if _, err := os.Stat(cacheFile); err == nil {
@@ -62,21 +86,6 @@ func (tree *HashTree) Save(cacheFile string) error {
 	}
 	err = ioutil.WriteFile(cacheFile, b, 0644)
 	return err
-}
-
-func FileHashAndSize(file string) ([]byte, int64, error) {
-	f, err := os.Open(file)
-	if err != nil {
-		return nil, 0, err
-	}
-	defer f.Close()
-
-	hasher := sha256.New()
-	io.Copy(hasher, f)
-	h := hasher.Sum(nil)
-	size, err := f.Seek(0, os.SEEK_CUR)
-	return h, size, err
-
 }
 
 func parseEntry(line string) (*Entry, error) {
@@ -140,7 +149,7 @@ func parseIndex(f io.Reader) ([]*Entry, error) {
 	return entries, nil
 }
 
-func (t *HashTree) IndexReader() (io.ReadCloser, error) {
+func (t *HashTree) RootIndex() (io.ReadCloser, error) {
 	pipeReader, pipeWriter := io.Pipe()
 	w := bufio.NewWriter(pipeWriter)
 	go func() {

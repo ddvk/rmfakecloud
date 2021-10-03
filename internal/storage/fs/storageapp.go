@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ddvk/rmfakecloud/internal/app/hub"
 	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/storage"
@@ -32,18 +31,18 @@ const (
 
 // Storage file system document storage
 type StorageApp struct {
-	cfg *config.Config
-	fs  storage.DocumentStorer
-	h   *hub.Hub
+	cfg  *config.Config
+	fs   storage.DocumentStorer
+	blob storage.BlobStorage
+	// h   *hub.Hub
 }
 
-// New Storage
-func NewApp(cfg *config.Config, fs storage.DocumentStorer,
-	h *hub.Hub) *StorageApp {
+// NewApp StorageApp various storage routes
+func NewApp(cfg *config.Config, fs storage.DocumentStorer, blob storage.BlobStorage) *StorageApp {
 	staticWrapper := StorageApp{
-		fs:  fs,
-		cfg: cfg,
-		h:   h,
+		fs:   fs,
+		blob: blob,
+		cfg:  cfg,
 	}
 	return &staticWrapper
 }
@@ -139,7 +138,7 @@ func (app *StorageApp) downloadBlob(c *gin.Context) {
 
 	log.Info("Requestng blob Id: ", blobId)
 
-	reader, generation, err := app.fs.LoadBlob(uid, blobId)
+	reader, generation, err := app.blob.LoadBlob(uid, blobId)
 	if err != nil {
 		if err == storage.ErrorNotFound {
 			c.AbortWithStatus(http.StatusNotFound)
@@ -152,7 +151,7 @@ func (app *StorageApp) downloadBlob(c *gin.Context) {
 	defer reader.Close()
 
 	log.Debug("Sending gen: ", generation)
-	c.Header(GenerationHeader, strconv.Itoa(generation))
+	c.Header(GenerationHeader, strconv.FormatInt(generation, 10))
 	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
 }
 
@@ -175,18 +174,18 @@ func (app *StorageApp) uploadBlob(c *gin.Context) {
 	body := c.Request.Body
 	defer body.Close()
 
-	generation := 0
+	generation := int64(0)
 	gh := c.Request.Header.Get(GenerationMatchHeader)
 	if gh != "" {
 		log.Info("Client sent generation:", gh)
 		var err error
-		generation, err = strconv.Atoi(gh)
+		generation, err = strconv.ParseInt(gh, 10, 64)
 		if err != nil {
 			log.Warn(err)
 		}
 	}
 
-	newgen, err := app.fs.StoreBlob(uid, blobId, body, generation)
+	newgen, err := app.blob.StoreBlob(uid, blobId, body, generation)
 
 	if err != nil {
 		if err == storage.ErrorWrongGeneration {
@@ -198,7 +197,7 @@ func (app *StorageApp) uploadBlob(c *gin.Context) {
 		return
 	}
 
-	c.Header(GenerationHeader, strconv.Itoa(newgen))
+	c.Header(GenerationHeader, strconv.FormatInt(newgen, 10))
 	c.JSON(http.StatusOK, gin.H{})
 
 }

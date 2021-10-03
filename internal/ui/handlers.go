@@ -17,6 +17,7 @@ import (
 
 const (
 	userID    = "userID"
+	docID     = "docid"
 	isSync15  = "sync15"
 	browserID = "browserID"
 	uiLogger  = "[ui] "
@@ -215,31 +216,10 @@ func (app *ReactAppWrapper) newCode(c *gin.Context) {
 	c.JSON(http.StatusOK, code)
 }
 
-func (app *ReactAppWrapper) getTree(sync15 bool, uid string) (*viewmodel.DocumentTree, error) {
-
-	if !sync15 {
-		documents, err := app.documentHandler.GetAllMetadata(uid)
-		if err != nil {
-			return nil, err
-		}
-
-		return viewmodel.NewTree(documents), nil
-	} else {
-
-		syncTree, err := app.documentHandler.GetTree(uid)
-		if err != nil {
-			return nil, err
-		}
-
-		return viewmodel.NewTreeFromSync(syncTree), nil
-	}
-}
-
 func getBackend(c *gin.Context) backend {
 	blah, ok := c.Get("backend")
 	if !ok {
 		panic("not there")
-
 	}
 	return blah.(backend)
 
@@ -248,7 +228,6 @@ func (app *ReactAppWrapper) listDocuments(c *gin.Context) {
 	uid := c.GetString(userID)
 
 	var tree *viewmodel.DocumentTree
-	// isSync15 := c.GetBool(isSync15)
 
 	backend := getBackend(c)
 	tree, err := backend.GetDocumentTree(uid)
@@ -261,7 +240,7 @@ func (app *ReactAppWrapper) listDocuments(c *gin.Context) {
 }
 func (app *ReactAppWrapper) getDocument(c *gin.Context) {
 	uid := c.GetString(userID)
-	docId := c.Param("docid")
+	docId := c.Param(docID)
 	log.Info("exporting ", docId)
 	backend := getBackend(c)
 	reader, err := backend.Export(uid, docId, "pdf", 0)
