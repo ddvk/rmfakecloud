@@ -58,8 +58,8 @@ func (app *ReactAppWrapper) authMiddleware() gin.HandlerFunc {
 		}
 		uid := claims.UserID
 		brid := claims.BrowserID
-		c.Set(userID, uid)
-		c.Set(browserID, brid)
+		c.Set(userIdContextKey, uid)
+		c.Set(browserIDContextKey, brid)
 		c.Set(isSync15, newsync)
 		for _, r := range claims.Roles {
 			if r == "Admin" {

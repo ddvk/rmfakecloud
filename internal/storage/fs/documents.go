@@ -12,16 +12,24 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
+
+	"encoding/json"
 
 	"github.com/golang-jwt/jwt"
 	"github.com/juju/fslock"
+	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/storage"
+	"github.com/ddvk/rmfakecloud/internal/storage/fs/exporter"
+	"github.com/ddvk/rmfakecloud/internal/storage/fs/sync15"
 	rm2pdf2 "github.com/juruen/rmapi/annotations"
+	"github.com/juruen/rmapi/archive"
+	"github.com/juruen/rmapi/encoding/rm"
 	rm2pdf "github.com/poundifdef/go-remarkable2pdf"
 )
 
@@ -96,7 +104,92 @@ func render1(input, output string) (io.ReadCloser, error) {
 	}
 
 	return os.Open(output)
+}
 
+func render3(a *exporter.MyArchive, output io.Writer) error {
+	pdfgen := exporter.PdfGenerator{}
+	options := exporter.PdfGeneratorOptions{
+		AllPages: true,
+	}
+	return pdfgen.Generate(a, output, options)
+}
+
+func FromBlobDoc(doc *sync15.BlobDoc, rs sync15.RemoteStorage) (*exporter.MyArchive, error) {
+	uuid := doc.DocumentID
+	a := exporter.MyArchive{
+		Zip: archive.Zip{
+			UUID: uuid,
+		},
+	}
+
+	pageMap := make(map[string]string)
+	for _, f := range doc.Files {
+		filext := path.Ext(f.DocumentID)
+		name := strings.TrimSuffix(path.Base(f.DocumentID), filext)
+		switch filext {
+		case ContentFileExt:
+			blob, err := rs.GetReader(f.Hash)
+			if err != nil {
+				return nil, err
+			}
+			defer blob.Close()
+			contentBytes, err := ioutil.ReadAll(blob)
+			if err != nil {
+				return nil, err
+			}
+			err = json.Unmarshal(contentBytes, &a.Content)
+			if err != nil {
+				return nil, err
+			}
+		case ".pdf":
+			blob, err := rs.GetReader(f.Hash)
+			if err != nil {
+				return nil, err
+			}
+			// defer blob.Close()
+			// contentBytes, err := ioutil.ReadAll(blob)
+			// if err != nil {
+			// 	return nil, err
+			// }
+			// a.Payload = contentBytes
+			//HACK:
+			a.PayloadReader = blob.(io.ReadSeekCloser)
+
+		case ".json":
+		case ".rm":
+			logrus.Debug("adding page ", name)
+			pageMap[name] = f.Hash
+		}
+	}
+
+	for _, p := range a.Content.Pages {
+		if hash, ok := pageMap[p]; ok {
+			logrus.Debug("page ", hash)
+			reader, err := rs.GetReader(hash)
+			if err != nil {
+				return nil, err
+			}
+			pageBin, err := ioutil.ReadAll(reader)
+			if err != nil {
+				return nil, err
+			}
+			rmpage := rm.New()
+			err = rmpage.UnmarshalBinary(pageBin)
+			if err != nil {
+				return nil, err
+			}
+
+			page := archive.Page{
+				Data:     rmpage,
+				Pagedata: "Blank",
+			}
+			a.Pages = append(a.Pages, page)
+
+		}
+
+	}
+
+	return &a, nil
 }
 
 // ExportDocument Exports a document to the outputType

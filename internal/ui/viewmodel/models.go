@@ -173,3 +173,7 @@ type User struct {
 	Name      string `json:"name"`
 	CreatedAt time.Time
 }
+
+///
+type UpdateDoc struct {
+}

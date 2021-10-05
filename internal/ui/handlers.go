@@ -15,11 +15,11 @@ import (
 )
 
 const (
-	userID    = "userID"
-	docID     = "docid"
-	isSync15  = "sync15"
-	browserID = "browserID"
-	uiLogger  = "[ui] "
+	userIdContextKey    = "userID"
+	browserIDContextKey = "browserID"
+	docIDParam          = "docid"
+	isSync15            = "sync15"
+	uiLogger            = "[ui] "
 )
 
 func (app *ReactAppWrapper) register(c *gin.Context) {
@@ -49,7 +49,7 @@ func (app *ReactAppWrapper) register(c *gin.Context) {
 	// Check this user doesn't already exist
 	_, err := app.userStorer.GetUser(form.Email)
 	if err == nil {
-		badReq(c, "alread taken")
+		badReq(c, "already taken")
 		return
 	}
 
@@ -165,7 +165,7 @@ func (app *ReactAppWrapper) resetPassword(c *gin.Context) {
 		return
 	}
 
-	uid := c.GetString(userID)
+	uid := c.GetString(userIdContextKey)
 
 	if user.ID != uid {
 		log.Error("Trying to change password for a different user.")
@@ -196,7 +196,7 @@ func (app *ReactAppWrapper) resetPassword(c *gin.Context) {
 }
 
 func (app *ReactAppWrapper) newCode(c *gin.Context) {
-	uid := c.GetString(userID)
+	uid := c.GetString(userIdContextKey)
 
 	user, err := app.userStorer.GetUser(uid)
 	if err != nil {
@@ -224,7 +224,7 @@ func getBackend(c *gin.Context) backend {
 
 }
 func (app *ReactAppWrapper) listDocuments(c *gin.Context) {
-	uid := c.GetString(userID)
+	uid := c.GetString(userIdContextKey)
 
 	var tree *viewmodel.DocumentTree
 
@@ -238,11 +238,11 @@ func (app *ReactAppWrapper) listDocuments(c *gin.Context) {
 	c.JSON(http.StatusOK, tree)
 }
 func (app *ReactAppWrapper) getDocument(c *gin.Context) {
-	uid := c.GetString(userID)
-	docId := c.Param(docID)
-	log.Info("exporting ", docId)
+	uid := c.GetString(userIdContextKey)
+	docid := c.Param(docIDParam)
+	log.Info("exporting ", docid)
 	backend := getBackend(c)
-	reader, err := backend.Export(uid, docId, "pdf", 0)
+	reader, err := backend.Export(uid, docid, "pdf", 0)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -253,11 +253,8 @@ func (app *ReactAppWrapper) getDocument(c *gin.Context) {
 	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
 }
 
-type UpdateDoc struct {
-}
-
 func (app *ReactAppWrapper) updateDocument(c *gin.Context) {
-	upd := UpdateDoc{}
+	upd := viewmodel.UpdateDoc{}
 	if err := c.ShouldBindJSON(&upd); err != nil {
 		log.Error(err)
 		badReq(c, err.Error())
@@ -275,7 +272,7 @@ func (app *ReactAppWrapper) deleteDocument(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 func (app *ReactAppWrapper) createDocument(c *gin.Context) {
-	uid := c.GetString(userID)
+	uid := c.GetString(userIdContextKey)
 	// sync15 := c.GetBool(sync15)
 	log.Info("uploading documents from: ", uid)
 

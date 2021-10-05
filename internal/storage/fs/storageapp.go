@@ -136,7 +136,7 @@ func (app *StorageApp) downloadBlob(c *gin.Context) {
 		c.AbortWithStatus(http.StatusBadRequest)
 	}
 
-	log.Info("Requestng blob Id: ", blobId)
+	log.Info("Requestng blob: ", blobId)
 
 	reader, generation, err := app.blob.LoadBlob(uid, blobId)
 	if err != nil {

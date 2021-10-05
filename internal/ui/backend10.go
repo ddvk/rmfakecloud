@@ -44,6 +44,6 @@ func (d *backend10) GetDocumentTree(uid string) (tree *viewmodel.DocumentTree, e
 
 	return viewmodel.NewTree(documents), nil
 }
-func (*backend10) Export(uid, doc, exporttype string, opt storage.ExportOption) (stream io.ReadCloser, err error) {
-	return nil, nil
+func (d *backend10) Export(uid, doc, exporttype string, opt storage.ExportOption) (stream io.ReadCloser, err error) {
+	return d.documentHandler.ExportDocument(uid, doc, exporttype, opt)
 }

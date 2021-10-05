@@ -66,7 +66,22 @@ func (fs *Storage) Export(uid, docid string) (r io.ReadCloser, err error) {
 		fs:  fs,
 		uid: uid,
 	}
-	return ls.GetReader(doc.Hash)
+
+	archive, err := FromBlobDoc(doc, ls)
+	if err != nil {
+		return nil, err
+	}
+	reader, writer := io.Pipe()
+	go func() {
+		err = render3(archive, writer)
+		if err != nil {
+			logrus.Error(err)
+			writer.CloseWithError(err)
+			return
+		}
+		writer.Close()
+	}()
+	return reader, err
 }
 
 // CreateDocument creates a new document
@@ -105,7 +120,7 @@ func (fs *Storage) CreateBlobDocument(uid, filename string, stream io.Reader) (d
 	content := createContent(ext)
 	contentHash, err := sync15.Hash(strings.NewReader(content))
 	saveTo(strings.NewReader(content), contentHash, syncpath)
-	fi = sync15.NewFileEntry(contentHash, docid+contentFileExt)
+	fi = sync15.NewFileEntry(contentHash, docid+ContentFileExt)
 
 	blobDoc.AddFile(fi)
 

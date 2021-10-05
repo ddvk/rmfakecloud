@@ -483,7 +483,7 @@ func (app *App) connectWebSocket(c *gin.Context) {
 	uid := c.GetString(userIDKey)
 	deviceID := c.GetString(deviceIDKey)
 
-	log.Info("trying websocket from:", uid)
+    log.Info("connecting websocket from: ", uid)
 
 	var upgrader = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {

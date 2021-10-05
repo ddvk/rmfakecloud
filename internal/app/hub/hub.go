@@ -155,7 +155,7 @@ func (h *Hub) start() {
 	for {
 		select {
 		case c := <-h.additions:
-			log.Info("hub: adding a client")
+			log.Debugln("hub: adding a client")
 			h.allClients[c] = true
 			clients, ok := h.userClients[c.uid]
 			if !ok {

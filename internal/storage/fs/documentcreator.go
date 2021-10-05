@@ -58,8 +58,8 @@ func extractID(r io.Reader) (string, error) {
 	return "", nil
 }
 
-const pageFileExt = ".pagedata"
-const contentFileExt = ".content"
+const PageFileExt = ".pagedata"
+const ContentFileExt = ".content"
 
 // CreateDocument creates a new document
 func (fs *Storage) CreateDocument(uid, filename string, stream io.Reader) (doc *storage.Document, err error) {
@@ -104,13 +104,13 @@ func (fs *Storage) CreateDocument(uid, filename string, stream io.Reader) (doc *
 			return
 		}
 
-		entry, err = w.Create(docid + pageFileExt)
+		entry, err = w.Create(docid + PageFileExt)
 		if err != nil {
 			return
 		}
 		entry.Write([]byte{})
 
-		entry, err = w.Create(docid + contentFileExt)
+		entry, err = w.Create(docid + ContentFileExt)
 		if err != nil {
 			return
 		}
