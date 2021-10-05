@@ -16,12 +16,12 @@ type backend15 struct {
 }
 
 func (b *backend15) GetDocumentTree(uid string) (tree *viewmodel.DocumentTree, err error) {
-	syncTree, err := b.blobHandler.GetTree(uid)
+	hashTree, err := b.blobHandler.GetTree(uid)
 	if err != nil {
 		return nil, err
 	}
 
-	return viewmodel.NewTreeFromSync(syncTree), nil
+	return viewmodel.DocTreeFromHashTree(hashTree), nil
 }
 func (b *backend15) Export(uid, docid, exporttype string, opt storage.ExportOption) (r io.ReadCloser, err error) {
 	r, err = b.blobHandler.Export(uid, docid)

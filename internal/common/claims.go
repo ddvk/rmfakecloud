@@ -63,6 +63,6 @@ const (
 	WebUsage = "web"
 	// StorageUsage for file retrieval
 	StorageUsage = "storage"
-	// APIUSage for the device api
+	// APIUsage for the device api
 	APIUsage = "api"
 )

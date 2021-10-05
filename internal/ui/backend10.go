@@ -5,6 +5,7 @@ import (
 
 	"github.com/ddvk/rmfakecloud/internal/app/hub"
 	"github.com/ddvk/rmfakecloud/internal/storage"
+	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
 	log "github.com/sirupsen/logrus"
 )
@@ -26,9 +27,9 @@ func (d *backend10) CreateDocument(uid, filename, parent string, stream io.Reade
 
 	ntf := hub.DocumentNotification{
 		ID:      doc.ID,
-		Type:    storage.DocumentType,
+		Type:    models.DocumentType,
 		Version: 1,
-		Parent:  "",
+		Parent:  parent,
 		Name:    doc.Name,
 	}
 	log.Info(uiLogger, "Uploaded document id", doc.ID)
@@ -42,7 +43,7 @@ func (d *backend10) GetDocumentTree(uid string) (tree *viewmodel.DocumentTree, e
 		return nil, err
 	}
 
-	return viewmodel.NewTree(documents), nil
+	return viewmodel.DocTreeFromRawMetadata(documents), nil
 }
 func (d *backend10) Export(uid, doc, exporttype string, opt storage.ExportOption) (stream io.ReadCloser, err error) {
 	return d.documentHandler.ExportDocument(uid, doc, exporttype, opt)

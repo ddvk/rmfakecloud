@@ -10,7 +10,7 @@ import (
 	rm2pdf "github.com/poundifdef/go-remarkable2pdf"
 )
 
-// poundifdef caligraphy pen is nice
+// RenderPoundifdef caligraphy pen is nice
 func RenderPoundifdef(input, output string) (io.ReadCloser, error) {
 	reader, err := zip.OpenReader(input)
 	if err != nil {
@@ -38,7 +38,7 @@ func RenderPoundifdef(input, output string) (io.ReadCloser, error) {
 	return writer, nil
 }
 
-// RmapiRender
+// RenderRmapi renders with rmapi
 func RenderRmapi(a *MyArchive, output io.Writer) error {
 	pdfgen := PdfGenerator{}
 	options := PdfGeneratorOptions{
@@ -54,6 +54,7 @@ type SeekCloser struct {
 func (*SeekCloser) Close() error {
 	return nil
 }
+
 func NewSeekClose(b []byte) io.ReadSeekCloser {
 
 	r := &SeekCloser{

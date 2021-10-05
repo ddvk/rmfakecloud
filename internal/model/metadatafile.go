@@ -2,7 +2,7 @@ package model
 
 // MetadataFile content
 type MetadataFile struct {
-	DocName          string `json:"visibleName"`
+	DocumentName     string `json:"visibleName"`
 	CollectionType   string `json:"type"`
 	Parent           string `json:"parent"`
 	LastModified     string `json:"lastModified"`

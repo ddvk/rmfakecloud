@@ -9,21 +9,18 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/model"
 )
 
+// ExportOption type of export
 type ExportOption int
-
-const DocumentType = "DocumentType"
-const CollectionType = "CollectionType"
-const MetadataFileExt = ".metadata"
-const PageFileExt = ".pagedata"
-const ContentFileExt = ".content"
-const RmFileExt = ".rm"
 
 const (
 	ExportWithAnnotations ExportOption = iota
 	ExportOnlyAnnotations
 )
 
+// ErrorNotFound not found
 var ErrorNotFound = errors.New("not found")
+
+// ErrorWrongGeneration the geration did not match
 var ErrorWrongGeneration = errors.New("wrong generation")
 
 // DocumentStorer stores documents
@@ -40,8 +37,8 @@ type DocumentStorer interface {
 type BlobStorage interface {
 	GetBlobURL(uid, docid string) (string, time.Time, error)
 
-	StoreBlob(uid, blobId string, s io.Reader, matchGeneration int64) (int64, error)
-	LoadBlob(uid, blobId string) (io.ReadCloser, int64, error)
+	StoreBlob(uid, blobID string, s io.Reader, matchGeneration int64) (int64, error)
+	LoadBlob(uid, blobID string) (io.ReadCloser, int64, error)
 }
 
 // MetadataStorer manages document metadata

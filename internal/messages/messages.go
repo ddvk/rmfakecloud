@@ -12,7 +12,7 @@ type BlobStorageResponse struct {
 	Expires      string `json:"expires"`
 	Method       string `json:"method"`
 	RelativePath string `json:"relative_path"`
-	Url          string `json:"url"`
+	URL          string `json:"url"`
 }
 
 // StatusResponse what else
@@ -24,7 +24,6 @@ type StatusResponse struct {
 }
 
 // WsMessage websocket notification
-
 type WsMessage struct {
 	Message      NotificationMessage `json:"message"`
 	Subscription string              `json:"subscription,omitempty"`

@@ -17,6 +17,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/storage/exporter"
+	"github.com/ddvk/rmfakecloud/internal/storage/models"
 )
 
 // DefaultTrashDir name of the trash dir
@@ -69,8 +70,8 @@ func (fs *Storage) ExportDocument(uid, id, outputType string, exportOption stora
 		return nil, fmt.Errorf("cant find raw document %v", err)
 	}
 
-	sanitizedId := sanitize(id)
-	outputFilePath := path.Join(cacheDirPath, sanitizedId+"-annotated.pdf")
+	sanitizedID := sanitize(id)
+	outputFilePath := path.Join(cacheDirPath, sanitizedID+"-annotated.pdf")
 	outStat, err := os.Stat(outputFilePath)
 
 	// exists and not older
@@ -131,7 +132,7 @@ func (fs *Storage) RemoveDocument(uid, id string) error {
 	}
 	//do not delete, move to trash
 	log.Info(trashDir)
-	meta := filepath.Base(id + storage.MetadataFileExt)
+	meta := filepath.Base(id + models.MetadataFileExt)
 	fullPath := fs.getPathFromUser(uid, meta)
 	err = os.Rename(fullPath, path.Join(trashDir, meta))
 	if err != nil {
@@ -159,6 +160,7 @@ func (fs *Storage) StoreDocument(uid, id string, stream io.ReadCloser) error {
 	return err
 }
 
+// GetStorageURL the storage url
 func (fs *Storage) GetStorageURL(uid, id string) (docurl string, expiration time.Time, err error) {
 	uploadRL := fs.Cfg.StorageURL
 	exp := time.Now().Add(time.Minute * config.ReadStorageExpirationInMinutes)

@@ -14,6 +14,7 @@ import (
 
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/storage"
+	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	"github.com/google/uuid"
 )
 
@@ -101,13 +102,13 @@ func (fs *Storage) CreateDocument(uid, filename, parent string, stream io.Reader
 			return
 		}
 
-		entry, err = w.Create(docid + storage.PageFileExt)
+		entry, err = w.Create(docid + models.PageFileExt)
 		if err != nil {
 			return
 		}
 		entry.Write([]byte{})
 
-		entry, err = w.Create(docid + storage.ContentFileExt)
+		entry, err = w.Create(docid + models.ContentFileExt)
 		if err != nil {
 			return
 		}
@@ -137,7 +138,7 @@ func (fs *Storage) CreateDocument(uid, filename, parent string, stream io.Reader
 		Version: 1,
 	}
 	//save metadata
-	metafilePath := fs.getPathFromUser(uid, docid+storage.MetadataFileExt)
+	metafilePath := fs.getPathFromUser(uid, docid+models.MetadataFileExt)
 	err = ioutil.WriteFile(metafilePath, jsn, 0600)
 	return
 }
@@ -149,7 +150,7 @@ func createRawMedatadata(id, name, parent string) *messages.RawMetadata {
 		Version:        1,
 		ModifiedClient: time.Now().UTC().Format(time.RFC3339Nano),
 		CurrentPage:    0,
-		Type:           storage.DocumentType,
+		Type:           models.DocumentType,
 		Parent:         parent,
 	}
 	return &doc

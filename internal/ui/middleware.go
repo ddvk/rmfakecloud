@@ -48,7 +48,7 @@ func (app *ReactAppWrapper) authMiddleware() gin.HandlerFunc {
 		newsync := false
 		for _, s := range scopes {
 			switch s {
-			case isSync15:
+			case isSync15Key:
 				newsync = true
 			}
 		}
@@ -61,9 +61,9 @@ func (app *ReactAppWrapper) authMiddleware() gin.HandlerFunc {
 		}
 		uid := claims.UserID
 		brid := claims.BrowserID
-		c.Set(userIdContextKey, uid)
+		c.Set(userIDContextKey, uid)
 		c.Set(browserIDContextKey, brid)
-		c.Set(isSync15, newsync)
+		c.Set(isSync15Key, newsync)
 		for _, r := range claims.Roles {
 			if r == "Admin" {
 				c.Set("Admin", true)

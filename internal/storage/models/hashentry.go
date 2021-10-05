@@ -5,32 +5,35 @@ import (
 	"strings"
 )
 
-func NewFileHashEntry(hash, documentId string) *HashEntry {
+// NewFileHashEntry blah
+func NewFileHashEntry(hash, documentID string) *HashEntry {
 	return &HashEntry{
-		Hash:       hash,
-		DocumentID: documentId,
-		Type:       FileType,
+		Hash:      hash,
+		EntryName: documentID,
+		Type:      fileType,
 	}
 }
 
+// HashEntry an entry with a hash
 type HashEntry struct {
-	Hash       string
-	Type       string
-	DocumentID string
-	Subfiles   int
-	Size       int64
+	Hash      string
+	Type      string
+	EntryName string
+	Subfiles  int
+	Size      int64
 }
 
+// Line a line in the index file
 func (d *HashEntry) Line() string {
 	var sb strings.Builder
 	sb.WriteString(d.Hash)
-	sb.WriteRune(Delimiter)
-	sb.WriteString(FileType)
-	sb.WriteRune(Delimiter)
-	sb.WriteString(d.DocumentID)
-	sb.WriteRune(Delimiter)
+	sb.WriteRune(delimiter)
+	sb.WriteString(fileType)
+	sb.WriteRune(delimiter)
+	sb.WriteString(d.EntryName)
+	sb.WriteRune(delimiter)
 	sb.WriteString("0")
-	sb.WriteRune(Delimiter)
+	sb.WriteRune(delimiter)
 	sb.WriteString(strconv.FormatInt(d.Size, 10))
 	return sb.String()
 }

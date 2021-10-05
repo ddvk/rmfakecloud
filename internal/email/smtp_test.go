@@ -50,7 +50,7 @@ func TestSendMail(t *testing.T) {
 		t.Skip("manual test")
 	}
 
-	cfg := &SmtpConfig{
+	cfg := &SMTPConfig{
 		Server:       os.Getenv("RM_SMTP_SERVER"),
 		Username:     os.Getenv("RM_SMTP_USERNAME"),
 		Password:     os.Getenv("RM_SMTP_PASSWORD"),

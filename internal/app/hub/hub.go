@@ -12,9 +12,12 @@ import (
 )
 
 const (
-	DocAddedEvent   = "DocAdded"
+	//DocAddedEvent addded
+	DocAddedEvent = "DocAdded"
+	//DocDeletedEvent deleted
 	DocDeletedEvent = "DocDeleted"
-	SyncCompleted   = "SyncComplete"
+	//SyncCompleted somplete
+	SyncCompleted = "SyncComplete"
 )
 
 type ntf struct {
@@ -32,7 +35,7 @@ type Hub struct {
 	notifications chan ntf
 }
 
-// Notify sends a message to all connected clients 1.5
+// NotifySync sends a message to all connected clients 1.5
 func (h *Hub) NotifySync(uid, deviceID string) string {
 	log.Info("notify sync from: ", deviceID)
 	timestamp := time.Now().UnixNano()
@@ -56,6 +59,7 @@ func (h *Hub) NotifySync(uid, deviceID string) string {
 	return msgid
 }
 
+// DocumentNotification notification of something
 type DocumentNotification struct {
 	ID      string
 	Type    string
@@ -198,25 +202,25 @@ func (c *wsClient) readMessages(done chan<- struct{}, ws *websocket.Conn) {
 		log.Debugln("Message: ", string(p))
 	}
 }
-func (client *wsClient) writeMessages(done chan<- struct{}, ws *websocket.Conn) {
+func (c *wsClient) writeMessages(done chan<- struct{}, ws *websocket.Conn) {
 	defer ws.Close()
 
 outer:
 	for {
 		select {
-		case m, ok := <-client.notifications:
+		case m, ok := <-c.notifications:
 			if !ok {
 				break outer
 			}
-			log.Debugln("sending notification to:", client.deviceID)
+			log.Debugln("sending notification to:", c.deviceID)
 			ws.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			err := ws.WriteJSON(m)
 			if err != nil {
 				log.Warn("Cant write to ws ", err)
 				break outer
 			}
-			log.Debugln("notification sent: ", client.deviceID)
-		case <-client.done:
+			log.Debugln("notification sent: ", c.deviceID)
+		case <-c.done:
 			break outer
 		}
 	}

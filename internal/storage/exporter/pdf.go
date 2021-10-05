@@ -46,9 +46,9 @@ func (p *PdfGenerator) Generate(zip *MyArchive, output io.Writer, options PdfGen
 		if zip.PayloadReader != nil {
 			_, err := io.Copy(output, zip.PayloadReader)
 			return err
-		} else {
-			return errors.New("the document has no pages")
 		}
+
+		return errors.New("the document has no pages")
 	}
 
 	if err = p.initBackgroundPages(zip.PayloadReader); err != nil {

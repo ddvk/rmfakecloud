@@ -20,8 +20,6 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	"github.com/google/uuid"
 	"github.com/juju/fslock"
-	"github.com/juruen/rmapi/archive"
-	"github.com/juruen/rmapi/encoding/rm"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -74,7 +72,7 @@ func (fs *Storage) Export(uid, docid string) (r io.ReadCloser, err error) {
 		uid: uid,
 	}
 
-	archive, err := ArchiveFromHashDoc(doc, ls)
+	archive, err := models.ArchiveFromHashDoc(doc, ls)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +89,7 @@ func (fs *Storage) Export(uid, docid string) (r io.ReadCloser, err error) {
 	return reader, err
 }
 
-// CreateDocument creates a new document
+// CreateBlobDocument creates a new document
 func (fs *Storage) CreateBlobDocument(uid, filename, parent string, stream io.Reader) (doc *storage.Document, err error) {
 	ext := path.Ext(filename)
 	switch ext {
@@ -115,8 +113,8 @@ func (fs *Storage) CreateBlobDocument(uid, filename, parent string, stream io.Re
 	log.Info("Creating metadata... parent: ", parent)
 
 	metadata := model.MetadataFile{
-		DocName:          name,
-		CollectionType:   storage.DocumentType,
+		DocumentName:     name,
+		CollectionType:   models.DocumentType,
 		Parent:           parent,
 		Version:          1,
 		LastModified:     strconv.FormatInt(time.Now().Unix(), 10),
@@ -124,7 +122,7 @@ func (fs *Storage) CreateBlobDocument(uid, filename, parent string, stream io.Re
 		MetadataModified: true,
 	}
 	metahash, err := createMetadataFile(metadata, blobPath)
-	fi := models.NewFileHashEntry(metahash, docid+storage.MetadataFileExt)
+	fi := models.NewFileHashEntry(metahash, docid+models.MetadataFileExt)
 	if err != nil {
 		return
 	}
@@ -139,7 +137,7 @@ func (fs *Storage) CreateBlobDocument(uid, filename, parent string, stream io.Re
 	content := createContent(ext)
 	contentHash, err := models.Hash(strings.NewReader(content))
 	saveTo(strings.NewReader(content), contentHash, blobPath)
-	fi = models.NewFileHashEntry(contentHash, docid+storage.ContentFileExt)
+	fi = models.NewFileHashEntry(contentHash, docid+models.ContentFileExt)
 
 	hashDoc.AddFile(fi)
 
@@ -204,7 +202,7 @@ func (fs *Storage) CreateBlobDocument(uid, filename, parent string, stream io.Re
 
 	doc = &storage.Document{
 		ID:     docid,
-		Type:   storage.DocumentType,
+		Type:   models.DocumentType,
 		Parent: "",
 		Name:   name,
 	}
@@ -246,7 +244,7 @@ func createMetadataFile(metadata model.MetadataFile, spath string) (filehash str
 const historyFile = ".root.history"
 const rootFile = "root"
 
-// GetStorageURL return a url for a file to store
+// GetBlobURL return a url for a file to store
 func (fs *Storage) GetBlobURL(uid, blobid string) (docurl string, exp time.Time, err error) {
 	uploadRL := fs.Cfg.StorageURL
 	exp = time.Now().Add(time.Minute * config.ReadStorageExpirationInMinutes)
@@ -259,23 +257,23 @@ func (fs *Storage) GetBlobURL(uid, blobid string) (docurl string, exp time.Time,
 	}
 
 	params := url.Values{
-		storage.ParamUid:       {uid},
-		storage.ParamBlobId:    {blobid},
+		storage.ParamUID:       {uid},
+		storage.ParamBlobID:    {blobid},
 		storage.ParamExp:       {strExp},
 		storage.ParamSignature: {signature},
 	}
 
-	blobUrl := uploadRL + storage.RouteBlob + "?" + params.Encode()
-	log.Debugln("blobUrl: ", blobUrl)
-	return blobUrl, exp, nil
+	blobURL := uploadRL + storage.RouteBlob + "?" + params.Encode()
+	log.Debugln("blobUrl: ", blobURL)
+	return blobURL, exp, nil
 }
 
-// GetDocument Opens a document by id
-func (fs *Storage) LoadBlob(uid, id string) (io.ReadCloser, int64, error) {
+// LoadBlob Opens a blob by id
+func (fs *Storage) LoadBlob(uid, blobid string) (io.ReadCloser, int64, error) {
 	generation := int64(1)
-	blobPath := path.Join(fs.getUserBlobPath(uid), sanitize(id))
+	blobPath := path.Join(fs.getUserBlobPath(uid), sanitize(blobid))
 	log.Debugln("Fullpath:", blobPath)
-	if id == rootFile {
+	if blobid == rootFile {
 		historyPath := path.Join(fs.getUserBlobPath(uid), historyFile)
 		lock := fslock.New(historyPath)
 		err := lock.LockWithTimeout(time.Duration(time.Second * 5))
@@ -299,7 +297,7 @@ func (fs *Storage) LoadBlob(uid, id string) (io.ReadCloser, int64, error) {
 	return reader, generation, err
 }
 
-// StoreDocument stores a document
+// StoreBlob stores a document
 func (fs *Storage) StoreBlob(uid, id string, stream io.Reader, matchGen int64) (generation int64, err error) {
 	generation = 1
 
@@ -368,81 +366,4 @@ func (fs *Storage) StoreBlob(uid, id string, stream io.Reader, matchGen int64) (
 func generationFromFileSize(size int64) int64 {
 	//time + 1 space + 64 hash + 1 newline
 	return size / 86
-}
-
-func ArchiveFromHashDoc(doc *models.HashDoc, rs storage.RemoteStorage) (*exporter.MyArchive, error) {
-	uuid := doc.DocumentID
-	a := exporter.MyArchive{
-		Zip: archive.Zip{
-			UUID: uuid,
-		},
-	}
-
-	pageMap := make(map[string]string)
-	for _, f := range doc.Files {
-		filext := path.Ext(f.DocumentID)
-		name := strings.TrimSuffix(path.Base(f.DocumentID), filext)
-		switch filext {
-		case storage.ContentFileExt:
-			blob, err := rs.GetReader(f.Hash)
-			if err != nil {
-				return nil, err
-			}
-			defer blob.Close()
-			contentBytes, err := ioutil.ReadAll(blob)
-			if err != nil {
-				return nil, err
-			}
-			err = json.Unmarshal(contentBytes, &a.Content)
-			if err != nil {
-				return nil, err
-			}
-		case ".pdf":
-			blob, err := rs.GetReader(f.Hash)
-			if err != nil {
-				return nil, err
-			}
-			// defer blob.Close()
-			// contentBytes, err := ioutil.ReadAll(blob)
-			// if err != nil {
-			// 	return nil, err
-			// }
-			// a.Payload = contentBytes
-			//HACK:
-			a.PayloadReader = blob.(io.ReadSeekCloser)
-
-		case ".json":
-			//metadata
-		case storage.RmFileExt:
-			log.Debug("adding page ", name)
-			pageMap[name] = f.Hash
-		}
-	}
-
-	for _, p := range a.Content.Pages {
-		if hash, ok := pageMap[p]; ok {
-			log.Debug("page ", hash)
-			reader, err := rs.GetReader(hash)
-			if err != nil {
-				return nil, err
-			}
-			pageBin, err := ioutil.ReadAll(reader)
-			if err != nil {
-				return nil, err
-			}
-			rmpage := rm.New()
-			err = rmpage.UnmarshalBinary(pageBin)
-			if err != nil {
-				return nil, err
-			}
-
-			page := archive.Page{
-				Data:     rmpage,
-				Pagedata: "Blank",
-			}
-			a.Pages = append(a.Pages, page)
-		}
-	}
-
-	return &a, nil
 }

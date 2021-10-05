@@ -213,7 +213,7 @@ func (app *App) sendEmail(c *gin.Context) {
 
 		emailClient.AddFile(file.Filename, f, file.Header.Get("Content-Type"))
 	}
-	err = emailClient.Send(app.cfg.SmtpConfig)
+	err = emailClient.Send(app.cfg.SMTPConfig)
 	if err != nil {
 		log.Error(handlerLog, err)
 		internalError(c, "cant send email")
@@ -390,7 +390,7 @@ func (app *App) blobStorageDownload(c *gin.Context) {
 	response := messages.BlobStorageResponse{
 		Method:       http.MethodGet,
 		RelativePath: req.RelativePath,
-		Url:          url,
+		URL:          url,
 		Expires:      formatExpires(exp),
 	}
 	c.JSON(http.StatusOK, response)
@@ -420,7 +420,7 @@ func (app *App) blobStorageUpload(c *gin.Context) {
 	response := messages.BlobStorageResponse{
 		Method:       http.MethodPut,
 		RelativePath: req.RelativePath,
-		Url:          url,
+		URL:          url,
 		Expires:      formatExpires(exp),
 	}
 	c.JSON(http.StatusOK, response)

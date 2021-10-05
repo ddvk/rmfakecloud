@@ -15,10 +15,10 @@ import (
 )
 
 const (
-	userIdContextKey    = "userID"
+	userIDContextKey    = "userID"
 	browserIDContextKey = "browserID"
+	isSync15Key         = "sync15"
 	docIDParam          = "docid"
-	isSync15            = "sync15"
 	uiLogger            = "[ui] "
 	useridParam         = "userid"
 	cookieName          = ".Authrmfakecloud"
@@ -118,7 +118,7 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 
 	scopes := ""
 	if user.Sync15 {
-		scopes = isSync15
+		scopes = isSync15Key
 	}
 	expiresAfter := 24 * time.Hour
 	expires := time.Now().Add(expiresAfter).Unix()
@@ -172,7 +172,7 @@ func (app *ReactAppWrapper) resetPassword(c *gin.Context) {
 		return
 	}
 
-	uid := c.GetString(userIdContextKey)
+	uid := c.GetString(userIDContextKey)
 
 	if user.ID != uid {
 		log.Error("Trying to change password for a different user.")
@@ -203,7 +203,7 @@ func (app *ReactAppWrapper) resetPassword(c *gin.Context) {
 }
 
 func (app *ReactAppWrapper) newCode(c *gin.Context) {
-	uid := c.GetString(userIdContextKey)
+	uid := c.GetString(userIDContextKey)
 
 	user, err := app.userStorer.GetUser(uid)
 	if err != nil {
@@ -231,7 +231,7 @@ func getBackend(c *gin.Context) backend {
 
 }
 func (app *ReactAppWrapper) listDocuments(c *gin.Context) {
-	uid := c.GetString(userIdContextKey)
+	uid := c.GetString(userIDContextKey)
 
 	var tree *viewmodel.DocumentTree
 
@@ -245,7 +245,7 @@ func (app *ReactAppWrapper) listDocuments(c *gin.Context) {
 	c.JSON(http.StatusOK, tree)
 }
 func (app *ReactAppWrapper) getDocument(c *gin.Context) {
-	uid := c.GetString(userIdContextKey)
+	uid := c.GetString(userIDContextKey)
 	docid := c.Param(docIDParam)
 	log.Info("exporting ", docid)
 	backend := getBackend(c)
@@ -279,8 +279,8 @@ func (app *ReactAppWrapper) deleteDocument(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 func (app *ReactAppWrapper) createDocument(c *gin.Context) {
-	uid := c.GetString(userIdContextKey)
-	_ = c.GetBool(isSync15)
+	uid := c.GetString(userIDContextKey)
+	_ = c.GetBool(isSync15Key)
 	log.Info("uploading documents from: ", uid)
 
 	backend := getBackend(c)
@@ -291,12 +291,11 @@ func (app *ReactAppWrapper) createDocument(c *gin.Context) {
 		badReq(c, "not multiform")
 		return
 	}
-	parent := form.Value["parent"]
-	parentId := ""
-	if len(parent) > 0 {
-		parentId = parent[0]
+	parentID := ""
+	if parent, ok := form.Value["parent"]; ok {
+		parentID = parent[0]
 	}
-	log.Info("Parent: " + parentId)
+	log.Info("Parent: " + parentID)
 
 	for _, file := range form.File["file"] {
 		f, err := file.Open()
@@ -310,7 +309,7 @@ func (app *ReactAppWrapper) createDocument(c *gin.Context) {
 		//do the stuff
 		log.Info(uiLogger, fmt.Sprintf("Uploading %s , size: %d", file.Filename, file.Size))
 
-		_, err = backend.CreateDocument(uid, file.Filename, parentId, f)
+		_, err = backend.CreateDocument(uid, file.Filename, parentID, f)
 		if err != nil {
 			log.Error(err)
 			c.AbortWithStatus(http.StatusInternalServerError)

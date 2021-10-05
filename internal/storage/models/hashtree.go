@@ -13,17 +13,16 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/ddvk/rmfakecloud/internal/storage"
 	log "github.com/sirupsen/logrus"
 )
 
-const SchemaVersion = "3"
-const DocType = "80000000"
-const FileType = "0"
-const Delimiter = ':'
+const schemaVersion = "3"
+const docType = "80000000"
+const fileType = "0"
+const delimiter = ':'
 
 func HashEntries(entries []*HashEntry) (string, error) {
-	sort.Slice(entries, func(i, j int) bool { return entries[i].DocumentID < entries[j].DocumentID })
+	sort.Slice(entries, func(i, j int) bool { return entries[i].EntryName < entries[j].EntryName })
 	hasher := sha256.New()
 	for _, d := range entries {
 		//TODO: back and forth converting
@@ -79,9 +78,9 @@ func LoadTree(cacheFile string) (*HashTree, error) {
 	return &tree, nil
 }
 
-func (tree *HashTree) Save(cacheFile string) error {
+func (t *HashTree) Save(cacheFile string) error {
 	log.Println("Writing cache: ", cacheFile)
-	b, err := json.MarshalIndent(tree, "", "")
+	b, err := json.MarshalIndent(t, "", "")
 	if err != nil {
 		return err
 	}
@@ -95,7 +94,6 @@ func parseEntry(line string) (*HashEntry, error) {
 	numFields := len(rdr.fields)
 	if numFields != 5 {
 		return nil, fmt.Errorf("wrong number of fields %d", numFields)
-
 	}
 	var err error
 	entry.Hash, err = rdr.Next()
@@ -106,7 +104,7 @@ func parseEntry(line string) (*HashEntry, error) {
 	if err != nil {
 		return nil, err
 	}
-	entry.DocumentID, err = rdr.Next()
+	entry.EntryName, err = rdr.Next()
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +133,7 @@ func parseIndex(f io.Reader) ([]*HashEntry, error) {
 	scanner.Scan()
 	schema := scanner.Text()
 
-	if schema != SchemaVersion {
+	if schema != schemaVersion {
 		return nil, errors.New("wrong schema")
 	}
 	for scanner.Scan() {
@@ -150,12 +148,13 @@ func parseIndex(f io.Reader) ([]*HashEntry, error) {
 	return entries, nil
 }
 
+// RootIndex reads the root index
 func (t *HashTree) RootIndex() (io.ReadCloser, error) {
 	pipeReader, pipeWriter := io.Pipe()
 	w := bufio.NewWriter(pipeWriter)
 	go func() {
 		defer pipeWriter.Close()
-		w.WriteString(SchemaVersion)
+		w.WriteString(schemaVersion)
 		w.WriteString("\n")
 		for _, d := range t.Docs {
 			w.WriteString(d.Line())
@@ -167,32 +166,35 @@ func (t *HashTree) RootIndex() (io.ReadCloser, error) {
 	return pipeReader, nil
 }
 
+// HashTree a syncing concept for faster diffing
 type HashTree struct {
 	Hash       string
 	Generation int64
 	Docs       []*HashDoc
 }
 
-func (t *HashTree) FindDoc(id string) (*HashDoc, error) {
+// FindDoc finds a document by its name
+func (t *HashTree) FindDoc(documentID string) (*HashDoc, error) {
 	//O(n)
 	for _, d := range t.Docs {
-		if d.DocumentID == id {
+		if d.EntryName == documentID {
 			return d, nil
 		}
 	}
-	return nil, fmt.Errorf("doc %s not found", id)
+	return nil, fmt.Errorf("doc %s not found", documentID)
 }
 
-func (t *HashTree) Remove(id string) error {
+// Remove removes
+func (t *HashTree) Remove(documentID string) error {
 	docIndex := -1
 	for index, d := range t.Docs {
-		if d.DocumentID == id {
+		if d.EntryName == documentID {
 			docIndex = index
 			break
 		}
 	}
 	if docIndex > -1 {
-		log.Info("Removing %s", id)
+		log.Infof("Removing %s", documentID)
 		length := len(t.Docs) - 1
 		t.Docs[docIndex] = t.Docs[length]
 		t.Docs = t.Docs[:length]
@@ -200,9 +202,10 @@ func (t *HashTree) Remove(id string) error {
 		t.Rehash()
 		return nil
 	}
-	return fmt.Errorf("%s not found", id)
+	return fmt.Errorf("%s not found", documentID)
 }
 
+// Rehash recalcualte the root hash from all docs
 func (t *HashTree) Rehash() error {
 	entries := []*HashEntry{}
 	for _, e := range t.Docs {
@@ -217,8 +220,8 @@ func (t *HashTree) Rehash() error {
 	return nil
 }
 
-/// Mirror makes the tree look like the storage
-func (t *HashTree) Mirror(r storage.RemoteStorage) (changed bool, err error) {
+// Mirror makes the tree look like the storage
+func (t *HashTree) Mirror(r RemoteStorage) (changed bool, err error) {
 	rootHash, gen, err := r.GetRootIndex()
 	if err != nil {
 		return
@@ -234,7 +237,6 @@ func (t *HashTree) Mirror(r storage.RemoteStorage) (changed bool, err error) {
 		if gen != t.Generation {
 			t.Generation = gen
 			return true, nil
-
 		}
 		return
 	}
@@ -255,18 +257,18 @@ func (t *HashTree) Mirror(r storage.RemoteStorage) (changed bool, err error) {
 	current := make(map[string]*HashDoc)
 	new := make(map[string]*HashEntry)
 	for _, e := range entries {
-		new[e.DocumentID] = e
+		new[e.EntryName] = e
 	}
 	//current documents
 	for _, doc := range t.Docs {
-		if entry, ok := new[doc.HashEntry.DocumentID]; ok {
+		if entry, ok := new[doc.HashEntry.EntryName]; ok {
 			//hash different update
 			if entry.Hash != doc.Hash {
-				log.Println("doc updated: " + doc.DocumentID)
+				log.Println("doc updated: " + doc.EntryName)
 				doc.Mirror(entry, r)
 			}
 			head = append(head, doc)
-			current[doc.DocumentID] = doc
+			current[doc.EntryName] = doc
 		}
 
 	}
@@ -280,14 +282,15 @@ func (t *HashTree) Mirror(r storage.RemoteStorage) (changed bool, err error) {
 			head = append(head, doc)
 		}
 	}
-	sort.Slice(head, func(i, j int) bool { return head[i].DocumentID < head[j].DocumentID })
+	sort.Slice(head, func(i, j int) bool { return head[i].EntryName < head[j].EntryName })
 	t.Docs = head
 	t.Generation = gen
 	t.Hash = rootHash
 	return true, nil
 }
 
-func BuildTree(provider storage.RemoteStorage) (*HashTree, error) {
+// BuildTree from remote storage
+func BuildTree(provider RemoteStorage) (*HashTree, error) {
 	tree := HashTree{}
 
 	rootHash, gen, err := provider.GetRootIndex()
@@ -322,5 +325,4 @@ func BuildTree(provider storage.RemoteStorage) (*HashTree, error) {
 	}
 
 	return &tree, nil
-
 }

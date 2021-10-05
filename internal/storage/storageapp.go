@@ -22,16 +22,16 @@ const (
 	GenerationHeader      = "x-goog-generation"
 	GenerationMatchHeader = "x-goog-if-generation-match"
 
-	ParamUid       = "uid"
-	ParamBlobId    = "blobid"
+	ParamUID       = "uid"
+	ParamBlobID    = "blobid"
 	ParamExp       = "exp"
 	ParamSignature = "signature"
 	RouteBlob      = "/blobstorage"
 	Storage        = "/storage"
 )
 
-// Storage file system document storage
-type StorageApp struct {
+// App file system document storage
+type App struct {
 	cfg  *config.Config
 	fs   DocumentStorer
 	blob BlobStorage
@@ -39,8 +39,8 @@ type StorageApp struct {
 }
 
 // NewApp StorageApp various storage routes
-func NewApp(cfg *config.Config, fs DocumentStorer, blob BlobStorage) *StorageApp {
-	staticWrapper := StorageApp{
+func NewApp(cfg *config.Config, fs DocumentStorer, blob BlobStorage) *App {
+	staticWrapper := App{
 		fs:   fs,
 		blob: blob,
 		cfg:  cfg,
@@ -49,17 +49,17 @@ func NewApp(cfg *config.Config, fs DocumentStorer, blob BlobStorage) *StorageApp
 }
 
 // RegisterRoutes blah
-func (fs *StorageApp) RegisterRoutes(router *gin.Engine) {
+func (app *App) RegisterRoutes(router *gin.Engine) {
 
-	router.GET(Storage+"/:"+tokenParam, fs.downloadDocument)
-	router.PUT(Storage+"/:"+tokenParam, fs.uploadDocument)
+	router.GET(Storage+"/:"+tokenParam, app.downloadDocument)
+	router.PUT(Storage+"/:"+tokenParam, app.uploadDocument)
 
 	//sync15
-	router.GET(RouteBlob, fs.downloadBlob)
-	router.PUT(RouteBlob, fs.uploadBlob)
+	router.GET(RouteBlob, app.downloadBlob)
+	router.PUT(RouteBlob, app.uploadBlob)
 }
 
-func (app *StorageApp) parseToken(token string) (*common.StorageClaim, error) {
+func (app *App) parseToken(token string) (*common.StorageClaim, error) {
 	claim := &common.StorageClaim{}
 	err := common.ClaimsFromToken(claim, token, app.cfg.JWTSecretKey)
 	if err != nil {
@@ -71,7 +71,7 @@ func (app *StorageApp) parseToken(token string) (*common.StorageClaim, error) {
 	return claim, nil
 }
 
-func (app *StorageApp) uploadDocument(c *gin.Context) {
+func (app *App) uploadDocument(c *gin.Context) {
 	strToken := c.Param(tokenParam)
 	log.Debug("[storage] uploading with token:", strToken)
 	token, err := app.parseToken(strToken)
@@ -95,7 +95,7 @@ func (app *StorageApp) uploadDocument(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{})
 }
-func (app *StorageApp) downloadDocument(c *gin.Context) {
+func (app *App) downloadDocument(c *gin.Context) {
 	strToken := c.Param(tokenParam)
 	token, err := app.parseToken(strToken)
 
@@ -120,26 +120,26 @@ func (app *StorageApp) downloadDocument(c *gin.Context) {
 	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
 }
 
-func (app *StorageApp) downloadBlob(c *gin.Context) {
-	uid := c.Query(ParamUid)
-	blobId := c.Query(ParamBlobId)
+func (app *App) downloadBlob(c *gin.Context) {
+	uid := c.Query(ParamUID)
+	blobID := c.Query(ParamBlobID)
 	exp := c.Query(ParamExp)
 	signature := c.Query(ParamSignature)
 
-	err := VerifySignature([]string{uid, blobId, exp}, exp, signature, app.cfg.JWTSecretKey)
+	err := VerifySignature([]string{uid, blobID, exp}, exp, signature, app.cfg.JWTSecretKey)
 	if err != nil {
 		log.Warn(err)
 		c.AbortWithStatus(http.StatusForbidden)
 		return
 	}
 
-	if blobId == "" {
+	if blobID == "" {
 		c.AbortWithStatus(http.StatusBadRequest)
 	}
 
-	log.Info("Requestng blob: ", blobId)
+	log.Info("Requestng blob: ", blobID)
 
-	reader, generation, err := app.blob.LoadBlob(uid, blobId)
+	reader, generation, err := app.blob.LoadBlob(uid, blobID)
 	if err != nil {
 		if err == ErrorNotFound {
 			c.AbortWithStatus(http.StatusNotFound)
@@ -156,19 +156,19 @@ func (app *StorageApp) downloadBlob(c *gin.Context) {
 	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
 }
 
-func (app *StorageApp) uploadBlob(c *gin.Context) {
-	uid := c.Query(ParamUid)
-	blobId := c.Query(ParamBlobId)
+func (app *App) uploadBlob(c *gin.Context) {
+	uid := c.Query(ParamUID)
+	blobID := c.Query(ParamBlobID)
 	exp := c.Query(ParamExp)
 	signature := c.Query(ParamSignature)
 
-	err := VerifySignature([]string{uid, blobId, exp}, exp, signature, app.cfg.JWTSecretKey)
+	err := VerifySignature([]string{uid, blobID, exp}, exp, signature, app.cfg.JWTSecretKey)
 	if err != nil {
 		c.AbortWithStatus(http.StatusForbidden)
 	}
 	log.Info(exp, signature)
 
-	if blobId == "" {
+	if blobID == "" {
 		c.AbortWithStatus(http.StatusBadRequest)
 	}
 
@@ -186,7 +186,7 @@ func (app *StorageApp) uploadBlob(c *gin.Context) {
 		}
 	}
 
-	newgen, err := app.blob.StoreBlob(uid, blobId, body, generation)
+	newgen, err := app.blob.StoreBlob(uid, blobID, body, generation)
 
 	if err != nil {
 		if err == ErrorWrongGeneration {

@@ -14,33 +14,33 @@ import (
 	"strings"
 
 	"github.com/ddvk/rmfakecloud/internal/model"
-	"github.com/ddvk/rmfakecloud/internal/storage"
 	log "github.com/sirupsen/logrus"
 )
 
+// HashDoc a document in a hash tree
 type HashDoc struct {
 	Files []*HashEntry
 	HashEntry
 	model.MetadataFile
 }
 
-func NewHashDocMeta(documentId string, meta model.MetadataFile) *HashDoc {
+func NewHashDocMeta(documentID string, meta model.MetadataFile) *HashDoc {
 	return &HashDoc{
 		MetadataFile: meta,
 		HashEntry: HashEntry{
-			DocumentID: documentId,
+			EntryName: documentID,
 		},
 	}
 
 }
-func NewHashDoc(name, documentId, colType string) *HashDoc {
+func NewHashDoc(name, documentID, colType string) *HashDoc {
 	return &HashDoc{
 		MetadataFile: model.MetadataFile{
-			DocName:        name,
+			DocumentName:   name,
 			CollectionType: colType,
 		},
 		HashEntry: HashEntry{
-			DocumentID: documentId,
+			EntryName: documentID,
 		},
 	}
 
@@ -52,7 +52,7 @@ func (d *HashDoc) Rehash() error {
 	if err != nil {
 		return err
 	}
-	log.Debug(d.DocName, " new doc hash: ", hash)
+	log.Debug(d.DocumentName, " new doc hash: ", hash)
 	d.Hash = hash
 	return nil
 }
@@ -69,7 +69,7 @@ func (d *HashDoc) MetadataReader() (hash string, reader io.Reader, err error) {
 	reader = bytes.NewReader(jsn)
 	found := false
 	for _, f := range d.Files {
-		if strings.HasSuffix(f.DocumentID, storage.MetadataFileExt) {
+		if strings.HasSuffix(f.EntryName, MetadataFileExt) {
 			f.Hash = hash
 			found = true
 			break
@@ -95,17 +95,17 @@ func (t *HashTree) Add(d *HashDoc) error {
 	return t.Rehash()
 }
 
-func (t *HashDoc) IndexReader() (io.ReadCloser, error) {
-	if len(t.Files) == 0 {
+func (d *HashDoc) IndexReader() (io.ReadCloser, error) {
+	if len(d.Files) == 0 {
 		return nil, errors.New("no files")
 	}
 	pipeReader, pipeWriter := io.Pipe()
 	w := bufio.NewWriter(pipeWriter)
 	go func() {
 		defer pipeWriter.Close()
-		w.WriteString(SchemaVersion)
+		w.WriteString(schemaVersion)
 		w.WriteString("\n")
-		for _, d := range t.Files {
+		for _, d := range d.Files {
 			w.WriteString(d.Line())
 			w.WriteString("\n")
 		}
@@ -115,10 +115,10 @@ func (t *HashDoc) IndexReader() (io.ReadCloser, error) {
 	return pipeReader, nil
 }
 
-// Extract the documentname from metadata blob
-func (doc *HashDoc) ReadMetadata(fileEntry *HashEntry, r storage.RemoteStorage) error {
-	if strings.HasSuffix(fileEntry.DocumentID, ".metadata") {
-		log.Println("Reading metadata: " + doc.DocumentID)
+// ReadMetadata the documentname from metadata blob
+func (d *HashDoc) ReadMetadata(fileEntry *HashEntry, r RemoteStorage) error {
+	if strings.HasSuffix(fileEntry.EntryName, ".metadata") {
+		log.Println("Reading metadata: " + d.EntryName)
 
 		metadata := model.MetadataFile{}
 
@@ -133,36 +133,38 @@ func (doc *HashDoc) ReadMetadata(fileEntry *HashEntry, r storage.RemoteStorage) 
 		}
 		err = json.Unmarshal(content, &metadata)
 		if err != nil {
-			log.Printf("cannot read metadata %s %v", fileEntry.DocumentID, err)
+			log.Printf("cannot read metadata %s %v", fileEntry.EntryName, err)
 		}
-		log.Println("name from metadata: ", metadata.DocName)
-		doc.MetadataFile = metadata
+		log.Println("name from metadata: ", metadata.DocumentName)
+		d.MetadataFile = metadata
 	}
 
 	return nil
 }
 
+// Line index line
 func (d *HashDoc) Line() string {
 	var sb strings.Builder
 	if d.Hash == "" {
-		log.Print("missing hash for: ", d.DocumentID)
+		log.Print("missing hash for: ", d.EntryName)
 	}
 	sb.WriteString(d.Hash)
-	sb.WriteRune(Delimiter)
-	sb.WriteString(DocType)
-	sb.WriteRune(Delimiter)
-	sb.WriteString(d.DocumentID)
-	sb.WriteRune(Delimiter)
+	sb.WriteRune(delimiter)
+	sb.WriteString(docType)
+	sb.WriteRune(delimiter)
+	sb.WriteString(d.EntryName)
+	sb.WriteRune(delimiter)
 
 	numFilesStr := strconv.Itoa(len(d.Files))
 	sb.WriteString(numFilesStr)
-	sb.WriteRune(Delimiter)
+	sb.WriteRune(delimiter)
 	sb.WriteString("0")
 	return sb.String()
 }
 
-func (doc *HashDoc) Mirror(e *HashEntry, r storage.RemoteStorage) error {
-	doc.HashEntry = *e
+// Mirror mirror on the wall
+func (d *HashDoc) Mirror(e *HashEntry, r RemoteStorage) error {
+	d.HashEntry = *e
 	entryIndex, err := r.GetReader(e.Hash)
 	if err != nil {
 		return err
@@ -178,36 +180,36 @@ func (doc *HashDoc) Mirror(e *HashEntry, r storage.RemoteStorage) error {
 	new := make(map[string]*HashEntry)
 
 	for _, e := range entries {
-		new[e.DocumentID] = e
+		new[e.EntryName] = e
 	}
 
 	//updated and existing
-	for _, currentEntry := range doc.Files {
-		if newEntry, ok := new[currentEntry.DocumentID]; ok {
+	for _, currentEntry := range d.Files {
+		if newEntry, ok := new[currentEntry.EntryName]; ok {
 			if newEntry.Hash != currentEntry.Hash {
-				err = doc.ReadMetadata(newEntry, r)
+				err = d.ReadMetadata(newEntry, r)
 				if err != nil {
 					return err
 				}
 				currentEntry.Hash = newEntry.Hash
 			}
 			head = append(head, currentEntry)
-			current[currentEntry.DocumentID] = currentEntry
+			current[currentEntry.EntryName] = currentEntry
 		}
 	}
 
 	//add missing
 	for k, newEntry := range new {
 		if _, ok := current[k]; !ok {
-			err = doc.ReadMetadata(newEntry, r)
+			err = d.ReadMetadata(newEntry, r)
 			if err != nil {
 				return err
 			}
 			head = append(head, newEntry)
 		}
 	}
-	sort.Slice(head, func(i, j int) bool { return head[i].DocumentID < head[j].DocumentID })
-	doc.Files = head
+	sort.Slice(head, func(i, j int) bool { return head[i].EntryName < head[j].EntryName })
+	d.Files = head
 	return nil
 
 }
