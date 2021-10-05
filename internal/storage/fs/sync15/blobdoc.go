@@ -107,7 +107,7 @@ func (t *BlobDoc) IndexReader() (io.ReadCloser, error) {
 }
 
 // Extract the documentname from metadata blob
-func (doc *BlobDoc) ReadMetadata(fileEntry *Entry, r RemoteStorage) error {
+func (doc *BlobDoc) ReadMetadata(fileEntry *Entry, r storage.RemoteStorage) error {
 	if strings.HasSuffix(fileEntry.DocumentID, ".metadata") {
 		log.Println("Reading metadata: " + doc.DocumentID)
 
@@ -152,7 +152,7 @@ func (d *BlobDoc) Line() string {
 	return sb.String()
 }
 
-func (doc *BlobDoc) Mirror(e *Entry, r RemoteStorage) error {
+func (doc *BlobDoc) Mirror(e *Entry, r storage.RemoteStorage) error {
 	doc.Entry = *e
 	entryIndex, err := r.GetReader(e.Hash)
 	if err != nil {

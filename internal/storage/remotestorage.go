@@ -1,4 +1,4 @@
-package sync15
+package storage
 
 import "io"
 

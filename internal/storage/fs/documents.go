@@ -19,7 +19,6 @@ import (
 
 	"github.com/golang-jwt/jwt"
 	"github.com/juju/fslock"
-	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ddvk/rmfakecloud/internal/common"
@@ -114,7 +113,7 @@ func render3(a *exporter.MyArchive, output io.Writer) error {
 	return pdfgen.Generate(a, output, options)
 }
 
-func FromBlobDoc(doc *sync15.BlobDoc, rs sync15.RemoteStorage) (*exporter.MyArchive, error) {
+func FromBlobDoc(doc *sync15.BlobDoc, rs storage.RemoteStorage) (*exporter.MyArchive, error) {
 	uuid := doc.DocumentID
 	a := exporter.MyArchive{
 		Zip: archive.Zip{
@@ -156,15 +155,16 @@ func FromBlobDoc(doc *sync15.BlobDoc, rs sync15.RemoteStorage) (*exporter.MyArch
 			a.PayloadReader = blob.(io.ReadSeekCloser)
 
 		case ".json":
+			//metadata
 		case ".rm":
-			logrus.Debug("adding page ", name)
+			log.Debug("adding page ", name)
 			pageMap[name] = f.Hash
 		}
 	}
 
 	for _, p := range a.Content.Pages {
 		if hash, ok := pageMap[p]; ok {
-			logrus.Debug("page ", hash)
+			log.Debug("page ", hash)
 			reader, err := rs.GetReader(hash)
 			if err != nil {
 				return nil, err
@@ -184,9 +184,7 @@ func FromBlobDoc(doc *sync15.BlobDoc, rs sync15.RemoteStorage) (*exporter.MyArch
 				Pagedata: "Blank",
 			}
 			a.Pages = append(a.Pages, page)
-
 		}
-
 	}
 
 	return &a, nil
@@ -302,19 +300,19 @@ func (fs *Storage) GetBlobURL(uid, blobid string) (docurl string, exp time.Time,
 	exp = time.Now().Add(time.Minute * config.ReadStorageExpirationInMinutes)
 	strExp := strconv.FormatInt(exp.Unix(), 10)
 
-	signature, err := Sign([]string{uid, blobid, strExp}, fs.Cfg.JWTSecretKey)
+	signature, err := storage.Sign([]string{uid, blobid, strExp}, fs.Cfg.JWTSecretKey)
 	if err != nil {
 		return
 	}
 
 	params := url.Values{
-		paramUid:       {uid},
-		paramBlobId:    {blobid},
-		paramExp:       {strExp},
-		paramSignature: {signature},
+		storage.ParamUid:       {uid},
+		storage.ParamBlobId:    {blobid},
+		storage.ParamExp:       {strExp},
+		storage.ParamSignature: {signature},
 	}
 
-	blobUrl := uploadRL + routeBlob + "?" + params.Encode()
+	blobUrl := uploadRL + storage.RouteBlob + "?" + params.Encode()
 	log.Debugln("blobUrl: ", blobUrl)
 	return blobUrl, exp, nil
 }

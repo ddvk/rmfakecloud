@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strconv"
 
+	"github.com/ddvk/rmfakecloud/internal/storage"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -217,7 +218,7 @@ func (t *HashTree) Rehash() error {
 }
 
 /// Mirror makes the tree look like the storage
-func (t *HashTree) Mirror(r RemoteStorage) (changed bool, err error) {
+func (t *HashTree) Mirror(r storage.RemoteStorage) (changed bool, err error) {
 	rootHash, gen, err := r.GetRootIndex()
 	if err != nil {
 		return
@@ -286,7 +287,7 @@ func (t *HashTree) Mirror(r RemoteStorage) (changed bool, err error) {
 	return true, nil
 }
 
-func BuildTree(provider RemoteStorage) (*HashTree, error) {
+func BuildTree(provider storage.RemoteStorage) (*HashTree, error) {
 	tree := HashTree{}
 
 	rootHash, gen, err := provider.GetRootIndex()

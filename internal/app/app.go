@@ -126,7 +126,7 @@ func NewApp(cfg *config.Config) App {
 	}
 	uiApp := ui.New(cfg, fsStorage, codeConnector, ntfHub, fsStorage, fsStorage)
 
-	storageapp := fs.NewApp(cfg, fsStorage, fsStorage)
+	storageapp := storage.NewApp(cfg, fsStorage, fsStorage)
 
 	app.registerRoutes(router)
 	storageapp.RegisterRoutes(router)

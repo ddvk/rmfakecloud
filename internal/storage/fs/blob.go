@@ -21,6 +21,7 @@ import (
 
 const cachedTreeName = ".tree"
 
+// GetTree returns the cached blob tree for the user
 func (fs *Storage) GetTree(uid string) (t *sync15.HashTree, err error) {
 	ls := &LocalBlobStorage{
 		uid: uid,
@@ -46,11 +47,13 @@ func (fs *Storage) GetTree(uid string) (t *sync15.HashTree, err error) {
 	return tree, nil
 }
 
+// SaveTree saves the cached tree
 func (fs *Storage) SaveTree(uid string, t *sync15.HashTree) error {
 	cachePath := path.Join(fs.getUserPath(uid), cachedTreeName)
 	return t.Save(cachePath)
 }
 
+// Export exports a document
 func (fs *Storage) Export(uid, docid string) (r io.ReadCloser, err error) {
 	tree, err := fs.GetTree(uid)
 	if err != nil {
@@ -60,8 +63,6 @@ func (fs *Storage) Export(uid, docid string) (r io.ReadCloser, err error) {
 	if err != nil {
 		return nil, err
 	}
-	//todo: find the metadata
-	//find the payload
 	ls := &LocalBlobStorage{
 		fs:  fs,
 		uid: uid,
