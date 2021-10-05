@@ -1,4 +1,4 @@
-package sync15
+package models
 
 import (
 	"bufio"
@@ -22,7 +22,7 @@ const DocType = "80000000"
 const FileType = "0"
 const Delimiter = ':'
 
-func HashEntries(entries []*Entry) (string, error) {
+func HashEntries(entries []*HashEntry) (string, error) {
 	sort.Slice(entries, func(i, j int) bool { return entries[i].DocumentID < entries[j].DocumentID })
 	hasher := sha256.New()
 	for _, d := range entries {
@@ -89,8 +89,8 @@ func (tree *HashTree) Save(cacheFile string) error {
 	return err
 }
 
-func parseEntry(line string) (*Entry, error) {
-	entry := Entry{}
+func parseEntry(line string) (*HashEntry, error) {
+	entry := HashEntry{}
 	rdr := NewFieldReader(line)
 	numFields := len(rdr.fields)
 	if numFields != 5 {
@@ -129,8 +129,8 @@ func parseEntry(line string) (*Entry, error) {
 	return &entry, nil
 }
 
-func parseIndex(f io.Reader) ([]*Entry, error) {
-	var entries []*Entry
+func parseIndex(f io.Reader) ([]*HashEntry, error) {
+	var entries []*HashEntry
 	scanner := bufio.NewScanner(f)
 	scanner.Scan()
 	schema := scanner.Text()
@@ -170,10 +170,10 @@ func (t *HashTree) RootIndex() (io.ReadCloser, error) {
 type HashTree struct {
 	Hash       string
 	Generation int64
-	Docs       []*BlobDoc
+	Docs       []*HashDoc
 }
 
-func (t *HashTree) FindDoc(id string) (*BlobDoc, error) {
+func (t *HashTree) FindDoc(id string) (*HashDoc, error) {
 	//O(n)
 	for _, d := range t.Docs {
 		if d.DocumentID == id {
@@ -204,9 +204,9 @@ func (t *HashTree) Remove(id string) error {
 }
 
 func (t *HashTree) Rehash() error {
-	entries := []*Entry{}
+	entries := []*HashEntry{}
 	for _, e := range t.Docs {
-		entries = append(entries, &e.Entry)
+		entries = append(entries, &e.HashEntry)
 	}
 	hash, err := HashEntries(entries)
 	if err != nil {
@@ -251,15 +251,15 @@ func (t *HashTree) Mirror(r storage.RemoteStorage) (changed bool, err error) {
 		return
 	}
 
-	head := make([]*BlobDoc, 0)
-	current := make(map[string]*BlobDoc)
-	new := make(map[string]*Entry)
+	head := make([]*HashDoc, 0)
+	current := make(map[string]*HashDoc)
+	new := make(map[string]*HashEntry)
 	for _, e := range entries {
 		new[e.DocumentID] = e
 	}
 	//current documents
 	for _, doc := range t.Docs {
-		if entry, ok := new[doc.Entry.DocumentID]; ok {
+		if entry, ok := new[doc.HashEntry.DocumentID]; ok {
 			//hash different update
 			if entry.Hash != doc.Hash {
 				log.Println("doc updated: " + doc.DocumentID)
@@ -274,7 +274,7 @@ func (t *HashTree) Mirror(r storage.RemoteStorage) (changed bool, err error) {
 	//find new entries
 	for k, newEntry := range new {
 		if _, ok := current[k]; !ok {
-			doc := &BlobDoc{}
+			doc := &HashDoc{}
 			log.Println("doc new: " + k)
 			doc.Mirror(newEntry, r)
 			head = append(head, doc)
@@ -310,8 +310,8 @@ func BuildTree(provider storage.RemoteStorage) (*HashTree, error) {
 		f, _ := provider.GetReader(e.Hash)
 		defer f.Close()
 
-		doc := &BlobDoc{}
-		doc.Entry = *e
+		doc := &HashDoc{}
+		doc.HashEntry = *e
 		tree.Docs = append(tree.Docs, doc)
 
 		items, _ := parseIndex(f)

@@ -54,8 +54,8 @@ type Attributes struct {
 	VissibleName     string `json:"vissibleName,omitempty"`
 }
 
-// RawDocument just a raw document
-type RawDocument struct {
+// RawMetadata just a raw document
+type RawMetadata struct {
 	ID                string `json:"ID"`
 	Version           int    `json:"Version"`
 	Message           string `json:"Message"`

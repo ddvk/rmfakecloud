@@ -30,8 +30,8 @@ func (p *LocalBlobStorage) GetRootIndex() (string, int64, error) {
 
 }
 
-func (p *LocalBlobStorage) WriteRootIndex(generation int64, rootindex string) (int64, error) {
-	r := strings.NewReader(rootindex)
+func (p *LocalBlobStorage) WriteRootIndex(generation int64, roothash string) (int64, error) {
+	r := strings.NewReader(roothash)
 	newGen, err := p.fs.StoreBlob(p.uid, rootFile, r, generation)
 	return int64(newGen), err
 }
@@ -39,4 +39,9 @@ func (p *LocalBlobStorage) WriteRootIndex(generation int64, rootindex string) (i
 func (p *LocalBlobStorage) GetReader(hash string) (io.ReadCloser, error) {
 	r, _, err := p.fs.LoadBlob(p.uid, hash)
 	return r, err
+}
+func (p *LocalBlobStorage) Write(hash string, r io.Reader) error {
+	_, err := p.fs.StoreBlob(p.uid, hash, r, -1)
+
+	return err
 }

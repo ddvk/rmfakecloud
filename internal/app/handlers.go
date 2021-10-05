@@ -131,9 +131,10 @@ func (app *App) newUserToken(c *gin.Context) {
 	scopes := []string{"hsu", "intgr", "screenshare", "hwcmail:-1", "mail:-1"}
 
 	if user.Sync15 {
-		scopes = append(scopes, sync15)
+		log.Info("Using sync 1.5")
+		scopes = append(scopes, syncFox)
 	} else {
-		scopes = append(scopes, sync10)
+		scopes = append(scopes, syncDefault)
 	}
 	scopesStr := strings.Join(scopes, " ")
 	log.Info("setting scopes: ", scopesStr)
@@ -184,11 +185,13 @@ func (app *App) sendEmail(c *gin.Context) {
 		badReq(c, "not multiform")
 		return
 	}
-	for k := range form.File {
-		log.Debugln("form field", k)
-	}
-	for k := range form.Value {
-		log.Debugln("form value", k)
+	if log.IsLevelEnabled(log.DebugLevel) {
+		for k := range form.File {
+			log.Debugln("form field", k)
+		}
+		for k := range form.Value {
+			log.Debugln("form value", k)
+		}
 	}
 
 	emailClient := email.Builder{
@@ -224,12 +227,12 @@ func (app *App) listDocuments(c *gin.Context) {
 	withBlob, _ := strconv.ParseBool(c.Query("withBlob"))
 	docID := c.Query("doc")
 	log.Debug(handlerLog, "params: withBlob: ", withBlob, ", DocId: ", docID)
-	result := []*messages.RawDocument{}
+	result := []*messages.RawMetadata{}
 
 	var err error
 	if docID != "" {
 		//load single document
-		var doc *messages.RawDocument
+		var doc *messages.RawMetadata
 		doc, err = app.metaStorer.GetMetadata(uid, docID)
 		if err == nil {
 			result = append(result, doc)
@@ -247,7 +250,7 @@ func (app *App) listDocuments(c *gin.Context) {
 
 	for _, response := range result {
 		if withBlob {
-			storageURL, exp, err := app.docStorer.GetStorageURL(uid, response.ID, "storage")
+			storageURL, exp, err := app.docStorer.GetStorageURL(uid, response.ID)
 			if err != nil {
 				response.Success = false
 				log.Warn("Cant get storage url for : ", response.ID)
@@ -304,7 +307,7 @@ func (app *App) deleteDocument(c *gin.Context) {
 func (app *App) updateStatus(c *gin.Context) {
 	uid := c.GetString(userIDKey)
 	deviceID := c.GetString(deviceIDKey)
-	var req []messages.RawDocument
+	var req []messages.RawMetadata
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Error(err)
@@ -444,7 +447,7 @@ func (app *App) uploadRequest(c *gin.Context) {
 		if documentID == "" {
 			badReq(c, "no id")
 		}
-		url, exp, err := app.docStorer.GetStorageURL(uid, documentID, "storage")
+		url, exp, err := app.docStorer.GetStorageURL(uid, documentID)
 		if err != nil {
 			log.Error(err)
 			c.AbortWithStatus(http.StatusInternalServerError)
@@ -483,7 +486,7 @@ func (app *App) connectWebSocket(c *gin.Context) {
 	uid := c.GetString(userIDKey)
 	deviceID := c.GetString(deviceIDKey)
 
-    log.Info("connecting websocket from: ", uid)
+	log.Info("connecting websocket from: ", uid)
 
 	var upgrader = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {

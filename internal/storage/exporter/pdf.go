@@ -41,16 +41,18 @@ func normalized(p1 rm.Point, ratioX float64) (float64, float64) {
 func (p *PdfGenerator) Generate(zip *MyArchive, output io.Writer, options PdfGeneratorOptions) (err error) {
 
 	p.options = options
-	if zip.Content.FileType == "epub" {
-		return errors.New("only pdf and notebooks supported")
+
+	if len(zip.Pages) == 0 {
+		if zip.PayloadReader != nil {
+			_, err := io.Copy(output, zip.PayloadReader)
+			return err
+		} else {
+			return errors.New("the document has no pages")
+		}
 	}
 
 	if err = p.initBackgroundPages(zip.PayloadReader); err != nil {
 		return err
-	}
-
-	if len(zip.Pages) == 0 {
-		return errors.New("the document has no pages")
 	}
 
 	c := creator.New()
@@ -60,6 +62,7 @@ func (p *PdfGenerator) Generate(zip *MyArchive, output io.Writer, options PdfGen
 	}
 
 	if p.pdfReader != nil && p.options.AllPages {
+		logrus.Info("generating all pages")
 		outlines := p.pdfReader.GetOutlineTree()
 		c.SetOutlineTree(outlines)
 	}
@@ -166,6 +169,7 @@ func (p *PdfGenerator) Generate(zip *MyArchive, output io.Writer, options PdfGen
 
 func (p *PdfGenerator) initBackgroundPages(r io.ReadSeeker) error {
 	if r != nil {
+		logrus.Info("new seker")
 		pdfReader, err := pdf.NewPdfReader(r)
 		if err != nil {
 			return err
@@ -191,6 +195,7 @@ func (p *PdfGenerator) initBackgroundPages(r io.ReadSeeker) error {
 		return nil
 	}
 
+	logrus.Info("template")
 	p.template = true
 	return nil
 }

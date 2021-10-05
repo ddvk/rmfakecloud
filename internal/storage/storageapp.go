@@ -6,6 +6,7 @@ import (
 	"crypto/subtle"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -26,6 +27,7 @@ const (
 	ParamExp       = "exp"
 	ParamSignature = "signature"
 	RouteBlob      = "/blobstorage"
+	Storage        = "/storage"
 )
 
 // Storage file system document storage
@@ -49,8 +51,8 @@ func NewApp(cfg *config.Config, fs DocumentStorer, blob BlobStorage) *StorageApp
 // RegisterRoutes blah
 func (fs *StorageApp) RegisterRoutes(router *gin.Engine) {
 
-	router.GET("/storage/:"+tokenParam, fs.downloadDocument)
-	router.PUT("/storage/:"+tokenParam, fs.uploadDocument)
+	router.GET(Storage+"/:"+tokenParam, fs.downloadDocument)
+	router.PUT(Storage+"/:"+tokenParam, fs.uploadDocument)
 
 	//sync15
 	router.GET(RouteBlob, fs.downloadBlob)
@@ -202,9 +204,9 @@ func (app *StorageApp) uploadBlob(c *gin.Context) {
 }
 func Sign(parts []string, key []byte) (string, error) {
 	h := hmac.New(sha256.New, key)
-	for _, s := range parts {
+	for i, s := range parts {
 		if s == "" {
-			return "", errors.New("empty part")
+			return "", fmt.Errorf("index %d is empty", i)
 		}
 		h.Write([]byte(s))
 	}

@@ -46,13 +46,15 @@ Commands:
 	logger := logrus.StandardLogger()
 	logger.SetFormatter(&logrus.TextFormatter{})
 
-	var file, err = os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		fmt.Println("cannot open log file for writing")
-	} else {
-		defer file.Close()
-		hook := lfshook.NewHook(file, &logrus.TextFormatter{DisableColors: true})
-		logger.Hooks.Add(hook)
+	if cfg.LogFile != "" {
+		var file, err = os.OpenFile(cfg.LogFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "cannot open log file '%s' for writing\n", cfg.LogFile)
+		} else {
+			defer file.Close()
+			hook := lfshook.NewHook(file, &logrus.TextFormatter{DisableColors: true})
+			logger.Hooks.Add(hook)
+		}
 	}
 
 	if lvl, err := logrus.ParseLevel(os.Getenv(config.EnvLogLevel)); err == nil {

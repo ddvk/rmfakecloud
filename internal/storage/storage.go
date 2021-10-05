@@ -14,6 +14,9 @@ type ExportOption int
 const DocumentType = "DocumentType"
 const CollectionType = "CollectionType"
 const MetadataFileExt = ".metadata"
+const PageFileExt = ".pagedata"
+const ContentFileExt = ".content"
+const RmFileExt = ".rm"
 
 const (
 	ExportWithAnnotations ExportOption = iota
@@ -30,7 +33,7 @@ type DocumentStorer interface {
 	GetDocument(uid, docid string) (io.ReadCloser, error)
 	ExportDocument(uid, docid, outputType string, exportOption ExportOption) (io.ReadCloser, error)
 
-	GetStorageURL(uid, docid, urltype string) (string, time.Time, error)
+	GetStorageURL(uid, docid string) (string, time.Time, error)
 }
 
 // BlobStorage stuff for sync15
@@ -43,9 +46,9 @@ type BlobStorage interface {
 
 // MetadataStorer manages document metadata
 type MetadataStorer interface {
-	UpdateMetadata(uid string, r *messages.RawDocument) error
-	GetAllMetadata(uid string) ([]*messages.RawDocument, error)
-	GetMetadata(uid, docid string) (*messages.RawDocument, error)
+	UpdateMetadata(uid string, r *messages.RawMetadata) error
+	GetAllMetadata(uid string) ([]*messages.RawMetadata, error)
+	GetMetadata(uid, docid string) (*messages.RawMetadata, error)
 }
 
 // UserStorer holds informations about users
@@ -58,8 +61,9 @@ type UserStorer interface {
 
 // Document represents a document in storage
 type Document struct {
-	ID     string
-	Type   string
-	Parent string
-	Name   string
+	ID      string
+	Type    string
+	Parent  string
+	Name    string
+	Version int
 }

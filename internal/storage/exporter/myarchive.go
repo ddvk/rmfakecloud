@@ -4,7 +4,12 @@ import (
 	"io"
 
 	"github.com/juruen/rmapi/archive"
+	"github.com/juruen/rmapi/log"
 )
+
+func init() {
+	log.InitLog()
+}
 
 /// Archive but having the payload in reader
 type MyArchive struct {

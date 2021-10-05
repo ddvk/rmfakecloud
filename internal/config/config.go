@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/ddvk/rmfakecloud/internal/email"
 	log "github.com/sirupsen/logrus"
@@ -56,6 +57,8 @@ const (
 	EnvHwrApplicationKey = "RMAPI_HWR_APPLICATIONKEY"
 	// EnvHwrHmac myScript hmac key
 	EnvHwrHmac = "RMAPI_HWR_HMAC"
+	// Logfile to use
+	EnvLogFile = "RM_LOGFILE"
 )
 
 // Config config
@@ -69,8 +72,12 @@ type Config struct {
 	JWTRandom        bool
 	Certificate      tls.Certificate
 	SmtpConfig       *email.SmtpConfig
+	LogFile          string
 }
 
+func (cfg *Config) IsHTTPS() bool {
+	return strings.HasPrefix(cfg.StorageURL, "https")
+}
 func (cfg *Config) Verify() {
 
 	if cfg.SmtpConfig == nil {
@@ -168,6 +175,7 @@ func FromEnv() *Config {
 		Certificate:      cert,
 		RegistrationOpen: openRegistration,
 		SmtpConfig:       smtpCfg,
+		LogFile:          os.Getenv(EnvLogFile),
 	}
 	return &cfg
 }
@@ -178,15 +186,16 @@ func EnvVars() string {
 Environment Variables:
 
 General:
-	%s	secret for signgin JWT tokens
+	%s	Secret for signing JWT tokens
 	%s	Log verbosity level (debug, info, warn) (default: info)
 	%s		Port (default: %s)
 	%s		Local storage folder (default: %s)
 	%s	Url the tablet can resolve (default: http(s)://hostname:port)
 	%s	Path to the server certificate.
-	%s	Path to the server certificate key.
+	%s		Path to the server certificate key.
+	%s	Write logs to file
 
-email sending, smtp:
+Emails, smtp:
 	%s
 	%s
 	%s
@@ -207,6 +216,7 @@ myScript hwr (needs a developer account):
 		envStorageURL,
 		EnvTLSCert,
 		EnvTLSKey,
+		EnvLogFile,
 
 		EnvSMTPServer,
 		EnvSMTPUsername,

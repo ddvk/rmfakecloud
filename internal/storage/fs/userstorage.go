@@ -88,10 +88,10 @@ func (fs *Storage) RegisterUser(u *model.User) (err error) {
 		err = errors.New("empty id")
 		return
 	}
-	userPath := fs.getUserSyncPath(u.ID)
+	userBlobPath := fs.getUserBlobPath(u.ID)
 
 	// Create the user's directory
-	err = os.MkdirAll(userPath, 0700)
+	err = os.MkdirAll(userBlobPath, 0700)
 	if err != nil {
 		return
 	}
@@ -125,7 +125,8 @@ func (fs *Storage) UpdateUser(u *model.User) (err error) {
 		return
 	}
 
-	err = os.MkdirAll(fs.getUserPath(u.ID), 0700)
+	userSyncPath := fs.getUserBlobPath(u.ID)
+	err = os.MkdirAll(userSyncPath, 0700)
 	if err != nil {
 		return
 	}

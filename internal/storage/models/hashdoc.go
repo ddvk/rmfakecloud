@@ -1,4 +1,4 @@
-package sync15
+package models
 
 import (
 	"bufio"
@@ -9,46 +9,55 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
-	"log"
 	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/ddvk/rmfakecloud/internal/model"
 	"github.com/ddvk/rmfakecloud/internal/storage"
+	log "github.com/sirupsen/logrus"
 )
 
-type BlobDoc struct {
-	Files []*Entry
-	Entry
+type HashDoc struct {
+	Files []*HashEntry
+	HashEntry
 	model.MetadataFile
 }
 
-func NewBlobDoc(name, documentId, colType string) *BlobDoc {
-	return &BlobDoc{
+func NewHashDocMeta(documentId string, meta model.MetadataFile) *HashDoc {
+	return &HashDoc{
+		MetadataFile: meta,
+		HashEntry: HashEntry{
+			DocumentID: documentId,
+		},
+	}
+
+}
+func NewHashDoc(name, documentId, colType string) *HashDoc {
+	return &HashDoc{
 		MetadataFile: model.MetadataFile{
 			DocName:        name,
 			CollectionType: colType,
 		},
-		Entry: Entry{
+		HashEntry: HashEntry{
 			DocumentID: documentId,
 		},
 	}
 
 }
 
-func (d *BlobDoc) Rehash() error {
+func (d *HashDoc) Rehash() error {
 
 	hash, err := HashEntries(d.Files)
 	if err != nil {
 		return err
 	}
-	log.Println("New doc hash: ", hash)
+	log.Debug(d.DocName, " new doc hash: ", hash)
 	d.Hash = hash
 	return nil
 }
 
-func (d *BlobDoc) MetadataHashAndReader() (hash string, reader io.Reader, err error) {
+func (d *HashDoc) MetadataReader() (hash string, reader io.Reader, err error) {
 	jsn, err := json.Marshal(d.MetadataFile)
 	if err != nil {
 		return
@@ -56,7 +65,7 @@ func (d *BlobDoc) MetadataHashAndReader() (hash string, reader io.Reader, err er
 	sha := sha256.New()
 	sha.Write(jsn)
 	hash = hex.EncodeToString(sha.Sum(nil))
-	log.Println("new hash", hash)
+	log.Info("new hash: ", hash)
 	reader = bytes.NewReader(jsn)
 	found := false
 	for _, f := range d.Files {
@@ -73,12 +82,12 @@ func (d *BlobDoc) MetadataHashAndReader() (hash string, reader io.Reader, err er
 	return
 }
 
-func (d *BlobDoc) AddFile(e *Entry) error {
+func (d *HashDoc) AddFile(e *HashEntry) error {
 	d.Files = append(d.Files, e)
 	return d.Rehash()
 }
 
-func (t *HashTree) Add(d *BlobDoc) error {
+func (t *HashTree) Add(d *HashDoc) error {
 	if len(d.Files) == 0 {
 		return errors.New("no files")
 	}
@@ -86,7 +95,7 @@ func (t *HashTree) Add(d *BlobDoc) error {
 	return t.Rehash()
 }
 
-func (t *BlobDoc) IndexReader() (io.ReadCloser, error) {
+func (t *HashDoc) IndexReader() (io.ReadCloser, error) {
 	if len(t.Files) == 0 {
 		return nil, errors.New("no files")
 	}
@@ -107,7 +116,7 @@ func (t *BlobDoc) IndexReader() (io.ReadCloser, error) {
 }
 
 // Extract the documentname from metadata blob
-func (doc *BlobDoc) ReadMetadata(fileEntry *Entry, r storage.RemoteStorage) error {
+func (doc *HashDoc) ReadMetadata(fileEntry *HashEntry, r storage.RemoteStorage) error {
 	if strings.HasSuffix(fileEntry.DocumentID, ".metadata") {
 		log.Println("Reading metadata: " + doc.DocumentID)
 
@@ -133,7 +142,7 @@ func (doc *BlobDoc) ReadMetadata(fileEntry *Entry, r storage.RemoteStorage) erro
 	return nil
 }
 
-func (d *BlobDoc) Line() string {
+func (d *HashDoc) Line() string {
 	var sb strings.Builder
 	if d.Hash == "" {
 		log.Print("missing hash for: ", d.DocumentID)
@@ -152,8 +161,8 @@ func (d *BlobDoc) Line() string {
 	return sb.String()
 }
 
-func (doc *BlobDoc) Mirror(e *Entry, r storage.RemoteStorage) error {
-	doc.Entry = *e
+func (doc *HashDoc) Mirror(e *HashEntry, r storage.RemoteStorage) error {
+	doc.HashEntry = *e
 	entryIndex, err := r.GetReader(e.Hash)
 	if err != nil {
 		return err
@@ -164,9 +173,9 @@ func (doc *BlobDoc) Mirror(e *Entry, r storage.RemoteStorage) error {
 		return err
 	}
 
-	head := make([]*Entry, 0)
-	current := make(map[string]*Entry)
-	new := make(map[string]*Entry)
+	head := make([]*HashEntry, 0)
+	current := make(map[string]*HashEntry)
+	new := make(map[string]*HashEntry)
 
 	for _, e := range entries {
 		new[e.DocumentID] = e

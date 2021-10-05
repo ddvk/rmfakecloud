@@ -27,7 +27,7 @@ func TestCreateDocument(t *testing.T) {
 	content := ioutil.NopCloser(strings.NewReader("dummy"))
 	fs := NewStorage(cfg)
 
-	d, err := fs.CreateDocument(testuser, "blah.pdf", content)
+	d, err := fs.CreateDocument(testuser, "blah.pdf", "", content)
 	if err != nil {
 		t.Error(err)
 	}

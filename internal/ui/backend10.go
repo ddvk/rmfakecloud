@@ -18,8 +18,8 @@ func (d *backend10) Sync(uid string) {
 
 }
 
-func (d *backend10) CreateDocument(uid, filename string, stream io.Reader) (doc *storage.Document, err error) {
-	doc, err = d.documentHandler.CreateDocument(uid, filename, stream)
+func (d *backend10) CreateDocument(uid, filename, parent string, stream io.Reader) (doc *storage.Document, err error) {
+	doc, err = d.documentHandler.CreateDocument(uid, filename, parent, stream)
 	if err != nil {
 		return
 	}
@@ -27,7 +27,7 @@ func (d *backend10) CreateDocument(uid, filename string, stream io.Reader) (doc 
 	ntf := hub.DocumentNotification{
 		ID:      doc.ID,
 		Type:    storage.DocumentType,
-		Version: -1,
+		Version: 1,
 		Parent:  "",
 		Name:    doc.Name,
 	}

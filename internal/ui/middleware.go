@@ -20,7 +20,10 @@ func (app *ReactAppWrapper) adminMiddleware() gin.HandlerFunc {
 
 func (app *ReactAppWrapper) authMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token, err := common.GetToken(c)
+		token, err := c.Cookie(cookieName)
+		if err == http.ErrNoCookie {
+			token, err = common.GetToken(c)
+		}
 
 		if err != nil {
 			log.Warn("[ui-authmiddleware] token parsing, ", err)
@@ -45,7 +48,7 @@ func (app *ReactAppWrapper) authMiddleware() gin.HandlerFunc {
 		newsync := false
 		for _, s := range scopes {
 			switch s {
-			case "sync15":
+			case isSync15:
 				newsync = true
 			}
 		}

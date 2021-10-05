@@ -2,16 +2,14 @@ import constants from "../common/constants"
 
 class ApiServices {
     header() {
-        var token = localStorage.getItem("token")
-
         return {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
         };
     }
 
-    upload(files) {
+    upload(parent, files) {
         const formData = new FormData();
+        formData.append("parent", parent)
         files.forEach(f => {
             formData.append("file", f)
         });
@@ -71,11 +69,11 @@ class ApiServices {
                 return r.blob()
             })
     }
+
 }
 
 function handleError(r) {
     if (r.status === 401) {
-        localStorage.removeItem("token");
         localStorage.removeItem("currentUser");
         window.location.replace("/login")
         throw new Error("not authorized")

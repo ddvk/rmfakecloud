@@ -2,6 +2,7 @@ package ui
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/ddvk/rmfakecloud/internal/webassets"
 	"github.com/gin-gonic/gin"
@@ -16,20 +17,32 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 		c.FileFromFS("/favicon.ico", webassets.Assets)
 	})
 
+	router.HEAD("/", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
 	//hack for index.html
 	router.NoRoute(func(c *gin.Context) {
-		method := c.Request.Method
-		if method == http.MethodGet {
-			c.FileFromFS(indexReplacement, app)
-		} else {
+		uri := c.Request.RequestURI
+		log.Info(uri)
+		if strings.HasPrefix(uri, "/api") ||
+			strings.HasPrefix(uri, "/ui/api") ||
+			c.Request.Method != http.MethodGet {
+
 			c.AbortWithStatus(http.StatusNotFound)
+			return
 		}
+
+		c.FileFromFS(indexReplacement, app)
 	})
 
 	r := router.Group("/ui/api")
 	r.POST("register", app.register)
 	r.POST("login", app.login)
-
+	r.GET("logout", func(c *gin.Context) {
+		c.SetCookie(cookieName, "/", -1, "", "", false, true)
+		c.Status(http.StatusOK)
+	})
 	//with authentication
 	auth := r.Group("")
 	auth.Use(app.authMiddleware())
@@ -54,5 +67,6 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	admin := auth.Group("")
 	admin.Use(app.adminMiddleware())
 	admin.GET("users/:userid", app.getUser)
+	admin.PUT("users", app.updateUser)
 	admin.GET("users", app.getAppUsers)
 }

@@ -1,19 +1,19 @@
-package sync15
+package models
 
 import (
 	"strconv"
 	"strings"
 )
 
-func NewFileEntry(hash, documentId string) *Entry {
-	return &Entry{
+func NewFileHashEntry(hash, documentId string) *HashEntry {
+	return &HashEntry{
 		Hash:       hash,
 		DocumentID: documentId,
 		Type:       FileType,
 	}
 }
 
-type Entry struct {
+type HashEntry struct {
 	Hash       string
 	Type       string
 	DocumentID string
@@ -21,7 +21,7 @@ type Entry struct {
 	Size       int64
 }
 
-func (d *Entry) Line() string {
+func (d *HashEntry) Line() string {
 	var sb strings.Builder
 	sb.WriteString(d.Hash)
 	sb.WriteRune(Delimiter)

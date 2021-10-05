@@ -17,8 +17,8 @@ const (
 )
 
 // GetAllMetadata load all metadata
-func (fs *Storage) GetAllMetadata(uid string) (result []*messages.RawDocument, err error) {
-	result = []*messages.RawDocument{}
+func (fs *Storage) GetAllMetadata(uid string) (result []*messages.RawMetadata, err error) {
+	result = []*messages.RawMetadata{}
 
 	var files []os.FileInfo
 	folder := fs.getUserPath(uid)
@@ -42,7 +42,7 @@ func (fs *Storage) GetAllMetadata(uid string) (result []*messages.RawDocument, e
 }
 
 // GetMetadata loads a document's metadata
-func (fs *Storage) GetMetadata(uid, id string) (*messages.RawDocument, error) {
+func (fs *Storage) GetMetadata(uid, id string) (*messages.RawMetadata, error) {
 	fullPath := fs.getPathFromUser(uid, id+storage.MetadataFileExt)
 	f, err := os.Open(fullPath)
 	if err != nil {
@@ -54,7 +54,7 @@ func (fs *Storage) GetMetadata(uid, id string) (*messages.RawDocument, error) {
 		return nil, err
 	}
 
-	response := messages.RawDocument{}
+	response := messages.RawMetadata{}
 	err = json.Unmarshal(content, &response)
 	if err != nil {
 		return nil, err
@@ -65,7 +65,7 @@ func (fs *Storage) GetMetadata(uid, id string) (*messages.RawDocument, error) {
 }
 
 // UpdateMetadata updates the metadata of a document
-func (fs *Storage) UpdateMetadata(uid string, r *messages.RawDocument) error {
+func (fs *Storage) UpdateMetadata(uid string, r *messages.RawMetadata) error {
 	filepath := fs.getPathFromUser(uid, r.ID+storage.MetadataFileExt)
 
 	js, err := json.Marshal(r)

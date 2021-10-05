@@ -6,7 +6,7 @@ import (
 
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/storage"
-	"github.com/ddvk/rmfakecloud/internal/storage/fs/sync15"
+	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -29,7 +29,7 @@ type DocumentTree struct {
 	Trash   []Entry
 }
 
-func makeFolder(d *messages.RawDocument) (entry *Directory) {
+func makeFolder(d *messages.RawMetadata) (entry *Directory) {
 	entry = &Directory{
 		ID:   d.ID,
 		Name: d.VissibleName,
@@ -38,7 +38,7 @@ func makeFolder(d *messages.RawDocument) (entry *Directory) {
 	}
 	return
 }
-func makeDocument(d *messages.RawDocument) (entry Entry) {
+func makeDocument(d *messages.RawMetadata) (entry Entry) {
 	entry = &Document{
 		ID:   d.ID,
 		Name: d.VissibleName,
@@ -50,10 +50,10 @@ func makeDocument(d *messages.RawDocument) (entry Entry) {
 
 const trashId = "trash"
 
-func NewTreeFromSync(tree *sync15.HashTree) *DocumentTree {
-	docs := make([]*messages.RawDocument, 0)
+func NewTreeFromSync(tree *models.HashTree) *DocumentTree {
+	docs := make([]*messages.RawMetadata, 0)
 	for _, d := range tree.Docs {
-		docs = append(docs, &messages.RawDocument{
+		docs = append(docs, &messages.RawMetadata{
 			ID:           d.DocumentID,
 			Parent:       d.MetadataFile.Parent,
 			VissibleName: d.MetadataFile.DocName,
@@ -64,7 +64,7 @@ func NewTreeFromSync(tree *sync15.HashTree) *DocumentTree {
 
 	return NewTree(docs)
 }
-func NewTree(documents []*messages.RawDocument) *DocumentTree {
+func NewTree(documents []*messages.RawMetadata) *DocumentTree {
 	childParent := make(map[string]string)
 	folders := make(map[string]*Directory)
 	rootEntries := make([]Entry, 0)
@@ -128,7 +128,7 @@ func NewTree(documents []*messages.RawDocument) *DocumentTree {
 			continue
 		}
 
-		log.Warn("parent not found: ", parentId)
+		log.Warn(d.VissibleName, " parent not found: ", parentId)
 		rootEntries = append(rootEntries, entry)
 	}
 

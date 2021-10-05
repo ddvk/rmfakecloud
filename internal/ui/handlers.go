@@ -20,6 +20,8 @@ const (
 	docIDParam          = "docid"
 	isSync15            = "sync15"
 	uiLogger            = "[ui] "
+	useridParam         = "userid"
+	cookieName          = ".Authrmfakecloud"
 )
 
 func (app *ReactAppWrapper) register(c *gin.Context) {
@@ -116,15 +118,17 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 
 	scopes := ""
 	if user.Sync15 {
-		scopes = "sync15"
+		scopes = isSync15
 	}
+	expiresAfter := 24 * time.Hour
+	expires := time.Now().Add(expiresAfter).Unix()
 	claims := &common.WebUserClaims{
 		UserID:    user.ID,
 		BrowserID: uuid.NewString(),
 		Email:     user.Email,
 		Scopes:    scopes,
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(12 * time.Hour).Unix(),
+			ExpiresAt: expires,
 			Issuer:    "rmFake WEB",
 			Audience:  common.WebUsage,
 		},
@@ -142,7 +146,10 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	//c.SetCookie(".AuthCookie", tokenString, 1, "/", "rmfakecloud", true, true)
+	httpOnly := true
+	secure := app.cfg.IsHTTPS()
+	log.Debug("cookie expires after: ", expiresAfter)
+	c.SetCookie(cookieName, tokenString, int(expiresAfter.Seconds()), "/", "", secure, httpOnly)
 
 	c.String(http.StatusOK, tokenString)
 }
@@ -273,7 +280,7 @@ func (app *ReactAppWrapper) deleteDocument(c *gin.Context) {
 }
 func (app *ReactAppWrapper) createDocument(c *gin.Context) {
 	uid := c.GetString(userIdContextKey)
-	// sync15 := c.GetBool(sync15)
+	_ = c.GetBool(isSync15)
 	log.Info("uploading documents from: ", uid)
 
 	backend := getBackend(c)
@@ -284,6 +291,12 @@ func (app *ReactAppWrapper) createDocument(c *gin.Context) {
 		badReq(c, "not multiform")
 		return
 	}
+	parent := form.Value["parent"]
+	parentId := ""
+	if len(parent) > 0 {
+		parentId = parent[0]
+	}
+	log.Info("Parent: " + parentId)
 
 	for _, file := range form.File["file"] {
 		f, err := file.Open()
@@ -297,7 +310,7 @@ func (app *ReactAppWrapper) createDocument(c *gin.Context) {
 		//do the stuff
 		log.Info(uiLogger, fmt.Sprintf("Uploading %s , size: %d", file.Filename, file.Size))
 
-		_, err = backend.CreateDocument(uid, file.Filename, f)
+		_, err = backend.CreateDocument(uid, file.Filename, parentId, f)
 		if err != nil {
 			log.Error(err)
 			c.AbortWithStatus(http.StatusInternalServerError)
@@ -331,7 +344,7 @@ func (app *ReactAppWrapper) getAppUsers(c *gin.Context) {
 }
 
 func (app *ReactAppWrapper) getUser(c *gin.Context) {
-	uid := c.Param("userid")
+	uid := c.Param(useridParam)
 	log.Info("Requested: ", uid)
 
 	// Try to find the user
@@ -348,4 +361,8 @@ func (app *ReactAppWrapper) getUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, user)
+}
+
+func (app *ReactAppWrapper) updateUser(c *gin.Context) {
+	c.Status(http.StatusCreated)
 }

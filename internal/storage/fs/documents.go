@@ -1,35 +1,22 @@
 package fs
 
 import (
-	"archive/zip"
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
-	"strconv"
-	"strings"
 	"time"
 
-	"encoding/json"
-
 	"github.com/golang-jwt/jwt"
-	"github.com/juju/fslock"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/storage"
-	"github.com/ddvk/rmfakecloud/internal/storage/fs/exporter"
-	"github.com/ddvk/rmfakecloud/internal/storage/fs/sync15"
-	rm2pdf2 "github.com/juruen/rmapi/annotations"
-	"github.com/juruen/rmapi/archive"
-	"github.com/juruen/rmapi/encoding/rm"
-	rm2pdf "github.com/poundifdef/go-remarkable2pdf"
+	"github.com/ddvk/rmfakecloud/internal/storage/exporter"
 )
 
 // DefaultTrashDir name of the trash dir
@@ -37,7 +24,7 @@ const (
 	DefaultTrashDir = ".trash"
 	CacheDir        = ".cache"
 	Archive         = "archive"
-	Sync            = "sync"
+	SyncFolder      = "sync"
 )
 
 // Storage file system document storage
@@ -45,8 +32,9 @@ type Storage struct {
 	Cfg *config.Config
 }
 
-func (fs *Storage) getUserSyncPath(uid string) string {
-	return filepath.Join(fs.getUserPath(uid), Sync)
+// gets the blobstorage path
+func (fs *Storage) getUserBlobPath(uid string) string {
+	return filepath.Join(fs.getUserPath(uid), SyncFolder)
 }
 
 func (fs *Storage) getUserPath(uid string) string {
@@ -62,134 +50,6 @@ func sanitize(id string) string {
 	return path.Base(id)
 }
 
-// poundifdef caligraphy pen is nice
-func render2(input, output string) (io.ReadCloser, error) {
-	reader, err := zip.OpenReader(input)
-	if err != nil {
-		return nil, fmt.Errorf("can't open file %w", err)
-	}
-	defer reader.Close()
-
-	writer, err := os.Create(output)
-	if err != nil {
-		return nil, fmt.Errorf("can't create outputfile %w", err)
-	}
-	//defer outputFile.Close()
-
-	err = rm2pdf.RenderRmNotebookFromZip(&reader.Reader, writer)
-	if err != nil {
-		writer.Close()
-		return nil, fmt.Errorf("can't render file %w", err)
-	}
-
-	_, err = writer.Seek(0, 0)
-	if err != nil {
-		writer.Close()
-		return nil, fmt.Errorf("can't rewind file %w", err)
-	}
-
-	return writer, nil
-}
-
-//using rmapi (whole pdf)
-func render1(input, output string) (io.ReadCloser, error) {
-	options := rm2pdf2.PdfGeneratorOptions{
-		AllPages: true,
-	}
-	gen := rm2pdf2.CreatePdfGenerator(input, output, options)
-	err := gen.Generate()
-	if err != nil {
-		return nil, err
-	}
-
-	return os.Open(output)
-}
-
-func render3(a *exporter.MyArchive, output io.Writer) error {
-	pdfgen := exporter.PdfGenerator{}
-	options := exporter.PdfGeneratorOptions{
-		AllPages: true,
-	}
-	return pdfgen.Generate(a, output, options)
-}
-
-func FromBlobDoc(doc *sync15.BlobDoc, rs storage.RemoteStorage) (*exporter.MyArchive, error) {
-	uuid := doc.DocumentID
-	a := exporter.MyArchive{
-		Zip: archive.Zip{
-			UUID: uuid,
-		},
-	}
-
-	pageMap := make(map[string]string)
-	for _, f := range doc.Files {
-		filext := path.Ext(f.DocumentID)
-		name := strings.TrimSuffix(path.Base(f.DocumentID), filext)
-		switch filext {
-		case ContentFileExt:
-			blob, err := rs.GetReader(f.Hash)
-			if err != nil {
-				return nil, err
-			}
-			defer blob.Close()
-			contentBytes, err := ioutil.ReadAll(blob)
-			if err != nil {
-				return nil, err
-			}
-			err = json.Unmarshal(contentBytes, &a.Content)
-			if err != nil {
-				return nil, err
-			}
-		case ".pdf":
-			blob, err := rs.GetReader(f.Hash)
-			if err != nil {
-				return nil, err
-			}
-			// defer blob.Close()
-			// contentBytes, err := ioutil.ReadAll(blob)
-			// if err != nil {
-			// 	return nil, err
-			// }
-			// a.Payload = contentBytes
-			//HACK:
-			a.PayloadReader = blob.(io.ReadSeekCloser)
-
-		case ".json":
-			//metadata
-		case ".rm":
-			log.Debug("adding page ", name)
-			pageMap[name] = f.Hash
-		}
-	}
-
-	for _, p := range a.Content.Pages {
-		if hash, ok := pageMap[p]; ok {
-			log.Debug("page ", hash)
-			reader, err := rs.GetReader(hash)
-			if err != nil {
-				return nil, err
-			}
-			pageBin, err := ioutil.ReadAll(reader)
-			if err != nil {
-				return nil, err
-			}
-			rmpage := rm.New()
-			err = rmpage.UnmarshalBinary(pageBin)
-			if err != nil {
-				return nil, err
-			}
-
-			page := archive.Page{
-				Data:     rmpage,
-				Pagedata: "Blank",
-			}
-			a.Pages = append(a.Pages, page)
-		}
-	}
-
-	return &a, nil
-}
-
 // ExportDocument Exports a document to the outputType
 func (fs *Storage) ExportDocument(uid, id, outputType string, exportOption storage.ExportOption) (io.ReadCloser, error) {
 	if outputType != "pdf" {
@@ -202,23 +62,54 @@ func (fs *Storage) ExportDocument(uid, id, outputType string, exportOption stora
 		return nil, err
 	}
 
-	fullPath := fs.getPathFromUser(uid, id+ZipFileExt)
-	log.Debugln("Fullpath:", fullPath)
-	rawStat, err := os.Stat(fullPath)
+	zipFilePath := fs.getPathFromUser(uid, id+ZipFileExt)
+	log.Debugln("Fullpath:", zipFilePath)
+	rawStat, err := os.Stat(zipFilePath)
 	if err != nil {
 		return nil, fmt.Errorf("cant find raw document %v", err)
 	}
 
 	sanitizedId := sanitize(id)
-	outputname := path.Join(cacheDirPath, sanitizedId+"-annotated.pdf")
-	outStat, err := os.Stat(outputname)
+	outputFilePath := path.Join(cacheDirPath, sanitizedId+"-annotated.pdf")
+	outStat, err := os.Stat(outputFilePath)
 
 	// exists and not older
 	if err == nil && !rawStat.ModTime().After(outStat.ModTime()) {
-		return os.Open(outputname)
+		return os.Open(outputFilePath)
 	}
 
-	return render1(fullPath, outputname)
+	size := rawStat.Size()
+	arch := &exporter.MyArchive{}
+	zipFile, err := os.Open(zipFilePath)
+	if err != nil {
+		return nil, err
+	}
+	defer zipFile.Close()
+	err = arch.Read(zipFile, size)
+	if err != nil {
+		return nil, err
+	}
+
+	if arch.Payload != nil {
+		arch.PayloadReader = exporter.NewSeekClose(arch.Payload)
+	}
+
+	outputFile, err := os.Create(outputFilePath)
+	if err != nil {
+		return nil, err
+	}
+
+	err = exporter.RenderRmapi(arch, outputFile)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = outputFile.Seek(0, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	return outputFile, nil
 
 }
 
@@ -268,8 +159,7 @@ func (fs *Storage) StoreDocument(uid, id string, stream io.ReadCloser) error {
 	return err
 }
 
-// GetStorageURL return a url for a file to store
-func (fs *Storage) GetStorageURL(uid, id, urltype string) (docurl string, expiration time.Time, err error) {
+func (fs *Storage) GetStorageURL(uid, id string) (docurl string, expiration time.Time, err error) {
 	uploadRL := fs.Cfg.StorageURL
 	exp := time.Now().Add(time.Minute * config.ReadStorageExpirationInMinutes)
 
@@ -287,132 +177,5 @@ func (fs *Storage) GetStorageURL(uid, id, urltype string) (docurl string, expira
 		return "", exp, err
 	}
 
-	return fmt.Sprintf("%s/%s/%s", uploadRL, urltype, url.QueryEscape(signedToken)), exp, nil
-}
-
-//severs as root modification log and generation number source
-const historyFile = ".root.history"
-const rootFile = "root"
-
-// GetStorageURL return a url for a file to store
-func (fs *Storage) GetBlobURL(uid, blobid string) (docurl string, exp time.Time, err error) {
-	uploadRL := fs.Cfg.StorageURL
-	exp = time.Now().Add(time.Minute * config.ReadStorageExpirationInMinutes)
-	strExp := strconv.FormatInt(exp.Unix(), 10)
-
-	signature, err := storage.Sign([]string{uid, blobid, strExp}, fs.Cfg.JWTSecretKey)
-	if err != nil {
-		return
-	}
-
-	params := url.Values{
-		storage.ParamUid:       {uid},
-		storage.ParamBlobId:    {blobid},
-		storage.ParamExp:       {strExp},
-		storage.ParamSignature: {signature},
-	}
-
-	blobUrl := uploadRL + storage.RouteBlob + "?" + params.Encode()
-	log.Debugln("blobUrl: ", blobUrl)
-	return blobUrl, exp, nil
-}
-
-// GetDocument Opens a document by id
-func (fs *Storage) LoadBlob(uid, id string) (io.ReadCloser, int64, error) {
-	generation := int64(1)
-	blobPath := path.Join(fs.getUserSyncPath(uid), sanitize(id))
-	log.Debugln("Fullpath:", blobPath)
-	if id == rootFile {
-		historyPath := path.Join(fs.getUserSyncPath(uid), historyFile)
-		lock := fslock.New(historyPath)
-		err := lock.LockWithTimeout(time.Duration(time.Second * 5))
-		if err != nil {
-			log.Error("cannot obtain lock")
-			return nil, 0, err
-		}
-		defer lock.Unlock()
-
-		fi, err1 := os.Stat(historyPath)
-		if err1 == nil {
-			generation = calcGen(fi.Size())
-		}
-	}
-
-	if fi, err := os.Stat(blobPath); err != nil || fi.IsDir() {
-		return nil, 0, storage.ErrorNotFound
-	}
-
-	reader, err := os.Open(blobPath)
-	return reader, generation, err
-}
-
-// StoreDocument stores a document
-func (fs *Storage) StoreBlob(uid, id string, stream io.Reader, matchGen int64) (generation int64, err error) {
-	generation = 1
-
-	reader := stream
-	if id == rootFile {
-		historyPath := path.Join(fs.getUserSyncPath(uid), historyFile)
-		lock := fslock.New(historyPath)
-		err = lock.LockWithTimeout(time.Duration(time.Second * 5))
-		if err != nil {
-			log.Error("cannot obtain lock")
-		}
-		defer lock.Unlock()
-
-		currentGen := int64(0)
-		fi, err1 := os.Stat(historyPath)
-		if err1 == nil {
-			currentGen = calcGen(fi.Size())
-		}
-
-		if currentGen != matchGen && matchGen > 0 {
-			log.Warnf("wrong gen, has %d but is %d", matchGen, currentGen)
-			return currentGen, storage.ErrorWrongGeneration
-		}
-
-		var buf bytes.Buffer
-		tee := io.TeeReader(stream, &buf)
-
-		var hist *os.File
-		hist, err = os.OpenFile(historyPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			return
-		}
-		defer hist.Close()
-		t := time.Now().UTC().Format(time.RFC3339) + " "
-		hist.WriteString(t)
-		_, err = io.Copy(hist, tee)
-		if err != nil {
-			return
-		}
-		hist.WriteString("\n")
-
-		reader = ioutil.NopCloser(&buf)
-		size, err1 := hist.Seek(0, os.SEEK_CUR)
-		if err1 != nil {
-			err = err1
-			return
-		}
-		generation = calcGen(size)
-	}
-
-	blobPath := path.Join(fs.getUserSyncPath(uid), sanitize(id))
-	file, err := os.Create(blobPath)
-	if err != nil {
-		return
-	}
-	defer file.Close()
-	_, err = io.Copy(file, reader)
-	if err != nil {
-		return
-	}
-
-	return
-}
-
-//use file size as generation
-func calcGen(size int64) int64 {
-	//time + 1 space + 64 hash + 1 newline
-	return size / 86
+	return fmt.Sprintf("%s%s/%s", uploadRL, storage.Storage, url.QueryEscape(signedToken)), exp, nil
 }

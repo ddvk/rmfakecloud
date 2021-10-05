@@ -28,8 +28,8 @@ func (b *backend15) Export(uid, docid, exporttype string, opt storage.ExportOpti
 	return
 }
 
-func (b *backend15) CreateDocument(uid, filename string, stream io.Reader) (doc *storage.Document, err error) {
-	doc, err = b.blobHandler.CreateBlobDocument(uid, filename, stream)
+func (b *backend15) CreateDocument(uid, filename, parent string, stream io.Reader) (doc *storage.Document, err error) {
+	doc, err = b.blobHandler.CreateBlobDocument(uid, filename, parent, stream)
 	return
 }
 

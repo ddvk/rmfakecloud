@@ -9,7 +9,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/storage"
-	"github.com/ddvk/rmfakecloud/internal/storage/fs/sync15"
+	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
 	"github.com/ddvk/rmfakecloud/internal/webassets"
 	"github.com/gin-gonic/gin"
@@ -18,7 +18,7 @@ import (
 type backend interface {
 	GetDocumentTree(uid string) (tree *viewmodel.DocumentTree, err error)
 	Export(uid, doc, exporttype string, opt storage.ExportOption) (stream io.ReadCloser, err error)
-	CreateDocument(uid, filename string, stream io.Reader) (doc *storage.Document, err error)
+	CreateDocument(uid, name, parent string, stream io.Reader) (doc *storage.Document, err error)
 	Sync(uid string)
 }
 type codeGenerator interface {
@@ -26,16 +26,14 @@ type codeGenerator interface {
 }
 
 type documentHandler interface {
-	CreateDocument(uid, filename string, stream io.Reader) (doc *storage.Document, err error)
-	GetAllMetadata(uid string) (do []*messages.RawDocument, err error)
+	CreateDocument(uid, name, parent string, stream io.Reader) (doc *storage.Document, err error)
+	GetAllMetadata(uid string) (do []*messages.RawMetadata, err error)
 	ExportDocument(uid, id, format string, exportOption storage.ExportOption) (stream io.ReadCloser, err error)
-
-	// CreateDocument15(uid, filename string, stream io.ReadCloser) (doc *storage.Document, err error)
 }
 
 type blobHandler interface {
-	GetTree(uid string) (tree *sync15.HashTree, err error)
-	CreateBlobDocument(uid, name string, reader io.Reader) (doc *storage.Document, err error)
+	GetTree(uid string) (tree *models.HashTree, err error)
+	CreateBlobDocument(uid, name, parent string, reader io.Reader) (doc *storage.Document, err error)
 	Export(uid, docid string) (io.ReadCloser, error)
 }
 

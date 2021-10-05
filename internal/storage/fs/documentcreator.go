@@ -17,8 +17,8 @@ import (
 	"github.com/google/uuid"
 )
 
-func createContent(ext string) string {
-	ext = strings.TrimPrefix(ext, ".")
+func createContent(fileType string) string {
+	fileType = strings.TrimPrefix(fileType, ".")
 	str :=
 		`
 {
@@ -51,18 +51,15 @@ func createContent(ext string) string {
 	}
 }
 `
-	return fmt.Sprintf(str, ext)
+	return fmt.Sprintf(str, fileType)
 }
 
 func extractID(r io.Reader) (string, error) {
 	return "", nil
 }
 
-const PageFileExt = ".pagedata"
-const ContentFileExt = ".content"
-
 // CreateDocument creates a new document
-func (fs *Storage) CreateDocument(uid, filename string, stream io.Reader) (doc *storage.Document, err error) {
+func (fs *Storage) CreateDocument(uid, filename, parent string, stream io.Reader) (doc *storage.Document, err error) {
 	ext := path.Ext(filename)
 	switch ext {
 	case ".pdf":
@@ -104,13 +101,13 @@ func (fs *Storage) CreateDocument(uid, filename string, stream io.Reader) (doc *
 			return
 		}
 
-		entry, err = w.Create(docid + PageFileExt)
+		entry, err = w.Create(docid + storage.PageFileExt)
 		if err != nil {
 			return
 		}
 		entry.Write([]byte{})
 
-		entry, err = w.Create(docid + ContentFileExt)
+		entry, err = w.Create(docid + storage.ContentFileExt)
 		if err != nil {
 			return
 		}
@@ -126,7 +123,7 @@ func (fs *Storage) CreateDocument(uid, filename string, stream io.Reader) (doc *
 
 	//create metadata
 	name := strings.TrimSuffix(filename, ext)
-	doc1 := createMedatadata(name, docid)
+	doc1 := createRawMedatadata(docid, name, parent)
 
 	jsn, err := json.Marshal(doc1)
 	if err != nil {
@@ -134,9 +131,10 @@ func (fs *Storage) CreateDocument(uid, filename string, stream io.Reader) (doc *
 	}
 
 	doc = &storage.Document{
-		ID:   docid,
-		Type: doc1.Type,
-		Name: name,
+		ID:      docid,
+		Type:    doc1.Type,
+		Name:    name,
+		Version: 1,
 	}
 	//save metadata
 	metafilePath := fs.getPathFromUser(uid, docid+storage.MetadataFileExt)
@@ -144,14 +142,15 @@ func (fs *Storage) CreateDocument(uid, filename string, stream io.Reader) (doc *
 	return
 }
 
-func createMedatadata(name, id string) *messages.RawDocument {
-	doc := messages.RawDocument{
+func createRawMedatadata(id, name, parent string) *messages.RawMetadata {
+	doc := messages.RawMetadata{
 		ID:             id,
 		VissibleName:   name,
 		Version:        1,
 		ModifiedClient: time.Now().UTC().Format(time.RFC3339Nano),
 		CurrentPage:    0,
 		Type:           storage.DocumentType,
+		Parent:         parent,
 	}
 	return &doc
 }
