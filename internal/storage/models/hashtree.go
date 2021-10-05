@@ -37,15 +37,15 @@ func HashEntries(entries []*HashEntry) (string, error) {
 	return hashStr, nil
 }
 
-func Hash(r io.Reader) (string, error) {
+func Hash(r io.Reader) (string, int64, error) {
 	hasher := sha256.New()
-	_, err := io.Copy(hasher, r)
+	w, err := io.Copy(hasher, r)
 	if err != nil {
-		return "", err
+		return "", w, err
 	}
 	h := hasher.Sum(nil)
 	hstr := hex.EncodeToString(h)
-	return hstr, err
+	return hstr, w, err
 }
 func FileHashAndSize(file string) ([]byte, int64, error) {
 	f, err := os.Open(file)
@@ -57,7 +57,7 @@ func FileHashAndSize(file string) ([]byte, int64, error) {
 	hasher := sha256.New()
 	io.Copy(hasher, f)
 	h := hasher.Sum(nil)
-	size, err := f.Seek(0, os.SEEK_CUR)
+	size, err := f.Seek(0, io.SeekEnd)
 	return h, size, err
 }
 func LoadTree(cacheFile string) (*HashTree, error) {

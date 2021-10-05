@@ -121,8 +121,9 @@ func (fs *Storage) CreateBlobDocument(uid, filename, parent string, stream io.Re
 		Synced:           true,
 		MetadataModified: true,
 	}
-	metahash, err := createMetadataFile(metadata, blobPath)
+	metahash, size, err := createMetadataFile(metadata, blobPath)
 	fi := models.NewFileHashEntry(metahash, docid+models.MetadataFileExt)
+	fi.Size = size
 	if err != nil {
 		return
 	}
@@ -135,9 +136,10 @@ func (fs *Storage) CreateBlobDocument(uid, filename, parent string, stream io.Re
 	}
 
 	content := createContent(ext)
-	contentHash, err := models.Hash(strings.NewReader(content))
+	contentHash, size, err := models.Hash(strings.NewReader(content))
 	saveTo(strings.NewReader(content), contentHash, blobPath)
 	fi = models.NewFileHashEntry(contentHash, docid+models.ContentFileExt)
+	fi.Size = size
 
 	hashDoc.AddFile(fi)
 
@@ -149,7 +151,7 @@ func (fs *Storage) CreateBlobDocument(uid, filename, parent string, stream io.Re
 	defer os.Remove(tmpdoc.Name())
 
 	tee := io.TeeReader(stream, tmpdoc)
-	payloadHash, err := models.Hash(tee)
+	payloadHash, size, err := models.Hash(tee)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +162,9 @@ func (fs *Storage) CreateBlobDocument(uid, filename, parent string, stream io.Re
 		return nil, err
 	}
 	fi = models.NewFileHashEntry(payloadHash, docid+ext)
+	fi.Size = size
 	err = hashDoc.AddFile(fi)
+
 	if err != nil {
 		return nil, err
 	}
@@ -222,13 +226,13 @@ func saveTo(r io.Reader, hash, blobPath string) (err error) {
 	return nil
 }
 
-func createMetadataFile(metadata model.MetadataFile, spath string) (filehash string, err error) {
+func createMetadataFile(metadata model.MetadataFile, spath string) (filehash string, size int64, err error) {
 
 	jsn, err := json.Marshal(metadata)
 	if err != nil {
 		return
 	}
-	filehash, err = models.Hash(bytes.NewReader(jsn))
+	filehash, size, err = models.Hash(bytes.NewReader(jsn))
 	if err != nil {
 		return
 	}
