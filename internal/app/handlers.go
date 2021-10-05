@@ -132,7 +132,7 @@ func (app *App) newUserToken(c *gin.Context) {
 
 	if user.Sync15 {
 		log.Info("Using sync 1.5")
-		scopes = append(scopes, syncFox)
+		scopes = append(scopes, syncNew)
 	} else {
 		scopes = append(scopes, syncDefault)
 	}

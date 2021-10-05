@@ -16,7 +16,7 @@ const (
 	authLog     = "[auth-middleware]"
 	requestLog  = "[requestlogging-middleware]"
 	syncDefault = "sync:default"
-	syncFox     = "sync:fox"
+	syncNew     = "sync:tortoise"
 )
 
 func (app *App) authMiddleware() gin.HandlerFunc {
@@ -34,7 +34,7 @@ func (app *App) authMiddleware() gin.HandlerFunc {
 
 		var isSync15 = false
 		for _, s := range scopes {
-			if s == syncFox {
+			if s == syncNew {
 				isSync15 = true
 				break
 			}

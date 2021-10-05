@@ -135,7 +135,7 @@ func (p *PdfGenerator) Generate(zip *MyArchive, output io.Writer, options PdfGen
 						path = path.AppendPoint(draw.NewPoint(x1, c.Height()-y1))
 					}
 
-					contentCreator.Add_w(float64(line.BrushSize / 100))
+					contentCreator.Add_w(float64(line.BrushSize / 10))
 
 					switch line.BrushColor {
 					case rm.Black:
