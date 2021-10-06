@@ -28,31 +28,30 @@ const (
 	SyncFolder      = "sync"
 )
 
-// Storage file system document storage
-type Storage struct {
+// FileSystemStorage store everything to disk
+type FileSystemStorage struct {
 	Cfg *config.Config
 }
 
 // gets the blobstorage path
-func (fs *Storage) getUserBlobPath(uid string) string {
+func (fs *FileSystemStorage) getUserBlobPath(uid string) string {
 	return filepath.Join(fs.getUserPath(uid), SyncFolder)
 }
 
-func (fs *Storage) getUserPath(uid string) string {
+func (fs *FileSystemStorage) getUserPath(uid string) string {
 
 	return filepath.Join(fs.Cfg.DataDir, filepath.Base(userDir), filepath.Base(uid))
 }
-func (fs *Storage) getPathFromUser(uid, path string) string {
+func (fs *FileSystemStorage) getPathFromUser(uid, path string) string {
 	return filepath.Join(fs.getUserPath(uid), filepath.Base(path))
 }
 
 func sanitize(id string) string {
-	//TODO: more
-	return path.Base(id)
+	return common.Sanitize(path.Base(id))
 }
 
 // ExportDocument Exports a document to the outputType
-func (fs *Storage) ExportDocument(uid, id, outputType string, exportOption storage.ExportOption) (io.ReadCloser, error) {
+func (fs *FileSystemStorage) ExportDocument(uid, id, outputType string, exportOption storage.ExportOption) (io.ReadCloser, error) {
 	if outputType != "pdf" {
 		return nil, errors.New("todo: only pdfs supported")
 	}
@@ -115,7 +114,7 @@ func (fs *Storage) ExportDocument(uid, id, outputType string, exportOption stora
 }
 
 // GetDocument Opens a document by id
-func (fs *Storage) GetDocument(uid, id string) (io.ReadCloser, error) {
+func (fs *FileSystemStorage) GetDocument(uid, id string) (io.ReadCloser, error) {
 	fullPath := fs.getPathFromUser(uid, id+ZipFileExt)
 	log.Debugln("Fullpath:", fullPath)
 	reader, err := os.Open(fullPath)
@@ -123,7 +122,7 @@ func (fs *Storage) GetDocument(uid, id string) (io.ReadCloser, error) {
 }
 
 // RemoveDocument removes document (moves it to trash)
-func (fs *Storage) RemoveDocument(uid, id string) error {
+func (fs *FileSystemStorage) RemoveDocument(uid, id string) error {
 
 	trashDir := fs.getPathFromUser(uid, DefaultTrashDir)
 	err := os.MkdirAll(trashDir, 0700)
@@ -149,7 +148,7 @@ func (fs *Storage) RemoveDocument(uid, id string) error {
 }
 
 // StoreDocument stores a document
-func (fs *Storage) StoreDocument(uid, id string, stream io.ReadCloser) error {
+func (fs *FileSystemStorage) StoreDocument(uid, id string, stream io.ReadCloser) error {
 	fullPath := fs.getPathFromUser(uid, id+ZipFileExt)
 	file, err := os.Create(fullPath)
 	if err != nil {
@@ -161,17 +160,17 @@ func (fs *Storage) StoreDocument(uid, id string, stream io.ReadCloser) error {
 }
 
 // GetStorageURL the storage url
-func (fs *Storage) GetStorageURL(uid, id string) (docurl string, expiration time.Time, err error) {
+func (fs *FileSystemStorage) GetStorageURL(uid, id string) (docurl string, expiration time.Time, err error) {
 	uploadRL := fs.Cfg.StorageURL
 	exp := time.Now().Add(time.Minute * config.ReadStorageExpirationInMinutes)
 
 	log.Debugln("uploadUrl: ", uploadRL)
-	claim := &common.StorageClaim{
+	claim := &StorageClaim{
 		DocumentID: id,
 		UserID:     uid,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: exp.Unix(),
-			Audience:  common.StorageUsage,
+			Audience:  StorageUsage,
 		},
 	}
 	signedToken, err := common.SignClaims(claim, fs.Cfg.JWTSecretKey)
@@ -179,5 +178,5 @@ func (fs *Storage) GetStorageURL(uid, id string) (docurl string, expiration time
 		return "", exp, err
 	}
 
-	return fmt.Sprintf("%s%s/%s", uploadRL, storage.Storage, url.QueryEscape(signedToken)), exp, nil
+	return fmt.Sprintf("%s%s/%s", uploadRL, RouteStorage, url.QueryEscape(signedToken)), exp, nil
 }

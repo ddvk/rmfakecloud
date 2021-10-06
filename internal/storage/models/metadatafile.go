@@ -1,4 +1,4 @@
-package model
+package models
 
 // MetadataFile content
 type MetadataFile struct {

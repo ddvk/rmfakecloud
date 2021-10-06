@@ -2,6 +2,7 @@ package common
 
 import (
 	"errors"
+	"regexp"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -39,4 +40,22 @@ func SignClaims(claims jwt.Claims, key []byte) (string, error) {
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	jwtToken.Header["kid"] = "1"
 	return jwtToken.SignedString(key)
+}
+
+var nameSeparators = regexp.MustCompile(`[./\\]`)
+
+func Sanitize(param string) string {
+	return nameSeparators.ReplaceAllString(param, "")
+}
+
+// QueryS sanitize the param
+func QueryS(param string, c *gin.Context) string {
+	p := c.Query(param)
+	return Sanitize(p)
+}
+
+// ParamS sanitize the param
+func ParamS(param string, c *gin.Context) string {
+	p := c.Param(param)
+	return Sanitize(p)
 }

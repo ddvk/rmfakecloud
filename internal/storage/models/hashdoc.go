@@ -13,7 +13,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ddvk/rmfakecloud/internal/model"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -21,10 +20,10 @@ import (
 type HashDoc struct {
 	Files []*HashEntry
 	HashEntry
-	model.MetadataFile
+	MetadataFile
 }
 
-func NewHashDocMeta(documentID string, meta model.MetadataFile) *HashDoc {
+func NewHashDocMeta(documentID string, meta MetadataFile) *HashDoc {
 	return &HashDoc{
 		MetadataFile: meta,
 		HashEntry: HashEntry{
@@ -35,7 +34,7 @@ func NewHashDocMeta(documentID string, meta model.MetadataFile) *HashDoc {
 }
 func NewHashDoc(name, documentID, colType string) *HashDoc {
 	return &HashDoc{
-		MetadataFile: model.MetadataFile{
+		MetadataFile: MetadataFile{
 			DocumentName:   name,
 			CollectionType: colType,
 		},
@@ -120,7 +119,7 @@ func (d *HashDoc) ReadMetadata(fileEntry *HashEntry, r RemoteStorage) error {
 	if strings.HasSuffix(fileEntry.EntryName, ".metadata") {
 		log.Println("Reading metadata: " + d.EntryName)
 
-		metadata := model.MetadataFile{}
+		metadata := MetadataFile{}
 
 		meta, err := r.GetReader(fileEntry.Hash)
 		if err != nil {

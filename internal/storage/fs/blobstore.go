@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/ddvk/rmfakecloud/internal/config"
-	"github.com/ddvk/rmfakecloud/internal/model"
 	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/storage/exporter"
 	"github.com/ddvk/rmfakecloud/internal/storage/models"
@@ -26,7 +25,7 @@ import (
 const cachedTreeName = ".tree"
 
 // GetTree returns the cached blob tree for the user
-func (fs *Storage) GetTree(uid string) (t *models.HashTree, err error) {
+func (fs *FileSystemStorage) GetTree(uid string) (t *models.HashTree, err error) {
 	ls := &LocalBlobStorage{
 		uid: uid,
 		fs:  fs,
@@ -52,13 +51,13 @@ func (fs *Storage) GetTree(uid string) (t *models.HashTree, err error) {
 }
 
 // SaveTree saves the cached tree
-func (fs *Storage) SaveTree(uid string, t *models.HashTree) error {
+func (fs *FileSystemStorage) SaveTree(uid string, t *models.HashTree) error {
 	cachePath := path.Join(fs.getUserPath(uid), cachedTreeName)
 	return t.Save(cachePath)
 }
 
 // Export exports a document
-func (fs *Storage) Export(uid, docid string) (r io.ReadCloser, err error) {
+func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err error) {
 	tree, err := fs.GetTree(uid)
 	if err != nil {
 		return nil, err
@@ -90,7 +89,7 @@ func (fs *Storage) Export(uid, docid string) (r io.ReadCloser, err error) {
 }
 
 // CreateBlobDocument creates a new document
-func (fs *Storage) CreateBlobDocument(uid, filename, parent string, stream io.Reader) (doc *storage.Document, err error) {
+func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, stream io.Reader) (doc *storage.Document, err error) {
 	ext := path.Ext(filename)
 	switch ext {
 	case ".pdf":
@@ -112,7 +111,7 @@ func (fs *Storage) CreateBlobDocument(uid, filename, parent string, stream io.Re
 
 	log.Info("Creating metadata... parent: ", parent)
 
-	metadata := model.MetadataFile{
+	metadata := models.MetadataFile{
 		DocumentName:     name,
 		CollectionType:   models.DocumentType,
 		Parent:           parent,
@@ -226,7 +225,7 @@ func saveTo(r io.Reader, hash, blobPath string) (err error) {
 	return nil
 }
 
-func createMetadataFile(metadata model.MetadataFile, spath string) (filehash string, size int64, err error) {
+func createMetadataFile(metadata models.MetadataFile, spath string) (filehash string, size int64, err error) {
 
 	jsn, err := json.Marshal(metadata)
 	if err != nil {
@@ -244,36 +243,36 @@ func createMetadataFile(metadata model.MetadataFile, spath string) (filehash str
 	return
 }
 
-//severs as root modification log and generation number source
+//serves as root modification log and generation number source
 const historyFile = ".root.history"
 const rootFile = "root"
 
 // GetBlobURL return a url for a file to store
-func (fs *Storage) GetBlobURL(uid, blobid string) (docurl string, exp time.Time, err error) {
+func (fs *FileSystemStorage) GetBlobURL(uid, blobid string) (docurl string, exp time.Time, err error) {
 	uploadRL := fs.Cfg.StorageURL
 	exp = time.Now().Add(time.Minute * config.ReadStorageExpirationInMinutes)
 	strExp := strconv.FormatInt(exp.Unix(), 10)
 
 	log.Info("signing ", uid)
-	signature, err := storage.Sign([]string{uid, blobid, strExp}, fs.Cfg.JWTSecretKey)
+	signature, err := SignURLParams([]string{uid, blobid, strExp}, fs.Cfg.JWTSecretKey)
 	if err != nil {
 		return
 	}
 
 	params := url.Values{
-		storage.ParamUID:       {uid},
-		storage.ParamBlobID:    {blobid},
-		storage.ParamExp:       {strExp},
-		storage.ParamSignature: {signature},
+		ParamUID:       {uid},
+		ParamBlobID:    {blobid},
+		ParamExp:       {strExp},
+		ParamSignature: {signature},
 	}
 
-	blobURL := uploadRL + storage.RouteBlob + "?" + params.Encode()
+	blobURL := uploadRL + RouteBlob + "?" + params.Encode()
 	log.Debugln("blobUrl: ", blobURL)
 	return blobURL, exp, nil
 }
 
 // LoadBlob Opens a blob by id
-func (fs *Storage) LoadBlob(uid, blobid string) (io.ReadCloser, int64, error) {
+func (fs *FileSystemStorage) LoadBlob(uid, blobid string) (io.ReadCloser, int64, error) {
 	generation := int64(1)
 	blobPath := path.Join(fs.getUserBlobPath(uid), sanitize(blobid))
 	log.Debugln("Fullpath:", blobPath)
@@ -294,7 +293,7 @@ func (fs *Storage) LoadBlob(uid, blobid string) (io.ReadCloser, int64, error) {
 	}
 
 	if fi, err := os.Stat(blobPath); err != nil || fi.IsDir() {
-		return nil, 0, storage.ErrorNotFound
+		return nil, 0, ErrorNotFound
 	}
 
 	reader, err := os.Open(blobPath)
@@ -302,7 +301,7 @@ func (fs *Storage) LoadBlob(uid, blobid string) (io.ReadCloser, int64, error) {
 }
 
 // StoreBlob stores a document
-func (fs *Storage) StoreBlob(uid, id string, stream io.Reader, matchGen int64) (generation int64, err error) {
+func (fs *FileSystemStorage) StoreBlob(uid, id string, stream io.Reader, matchGen int64) (generation int64, err error) {
 	generation = 1
 
 	reader := stream
@@ -323,7 +322,7 @@ func (fs *Storage) StoreBlob(uid, id string, stream io.Reader, matchGen int64) (
 
 		if currentGen != matchGen && matchGen > 0 {
 			log.Warnf("wrong gen, has %d but is %d", matchGen, currentGen)
-			return currentGen, storage.ErrorWrongGeneration
+			return currentGen, ErrorWrongGeneration
 		}
 
 		var buf bytes.Buffer

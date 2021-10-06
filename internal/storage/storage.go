@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"errors"
 	"io"
 	"time"
 
@@ -16,12 +15,6 @@ const (
 	ExportWithAnnotations ExportOption = iota
 	ExportOnlyAnnotations
 )
-
-// ErrorNotFound not found
-var ErrorNotFound = errors.New("not found")
-
-// ErrorWrongGeneration the geration did not match
-var ErrorWrongGeneration = errors.New("wrong generation")
 
 // DocumentStorer stores documents
 type DocumentStorer interface {

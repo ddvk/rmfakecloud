@@ -17,8 +17,8 @@ const (
 )
 
 // NewStorage new file system storage
-func NewStorage(cfg *config.Config) *Storage {
-	fs := &Storage{
+func NewStorage(cfg *config.Config) *FileSystemStorage {
+	fs := &FileSystemStorage{
 		Cfg: cfg,
 	}
 
@@ -32,7 +32,7 @@ func NewStorage(cfg *config.Config) *Storage {
 }
 
 // GetUser retrieves a user from the storage
-func (fs *Storage) GetUser(uid string) (user *model.User, err error) {
+func (fs *FileSystemStorage) GetUser(uid string) (user *model.User, err error) {
 	if uid == "" {
 		err = errors.New("empty user")
 		return
@@ -65,7 +65,7 @@ func (fs *Storage) GetUser(uid string) (user *model.User, err error) {
 }
 
 // GetUsers gets all users
-func (fs *Storage) GetUsers() (users []*model.User, err error) {
+func (fs *FileSystemStorage) GetUsers() (users []*model.User, err error) {
 	usersDir := fs.getUserPath("")
 
 	entries, err := ioutil.ReadDir(usersDir)
@@ -83,7 +83,7 @@ func (fs *Storage) GetUsers() (users []*model.User, err error) {
 }
 
 // RegisterUser blah
-func (fs *Storage) RegisterUser(u *model.User) (err error) {
+func (fs *FileSystemStorage) RegisterUser(u *model.User) (err error) {
 	if u.ID == "" {
 		err = errors.New("empty id")
 		return
@@ -119,7 +119,7 @@ func (fs *Storage) RegisterUser(u *model.User) (err error) {
 }
 
 // UpdateUser updates the user
-func (fs *Storage) UpdateUser(u *model.User) (err error) {
+func (fs *FileSystemStorage) UpdateUser(u *model.User) (err error) {
 	if u.ID == "" {
 		err = errors.New("empty id")
 		return

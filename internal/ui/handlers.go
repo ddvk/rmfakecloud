@@ -122,7 +122,7 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 	}
 	expiresAfter := 24 * time.Hour
 	expires := time.Now().Add(expiresAfter).Unix()
-	claims := &common.WebUserClaims{
+	claims := &WebUserClaims{
 		UserID:    user.ID,
 		BrowserID: uuid.NewString(),
 		Email:     user.Email,
@@ -130,7 +130,7 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expires,
 			Issuer:    "rmFake WEB",
-			Audience:  common.WebUsage,
+			Audience:  WebUsage,
 		},
 	}
 	if user.IsAdmin {
@@ -246,7 +246,7 @@ func (app *ReactAppWrapper) listDocuments(c *gin.Context) {
 }
 func (app *ReactAppWrapper) getDocument(c *gin.Context) {
 	uid := c.GetString(userIDContextKey)
-	docid := c.Param(docIDParam)
+	docid := common.ParamS(docIDParam, c)
 	log.Info("exporting ", docid)
 	backend := getBackend(c)
 	reader, err := backend.Export(uid, docid, "pdf", 0)

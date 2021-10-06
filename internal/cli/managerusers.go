@@ -71,12 +71,12 @@ func (cli *Cli) SetUser(args []string) {
 
 // Cli cli interface
 type Cli struct {
-	storage *fs.Storage
+	storage *fs.FileSystemStorage
 }
 
 // New creates
 func New(cfg *config.Config) *Cli {
-	storage := &fs.Storage{
+	storage := &fs.FileSystemStorage{
 		Cfg: cfg,
 	}
 	return &Cli{

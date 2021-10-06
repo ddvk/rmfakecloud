@@ -25,12 +25,12 @@ const (
 	handlerLog           = "[handler] "
 )
 
-func (app *App) getDeviceClaims(c *gin.Context) (*common.DeviceClaims, error) {
+func (app *App) getDeviceClaims(c *gin.Context) (*DeviceClaims, error) {
 	token, err := common.GetToken(c)
 	if err != nil {
 		return nil, err
 	}
-	claims := &common.DeviceClaims{}
+	claims := &DeviceClaims{}
 	err = common.ClaimsFromToken(claims, token, app.cfg.JWTSecretKey)
 	if err != nil {
 		return nil, err
@@ -41,13 +41,13 @@ func (app *App) getDeviceClaims(c *gin.Context) (*common.DeviceClaims, error) {
 	return claims, nil
 }
 
-func (app *App) getUserClaims(c *gin.Context) (*common.UserClaims, error) {
+func (app *App) getUserClaims(c *gin.Context) (*UserClaims, error) {
 	token, err := common.GetToken(c)
 	// log.Debug(handlerLog, "Token: ", token)
 	if err != nil {
 		return nil, err
 	}
-	claims := &common.UserClaims{}
+	claims := &UserClaims{}
 	err = common.ClaimsFromToken(claims, token, app.cfg.JWTSecretKey)
 	if err != nil {
 		return nil, err
@@ -77,12 +77,12 @@ func (app *App) newDevice(c *gin.Context) {
 	log.Info("Request: ", tokenRequest, "Token for:", uid)
 
 	// generate the JWT token
-	claims := &common.DeviceClaims{
+	claims := &DeviceClaims{
 		DeviceDesc: tokenRequest.DeviceDesc,
 		DeviceID:   tokenRequest.DeviceID,
 		UserID:     uid,
 		StandardClaims: jwt.StandardClaims{
-			Audience: common.APIUsage,
+			Audience: APIUsage,
 		},
 	}
 
@@ -140,8 +140,8 @@ func (app *App) newUserToken(c *gin.Context) {
 	log.Info("setting scopes: ", scopesStr)
 	now := time.Now()
 	expirationTime := now.Add(24 * time.Hour)
-	claims := &common.UserClaims{
-		Profile: common.Auth0profile{
+	claims := &UserClaims{
+		Profile: Auth0profile{
 			UserID:        deviceToken.UserID,
 			IsSocial:      false,
 			Connection:    "Username-Password-Authentication",
@@ -163,7 +163,7 @@ func (app *App) newUserToken(c *gin.Context) {
 			Subject:   "rM User Token",
 			Issuer:    "rM WebApp",
 			Id:        user.Email,
-			Audience:  common.APIUsage,
+			Audience:  APIUsage,
 		},
 	}
 
@@ -225,7 +225,7 @@ func (app *App) listDocuments(c *gin.Context) {
 
 	uid := c.GetString(userIDKey)
 	withBlob, _ := strconv.ParseBool(c.Query("withBlob"))
-	docID := c.Query("doc")
+	docID := common.QueryS("doc", c)
 	log.Debug(handlerLog, "params: withBlob: ", withBlob, ", DocId: ", docID)
 	result := []*messages.RawMetadata{}
 

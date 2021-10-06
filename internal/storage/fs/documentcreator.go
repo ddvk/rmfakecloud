@@ -60,7 +60,7 @@ func extractID(r io.Reader) (string, error) {
 }
 
 // CreateDocument creates a new document
-func (fs *Storage) CreateDocument(uid, filename, parent string, stream io.Reader) (doc *storage.Document, err error) {
+func (fs *FileSystemStorage) CreateDocument(uid, filename, parent string, stream io.Reader) (doc *storage.Document, err error) {
 	ext := path.Ext(filename)
 	switch ext {
 	case ".pdf":

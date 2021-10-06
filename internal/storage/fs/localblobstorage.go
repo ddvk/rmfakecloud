@@ -4,20 +4,18 @@ import (
 	"io"
 	"io/ioutil"
 	"strings"
-
-	"github.com/ddvk/rmfakecloud/internal/storage"
 )
 
 // LocalBlobStorage local file system storage
 type LocalBlobStorage struct {
-	fs  *Storage
+	fs  *FileSystemStorage
 	uid string
 }
 
 // GetRootIndex the hash of the root index
 func (p *LocalBlobStorage) GetRootIndex() (string, int64, error) {
 	r, gen, err := p.fs.LoadBlob(p.uid, rootFile)
-	if err == storage.ErrorNotFound {
+	if err == ErrorNotFound {
 		return "", 0, nil
 	}
 	if err != nil {
