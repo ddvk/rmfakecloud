@@ -121,7 +121,7 @@ func (app *App) downloadDocument(c *gin.Context) {
 	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
 }
 
-var nameSeparators = regexp.MustCompile(`[./\]`)
+var nameSeparators = regexp.MustCompile(`[./\\]`)
 
 func sanitized(param string, c *gin.Context) string {
 	p := c.Query(param)
