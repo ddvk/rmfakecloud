@@ -25,7 +25,6 @@ func (cli *Cli) ListUsers(args []string) {
 
 		}
 	}
-	return
 }
 
 // SetUser updates or creates the users if not exists
@@ -34,6 +33,7 @@ func (cli *Cli) SetUser(args []string) {
 	username := userParam.String("u", "", "username")
 	pass := userParam.String("p", "", "password")
 	admin := userParam.Bool("a", false, "isadmmin")
+	sync15 := userParam.Bool("s", false, "should the user use the new sync")
 
 	userParam.Parse(args)
 	if *username == "" {
@@ -60,6 +60,8 @@ func (cli *Cli) SetUser(args []string) {
 		usr.SetPassword(*pass)
 	}
 	usr.IsAdmin = *admin
+	usr.Sync15 = *sync15
+
 	err = cli.storage.UpdateUser(usr)
 	if err != nil {
 		log.Fatal(err)
@@ -69,12 +71,12 @@ func (cli *Cli) SetUser(args []string) {
 
 // Cli cli interface
 type Cli struct {
-	storage *fs.Storage
+	storage *fs.FileSystemStorage
 }
 
 // New creates
 func New(cfg *config.Config) *Cli {
-	storage := &fs.Storage{
+	storage := &fs.FileSystemStorage{
 		Cfg: cfg,
 	}
 	return &Cli{

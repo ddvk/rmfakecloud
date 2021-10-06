@@ -106,7 +106,6 @@ const TreeExample = (props) => {
         })
 
     useEffect(() => {
-        console.log('props' + props.counter)
         loadDocs()
     },[props.counter])
 
@@ -129,7 +128,8 @@ const TreeExample = (props) => {
          console.log(node.id)
         if (node.children) {
             node.toggled = toggled;
-            setDownloadUrl(null)
+            setDownloadUrl(null);
+            props.onFolderChanged(node.id);
         } else {
             //TODO: another quick poc hack
             setDownloadUrl({id:node.id, name:node.name})

@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useAuthState, useAuthDispatch } from "./useAuthContext";
-// import { logout } from "../components/Login/actions";
 import constants from "../common/constants"
 
 
@@ -27,7 +26,6 @@ const useFetch = (url, options) => {
         } else if (response.status === 401) {
           //logout(dispatch);
           // //TODO: fix this hack
-          localStorage.removeItem("token");
           localStorage.removeItem("currentUser");
           window.location.replace("/")
         } else {

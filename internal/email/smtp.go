@@ -22,7 +22,8 @@ const (
 	delimeter     = "**=myohmy689407924327898338383"
 )
 
-type SmtpConfig struct {
+// SMTPConfig smtp configuration
+type SMTPConfig struct {
 	Server       string
 	Username     string
 	Password     string
@@ -72,6 +73,7 @@ func (b *Builder) AddFile(name string, data io.Reader, contentType string) {
 	b.attachments = append(b.attachments, attachment)
 }
 
+// WriteAttachments streams the attachments
 func (b *Builder) WriteAttachments(w io.Writer) (err error) {
 	for _, attachment := range b.attachments {
 		log.Debugln("File attachment: ", attachment.filename)
@@ -106,7 +108,7 @@ func utf8encode(s string) string {
 }
 
 // Send sends the email
-func (b *Builder) Send(cfg *SmtpConfig) (err error) {
+func (b *Builder) Send(cfg *SMTPConfig) (err error) {
 	if cfg == nil {
 		return fmt.Errorf("no smtp config")
 	}

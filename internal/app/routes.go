@@ -1,7 +1,6 @@
 package app
 
 import (
-	"encoding/hex"
 	"io/ioutil"
 	"net/http"
 	"runtime"
@@ -38,11 +37,7 @@ func (app *App) registerRoutes(router *gin.Engine) {
 
 	//some beta stuff from internal.cloud
 	router.GET("/settings/v1/beta", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"enrolled": false, "updated_at": "2021-09-18T18:01:30.36233Z", "channel":"External_Beta-3f1caf0e-7961-4ed1-a321-ef04bd973aa6"})
-	})
-
-	router.GET("/integrations/v1", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"integraionts": []string{} })
+		c.JSON(http.StatusOK, gin.H{"enrolled": false, "available": true})
 	})
 
 	router.POST("/settings/v1/beta", func(c *gin.Context) {
@@ -53,14 +48,14 @@ func (app *App) registerRoutes(router *gin.Engine) {
 
 	//some telemetry stuff from ping.
 	router.POST("/v1/reports", func(c *gin.Context) {
-		body, err := ioutil.ReadAll(c.Request.Body)
+		_, err := ioutil.ReadAll(c.Request.Body)
 
 		if err != nil {
 			log.Warn("cant parse telemetry, ignored")
 			c.Status(http.StatusOK)
 			return
 		}
-		log.Info(hex.Dump(body))
+		// log.Info(hex.Dump(body))
 		c.Status(http.StatusOK)
 	})
 
@@ -69,7 +64,7 @@ func (app *App) registerRoutes(router *gin.Engine) {
 	authRoutes.Use(app.authMiddleware())
 	{
 
-		// doucment notifications
+		// document notifications
 		authRoutes.GET("/notifications/ws/json/1", app.connectWebSocket)
 
 		authRoutes.PUT("/document-storage/json/2/upload/request", app.uploadRequest)
@@ -92,5 +87,11 @@ func (app *App) registerRoutes(router *gin.Engine) {
 			log.Info("authid: ", authid)
 			c.AbortWithStatus(http.StatusNoContent)
 		})
+
+		// sync15
+		authRoutes.POST("/api/v1/integrations", app.integrations)
+		authRoutes.POST("/api/v1/signed-urls/downloads", app.blobStorageDownload)
+		authRoutes.POST("/api/v1/signed-urls/uploads", app.blobStorageUpload)
+		authRoutes.POST("/api/v1/sync-complete", app.syncComplete)
 	}
 }

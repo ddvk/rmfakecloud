@@ -34,10 +34,11 @@ const rejectStyle = {
 export default function StyledDropzone(props) {
   const [uploading, setUploading] = useState(false);
   const [lasterror, setLastError] = useState();
+  const uploadFolder = props.uploadFolder;
   var onDrop = async (acceptedFiles) => {
     try {
       setUploading(true);
-      await apiservice.upload(acceptedFiles)
+      await apiservice.upload(uploadFolder, acceptedFiles)
       setLastError(null)
       props.filesUploaded()
     } catch (e) {

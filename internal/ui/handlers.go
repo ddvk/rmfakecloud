@@ -5,18 +5,23 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/ddvk/rmfakecloud/internal/app/hub"
 	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/model"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 )
 
 const (
-	userID   = "userID"
-	uiLogger = "[ui] "
+	userIDContextKey    = "userID"
+	browserIDContextKey = "browserID"
+	isSync15Key         = "sync15"
+	docIDParam          = "docid"
+	uiLogger            = "[ui] "
+	useridParam         = "userid"
+	cookieName          = ".Authrmfakecloud"
 )
 
 func (app *ReactAppWrapper) register(c *gin.Context) {
@@ -46,7 +51,7 @@ func (app *ReactAppWrapper) register(c *gin.Context) {
 	// Check this user doesn't already exist
 	_, err := app.userStorer.GetUser(form.Email)
 	if err == nil {
-		badReq(c, "alread taken")
+		badReq(c, "already taken")
 		return
 	}
 
@@ -111,13 +116,21 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 		return
 	}
 
-	claims := &common.WebUserClaims{
-		UserID: user.ID,
-		Email:  user.Email,
+	scopes := ""
+	if user.Sync15 {
+		scopes = isSync15Key
+	}
+	expiresAfter := 24 * time.Hour
+	expires := time.Now().Add(expiresAfter).Unix()
+	claims := &WebUserClaims{
+		UserID:    user.ID,
+		BrowserID: uuid.NewString(),
+		Email:     user.Email,
+		Scopes:    scopes,
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(12 * time.Hour).Unix(),
+			ExpiresAt: expires,
 			Issuer:    "rmFake WEB",
-			Audience:  common.WebUsage,
+			Audience:  WebUsage,
 		},
 	}
 	if user.IsAdmin {
@@ -133,7 +146,10 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	//c.SetCookie(".AuthCookie", tokenString, 1, "/", "rmfakecloud", true, true)
+	httpOnly := true
+	secure := app.cfg.IsHTTPS()
+	log.Debug("cookie expires after: ", expiresAfter)
+	c.SetCookie(cookieName, tokenString, int(expiresAfter.Seconds()), "/", "", secure, httpOnly)
 
 	c.String(http.StatusOK, tokenString)
 }
@@ -156,7 +172,7 @@ func (app *ReactAppWrapper) resetPassword(c *gin.Context) {
 		return
 	}
 
-	uid := c.GetString(userID)
+	uid := c.GetString(userIDContextKey)
 
 	if user.ID != uid {
 		log.Error("Trying to change password for a different user.")
@@ -187,7 +203,7 @@ func (app *ReactAppWrapper) resetPassword(c *gin.Context) {
 }
 
 func (app *ReactAppWrapper) newCode(c *gin.Context) {
-	uid := c.GetString(userID)
+	uid := c.GetString(userIDContextKey)
 
 	user, err := app.userStorer.GetUser(uid)
 	if err != nil {
@@ -205,24 +221,35 @@ func (app *ReactAppWrapper) newCode(c *gin.Context) {
 
 	c.JSON(http.StatusOK, code)
 }
+
+func getBackend(c *gin.Context) backend {
+	blah, ok := c.Get("backend")
+	if !ok {
+		panic("not there")
+	}
+	return blah.(backend)
+
+}
 func (app *ReactAppWrapper) listDocuments(c *gin.Context) {
-	uid := c.GetString(userID)
-	documents, err := app.documentHandler.GetAllMetadata(uid)
+	uid := c.GetString(userIDContextKey)
+
+	var tree *viewmodel.DocumentTree
+
+	backend := getBackend(c)
+	tree, err := backend.GetDocumentTree(uid)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-
-	tree := viewmodel.NewTree(documents)
-
 	c.JSON(http.StatusOK, tree)
 }
 func (app *ReactAppWrapper) getDocument(c *gin.Context) {
-	uid := c.GetString(userID)
-	docid := c.Param("docid")
+	uid := c.GetString(userIDContextKey)
+	docid := common.ParamS(docIDParam, c)
 	log.Info("exporting ", docid)
-	reader, err := app.documentHandler.ExportDocument(uid, docid, "pdf", 0)
+	backend := getBackend(c)
+	reader, err := backend.Export(uid, docid, "pdf", 0)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -233,11 +260,8 @@ func (app *ReactAppWrapper) getDocument(c *gin.Context) {
 	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
 }
 
-type UpdateDoc struct {
-}
-
 func (app *ReactAppWrapper) updateDocument(c *gin.Context) {
-	upd := UpdateDoc{}
+	upd := viewmodel.UpdateDoc{}
 	if err := c.ShouldBindJSON(&upd); err != nil {
 		log.Error(err)
 		badReq(c, err.Error())
@@ -255,8 +279,11 @@ func (app *ReactAppWrapper) deleteDocument(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 func (app *ReactAppWrapper) createDocument(c *gin.Context) {
-	uid := c.GetString(userID)
+	uid := c.GetString(userIDContextKey)
+	_ = c.GetBool(isSync15Key)
 	log.Info("uploading documents from: ", uid)
+
+	backend := getBackend(c)
 
 	form, err := c.MultipartForm()
 	if err != nil {
@@ -264,6 +291,11 @@ func (app *ReactAppWrapper) createDocument(c *gin.Context) {
 		badReq(c, "not multiform")
 		return
 	}
+	parentID := ""
+	if parent, ok := form.Value["parent"]; ok {
+		parentID = parent[0]
+	}
+	log.Info("Parent: " + parentID)
 
 	for _, file := range form.File["file"] {
 		f, err := file.Open()
@@ -277,15 +309,14 @@ func (app *ReactAppWrapper) createDocument(c *gin.Context) {
 		//do the stuff
 		log.Info(uiLogger, fmt.Sprintf("Uploading %s , size: %d", file.Filename, file.Size))
 
-		doc, err := app.documentHandler.CreateDocument(uid, file.Filename, f)
+		_, err = backend.CreateDocument(uid, file.Filename, parentID, f)
 		if err != nil {
 			log.Error(err)
 			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
-		log.Info(uiLogger, "Uploaded document id", doc.ID)
-		app.h.Notify(uid, "web", doc, hub.DocAddedEvent)
 	}
+	backend.Sync(uid)
 	c.Status(http.StatusOK)
 }
 
@@ -312,7 +343,7 @@ func (app *ReactAppWrapper) getAppUsers(c *gin.Context) {
 }
 
 func (app *ReactAppWrapper) getUser(c *gin.Context) {
-	uid := c.Param("userid")
+	uid := c.Param(useridParam)
 	log.Info("Requested: ", uid)
 
 	// Try to find the user
@@ -329,4 +360,8 @@ func (app *ReactAppWrapper) getUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, user)
+}
+
+func (app *ReactAppWrapper) updateUser(c *gin.Context) {
+	c.Status(http.StatusCreated)
 }

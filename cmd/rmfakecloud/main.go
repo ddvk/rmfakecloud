@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -11,7 +12,8 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/cli"
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
+	"github.com/rifflock/lfshook"
+	"github.com/sirupsen/logrus"
 )
 
 var version string
@@ -41,15 +43,26 @@ Commands:
 	fmt.Fprintln(os.Stderr, "run with -h for all available env variables")
 	cfg.Verify()
 
-	logger := log.StandardLogger()
-	logger.SetFormatter(&log.TextFormatter{})
+	logger := logrus.StandardLogger()
+	logger.SetFormatter(&logrus.TextFormatter{})
 
-	if lvl, err := log.ParseLevel(os.Getenv(config.EnvLogLevel)); err == nil {
+	if cfg.LogFile != "" {
+		var file, err = os.OpenFile(cfg.LogFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "cannot open log file '%s' for writing\n", cfg.LogFile)
+		} else {
+			defer file.Close()
+			hook := lfshook.NewHook(file, &logrus.TextFormatter{DisableColors: true})
+			logger.Hooks.Add(hook)
+		}
+	}
+
+	if lvl, err := logrus.ParseLevel(os.Getenv(config.EnvLogLevel)); err == nil {
 		fmt.Println("Log level:", lvl)
 		logger.SetLevel(lvl)
 	}
 
-	log.Println("Version: ", version)
+	logrus.Println("Version: ", version)
 	// configs
 	log.Println("Documents will be saved in:", cfg.DataDir)
 	log.Println("Url the device should use:", cfg.StorageURL)

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ddvk/rmfakecloud/internal/messages"
+	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -27,9 +28,7 @@ type DocumentTree struct {
 	Trash   []Entry
 }
 
-const CollectionType = "CollectionType"
-
-func makeFolder(d *messages.RawDocument) (entry *Directory) {
+func makeFolder(d *messages.RawMetadata) (entry *Directory) {
 	entry = &Directory{
 		ID:   d.ID,
 		Name: d.VissibleName,
@@ -38,7 +37,7 @@ func makeFolder(d *messages.RawDocument) (entry *Directory) {
 	}
 	return
 }
-func makeDocument(d *messages.RawDocument) (entry Entry) {
+func makeDocument(d *messages.RawMetadata) (entry Entry) {
 	entry = &Document{
 		ID:   d.ID,
 		Name: d.VissibleName,
@@ -48,9 +47,26 @@ func makeDocument(d *messages.RawDocument) (entry Entry) {
 	return
 }
 
-const trashId = "trash"
+const trashID = "trash"
 
-func NewTree(documents []*messages.RawDocument) *DocumentTree {
+// DocTreeFromHashTree from hash tree
+func DocTreeFromHashTree(tree *models.HashTree) *DocumentTree {
+	docs := make([]*messages.RawMetadata, 0)
+	for _, d := range tree.Docs {
+		docs = append(docs, &messages.RawMetadata{
+			ID:           d.EntryName,
+			Parent:       d.MetadataFile.Parent,
+			VissibleName: d.MetadataFile.DocumentName,
+			Type:         d.MetadataFile.CollectionType,
+		})
+
+	}
+
+	return DocTreeFromRawMetadata(docs)
+}
+
+// DocTreeFromRawMetadata from raw metadata
+func DocTreeFromRawMetadata(documents []*messages.RawMetadata) *DocumentTree {
 	childParent := make(map[string]string)
 	folders := make(map[string]*Directory)
 	rootEntries := make([]Entry, 0)
@@ -59,7 +75,7 @@ func NewTree(documents []*messages.RawDocument) *DocumentTree {
 	sort.Slice(documents, func(i, j int) bool {
 		a, b := documents[i], documents[j]
 		if a.Type != b.Type {
-			return a.Type == CollectionType
+			return a.Type == models.CollectionType
 		}
 
 		return a.VissibleName < b.VissibleName
@@ -68,7 +84,7 @@ func NewTree(documents []*messages.RawDocument) *DocumentTree {
 	// add all folders
 	for _, d := range documents {
 		switch d.Type {
-		case CollectionType:
+		case models.CollectionType:
 			folders[d.ID] = makeFolder(d)
 		}
 	}
@@ -83,20 +99,20 @@ func NewTree(documents []*messages.RawDocument) *DocumentTree {
 			entry = makeDocument(d)
 		}
 
-		parentId := d.Parent
+		parent := d.Parent
 
-		if parentId == trashId {
+		if parent == trashID {
 			trashEntries = append(trashEntries, entry)
 			continue
 		}
 
-		if parentId == "" {
+		if parent == "" {
 			// empty parent = root
 			rootEntries = append(rootEntries, entry)
 			continue
 		}
 
-		if parent, ok := folders[parentId]; ok {
+		if parent, ok := folders[parent]; ok {
 
 			//check for  loops and cross adds (a->b->c  c->a)
 			// if parentId, ok := childParent[parentId]; ok {
@@ -114,7 +130,7 @@ func NewTree(documents []*messages.RawDocument) *DocumentTree {
 			continue
 		}
 
-		log.Warn("parent not found: ", parentId)
+		log.Warn(d.VissibleName, " parent not found: ", parent)
 		rootEntries = append(rootEntries, entry)
 	}
 
@@ -158,4 +174,8 @@ type User struct {
 	Email     string `json:"email"`
 	Name      string `json:"name"`
 	CreatedAt time.Time
+}
+
+// UpdateDoc with somethin
+type UpdateDoc struct {
 }

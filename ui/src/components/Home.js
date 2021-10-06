@@ -13,7 +13,7 @@ const Home = () => {
         <p>
           <ul>
           <li>token is expiration is not checked, so you'll be logged out when that happens</li>
-          <li>you can you rmapi (https://github.com/juruen/rmapi) for managing files</li>
+          <li>you can use rmapi (https://github.com/juruen/rmapi) for managing files</li>
           </ul>
           </p>
     </div>

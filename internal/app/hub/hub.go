@@ -12,8 +12,12 @@ import (
 )
 
 const (
-	DocAddedEvent   = "DocAdded"
+	//DocAddedEvent addded
+	DocAddedEvent = "DocAdded"
+	//DocDeletedEvent deleted
 	DocDeletedEvent = "DocDeleted"
+	//SyncCompleted somplete
+	SyncCompleted = "SyncComplete"
 )
 
 type ntf struct {
@@ -31,8 +35,41 @@ type Hub struct {
 	notifications chan ntf
 }
 
+// NotifySync sends a message to all connected clients 1.5
+func (h *Hub) NotifySync(uid, deviceID string) string {
+	log.Info("notify sync from: ", deviceID)
+	timestamp := time.Now().UnixNano()
+	msgid := strconv.Itoa(int(timestamp))
+	msg := messages.WsMessage{
+		Message: messages.NotificationMessage{
+			MessageID3: msgid,
+			Attributes: messages.Attributes{
+				Auth0UserID:    uid,
+				Event:          SyncCompleted,
+				SourceDeviceID: deviceID,
+			},
+		},
+	}
+
+	h.notifications <- ntf{
+		uid:  uid,
+		from: deviceID,
+		msg:  &msg,
+	}
+	return msgid
+}
+
+// DocumentNotification notification of something
+type DocumentNotification struct {
+	ID      string
+	Type    string
+	Version int
+	Parent  string
+	Name    string
+}
+
 // Notify sends a message to all connected clients
-func (h *Hub) Notify(uid, deviceID string, doc *messages.RawDocument, eventType string) {
+func (h *Hub) Notify(uid, deviceID string, doc DocumentNotification, eventType string) {
 	timeStamp := time.Now().UTC().Format(time.RFC3339Nano)
 	messageID := uuid.New().String()
 
@@ -40,22 +77,23 @@ func (h *Hub) Notify(uid, deviceID string, doc *messages.RawDocument, eventType 
 		Message: messages.NotificationMessage{
 			MessageID:  messageID,
 			MessageID2: messageID,
+			MessageID3: messageID,
 			Attributes: messages.Attributes{
 				Auth0UserID:      uid,
 				Event:            eventType,
-				ID:               doc.ID,
-				Type:             doc.Type,
-				Version:          strconv.Itoa(doc.Version),
-				VissibleName:     doc.VissibleName,
 				SourceDeviceDesc: "some-client",
 				SourceDeviceID:   deviceID,
-				Parent:           doc.Parent,
 			},
 			PublishTime:  timeStamp,
 			PublishTime2: timeStamp,
 		},
 		Subscription: "dummy-subscription",
 	}
+	msg.Message.Attributes.ID = doc.ID
+	msg.Message.Attributes.Type = doc.Type
+	msg.Message.Attributes.Version = strconv.Itoa(doc.Version)
+	msg.Message.Attributes.VissibleName = doc.Name
+	msg.Message.Attributes.Parent = doc.Parent
 
 	h.notifications <- ntf{
 		uid:  uid,
@@ -66,12 +104,13 @@ func (h *Hub) Notify(uid, deviceID string, doc *messages.RawDocument, eventType 
 func (h *Hub) send(n ntf) {
 	uid := n.uid
 	msg := n.msg
-	log.Info("Broadcast notification, for all devices of  uid:", uid)
+	log.Info("Broadcast notification, for all devices of  uid:", uid, " id ", n.msg.Message.MessageID3)
 
 	if clients, ok := h.userClients[uid]; ok {
 		for c := range clients {
 			if c.deviceID == n.from {
-				log.Warn("sending to same device: ", c.deviceID)
+				continue
+				// log.Warn("sending to same device: ", c.deviceID)
 			}
 			select {
 			case c.notifications <- msg:
@@ -120,7 +159,7 @@ func (h *Hub) start() {
 	for {
 		select {
 		case c := <-h.additions:
-			log.Info("hub: adding a client")
+			log.Debugln("hub: adding a client")
 			h.allClients[c] = true
 			clients, ok := h.userClients[c.uid]
 			if !ok {
@@ -163,25 +202,25 @@ func (c *wsClient) readMessages(done chan<- struct{}, ws *websocket.Conn) {
 		log.Debugln("Message: ", string(p))
 	}
 }
-func (client *wsClient) writeMessages(done chan<- struct{}, ws *websocket.Conn) {
+func (c *wsClient) writeMessages(done chan<- struct{}, ws *websocket.Conn) {
 	defer ws.Close()
 
 outer:
 	for {
 		select {
-		case m, ok := <-client.notifications:
+		case m, ok := <-c.notifications:
 			if !ok {
 				break outer
 			}
-			log.Debugln("sending notification to:", client.deviceID)
+			log.Debugln("sending notification to:", c.deviceID)
 			ws.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			err := ws.WriteJSON(m)
 			if err != nil {
 				log.Warn("Cant write to ws ", err)
 				break outer
 			}
-			log.Debugln("notification sent: ", client.deviceID)
-		case <-client.done:
+			log.Debugln("notification sent: ", c.deviceID)
+		case <-c.done:
 			break outer
 		}
 	}
