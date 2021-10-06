@@ -32,7 +32,7 @@ INFO[0387] [GIN] 2020/11/17 - 13:39:41 | 400 |      201.78µs |       127.0.0.1 
 
 So, I tried with an nginx reverse proxy with the following config:
 
-```
+```nginx
 server {
     # increase max request size (for large PDFs)
     client_max_body_size 200M;
@@ -53,16 +53,12 @@ server {
       proxy_http_version 1.1;
       proxy_set_header Upgrade $http_upgrade;
       proxy_set_header Connection "upgrade";
+
+      proxy_read_timeout 1d;
+      proxy_send_timeout 1d;
     }
   }
-
-  upstream ws-backend {
-    # enable sticky session based on IP
-    ip_hash;
-
-    server localhost:3000;
 }
-
 ```
 
 That seems to work well.
