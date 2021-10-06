@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -120,11 +121,17 @@ func (app *App) downloadDocument(c *gin.Context) {
 	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
 }
 
+var nameSeparators = regexp.MustCompile(`[./\]`)
+
+func sanitized(param string, c *gin.Context) string {
+	p := c.Query(param)
+	return nameSeparators.ReplaceAllString(p, "")
+}
 func (app *App) downloadBlob(c *gin.Context) {
-	uid := c.Query(ParamUID)
-	blobID := c.Query(ParamBlobID)
-	exp := c.Query(ParamExp)
-	signature := c.Query(ParamSignature)
+	uid := sanitized(ParamUID, c)
+	blobID := sanitized(ParamBlobID, c)
+	exp := sanitized(ParamExp, c)
+	signature := sanitized(ParamSignature, c)
 
 	err := VerifySignature([]string{uid, blobID, exp}, exp, signature, app.cfg.JWTSecretKey)
 	if err != nil {
@@ -157,10 +164,10 @@ func (app *App) downloadBlob(c *gin.Context) {
 }
 
 func (app *App) uploadBlob(c *gin.Context) {
-	uid := c.Query(ParamUID)
-	blobID := c.Query(ParamBlobID)
-	exp := c.Query(ParamExp)
-	signature := c.Query(ParamSignature)
+	uid := sanitized(ParamUID, c)
+	blobID := sanitized(ParamBlobID, c)
+	exp := sanitized(ParamExp, c)
+	signature := sanitized(ParamSignature, c)
 
 	err := VerifySignature([]string{uid, blobID, exp}, exp, signature, app.cfg.JWTSecretKey)
 	if err != nil {
