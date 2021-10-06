@@ -91,7 +91,7 @@ func (fs *FileSystemStorage) ExportDocument(uid, id, outputType string, exportOp
 	}
 
 	if arch.Payload != nil {
-		arch.PayloadReader = exporter.NewSeekClose(arch.Payload)
+		arch.PayloadReader = exporter.NewSeekCloser(arch.Payload)
 	}
 
 	outputFile, err := os.Create(outputFilePath)

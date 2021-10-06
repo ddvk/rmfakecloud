@@ -51,11 +51,12 @@ type SeekCloser struct {
 	*bytes.Reader
 }
 
+// Close closes
 func (*SeekCloser) Close() error {
 	return nil
 }
 
-func NewSeekClose(b []byte) io.ReadSeekCloser {
+func NewSeekCloser(b []byte) io.ReadSeekCloser {
 
 	r := &SeekCloser{
 		Reader: bytes.NewReader(b),

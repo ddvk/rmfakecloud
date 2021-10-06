@@ -94,6 +94,7 @@ func (t *HashTree) Add(d *HashDoc) error {
 	return t.Rehash()
 }
 
+// IndexReader reader of the document index
 func (d *HashDoc) IndexReader() (io.ReadCloser, error) {
 	if len(d.Files) == 0 {
 		return nil, errors.New("no files")

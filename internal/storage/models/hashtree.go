@@ -60,6 +60,8 @@ func FileHashAndSize(file string) ([]byte, int64, error) {
 	size, err := f.Seek(0, io.SeekEnd)
 	return h, size, err
 }
+
+// LoadTree loads
 func LoadTree(cacheFile string) (*HashTree, error) {
 	tree := HashTree{}
 	if _, err := os.Stat(cacheFile); err == nil {
@@ -78,6 +80,7 @@ func LoadTree(cacheFile string) (*HashTree, error) {
 	return &tree, nil
 }
 
+// Save saves
 func (t *HashTree) Save(cacheFile string) error {
 	log.Println("Writing cache: ", cacheFile)
 	b, err := json.MarshalIndent(t, "", "")
