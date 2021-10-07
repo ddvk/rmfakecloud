@@ -1,17 +1,10 @@
-package common
+package app
 
 import (
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 )
-
-// StorageClaim used for file retrieval
-type StorageClaim struct {
-	DocumentID string `json:"documentId"`
-	UserID     string `json:"userId"`
-	jwt.StandardClaims
-}
 
 // DeviceClaims device
 type DeviceClaims struct {
@@ -48,20 +41,7 @@ type Auth0profile struct {
 	UpdatedAt     time.Time
 }
 
-// WebUserClaims the claims
-type WebUserClaims struct {
-	UserID string `json:"UserID"`
-	Email  string
-	Scopes string `json:"scopes,omitempty"`
-	Roles  []string
-	jwt.StandardClaims
-}
-
 const (
-	// WebUsage used for the uid
-	WebUsage = "web"
-	// StorageUsage for file retrieval
-	StorageUsage = "storage"
-	// APIUSage for the device api
-	APIUSage = "api"
+	// APIUsage for the device api
+	APIUsage = "api"
 )

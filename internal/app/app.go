@@ -9,7 +9,6 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ddvk/rmfakecloud/internal/app/hub"
-	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/storage/fs"
@@ -31,8 +30,9 @@ type App struct {
 	docStorer     storage.DocumentStorer
 	userStorer    storage.UserStorer
 	metaStorer    storage.MetadataStorer
+	blobStorer    storage.BlobStorage
 	hub           *hub.Hub
-	codeConnector common.CodeConnector
+	codeConnector CodeConnector
 }
 
 // Start starts the app
@@ -92,7 +92,7 @@ func NewApp(cfg *config.Config) App {
 		//TODO: not thread safe
 		cfg.CreateFirstUser = true
 	}
-	h := hub.NewHub()
+	ntfHub := hub.NewHub()
 	codeConnector := NewCodeConnector()
 	router := gin.Default()
 
@@ -120,14 +120,17 @@ func NewApp(cfg *config.Config) App {
 		docStorer:     fsStorage,
 		userStorer:    fsStorage,
 		metaStorer:    fsStorage,
-		hub:           h,
+		blobStorer:    fsStorage,
+		hub:           ntfHub,
 		codeConnector: codeConnector,
 	}
-	reactApp := ui.New(cfg, fsStorage, codeConnector, h, fsStorage)
+	uiApp := ui.New(cfg, fsStorage, codeConnector, ntfHub, fsStorage, fsStorage)
+
+	storageapp := fs.NewApp(cfg, fsStorage)
 
 	app.registerRoutes(router)
-	fsStorage.RegisterRoutes(router)
-	reactApp.RegisterRoutes(router)
+	storageapp.RegisterRoutes(router)
+	uiApp.RegisterRoutes(router)
 	return app
 }
 

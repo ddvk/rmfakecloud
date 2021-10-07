@@ -2,10 +2,11 @@ package common
 
 import (
 	"errors"
+	"regexp"
 	"strings"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt"
 )
 
 // GetToken gets the token from the headers
@@ -41,11 +42,20 @@ func SignClaims(claims jwt.Claims, key []byte) (string, error) {
 	return jwtToken.SignedString(key)
 }
 
-// CodeConnector matches a code to users
-type CodeConnector interface {
-	//NewCode generates one time code for a user
-	NewCode(uid string) (code string, err error)
+var nameSeparators = regexp.MustCompile(`[./\\]`)
 
-	//ConsumeCode a code and returns the uid if ofound
-	ConsumeCode(code string) (uid string, err error)
+func Sanitize(param string) string {
+	return nameSeparators.ReplaceAllString(param, "")
+}
+
+// QueryS sanitize the param
+func QueryS(param string, c *gin.Context) string {
+	p := c.Query(param)
+	return Sanitize(p)
+}
+
+// ParamS sanitize the param
+func ParamS(param string, c *gin.Context) string {
+	p := c.Param(param)
+	return Sanitize(p)
 }

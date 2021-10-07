@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ddvk/rmfakecloud/internal/config"
+	"github.com/ddvk/rmfakecloud/internal/storage/models"
 )
 
 func TestCreateDocument(t *testing.T) {
@@ -26,17 +27,17 @@ func TestCreateDocument(t *testing.T) {
 	content := ioutil.NopCloser(strings.NewReader("dummy"))
 	fs := NewStorage(cfg)
 
-	d, err := fs.CreateDocument(testuser, "blah.pdf", content)
+	d, err := fs.CreateDocument(testuser, "blah.pdf", "", content)
 	if err != nil {
 		t.Error(err)
 	}
 
-	_, err = os.Stat(path.Join(userdir, d.ID+metadataExtension))
+	_, err = os.Stat(path.Join(userdir, d.ID+models.MetadataFileExt))
 	if err != nil {
 		t.Error(err)
 	}
 
-	_, err = os.Stat(path.Join(userdir, d.ID+zipExtension))
+	_, err = os.Stat(path.Join(userdir, d.ID+ZipFileExt))
 	if err != nil {
 		t.Error(err)
 	}

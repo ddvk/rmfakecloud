@@ -2,8 +2,8 @@ package ui
 
 import (
 	"net/http"
+	"strings"
 
-	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/webassets"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
@@ -17,81 +17,56 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 		c.FileFromFS("/favicon.ico", webassets.Assets)
 	})
 
+	router.HEAD("/", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
 	//hack for index.html
 	router.NoRoute(func(c *gin.Context) {
-		method := c.Request.Method
-		if method == http.MethodGet {
-			c.FileFromFS(indexReplacement, app)
-		} else {
+		uri := c.Request.RequestURI
+		log.Info(uri)
+		if strings.HasPrefix(uri, "/api") ||
+			strings.HasPrefix(uri, "/ui/api") ||
+			c.Request.Method != http.MethodGet {
+
 			c.AbortWithStatus(http.StatusNotFound)
+			return
 		}
+
+		c.FileFromFS(indexReplacement, app)
 	})
 
 	r := router.Group("/ui/api")
 	r.POST("register", app.register)
 	r.POST("login", app.login)
-
+	r.GET("logout", func(c *gin.Context) {
+		c.SetCookie(cookieName, "/", -1, "", "", false, true)
+		c.Status(http.StatusOK)
+	})
 	//with authentication
-	gr := r.Group("")
-	gr.Use(app.authMiddleware())
+	auth := r.Group("")
+	auth.Use(app.authMiddleware())
+	auth.GET("sync", func(c *gin.Context) {
+		uid := c.GetString(userIDContextKey)
+		br := c.GetString(browserIDContextKey)
+		log.Info("browser", br)
+		app.h.NotifySync(uid, br)
+	})
 
-	gr.GET("newcode", app.newCode)
-	gr.POST("resetPassword", app.resetPassword)
+	auth.GET("newcode", app.newCode)
+	auth.POST("resetPassword", app.resetPassword)
 
-	gr.GET("documents", app.listDocuments)
-	gr.GET("documents/:docid", app.getDocument)
-	gr.POST("documents/upload", app.createDocument)
-	gr.DELETE("documents/:docid", app.deleteDocument)
+	auth.GET("documents", app.listDocuments)
+	auth.GET("documents/:docid", app.getDocument)
+	auth.POST("documents/upload", app.createDocument)
+	auth.DELETE("documents/:docid", app.deleteDocument)
 	//move, rename
-	gr.PUT("documents", app.updateDocument)
+	auth.PUT("documents", app.updateDocument)
 
 	//admin
-	admin := gr.Group("")
+	admin := auth.Group("")
 	admin.Use(app.adminMiddleware())
 	admin.GET("users/:userid", app.getUser)
+	admin.PUT("users", app.updateUser)
 	admin.GET("users", app.getAppUsers)
-}
-
-func (app *ReactAppWrapper) adminMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		if !c.GetBool("Admin") {
-			log.Warn("not admin")
-			c.AbortWithStatus(http.StatusForbidden)
-		}
-	}
-}
-
-func (app *ReactAppWrapper) authMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		token, err := common.GetToken(c)
-
-		if err != nil {
-			log.Warn("[ui-authmiddleware] token parsing, ", err)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing or incorrect token"})
-			return
-		}
-		claims := &common.WebUserClaims{}
-		err = common.ClaimsFromToken(claims, token, app.cfg.JWTSecretKey)
-		if err != nil {
-			log.Warn("[ui-authmiddleware] token verification, ", err)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing or incorrect token"})
-			return
-		}
-
-		if claims.Audience != common.WebUsage {
-			log.Warn("wrong token audience: ", claims.Audience)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing or incorrect token"})
-			return
-		}
-		uid := claims.UserID
-		c.Set(userID, uid)
-		for _, r := range claims.Roles {
-			if r == "Admin" {
-				c.Set("Admin", true)
-				break
-			}
-		}
-		log.Info("[ui-authmiddleware] User from token: ", uid)
-		c.Next()
-	}
 }

@@ -14,8 +14,8 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/email"
 	"github.com/ddvk/rmfakecloud/internal/hwr"
 	"github.com/ddvk/rmfakecloud/internal/messages"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 )
@@ -25,12 +25,12 @@ const (
 	handlerLog           = "[handler] "
 )
 
-func (app *App) getDeviceClaims(c *gin.Context) (*common.DeviceClaims, error) {
+func (app *App) getDeviceClaims(c *gin.Context) (*DeviceClaims, error) {
 	token, err := common.GetToken(c)
 	if err != nil {
 		return nil, err
 	}
-	claims := &common.DeviceClaims{}
+	claims := &DeviceClaims{}
 	err = common.ClaimsFromToken(claims, token, app.cfg.JWTSecretKey)
 	if err != nil {
 		return nil, err
@@ -41,13 +41,13 @@ func (app *App) getDeviceClaims(c *gin.Context) (*common.DeviceClaims, error) {
 	return claims, nil
 }
 
-func (app *App) getUserClaims(c *gin.Context) (*common.UserClaims, error) {
+func (app *App) getUserClaims(c *gin.Context) (*UserClaims, error) {
 	token, err := common.GetToken(c)
-	log.Debug(handlerLog, "Token: ", token)
+	// log.Debug(handlerLog, "Token: ", token)
 	if err != nil {
 		return nil, err
 	}
-	claims := &common.UserClaims{}
+	claims := &UserClaims{}
 	err = common.ClaimsFromToken(claims, token, app.cfg.JWTSecretKey)
 	if err != nil {
 		return nil, err
@@ -77,12 +77,12 @@ func (app *App) newDevice(c *gin.Context) {
 	log.Info("Request: ", tokenRequest, "Token for:", uid)
 
 	// generate the JWT token
-	claims := &common.DeviceClaims{
+	claims := &DeviceClaims{
 		DeviceDesc: tokenRequest.DeviceDesc,
 		DeviceID:   tokenRequest.DeviceID,
 		UserID:     uid,
 		StandardClaims: jwt.StandardClaims{
-			Audience: common.APIUSage,
+			Audience: APIUsage,
 		},
 	}
 
@@ -104,7 +104,7 @@ func (app *App) deleteDevice(c *gin.Context) {
 		return
 	}
 	log.Info("Logging out: ", deviceToken.UserID)
-	c.String(http.StatusNoContent, "")
+	c.Status(http.StatusNoContent)
 }
 
 func (app *App) newUserToken(c *gin.Context) {
@@ -114,24 +114,35 @@ func (app *App) newUserToken(c *gin.Context) {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
+	uid := strings.TrimPrefix(deviceToken.UserID, "auth0|")
 
-	user, err := app.userStorer.GetUser(deviceToken.UserID)
+	user, err := app.userStorer.GetUser(uid)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
 	if user == nil {
-		log.Warn("User not found: ", deviceToken.UserID)
+		log.Warn("User not found: ", uid)
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
 
+	scopes := []string{"hsu", "intgr", "screenshare", "hwcmail:-1", "mail:-1"}
+
+	if user.Sync15 {
+		log.Info("Using sync 1.5")
+		scopes = append(scopes, syncNew)
+	} else {
+		scopes = append(scopes, syncDefault)
+	}
+	scopesStr := strings.Join(scopes, " ")
+	log.Info("setting scopes: ", scopesStr)
 	now := time.Now()
 	expirationTime := now.Add(24 * time.Hour)
-	claims := &common.UserClaims{
-		Profile: common.Auth0profile{
-			UserID:        "auth0|" + deviceToken.UserID,
+	claims := &UserClaims{
+		Profile: Auth0profile{
+			UserID:        deviceToken.UserID,
 			IsSocial:      false,
 			Connection:    "Username-Password-Authentication",
 			Name:          user.Email,
@@ -144,14 +155,15 @@ func (app *App) newUserToken(c *gin.Context) {
 		},
 		DeviceDesc: deviceToken.DeviceDesc,
 		DeviceID:   deviceToken.DeviceID,
-		Scopes:     "sync:default",
+		Scopes:     scopesStr,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 			NotBefore: now.Unix(),
 			IssuedAt:  now.Unix(),
 			Subject:   "rM User Token",
 			Issuer:    "rM WebApp",
-			Id:        "1234",
+			Id:        user.Email,
+			Audience:  APIUsage,
 		},
 	}
 
@@ -173,11 +185,13 @@ func (app *App) sendEmail(c *gin.Context) {
 		badReq(c, "not multiform")
 		return
 	}
-	for k := range form.File {
-		log.Debugln("form field", k)
-	}
-	for k := range form.Value {
-		log.Debugln("form value", k)
+	if log.IsLevelEnabled(log.DebugLevel) {
+		for k := range form.File {
+			log.Debugln("form field", k)
+		}
+		for k := range form.Value {
+			log.Debugln("form value", k)
+		}
 	}
 
 	emailClient := email.Builder{
@@ -199,26 +213,26 @@ func (app *App) sendEmail(c *gin.Context) {
 
 		emailClient.AddFile(file.Filename, f, file.Header.Get("Content-Type"))
 	}
-	err = emailClient.Send(app.cfg.SmtpConfig)
+	err = emailClient.Send(app.cfg.SMTPConfig)
 	if err != nil {
 		log.Error(handlerLog, err)
 		internalError(c, "cant send email")
 		return
 	}
-	c.String(http.StatusOK, "")
+	c.Status(http.StatusOK)
 }
 func (app *App) listDocuments(c *gin.Context) {
 
 	uid := c.GetString(userIDKey)
 	withBlob, _ := strconv.ParseBool(c.Query("withBlob"))
-	docID := c.Query("doc")
+	docID := common.QueryS("doc", c)
 	log.Debug(handlerLog, "params: withBlob: ", withBlob, ", DocId: ", docID)
-	result := []*messages.RawDocument{}
+	result := []*messages.RawMetadata{}
 
 	var err error
 	if docID != "" {
 		//load single document
-		var doc *messages.RawDocument
+		var doc *messages.RawMetadata
 		doc, err = app.metaStorer.GetMetadata(uid, docID)
 		if err == nil {
 			result = append(result, doc)
@@ -266,7 +280,7 @@ func (app *App) deleteDocument(c *gin.Context) {
 
 	result := []messages.StatusResponse{}
 	for _, r := range req {
-		metadata, err := app.metaStorer.GetMetadata(uid, r.ID)
+		doc, err := app.metaStorer.GetMetadata(uid, r.ID)
 		ok := false
 		if err == nil {
 			err := app.docStorer.RemoveDocument(uid, r.ID)
@@ -274,7 +288,15 @@ func (app *App) deleteDocument(c *gin.Context) {
 				log.Error(err)
 			} else {
 				ok = true
-				app.hub.Notify(uid, deviceID, metadata, hub.DocDeletedEvent)
+
+				ntf := hub.DocumentNotification{
+					ID:      doc.ID,
+					Type:    doc.Type,
+					Version: doc.Version,
+					Parent:  doc.Parent,
+					Name:    doc.VissibleName,
+				}
+				app.hub.Notify(uid, deviceID, ntf, hub.DocDeletedEvent)
 			}
 		}
 		result = append(result, messages.StatusResponse{ID: r.ID, Success: ok})
@@ -285,7 +307,7 @@ func (app *App) deleteDocument(c *gin.Context) {
 func (app *App) updateStatus(c *gin.Context) {
 	uid := c.GetString(userIDKey)
 	deviceID := c.GetString(deviceIDKey)
-	var req []messages.RawDocument
+	var req []messages.RawMetadata
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Error(err)
@@ -293,21 +315,30 @@ func (app *App) updateStatus(c *gin.Context) {
 		return
 	}
 	result := []messages.StatusResponse{}
-	for _, r := range req {
-		log.Info("Id: ", r.ID, " Name: ", r.VissibleName)
+	for _, doc := range req {
+		log.Info("Id: ", doc.ID, " Name: ", doc.VissibleName)
 
 		message := ""
 
 		ok := false
-		err := app.metaStorer.UpdateMetadata(uid, &r)
+		err := app.metaStorer.UpdateMetadata(uid, &doc)
 		if err != nil {
 			message = internalErrorMessage
 			log.Error(err)
 		} else {
 			ok = true
-			app.hub.Notify(uid, deviceID, &r, hub.DocAddedEvent)
+
+			ntf := hub.DocumentNotification{
+				ID:      doc.ID,
+				Type:    doc.Type,
+				Version: doc.Version,
+				Parent:  doc.Parent,
+				Name:    doc.VissibleName,
+			}
+
+			app.hub.Notify(uid, deviceID, ntf, hub.DocAddedEvent)
 		}
-		result = append(result, messages.StatusResponse{ID: r.ID, Success: ok, Message: message, Version: r.Version})
+		result = append(result, messages.StatusResponse{ID: doc.ID, Success: ok, Message: message, Version: doc.Version})
 	}
 
 	c.JSON(http.StatusOK, result)
@@ -315,9 +346,90 @@ func (app *App) updateStatus(c *gin.Context) {
 
 func (app *App) locateService(c *gin.Context) {
 	svc := c.Param("service")
-	log.Printf("Requested: %s\n", svc)
-	response := messages.HostResponse{Host: config.DefaultHost, Status: "OK"}
+	log.Infof("Requested: %s\n", svc)
+	host := config.DefaultHost
+	if svc == "blob-storage" {
+		host = "https://" + config.DefaultHost
+	}
+	response := messages.HostResponse{Host: host, Status: "OK"}
 	c.JSON(http.StatusOK, response)
+}
+func (app *App) syncComplete(c *gin.Context) {
+	log.Info("Sync complete")
+	uid := c.GetString(userIDKey)
+	deviceID := c.GetString(deviceIDKey)
+
+	var res messages.SyncCompleted
+	res.ID = app.hub.NotifySync(uid, deviceID)
+	c.JSON(http.StatusOK, res)
+}
+
+func formatExpires(t time.Time) string {
+	return strconv.FormatInt(t.Unix(), 10)
+}
+
+func (app *App) blobStorageDownload(c *gin.Context) {
+	uid := c.GetString(userIDKey)
+	var req messages.BlobStorageRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Error(err)
+		badReq(c, err.Error())
+		return
+	}
+	if req.RelativePath == "" {
+		badReq(c, "no rel")
+		return
+	}
+
+	url, exp, err := app.blobStorer.GetBlobURL(uid, req.RelativePath)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	response := messages.BlobStorageResponse{
+		Method:       http.MethodGet,
+		RelativePath: req.RelativePath,
+		URL:          url,
+		Expires:      formatExpires(exp),
+	}
+	c.JSON(http.StatusOK, response)
+}
+
+func (app *App) blobStorageUpload(c *gin.Context) {
+	var req messages.BlobStorageRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Error(err)
+		badReq(c, err.Error())
+		return
+	}
+	if req.RelativePath == "" {
+		badReq(c, "no rel")
+		return
+	}
+	if req.Initial {
+		log.Info("--- Initial Sync ---")
+	}
+	uid := c.GetString(userIDKey)
+	url, exp, err := app.blobStorer.GetBlobURL(uid, req.RelativePath)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	response := messages.BlobStorageResponse{
+		Method:       http.MethodPut,
+		RelativePath: req.RelativePath,
+		URL:          url,
+		Expires:      formatExpires(exp),
+	}
+	c.JSON(http.StatusOK, response)
+}
+
+func (app *App) integrations(c *gin.Context) {
+	// uid := c.GetString(userIDKey)
+	var res messages.IntegrationsResponse
+	c.JSON(http.StatusOK, &res)
 }
 func (app *App) uploadRequest(c *gin.Context) {
 	uid := c.GetString(userIDKey)
@@ -374,7 +486,7 @@ func (app *App) connectWebSocket(c *gin.Context) {
 	uid := c.GetString(userIDKey)
 	deviceID := c.GetString(deviceIDKey)
 
-	log.Info("trying websocket from:", uid)
+	log.Info("connecting websocket from: ", uid)
 
 	var upgrader = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {

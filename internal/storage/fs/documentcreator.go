@@ -10,13 +10,16 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/ddvk/rmfakecloud/internal/messages"
+	"github.com/ddvk/rmfakecloud/internal/storage"
+	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	"github.com/google/uuid"
 )
 
-func createZipContent(ext string) string {
-	ext = strings.TrimPrefix(ext, ".")
+func createContent(fileType string) string {
+	fileType = strings.TrimPrefix(fileType, ".")
 	str :=
 		`
 {
@@ -49,7 +52,7 @@ func createZipContent(ext string) string {
 	}
 }
 `
-	return fmt.Sprintf(str, ext)
+	return fmt.Sprintf(str, fileType)
 }
 
 func extractID(r io.Reader) (string, error) {
@@ -57,7 +60,7 @@ func extractID(r io.Reader) (string, error) {
 }
 
 // CreateDocument creates a new document
-func (fs *Storage) CreateDocument(uid, filename string, stream io.ReadCloser) (doc *messages.RawDocument, err error) {
+func (fs *FileSystemStorage) CreateDocument(uid, filename, parent string, stream io.Reader) (doc *storage.Document, err error) {
 	ext := path.Ext(filename)
 	switch ext {
 	case ".pdf":
@@ -69,14 +72,14 @@ func (fs *Storage) CreateDocument(uid, filename string, stream io.ReadCloser) (d
 	var docid string
 
 	var isZip = false
-	if ext == zipExtension {
+	if ext == ZipFileExt {
 		docid, err = extractID(stream)
 		isZip = true
 	} else {
 		docid = uuid.New().String()
 	}
 	//create zip from pdf
-	zipfile := fs.getPathFromUser(uid, docid+zipExtension)
+	zipfile := fs.getPathFromUser(uid, docid+ZipFileExt)
 	file, err := os.Create(zipfile)
 	if err != nil {
 		return
@@ -99,18 +102,18 @@ func (fs *Storage) CreateDocument(uid, filename string, stream io.ReadCloser) (d
 			return
 		}
 
-		entry, err = w.Create(docid + ".pagedata")
+		entry, err = w.Create(docid + models.PageFileExt)
 		if err != nil {
 			return
 		}
 		entry.Write([]byte{})
 
-		entry, err = w.Create(docid + ".content")
+		entry, err = w.Create(docid + models.ContentFileExt)
 		if err != nil {
 			return
 		}
 
-		content := createZipContent(ext)
+		content := createContent(ext)
 		entry.Write([]byte(content))
 	} else {
 		_, err = io.Copy(file, stream)
@@ -120,14 +123,35 @@ func (fs *Storage) CreateDocument(uid, filename string, stream io.ReadCloser) (d
 	}
 
 	//create metadata
-	doc = createMedatadata(strings.TrimSuffix(filename, ext), docid)
+	name := strings.TrimSuffix(filename, ext)
+	doc1 := createRawMedatadata(docid, name, parent)
 
-	jsn, err := json.Marshal(doc)
+	jsn, err := json.Marshal(doc1)
 	if err != nil {
 		return
 	}
+
+	doc = &storage.Document{
+		ID:      docid,
+		Type:    doc1.Type,
+		Name:    name,
+		Version: 1,
+	}
 	//save metadata
-	metafilePath := fs.getPathFromUser(uid, docid+metadataExtension)
+	metafilePath := fs.getPathFromUser(uid, docid+models.MetadataFileExt)
 	err = ioutil.WriteFile(metafilePath, jsn, 0600)
 	return
+}
+
+func createRawMedatadata(id, name, parent string) *messages.RawMetadata {
+	doc := messages.RawMetadata{
+		ID:             id,
+		VissibleName:   name,
+		Version:        1,
+		ModifiedClient: time.Now().UTC().Format(time.RFC3339Nano),
+		CurrentPage:    0,
+		Type:           models.DocumentType,
+		Parent:         parent,
+	}
+	return &doc
 }

@@ -10,17 +10,19 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
 )
 
+// Tokens the tokens
 type Tokens struct {
 	DeviceToken string
 	UserToken   string
 }
+
+// HostResponse the response
 type HostResponse struct {
 	Host   string `json:"Host"`
 	Status string `json:"Status"`
@@ -33,19 +35,19 @@ const (
 	origin = "https://service-manager-production-dot-remarkable-production.appspot.com"
 )
 
-func getUrl(host string, tokens Tokens) (string, error) {
+func getURL(host string, tokens Tokens) (string, error) {
 	client := &http.Client{
 		Timeout: time.Second * 10,
 	}
 	req, err := http.NewRequest("GET", host+serviceLocator, nil)
 	if err != nil {
-		return "", fmt.Errorf("Got error %w", err)
+		return "", fmt.Errorf("got error %w", err)
 	}
 	req.Header.Add("Authorization", "Bearrer "+tokens.UserToken)
 	req.Header.Add("Content-Type", "application/json")
 	response, err := client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("Got error %w", err)
+		return "", fmt.Errorf("got error %w", err)
 	}
 	defer response.Body.Close()
 	body, _ := ioutil.ReadAll(response.Body)
@@ -56,9 +58,9 @@ func getUrl(host string, tokens Tokens) (string, error) {
 
 }
 
-func auth(host string, tokens Tokens, withHttps bool) (*websocket.Conn, error) {
+func auth(host string, tokens Tokens, withHTTPS bool) (*websocket.Conn, error) {
 	schema := "ws://"
-	if withHttps {
+	if withHTTPS {
 		schema = "wss://"
 	}
 	url := schema + host + notifications
@@ -95,7 +97,7 @@ func loadToken(configFile string) (*Tokens, error) {
 
 func main() {
 	logger := logrus.New()
-	log.SetOutput(logger.Writer())
+	logrus.SetOutput(logger.Writer())
 
 	host := flag.String("h", "http://localhost:3001", "host, use origin for the real ip")
 	rmapiConf := flag.String("c", "", "rmapi .conf file")
@@ -116,14 +118,14 @@ func main() {
 			*host = origin
 		}
 
-		url, err := getUrl(*host, *tokens)
+		url, err := getURL(*host, *tokens)
 		if err != nil {
 			return err
 		}
 
-		withHttps := false
+		withHTTPS := false
 		if strings.Index(*host, "https") == 0 {
-			withHttps = true
+			withHTTPS = true
 			*host = strings.TrimPrefix(*host, "https://")
 		} else {
 			*host = strings.TrimPrefix(*host, "http://")
@@ -134,7 +136,7 @@ func main() {
 			url = *host
 		}
 
-		conn, err := auth(url, *tokens, withHttps)
+		conn, err := auth(url, *tokens, withHTTPS)
 		if err != nil {
 			return err
 		}

@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/ddvk/rmfakecloud/internal/email"
 	log "github.com/sirupsen/logrus"
@@ -20,7 +21,9 @@ const (
 	// DefaultDataDir default folder for storage
 	DefaultDataDir = "data"
 
-	ReadStorageExpirationInMinutes  = 5
+	// ReadStorageExpirationInMinutes time the token is valid
+	ReadStorageExpirationInMinutes = 5
+	// WriteStorageExpirationInMinutes time the token is valid
 	WriteStorageExpirationInMinutes = 5
 
 	// DefaultHost fake url
@@ -32,30 +35,34 @@ const (
 	envDataDir    = "DATADIR"
 	envPort       = "PORT"
 	envStorageURL = "STORAGE_URL"
-	EnvTLSCert    = "TLS_CERT"
-	EnvTLSKey     = "TLS_KEY"
+	// envTLSCert the path of the cert file
+	envTLSCert = "TLS_CERT"
+	// envTLSKey the path of the private key
+	envTLSKey = "TLS_KEY"
 
 	// auth
 	envJWTSecretKey     = "JWT_SECRET_KEY"
 	envRegistrationOpen = "OPEN_REGISTRATION"
 
-	// EnvSMTPServer the mail server
-	EnvSMTPServer = "RM_SMTP_SERVER"
-	// EnvSMTPUsername the username for the mail server
-	EnvSMTPUsername = "RM_SMTP_USERNAME"
-	// EnvSMTPPassword pass
-	EnvSMTPPassword = "RM_SMTP_PASSWORD"
-	// EnvSMTPHelo custom helo
-	EnvSMTPHelo = "RM_SMTP_HELO"
-	// EnvSMTPInsecureTLS dont check cert (bad)
-	EnvSMTPInsecureTLS = "RM_SMTP_INSECURE_TLS"
-	// EnvSMTPFrom custom from address
-	EnvSMTPFrom = "RM_SMTP_FROM"
+	// envSMTPServer the mail server
+	envSMTPServer = "RM_SMTP_SERVER"
+	// envSMTPUsername the username for the mail server
+	envSMTPUsername = "RM_SMTP_USERNAME"
+	// envSMTPPassword pass
+	envSMTPPassword = "RM_SMTP_PASSWORD"
+	// envSMTPHelo custom helo
+	envSMTPHelo = "RM_SMTP_HELO"
+	// envSMTPInsecureTLS dont check cert (bad)
+	envSMTPInsecureTLS = "RM_SMTP_INSECURE_TLS"
+	// envSMTPFrom custom from address
+	envSMTPFrom = "RM_SMTP_FROM"
 
 	// EnvHwrApplicationKey the myScript application key
 	EnvHwrApplicationKey = "RMAPI_HWR_APPLICATIONKEY"
 	// EnvHwrHmac myScript hmac key
 	EnvHwrHmac = "RMAPI_HWR_HMAC"
+	// envLogFile log file to use
+	envLogFile = "RM_LOGFILE"
 )
 
 // Config config
@@ -68,12 +75,19 @@ type Config struct {
 	JWTSecretKey     []byte
 	JWTRandom        bool
 	Certificate      tls.Certificate
-	SmtpConfig       *email.SmtpConfig
+	SMTPConfig       *email.SMTPConfig
+	LogFile          string
 }
 
+// IsHTTPS is it https
+func (cfg *Config) IsHTTPS() bool {
+	return strings.HasPrefix(cfg.StorageURL, "https")
+}
+
+// Verify verify
 func (cfg *Config) Verify() {
 
-	if cfg.SmtpConfig == nil {
+	if cfg.SMTPConfig == nil {
 		log.Warnln("smtp not configured, no emails will be sent")
 	}
 
@@ -116,8 +130,8 @@ func FromEnv() *Config {
 	dk := pbkdf2.Key(jwtSecretKey, []byte("todo some salt"), 10000, 32, sha256.New)
 
 	var cert tls.Certificate
-	certPath := os.Getenv(EnvTLSCert)
-	keyPath := os.Getenv(EnvTLSKey)
+	certPath := os.Getenv(envTLSCert)
+	keyPath := os.Getenv(envTLSKey)
 	hasCert := false
 	if certPath != "" && keyPath != "" {
 
@@ -144,18 +158,18 @@ func FromEnv() *Config {
 	}
 
 	// smtp
-	var smtpCfg *email.SmtpConfig
-	servername := os.Getenv(EnvSMTPServer)
+	var smtpCfg *email.SMTPConfig
+	servername := os.Getenv(envSMTPServer)
 
 	if servername != "" {
-		inSecureTLS, _ := strconv.ParseBool(os.Getenv(EnvSMTPInsecureTLS))
-		smtpCfg = &email.SmtpConfig{
+		inSecureTLS, _ := strconv.ParseBool(os.Getenv(envSMTPInsecureTLS))
+		smtpCfg = &email.SMTPConfig{
 			Server:       servername,
-			Username:     os.Getenv(EnvSMTPUsername),
-			Password:     os.Getenv(EnvSMTPPassword),
-			Helo:         os.Getenv(EnvSMTPHelo),
+			Username:     os.Getenv(envSMTPUsername),
+			Password:     os.Getenv(envSMTPPassword),
+			Helo:         os.Getenv(envSMTPHelo),
 			InsecureTLS:  inSecureTLS,
-			FromOverride: os.Getenv(EnvSMTPFrom),
+			FromOverride: os.Getenv(envSMTPFrom),
 		}
 	}
 
@@ -167,7 +181,8 @@ func FromEnv() *Config {
 		JWTRandom:        jwtGenerated,
 		Certificate:      cert,
 		RegistrationOpen: openRegistration,
-		SmtpConfig:       smtpCfg,
+		SMTPConfig:       smtpCfg,
+		LogFile:          os.Getenv(envLogFile),
 	}
 	return &cfg
 }
@@ -178,15 +193,16 @@ func EnvVars() string {
 Environment Variables:
 
 General:
-	%s	secret for signgin JWT tokens
+	%s	Secret for signing JWT tokens
 	%s	Log verbosity level (debug, info, warn) (default: info)
 	%s		Port (default: %s)
 	%s		Local storage folder (default: %s)
 	%s	Url the tablet can resolve (default: http(s)://hostname:port)
 	%s	Path to the server certificate.
-	%s	Path to the server certificate key.
+	%s		Path to the server certificate key.
+	%s	Write logs to file
 
-email sending, smtp:
+Emails, smtp:
 	%s
 	%s
 	%s
@@ -205,15 +221,16 @@ myScript hwr (needs a developer account):
 		envDataDir,
 		DefaultDataDir,
 		envStorageURL,
-		EnvTLSCert,
-		EnvTLSKey,
+		envTLSCert,
+		envTLSKey,
+		envLogFile,
 
-		EnvSMTPServer,
-		EnvSMTPUsername,
-		EnvSMTPPassword,
-		EnvSMTPInsecureTLS,
-		EnvSMTPHelo,
-		EnvSMTPFrom,
+		envSMTPServer,
+		envSMTPUsername,
+		envSMTPPassword,
+		envSMTPInsecureTLS,
+		envSMTPHelo,
+		envSMTPFrom,
 
 		EnvHwrApplicationKey,
 		EnvHwrHmac,

@@ -1,7 +1,5 @@
 import jwt_decode from "jwt-decode";
-// import Role from "./Role";
 import constants from "../../common/constants"
-
 
 export async function loginUser(dispatch, loginPayload) {
   const requestOptions = {
@@ -19,7 +17,8 @@ export async function loginUser(dispatch, loginPayload) {
       return;
     }
 
-    var token = await response.text();
+    //todo: refactor
+    let token = await response.text();
     if (!token) {
       throw new Error("cant retrieve the token");
     }
@@ -34,7 +33,6 @@ export async function loginUser(dispatch, loginPayload) {
           token: token,
         },
       });
-      localStorage.setItem("token", token);
       localStorage.setItem("currentUser", JSON.stringify(user));
       return user;
     }
@@ -49,5 +47,7 @@ export async function loginUser(dispatch, loginPayload) {
 export async function logout(dispatch) {
   dispatch({ type: "LOGOUT" });
   localStorage.removeItem("currentUser");
-  localStorage.removeItem("token");
+  await fetch(`${constants.ROOT_URL}/logout`, {
+    headers: { "Content-Type": "application/json" }
+  });
 }

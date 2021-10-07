@@ -1,5 +1,20 @@
 package messages
 
+// BlobStorageRequest else
+type BlobStorageRequest struct {
+	Method       string `json:"http_method"`
+	Initial      bool   `json:"initial_sync"`
+	RelativePath string `json:"relative_path"`
+}
+
+// BlobStorageResponse  what else
+type BlobStorageResponse struct {
+	Expires      string `json:"expires"`
+	Method       string `json:"method"`
+	RelativePath string `json:"relative_path"`
+	URL          string `json:"url"`
+}
+
 // StatusResponse what else
 type StatusResponse struct {
 	ID      string `json:"ID"`
@@ -11,34 +26,35 @@ type StatusResponse struct {
 // WsMessage websocket notification
 type WsMessage struct {
 	Message      NotificationMessage `json:"message"`
-	Subscription string              `json:"subscription"`
+	Subscription string              `json:"subscription,omitempty"`
 }
 
 // NotificationMessage child object
 type NotificationMessage struct {
 	Attributes   Attributes `json:"attributes"`
-	MessageID    string     `json:"messageId"`
-	MessageID2   string     `json:"message_id"`
-	PublishTime  string     `json:"publishTime"`
-	PublishTime2 string     `json:"publish_time"`
+	MessageID    string     `json:"messageId,omitempty"`
+	MessageID2   string     `json:"message_id,omitempty"`
+	MessageID3   string     `json:"messageid,omitempty"`
+	PublishTime  string     `json:"publishTime,omitempty"`
+	PublishTime2 string     `json:"publish_time,omitempty"`
 }
 
 // Attributes child object
 type Attributes struct {
 	Auth0UserID      string `json:"auth0UserID"`
-	Bookmarked       bool   `json:"bookmarked"`
+	Bookmarked       bool   `json:"bookmarked,omitempty"`
 	Event            string `json:"event"`
-	ID               string `json:"id"`
-	Parent           string `json:"parent"`
+	ID               string `json:"id,omitempty"`
+	Parent           string `json:"parent,omitempty"`
 	SourceDeviceDesc string `json:"sourceDeviceDesc"`
 	SourceDeviceID   string `json:"sourceDeviceID"`
-	Type             string `json:"type"`
-	Version          string `json:"version"`
-	VissibleName     string `json:"vissibleName"`
+	Type             string `json:"type,omitempty"`
+	Version          string `json:"version,omitempty"`
+	VissibleName     string `json:"vissibleName,omitempty"`
 }
 
-// RawDocument just a raw document
-type RawDocument struct {
+// RawMetadata just a raw document
+type RawMetadata struct {
 	ID                string `json:"ID"`
 	Version           int    `json:"Version"`
 	Message           string `json:"Message"`
@@ -87,4 +103,15 @@ type DeviceTokenRequest struct {
 	Code       string `json:"code"`
 	DeviceDesc string `json:"deviceDesc"`
 	DeviceID   string `json:"deviceID"`
+}
+
+// SyncCompleted what else
+type SyncCompleted struct {
+	ID string `json:"id"`
+}
+
+// IntegrationsResponse what else
+type IntegrationsResponse struct {
+	//TODO:
+	Integrations []string `json:"integrations"`
 }

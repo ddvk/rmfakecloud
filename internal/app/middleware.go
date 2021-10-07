@@ -2,6 +2,7 @@ package app
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -12,8 +13,10 @@ import (
 )
 
 const (
-	authLog    = "[auth-middleware]"
-	requestLog = "[requestlogging-middleware]"
+	authLog     = "[auth-middleware]"
+	requestLog  = "[requestlogging-middleware]"
+	syncDefault = "sync:default"
+	syncNew     = "sync:tortoise"
 )
 
 func (app *App) authMiddleware() gin.HandlerFunc {
@@ -27,40 +30,64 @@ func (app *App) authMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		if claims.Scopes != "sync:default" {
-			log.Warn(authLog, " wrong scope, proably old token")
-			c.String(http.StatusUnauthorized, "missing scope")
-			c.Abort()
-			return
+		scopes := strings.Fields(claims.Scopes)
+
+		var isSync15 = false
+		for _, s := range scopes {
+			if s == syncNew {
+				isSync15 = true
+				break
+			}
+		}
+		if isSync15 {
+			log.Info("Using sync 1.5")
 		}
 
 		uid := strings.TrimPrefix(claims.Profile.UserID, "auth0|")
 		c.Set(userIDKey, uid)
 		c.Set(deviceIDKey, claims.DeviceID)
-		log.Infof("%s UserId: %s deviceId: %s ", authLog, uid, claims.DeviceID)
+		log.Infof("%s UserId: %s deviceId: %s newSync: %t", authLog, uid, claims.DeviceID, isSync15)
 		c.Next()
 	}
 }
 
-var ignoreBodyLogging = []string{"/storage", "/api/v2/document", "/ui/api/documents/upload"} //, "/v1/reports"}
+var dontLogBody = map[string]bool{
+	"/storage":                 true,
+	"/blobstorage":             true,
+	"/api/v2/document":         true,
+	"/ui/api/documents/upload": true,
+	"/v1/reports":              true,
+}
 
 func requestLoggerMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
-		log.Debugln(requestLog, "header ", c.Request.Header)
-		for _, skip := range ignoreBodyLogging {
-			if strings.Index(c.Request.URL.Path, skip) == 0 {
-				log.Debugln("body logging ignored")
-				c.Next()
-				return
+		if log.IsLevelEnabled(log.TraceLevel) {
+			var str bytes.Buffer
+			for k, v := range c.Request.Header {
+				var ln string
+				if k != "Authorization" {
+					ln = fmt.Sprintf("%s\t%s\n", k, v)
+				} else {
+					ln = fmt.Sprintf("%s\t\n", k)
+				}
+				str.WriteString(ln)
 			}
+			log.Traceln(requestLog, "headers: \n", str.String())
 		}
 
-		var buf bytes.Buffer
-		tee := io.TeeReader(c.Request.Body, &buf)
-		body, _ := ioutil.ReadAll(tee)
-		c.Request.Body = ioutil.NopCloser(&buf)
-		log.Debugln(requestLog, "body: ", string(body))
+		if _, ok := dontLogBody[c.Request.URL.Path]; ok {
+			c.Next()
+			return
+		}
+
+		if log.IsLevelEnabled(log.DebugLevel) {
+			var buf bytes.Buffer
+			tee := io.TeeReader(c.Request.Body, &buf)
+			body, _ := ioutil.ReadAll(tee)
+			c.Request.Body = ioutil.NopCloser(&buf)
+			log.Debugln(requestLog, "body: ", string(body))
+		}
 		c.Next()
 	}
 }

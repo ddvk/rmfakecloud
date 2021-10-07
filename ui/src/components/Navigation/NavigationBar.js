@@ -3,7 +3,6 @@ import { Nav, Navbar, Button, NavDropdown } from "react-bootstrap";
 import { logout } from "../Login/actions";
 import { useAuthDispatch, useAuthState } from "../../hooks/useAuthContext";
 import { NavLink } from "react-router-dom";
-import { FaUser } from "react-icons/fa";
 
 const NavigationBar = () => {
   const authDispatch = useAuthDispatch();
@@ -47,7 +46,13 @@ const NavigationBar = () => {
           </Navbar.Collapse>
           <Navbar.Collapse>
             <Nav className="ml-auto">
-              <NavDropdown alignRight title={<FaUser size={20} />}>
+              <NavDropdown alignRight title={user.UserID}>
+
+                {user.scopes === "sync15" && (
+                <NavDropdown.Header>
+                  Using sync 15
+                </NavDropdown.Header>
+                )}
                 <NavDropdown.Item as={NavLink} to="/resetPassword">
                   Reset Password
                 </NavDropdown.Item>

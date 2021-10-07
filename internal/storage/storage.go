@@ -6,9 +6,9 @@ import (
 
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/model"
-	"github.com/gin-gonic/gin"
 )
 
+// ExportOption type of export
 type ExportOption int
 
 const (
@@ -23,17 +23,22 @@ type DocumentStorer interface {
 	GetDocument(uid, docid string) (io.ReadCloser, error)
 	ExportDocument(uid, docid, outputType string, exportOption ExportOption) (io.ReadCloser, error)
 
-	// GetStorageURL creates a short lived url
 	GetStorageURL(uid, docid string) (string, time.Time, error)
+}
 
-	RegisterRoutes(*gin.Engine)
+// BlobStorage stuff for sync15
+type BlobStorage interface {
+	GetBlobURL(uid, docid string) (string, time.Time, error)
+
+	StoreBlob(uid, blobID string, s io.Reader, matchGeneration int64) (int64, error)
+	LoadBlob(uid, blobID string) (io.ReadCloser, int64, error)
 }
 
 // MetadataStorer manages document metadata
 type MetadataStorer interface {
-	UpdateMetadata(uid string, r *messages.RawDocument) error
-	GetAllMetadata(uid string) ([]*messages.RawDocument, error)
-	GetMetadata(uid, docid string) (*messages.RawDocument, error)
+	UpdateMetadata(uid string, r *messages.RawMetadata) error
+	GetAllMetadata(uid string) ([]*messages.RawMetadata, error)
+	GetMetadata(uid, docid string) (*messages.RawMetadata, error)
 }
 
 // UserStorer holds informations about users
@@ -42,4 +47,13 @@ type UserStorer interface {
 	GetUser(string) (*model.User, error)
 	RegisterUser(u *model.User) error
 	UpdateUser(u *model.User) error
+}
+
+// Document represents a document in storage
+type Document struct {
+	ID      string
+	Type    string
+	Parent  string
+	Name    string
+	Version int
 }

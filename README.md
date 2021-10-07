@@ -101,7 +101,7 @@ RM_SMTP_FROM='"ReMarkable self-hosted" <user@domain.com>'
     ```
     You should see: *Verify return code: 0 (ok)*
 
-- if both (host and tablet) are on a wifi make sure "Client Isolation" is not actived on the AP
+- if both (host and tablet) are on a wifi make sure "Client Isolation" is not activated on the AP
 
 - check if the proxy is configured correctly
     ```
@@ -124,14 +124,14 @@ RM_SMTP_FROM='"ReMarkable self-hosted" <user@domain.com>'
     if you see *SSL Handshake failed* then something is wrong with the certs
 
 # TODO
-[ ] UI specify folder on upload
-[ ] UI add/remove users
-[ ] UI move files around
-[ ] UI rename files
-[ ] UI realtime notifications
-[ ] UI document preview
-[ ] UI archive / restore documents
-[ ] UI share files between users
-[ ] UI refactoring
-[ ] UI sent emails history
-[ ] livepreview
+- [ ] UI specify folder on upload
+- [ ] UI add/remove users
+- [ ] UI move files around
+- [ ] UI rename files
+- [ ] UI realtime notifications
+- [ ] UI document preview
+- [ ] UI archive / restore documents
+- [ ] UI share files between users
+- [ ] UI refactoring
+- [ ] UI sent emails history
+- [ ] livepreview
