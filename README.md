@@ -5,6 +5,10 @@ rmfakecloud is a clone of the cloud sync the remarkable tablet is using, in case
 
 # Breaking Changes
 - after v0.0.3 the files in `/data` will have to be manually move to the user that will be created
+- with v0.0.5 the new diff sync15 is added as an option, in order to use it modify the user with `setuser -u user -s`  
+  or modify the profile and add `sync15:true`  
+  a full resync will be needed (the tablet will do it), the old files are kept as they are and everying is put in a new directory
+
 
 # Installation
 
