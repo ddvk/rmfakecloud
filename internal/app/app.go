@@ -10,6 +10,7 @@ import (
 
 	"github.com/ddvk/rmfakecloud/internal/app/hub"
 	"github.com/ddvk/rmfakecloud/internal/config"
+	"github.com/ddvk/rmfakecloud/internal/hwr"
 	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/storage/fs"
 	"github.com/ddvk/rmfakecloud/internal/ui"
@@ -33,6 +34,7 @@ type App struct {
 	blobStorer    storage.BlobStorage
 	hub           *hub.Hub
 	codeConnector CodeConnector
+	hwrClient     *hwr.HWRClient
 }
 
 // Start starts the app
@@ -75,7 +77,7 @@ func (app *App) Stop() {
 
 // NewApp constructs an app
 func NewApp(cfg *config.Config) App {
-	debugMode := log.GetLevel() == log.DebugLevel
+	debugMode := log.GetLevel() >= log.DebugLevel
 	if !debugMode {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -123,6 +125,9 @@ func NewApp(cfg *config.Config) App {
 		blobStorer:    fsStorage,
 		hub:           ntfHub,
 		codeConnector: codeConnector,
+		hwrClient: &hwr.HWRClient{
+			Cfg: cfg,
+		},
 	}
 	uiApp := ui.New(cfg, fsStorage, codeConnector, ntfHub, fsStorage, fsStorage)
 

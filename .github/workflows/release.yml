@@ -15,7 +15,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
-          go-version: ^1.15
+          go-version: ^1.17
         id: go
 
       - name: Check out code into the Go module directory
@@ -50,6 +50,7 @@ jobs:
         with:
           push: true
           tags: ddvk/rmfakecloud:latest
+          platforms: linux/amd64,linux/arm/v7,linux/arm64
           build-args: |
             VERSION=${{ env.version }}
 

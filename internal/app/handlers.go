@@ -435,8 +435,8 @@ func (app *App) uploadRequest(c *gin.Context) {
 	uid := c.GetString(userIDKey)
 	var req []messages.UploadRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		log.Error(err)
-		badReq(c, err.Error())
+		log.Errorf("could not bind %v", err)
+		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
@@ -474,7 +474,7 @@ func (app *App) handleHwr(c *gin.Context) {
 		badReq(c, "missing bbody")
 		return
 	}
-	response, err := hwr.SendRequest(body)
+	response, err := app.hwrClient.SendRequest(body)
 	if err != nil {
 		log.Error(err)
 		internalError(c, "cannot send")
