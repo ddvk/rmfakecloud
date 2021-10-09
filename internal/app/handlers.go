@@ -435,7 +435,7 @@ func (app *App) uploadRequest(c *gin.Context) {
 	uid := c.GetString(userIDKey)
 	var req []messages.UploadRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		log.Errorf("could not bind %w", err)
+		log.Errorf("could not bind %v", err)
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
