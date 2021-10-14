@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/ddvk/rmfakecloud/internal/webassets"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 )
@@ -14,7 +13,10 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	router.StaticFS(app.prefix, app)
 
 	router.GET("/favicon.ico", func(c *gin.Context) {
-		c.FileFromFS("/favicon.ico", webassets.Assets)
+		c.FileFromFS("/favicon.ico", app.fs)
+	})
+	router.GET("/robots.txt", func(c *gin.Context) {
+		c.FileFromFS("/robots.txt", app.fs)
 	})
 
 	router.HEAD("/", func(c *gin.Context) {

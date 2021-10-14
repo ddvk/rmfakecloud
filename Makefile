@@ -4,7 +4,7 @@ OUT_DIR := dist
 CMD := ./cmd/rmfakecloud
 BINARY := rmfakecloud
 BUILD = go build -ldflags $(LDFLAGS) -o $(@) $(CMD) 
-ASSETS = internal/webassets/assets_vfsdata.go
+ASSETS = ui/build
 GOFILES := $(shell find . -iname '*.go' ! -iname "*_test.go")
 GOFILES += $(ASSETS)
 UIFILES := $(shell find ui/src)
@@ -39,16 +39,13 @@ $(OUT_DIR)/$(BINARY)-docker:$(GOFILES)
 container: $(OUT_DIR)/$(BINARY)-docker
 	docker build -t rmfakecloud -f Dockerfile.make .
 	
-$(ASSETS): ui/build
-	go generate ./...
-
-run: ui/build
+run: $(ASSETS)
 	go run -tags dev $(CMD)
 
 dev: 
 	find . -path ui -prune -false -o -iname "*.go" | entr -r  go run -tags dev $(CMD)
 
-ui/build: $(UIFILES) ui/yarn.lock
+$(ASSETS): $(UIFILES) ui/yarn.lock
 	$(YARN) build
 	@#remove unneeded stuff, todo: eject
 	@rm ui/build/service-worker.js ui/build/precache-manifest* ui/build/asset-manifest.json 2> /dev/null || true
@@ -64,9 +61,8 @@ devui: ui/yarn.lock
 	$(YARN) start
 
 clean:
-	rm -f $(ASSETS)
 	rm -f $(OUT_DIR)/*
-	rm -fr ui/build
+	rm -fr $(ASSETS)
 
 test: 
 	go test ./...
