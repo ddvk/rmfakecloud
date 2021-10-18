@@ -136,7 +136,7 @@ func (app *App) newUserToken(c *gin.Context) {
 			Connection:    "Username-Password-Authentication",
 			Name:          user.Email,
 			Nickname:      user.Email, // user.Nickname,
-			Email:         user.Email,
+			Email:         fmt.Sprintf("%s (via %s)", user.Email, app.cfg.StorageURL),
 			EmailVerified: true,
 			Picture:       "image.png",
 			CreatedAt:     time.Now(),
