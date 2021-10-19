@@ -1,8 +1,8 @@
-//go:build !ci
+//go:build ci
 
 package rmfakecloud
 
 import "embed"
 
-//go:embed build/*
+//empty only for ci
 var Assets embed.FS

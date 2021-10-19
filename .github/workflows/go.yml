@@ -2,9 +2,9 @@ name: Go
 
 on:
   push:
-    branches: [ master, embedjs ]
+    branches: [ master ]
   pull_request:
-    branches: [ master, embedjs ]
+    branches: [ master ]
 
 jobs:
 
@@ -32,7 +32,7 @@ jobs:
 
     - name: Build
       run: |
-        go build -tags dev -v ./cmd/rmfakecloud
+        go build -tags ci -v ./cmd/rmfakecloud
 
     - name: Test
-      run: go test -tags dev -v ./...
+      run: go test -tags ci -v ./...
