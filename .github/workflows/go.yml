@@ -36,3 +36,13 @@ jobs:
 
     - name: Test
       run: go test -tags ci -v ./...
+    - name: Use Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '16'
+        cache: 'yarn'
+    - run: yarn --cwd ui
+    - run: yarn --cwd ui build
+    - run: CI=true yarn --cwd ui test
+    - run: make test
+

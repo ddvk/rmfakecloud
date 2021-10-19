@@ -65,6 +65,6 @@ clean:
 	rm -fr $(ASSETS)
 
 test: 
-	go test ./...
+	go test -tags ci ./...
 	CI=true $(YARN) test
 
