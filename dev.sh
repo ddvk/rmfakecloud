@@ -5,9 +5,8 @@ dir=$(dirname $0)
 pushd $dir
 export JWT_SECRET_KEY=dev
 export LOGLEVEL=${1:-DEBUG}
-#make prep
-make devui &
+make runui &
 PID=$!
 trap "kill $PID" EXIT 
-make dev 
+find . -path ui -prune -false -o -iname "*.go" | entr -r make run
 popd

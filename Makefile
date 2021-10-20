@@ -13,10 +13,11 @@ UIFILES += ui/package.json
 TARGETS := $(addprefix $(OUT_DIR)/$(BINARY)-, x64 armv6 armv7 arm64 win64 docker)
 YARN	= yarn --cwd ui  
 
-.PHONY: all run dev devui clean test 
-all: $(TARGETS)
+.PHONY: all run runui clean test testgo testui
 
 build: $(OUT_DIR)/$(BINARY)-x64
+
+all: $(TARGETS)
 
 $(OUT_DIR)/$(BINARY)-x64:$(GOFILES)
 	GOOS=linux $(BUILD)
@@ -40,10 +41,7 @@ container: $(OUT_DIR)/$(BINARY)-docker
 	docker build -t rmfakecloud -f Dockerfile.make .
 	
 run: $(ASSETS)
-	go run -tags dev $(CMD)
-
-dev: 
-	find . -path ui -prune -false -o -iname "*.go" | entr -r  go run -tags dev $(CMD)
+	go run $(CMD)
 
 $(ASSETS): $(UIFILES) ui/yarn.lock
 	$(YARN) build
@@ -57,14 +55,18 @@ ui/yarn.lock: ui/node_modules ui/package.json
 ui/node_modules:
 	mkdir -p $@
 
-devui: ui/yarn.lock
+runui: ui/yarn.lock
 	$(YARN) start
 
 clean:
 	rm -f $(OUT_DIR)/*
 	rm -fr $(ASSETS)
 
-test: 
-	go test -tags ci ./...
+test: testui testgo
+
+testui:
 	CI=true $(YARN) test
+
+testgo:
+	go test ./...
 

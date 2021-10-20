@@ -19,28 +19,23 @@ jobs:
         go-version: ^1.17
       id: go
 
-    - name: Check out code into the Go module directory
+    - name: Check out code
       uses: actions/checkout@v2
 
-    - name: Use Node.js
+    - name: Setup Node.js
       uses: actions/setup-node@v2
       with:
         node-version: '16'
         cache: 'yarn'
         cache-dependency-path: ui/yarn.lock
 
-    - run: yarn --cwd ui
-    - run: yarn --cwd ui build
-    - run: CI=true yarn --cwd ui test
-    - run: make test
-    - name: Get dependencies
-      run: |
-        go get -v -t -d ./...
 
     - name: Build
-      run: |
-        go build -tags ci -v ./cmd/rmfakecloud
+      run: make build
 
-    - name: Test
-      run: go test -tags ci -v ./...
+    - name: Test UI
+      run: make testui
+
+    - name: TestGO
+      run: make testgo
 
