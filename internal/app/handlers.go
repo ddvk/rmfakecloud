@@ -55,6 +55,9 @@ func (app *App) getUserClaims(c *gin.Context) (*UserClaims, error) {
 	if claims.Profile.UserID == "" {
 		return nil, fmt.Errorf("wrong token, missing userid")
 	}
+	if claims.Version != app.cfg.TokenVersion {
+		return nil, fmt.Errorf("wrong token, missing userid")
+	}
 	return claims, nil
 }
 
@@ -165,6 +168,7 @@ func (app *App) newUserToken(c *gin.Context) {
 			Id:        user.Email,
 			Audience:  APIUsage,
 		},
+		Version: app.cfg.TokenVersion,
 	}
 
 	tokenString, err := common.SignClaims(claims, app.cfg.JWTSecretKey)
