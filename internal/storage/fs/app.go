@@ -27,6 +27,7 @@ const (
 	ParamBlobID    = "blobid"
 	ParamExp       = "exp"
 	ParamSignature = "signature"
+	ParamScope     = "scope"
 	RouteBlob      = "/blobstorage"
 	RouteStorage   = "/storage"
 )
@@ -129,12 +130,17 @@ func (app *App) downloadBlob(c *gin.Context) {
 	blobID := common.QueryS(ParamBlobID, c)
 	exp := common.QueryS(ParamExp, c)
 	signature := common.QueryS(ParamSignature, c)
+	scope := common.QueryS(ParamScope, c)
 
-	err := VerifyURLParams([]string{uid, blobID, exp}, exp, signature, app.cfg.JWTSecretKey)
+	err := VerifyURLParams([]string{uid, blobID, exp, scope}, exp, signature, app.cfg.JWTSecretKey)
 	if err != nil {
 		log.Warn(err)
 		c.AbortWithStatus(http.StatusForbidden)
 		return
+	}
+
+	if scope != "read" {
+		c.AbortWithStatus(http.StatusForbidden)
 	}
 
 	if blobID == "" {
@@ -165,8 +171,9 @@ func (app *App) uploadBlob(c *gin.Context) {
 	blobID := common.QueryS(ParamBlobID, c)
 	exp := common.QueryS(ParamExp, c)
 	signature := common.QueryS(ParamSignature, c)
+	scope := common.QueryS(ParamScope, c)
 
-	err := VerifyURLParams([]string{uid, blobID, exp}, exp, signature, app.cfg.JWTSecretKey)
+	err := VerifyURLParams([]string{uid, blobID, exp, scope}, exp, signature, app.cfg.JWTSecretKey)
 	if err != nil {
 		c.AbortWithStatus(http.StatusForbidden)
 	}
@@ -174,6 +181,11 @@ func (app *App) uploadBlob(c *gin.Context) {
 
 	if blobID == "" {
 		c.AbortWithStatus(http.StatusBadRequest)
+	}
+
+	if scope != "write" {
+		log.Warn("wrong scope: " + scope)
+		c.AbortWithStatus(http.StatusForbidden)
 	}
 
 	body := c.Request.Body
