@@ -1,6 +1,4 @@
 import React from "react";
-
-import Row from "react-bootstrap/Row";
 import useFetch from "../../hooks/useFetch";
 import Spinner from "../Spinner";
 import Table from "react-bootstrap/Table";
@@ -22,10 +20,8 @@ export default function UserList() {
     return <div>No users</div>;
   }
 
-
   return (
-    <Row>
-      <Table>
+      <Table className="table-dark">
         <thead>
           <tr>
             <th>#</th>
@@ -48,6 +44,5 @@ export default function UserList() {
           ))}
         </tbody>
       </Table>
-    </Row>
   );
 }
