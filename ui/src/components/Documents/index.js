@@ -2,7 +2,7 @@ import Upload from "./Upload";
 import Tree from "./Tree";
 import { useState, useRef } from "react";
 import { Container, Row, Col, Button } from "react-bootstrap";
-import { Document, Page } from "react-pdf/dist/esm/entry.webpack";
+import { Document, Page } from "react-pdf";
 import constants from "../../common/constants";
 
 export default function DocumentList() {
