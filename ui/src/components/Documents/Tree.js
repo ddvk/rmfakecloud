@@ -31,16 +31,17 @@ const treeStyle = {
                     position: 'relative',
                     display: 'inline-block',
                     verticalAlign: 'top',
-                    marginLeft: '-5px',
+                    marginLeft: '5px',
                     height: '13px',
                     width: '14px'
                 },
                 wrapper: {
-                    position: 'absolute',
+                    // position: 'absolute',
                     verticalAlign: 'bottom',
                     // top: '50%',
                     // left: '50%',
-                    margin: '-7px 0 0 -7px',
+                    // margin: '-7px 0 0 -7px',
+                    margin: '0px 0px 0 0',
                     height: '14px'
                 },
                 height: 14,
@@ -59,15 +60,16 @@ const treeStyle = {
                 connector: {
                     width: '2px',
                     height: '12px',
-                    borderLeft: 'solid 2px black',
-                    borderBottom: 'solid 2px black',
+                    // borderLeft: 'solid 2px black',
+                    // borderBottom: 'solid 2px black',
                     position: 'absolute',
                     // top: '0px',
                     // left: '-21px'
                 },
                 title: {
                     lineHeight: '24px',
-                    verticalAlign: 'middle'
+                    // verticalAlign: 'middle',
+                    padding: '5px'
                 }
             },
             subtree: {
@@ -120,7 +122,6 @@ const TreeExample = (props) => {
         return <div>No documents</div>;
     }
     const onToggle = (node, toggled) => {
-        console.log('toggle')
         if (cursor) {
             cursor.active = false;
         }

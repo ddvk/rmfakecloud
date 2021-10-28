@@ -69,6 +69,14 @@ class ApiServices {
                 return r.blob()
             })
     }
+    updateuser(usr){
+        return fetch(`${constants.ROOT_URL}/users`, {
+            method: "PUT",
+            headers: this.header(),
+            body: JSON.stringify(usr)
+        }).then(r => handleError(r));
+
+    }
 
 }
 

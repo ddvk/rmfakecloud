@@ -3,7 +3,18 @@ import { Route, Redirect } from "react-router-dom";
 import { logout } from "./Login/actions";
 import { useAuthState, useAuthDispatch } from "../hooks/useAuthContext";
 
-export const PrivateRoute = ({ component: Component, roles, ...rest }) => {
+type RouteProp = {
+  component: React.ComponentType<any>;
+  roles?: string[];
+  exact?: boolean;
+  path: string;
+};
+
+export const PrivateRoute = ({
+  component: Component,
+  roles,
+  ...rest
+}: RouteProp) => {
   const { user } = useAuthState(); //read the values of loading and errorMessage from context
   const authDispatch = useAuthDispatch();
   return (

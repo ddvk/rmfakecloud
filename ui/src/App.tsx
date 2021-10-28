@@ -3,7 +3,7 @@ import React from "react";
 import Navigationbar from "./components/Navigation/NavigationBar";
 import Login from "./components/Login/Login";
 import UserList from "./components/User/UserList";
-// import UserProfile from "./components/User/UserProfile";
+import UserProfile from "./components/User/UserProfile";
 import Home from "./components/Home";
 import Documents from "./components/Documents";
 import NoMatch from "./components/NoMatch";
@@ -27,7 +27,7 @@ export default function App() {
             <PrivateRoute path="/documents" component={Documents} />
             <PrivateRoute path="/generatecode" component={CodeGenerator} />
             <PrivateRoute path="/resetPassword" component={ResetPassword} />
-            {/* <PrivateRoute path="/userList/:userid" component={UserProfile} /> */}
+            <PrivateRoute path="/userList/:userid" component={UserProfile} /> 
             <PrivateRoute
               path="/userList"
               roles={[Role.Admin]}

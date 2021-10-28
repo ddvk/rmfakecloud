@@ -333,9 +333,10 @@ func (app *ReactAppWrapper) getAppUsers(c *gin.Context) {
 	uilist := make([]viewmodel.User, 0)
 	for _, u := range users {
 		usr := viewmodel.User{
-			ID:    u.ID,
-			Email: u.Email,
-			Name:  u.Name,
+			ID:        u.ID,
+			Email:     u.Email,
+			Name:      u.Name,
+			CreatedAt: u.CreatedAt,
 		}
 		uilist = append(uilist, usr)
 	}
@@ -363,5 +364,32 @@ func (app *ReactAppWrapper) getUser(c *gin.Context) {
 }
 
 func (app *ReactAppWrapper) updateUser(c *gin.Context) {
-	c.Status(http.StatusCreated)
+	var usr viewmodel.User
+	if err := c.ShouldBindJSON(&usr); err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	user, err := app.userStorer.GetUser(usr.ID)
+	if err != nil {
+		log.Error(err)
+		badReq(c, err.Error())
+		return
+	}
+
+	if user == nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, "Invalid user")
+		return
+	}
+	if usr.NewPassword == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, "empty password")
+		return
+	}
+	user.SetPassword(usr.NewPassword)
+	err = app.userStorer.UpdateUser(user)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.Status(http.StatusAccepted)
 }
