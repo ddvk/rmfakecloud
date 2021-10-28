@@ -1,6 +1,6 @@
 import React from "react";
-import useFetch from "../../hooks/useFetch";
-import Spinner from "../Spinner";
+import useFetch from "../hooks/useFetch";
+import Spinner from "./Spinner";
 import Table from "react-bootstrap/Table";
 import { Link } from "react-router-dom";
 

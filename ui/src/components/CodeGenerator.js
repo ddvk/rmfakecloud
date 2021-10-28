@@ -1,5 +1,5 @@
 import React, {useState} from "react";
-import apiservice from "../../services/api.service"
+import apiservice from "../services/api.service"
 
 
 export default function CodeGenerator() {

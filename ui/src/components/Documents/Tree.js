@@ -1,4 +1,4 @@
-import { React, useEffect, useState } from 'react';
+import { React, useCallback, useEffect, useState } from 'react';
 import { Treebeard } from 'react-treebeard';
 import apiservice from "../../services/api.service"
 
@@ -91,6 +91,8 @@ const TreeExample = (props) => {
     const [downloadError, setDownloadError] = useState();
     const [dwn, setDownloadUrl] = useState();
     const [cursor, setCursor] = useState(false);
+    const [anchorPoint, setAnchorPoint] = useState();
+    const {onFileSelected} = props
 
     const loadDocs = () =>
         apiservice.listDocument()
@@ -111,6 +113,19 @@ const TreeExample = (props) => {
         loadDocs()
     },[props.counter])
 
+    const handleContextMenu = useCallback(
+        (event) => {
+            event.preventDefault();
+            setAnchorPoint({x:event.x, y:event.y})
+        },
+        [setAnchorPoint ],
+    )
+
+    useEffect(()=>{
+        document.addEventListener("contextmenu", (event)=>{
+        })
+    });
+
     if (data.loading) {
         return <div>Loading...</div>;
     }
@@ -130,10 +145,16 @@ const TreeExample = (props) => {
         if (node.children) {
             node.toggled = toggled;
             setDownloadUrl(null);
+            if (onFileSelected) {
+                onFileSelected(null);
+            }
             props.onFolderChanged(node.id);
         } else {
             //TODO: another quick poc hack
             setDownloadUrl({id:node.id, name:node.name})
+            if (onFileSelected) {
+                onFileSelected(node.id);
+            }
         }
         setCursor(node);
         setData(Object.assign({}, data))

@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import apiservice from "../../services/api.service";
+import apiservice from "../services/api.service";
 import Form from "react-bootstrap/Form";
 import Button from "react-bootstrap/Button";
-import { useAuthState, useAuthDispatch } from "../../hooks/useAuthContext";
-import PasswordField from "../PasswordField";
-import { logout } from "../Login/actions";
+import { useAuthState, useAuthDispatch } from "../common/useAuthContext";
+import PasswordField from "./PasswordField";
+import { logout } from "../common/actions";
 
 export default function OwnUserProfile() {
   const { user: loggedInUser } = useAuthState();

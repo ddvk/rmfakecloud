@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { useAuthDispatch, useAuthState } from "../../hooks/useAuthContext";
-import { loginUser } from "./actions";
+import { useAuthDispatch, useAuthState } from "../../common/useAuthContext";
+import { loginUser } from "../../common/actions";
 import styles from "./Login.module.css";
 
 const Login = ({ history }) => {

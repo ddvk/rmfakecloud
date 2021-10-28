@@ -1,7 +1,7 @@
 import React from "react";
 import { Nav, Navbar, Button, NavDropdown } from "react-bootstrap";
-import { logout } from "../Login/actions";
-import { useAuthDispatch, useAuthState } from "../../hooks/useAuthContext";
+import { logout } from "../common/actions";
+import { useAuthDispatch, useAuthState } from "../common/useAuthContext";
 import { NavLink } from "react-router-dom";
 
 const NavigationBar = () => {

@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import { useHistory } from "react-router-dom";
 
-import NoMatch from "../NoMatch";
+import NoMatch from "./NoMatch";
 import Form from "react-bootstrap/Form";
 import Button from "react-bootstrap/Button";
-import Spinner from "../Spinner";
-import useFetch from "../../hooks/useFetch";
-import apiService from "../../services/api.service";
+import Spinner from "./Spinner";
+import useFetch from "../hooks/useFetch";
+import apiService from "../services/api.service";
 
 import { useParams } from "react-router-dom";
 
