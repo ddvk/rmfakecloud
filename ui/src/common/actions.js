@@ -1,5 +1,5 @@
 import jwt_decode from "jwt-decode";
-import constants from "../../common/constants"
+import constants from "./constants"
 
 export async function loginUser(dispatch, loginPayload) {
   const requestOptions = {

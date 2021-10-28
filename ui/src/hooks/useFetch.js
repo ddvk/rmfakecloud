@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useAuthState, useAuthDispatch } from "./useAuthContext";
+import { useAuthState, useAuthDispatch } from "../common/useAuthContext";
 import constants from "../common/constants"
 
 

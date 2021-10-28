@@ -18,6 +18,9 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	router.GET("/robots.txt", func(c *gin.Context) {
 		c.FileFromFS("/robots.txt", app.fs)
 	})
+	router.GET("/pdf.worker.js", func(c *gin.Context) {
+		c.FileFromFS("/pdf.worker.js", app.fs)
+	})
 
 	router.HEAD("/", func(c *gin.Context) {
 		c.Status(http.StatusOK)

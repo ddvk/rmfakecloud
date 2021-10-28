@@ -1,7 +1,7 @@
 import React from "react";
 import { Route, Redirect } from "react-router-dom";
-import { logout } from "./Login/actions";
-import { useAuthState, useAuthDispatch } from "../hooks/useAuthContext";
+import { logout } from "../common/actions";
+import { useAuthState, useAuthDispatch } from "../common/useAuthContext";
 
 type RouteProp = {
   component: React.ComponentType<any>;
