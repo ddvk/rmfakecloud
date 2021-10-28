@@ -248,13 +248,13 @@ const historyFile = ".root.history"
 const rootFile = "root"
 
 // GetBlobURL return a url for a file to store
-func (fs *FileSystemStorage) GetBlobURL(uid, blobid string) (docurl string, exp time.Time, err error) {
+func (fs *FileSystemStorage) GetBlobURL(uid, blobid, scope string) (docurl string, exp time.Time, err error) {
 	uploadRL := fs.Cfg.StorageURL
 	exp = time.Now().Add(time.Minute * config.ReadStorageExpirationInMinutes)
 	strExp := strconv.FormatInt(exp.Unix(), 10)
 
 	log.Info("signing ", uid)
-	signature, err := SignURLParams([]string{uid, blobid, strExp}, fs.Cfg.JWTSecretKey)
+	signature, err := SignURLParams([]string{uid, blobid, strExp, scope}, fs.Cfg.JWTSecretKey)
 	if err != nil {
 		return
 	}
@@ -264,6 +264,7 @@ func (fs *FileSystemStorage) GetBlobURL(uid, blobid string) (docurl string, exp 
 		ParamBlobID:    {blobid},
 		ParamExp:       {strExp},
 		ParamSignature: {signature},
+		ParamScope:     {scope},
 	}
 
 	blobURL := uploadRL + RouteBlob + "?" + params.Encode()
