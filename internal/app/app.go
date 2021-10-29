@@ -55,10 +55,12 @@ func (app *App) Start() {
 	}
 
 	if tlsConfig != nil {
+		log.Info("Using TLS")
 		if err := app.srv.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("listen: %s\n", err)
 		}
 	} else {
+		log.Info("Using plain HTTP")
 		if err := app.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("listen: %s\n", err)
 		}

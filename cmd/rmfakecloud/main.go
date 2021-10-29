@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -62,11 +61,11 @@ Commands:
 		logger.SetLevel(lvl)
 	}
 
-	logrus.Println("Version: ", version)
+	logrus.Info("Version: ", version)
 	// configs
-	log.Println("Documents will be saved in:", cfg.DataDir)
-	log.Println("Url the device should use:", cfg.StorageURL)
-	log.Println("Listening on port:", cfg.Port)
+	logrus.Info("STORAGE_URL, The device should use this URL: ", cfg.StorageURL)
+	logrus.Info("Documents will be saved in:", cfg.DataDir)
+	logrus.Info("Listening on port:", cfg.Port)
 
 	gin.DefaultWriter = logger.Writer()
 
@@ -76,7 +75,7 @@ Commands:
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 	<-quit
-	log.Println("Stopping the service...")
+	logrus.Println("Stopping the service...")
 	a.Stop()
-	log.Println("Stopped")
+	logrus.Println("Stopped")
 }

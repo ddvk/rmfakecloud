@@ -22,10 +22,6 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 		c.FileFromFS("/pdf.worker.js", app.fs)
 	})
 
-	router.HEAD("/", func(c *gin.Context) {
-		c.Status(http.StatusOK)
-	})
-
 	//hack for index.html
 	router.NoRoute(func(c *gin.Context) {
 		uri := c.Request.RequestURI
@@ -51,6 +47,9 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	//with authentication
 	auth := r.Group("")
 	auth.Use(app.authMiddleware())
+	auth.HEAD("/", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
 	auth.GET("sync", func(c *gin.Context) {
 		uid := c.GetString(userIDContextKey)
 		br := c.GetString(browserIDContextKey)

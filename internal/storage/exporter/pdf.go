@@ -169,7 +169,6 @@ func (p *PdfGenerator) Generate(zip *MyArchive, output io.Writer, options PdfGen
 
 func (p *PdfGenerator) initBackgroundPages(r io.ReadSeeker) error {
 	if r != nil {
-		logrus.Info("new seker")
 		pdfReader, err := pdf.NewPdfReader(r)
 		if err != nil {
 			return err

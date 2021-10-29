@@ -1,14 +1,16 @@
 import React, { useState } from "react";
-import { useAuthDispatch, useAuthState } from "../../common/useAuthContext";
+import { useAuthState } from "../../common/useAuthContext";
 import { loginUser } from "../../common/actions";
 import styles from "./Login.module.css";
+import { useHistory } from "react-router";
 
-const Login = ({ history }) => {
+const Login = () => {
+  let history = useHistory();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const dispatch = useAuthDispatch(); //get the dispatch method from the useDispatch custom hook
-  const { loading, errorMessage } = useAuthState(); //read the values of loading and errorMessage from context
+  const { state, dispatch } = useAuthState(); //read the values of loading and errorMessage from context
+  const { errorMessage, loading } = state;
 
   const handleLogin = async (e) => {
     e.preventDefault();

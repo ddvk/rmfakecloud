@@ -80,7 +80,7 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 		err = exporter.RenderRmapi(archive, writer)
 		if err != nil {
 			log.Error(err)
-			writer.CloseWithError(err)
+			writer.Close()
 			return
 		}
 		writer.Close()

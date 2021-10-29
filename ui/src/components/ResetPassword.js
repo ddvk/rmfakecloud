@@ -2,17 +2,16 @@ import React, { useState } from "react";
 import apiservice from "../services/api.service";
 import Form from "react-bootstrap/Form";
 import Button from "react-bootstrap/Button";
-import { useAuthState, useAuthDispatch } from "../common/useAuthContext";
+import { useAuthState } from "../common/useAuthContext";
 import PasswordField from "./PasswordField";
 import { logout } from "../common/actions";
 
 export default function OwnUserProfile() {
-  const { user: loggedInUser } = useAuthState();
-  const authDispatch = useAuthDispatch();
+  const { state:{ user }, dispatch } = useAuthState();
 
   const [formErrors, setFormErrors] = useState({});
   const [resetPasswordForm, setResetPasswordForm] = useState({
-    email: loggedInUser.Email,
+    email: user.Email,
     currentPassword: null,
     newPassword: null,
     confirmNewPassword: null,
@@ -49,7 +48,7 @@ export default function OwnUserProfile() {
     apiservice.resetPassword(resetPasswordForm)
     .then(r => {
       if (r.ok) {
-        logout(authDispatch)
+        logout(dispatch)
         return
       }
       if (r.status === 400) {

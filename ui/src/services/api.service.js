@@ -1,10 +1,40 @@
-import constants from "../common/constants"
+import constants from "../common/constants";
+import jwt_decode from "jwt-decode";
 
 class ApiServices {
     header() {
         return {
             "Content-Type": "application/json"
         };
+    }
+    checkLogin(){
+        if (localStorage.getItem("currentUser")){
+        return fetch(`${constants.ROOT_URL}/`, {
+            method: "HEAD",
+        }).then(handleError)
+        }
+    }
+    login(loginData) {
+        return fetch(`${constants.ROOT_URL}/login`, {
+            method: "POST",
+            headers: this.header(),
+            body: JSON.stringify( loginData),
+        }).then(r => {
+            if (!r.ok){
+                throw new Error(r.statusText)
+            }
+            return r.text()
+        }) 
+       .then(text => {
+            let user = jwt_decode(text)
+            localStorage.setItem("currentUser", JSON.stringify(user));
+            return user;
+        })
+    }
+
+    logout() {
+        removeUser();
+        fetch(`${constants.ROOT_URL}/logout`)
     }
 
     upload(parent, files) {
@@ -14,12 +44,8 @@ class ApiServices {
             formData.append("file", f)
         });
 
-        let { Authorization } = this.header()
         return fetch(`${constants.ROOT_URL}/documents/upload`, {
             method: "POST",
-            headers: {
-                Authorization
-            },
             body: formData
         })
             .then(handleError)
@@ -27,7 +53,6 @@ class ApiServices {
     }
 
     resetPassword(resetPasswordForm) {
-
         return fetch(`${constants.ROOT_URL}/resetPassword`, {
             method: "POST",
             headers: this.header(),
@@ -61,7 +86,7 @@ class ApiServices {
     download(id) {
         return fetch(`${constants.ROOT_URL}/documents/${id}`, {
             method: "GET",
-            headers: this.header()
+            // headers: this.header()
         })
             .then(r => {
                 handleError(r)
@@ -80,14 +105,17 @@ class ApiServices {
 
 }
 
+function removeUser(){
+    localStorage.removeItem("currentUser");
+}
 function handleError(r) {
-    if (r.status === 401) {
-        localStorage.removeItem("currentUser");
-        window.location.replace("/login")
-        throw new Error("not authorized")
-    }
     if (!r.ok) {
-        throw new Error(r.status)
+        if (r.status === 401) {
+            removeUser();
+            window.location.reload(true);
+            return
+        }
+        return Promise.reject(r.status)
     }
 }
 
