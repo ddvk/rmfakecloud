@@ -161,7 +161,9 @@ func (app *App) downloadBlob(c *gin.Context) {
 	}
 	defer reader.Close()
 
-	log.Debug("Sending gen: ", generation)
+	if blobID == "root" {
+		log.Debug("Sending gen: ", generation)
+	}
 	c.Header(GenerationHeader, strconv.FormatInt(generation, 10))
 	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
 }

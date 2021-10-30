@@ -253,7 +253,6 @@ func (fs *FileSystemStorage) GetBlobURL(uid, blobid, scope string) (docurl strin
 	exp = time.Now().Add(time.Minute * config.ReadStorageExpirationInMinutes)
 	strExp := strconv.FormatInt(exp.Unix(), 10)
 
-	log.Info("signing ", uid)
 	signature, err := SignURLParams([]string{uid, blobid, strExp, scope}, fs.Cfg.JWTSecretKey)
 	if err != nil {
 		return
@@ -274,7 +273,7 @@ func (fs *FileSystemStorage) GetBlobURL(uid, blobid, scope string) (docurl strin
 
 // LoadBlob Opens a blob by id
 func (fs *FileSystemStorage) LoadBlob(uid, blobid string) (io.ReadCloser, int64, error) {
-	generation := int64(1)
+	generation := int64(0)
 	blobPath := path.Join(fs.getUserBlobPath(uid), sanitize(blobid))
 	log.Debugln("Fullpath:", blobPath)
 	if blobid == rootFile {
