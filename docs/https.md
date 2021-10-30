@@ -2,8 +2,7 @@
 Now you can run TLS directly on rmfakecloud:
 ```
 TLS_CERT=somecert
-TLS_CERT_KEY=somecertkey
-```
+TLS_KEY=somecertkey``
 
 
 # Behind a Reverse Proxy
