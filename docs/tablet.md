@@ -52,7 +52,7 @@ Steps:
 - generate the certs from Variant 1, you get them (proxy.crt, proxy.key, ca.crt) and trust the ca.crt
 - run rmfakecloud with:
 ```
-    TLS_CERT_KEY=proxy.key  
+    TLS_KEY=proxy.key  
     TLS_CERT=proxy.crt
     STORAGE_URL=https://local.apphost.com
 ```
