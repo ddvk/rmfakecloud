@@ -69,7 +69,7 @@ There were two other config changes to make:
 
 stop services
 ```
-systemctl start xochitl
+systemctl stop xochitl
 systemctl stop proxy 
 ```
 
