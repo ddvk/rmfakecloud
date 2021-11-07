@@ -1,18 +1,15 @@
 # rmfakecloud
+rmfakecloud is a clone of the cloud sync the remarkable tablet is using, in case you want to sync/backup your files and have full control of the hosting/storage environment.
 
-
-rmfakecloud is a clone of the cloud sync the remarkable tablet is using, in case you want to sync/backup your files and have full control of the hosting/storage environment and don't trust Google.
-
-# Breaking Changes
-- after v0.0.3 the files in `/data` will have to be manually move to the user that will be created
+## Breaking Changes
+- after v0.0.3 the files in `/data` will have to be manually moved to the user that will be created
 - with v0.0.5 the new diff sync15 is added as an option, in order to use it modify the user with `setuser -u user -s`  
   or modify the profile and add `sync15:true`  
   a full resync will be needed (the tablet will do it), the old files are kept as they are and everying is put in a new directory
 
+## Installation
 
-# Installation
-
-## From source
+### From source
 
 Install and build the project, under Linux:  
 `git clone https://github.com/ddvk/rmfakecloud`  
@@ -21,57 +18,55 @@ Install and build the project, under Linux:
 run  
 `~/dist/rmfakecloud-x64`
 
-
 or clone an do: `go run .`  
 or `make run`  
 or `make` artifacts are in the `dist` folder. the Arm binaries work on pi3 / Synology etc  
 or `make docker && ./rundocker.sh`  
 
+### Docker
+`docker run -it --rm -p 3000:3000 -e JWT_SECRET_KEY='something' ddvk/rmfakecloud` (you can pass `-h` to see the available options
 
-env variables:  
-`JWT_SECRET_KEY` needed for the whole auth thing to work, set something long
+### Configuration Environment Variables
+`JWT_SECRET_KEY` needed for the whole auth thing to work, set something long  
+**`STORAGE_URL`** the address of rmfakecloud **as visible from the tablet**, especially if the host is behind a reverse proxy or in a container (default: http://hostname:port)  
 `PORT` port number (default: 3000)  
 `DATADIR` to set data/files directory (default: data in current dir)  
-`STORAGE_URL` the storage url resolvable from the device, especially if the host is behind a reverse proxy (default: http://hostname:port)  
 `LOGLEVEL` default to **info** (set to **debug** for more logging or **warn**, **error** for less)
 
-## Docker
-`docker run -it --rm -p 3000:3000 ddvk/rmfakecloud` (you can pass `-h` to see the available options
-
-# Initial Login
+## Initial Login
 open `http://localhost:3000` or wherever it was installed
 if no users exist, the first login creates a user
 
-# [Tablet Setup](docs/tablet.md)
+## [Tablet Setup](docs/tablet.md)
 Modifications that the tablet needs
 
-# Uploading / managing documents
-For the time being, until the UI is done, [rmapi](https://github.com/juruen/rmapi) is the easist option.
+## Uploading / managing documents
+The UI is still wip for cli [rmapi](https://github.com/juruen/rmapi) is quite good.
 ```
 export RMAPI_AUTH=http(s)://yourcloud
 export RMAPI_DOC=http(s)://yourcloud
+export RMAPI_HOST=http(s)://yourcloud #the only one needed after 0.0.16
 export RMAPI_CONFIG=~/.rmapi.fake
 rmapi
 ```
 
-
-# Resetting a user's password or creating other users
+## Resetting a user's password or creating other users
 It is advisable to set the rmfakecloud's user to the user it is running under and set the sid bit (`chmod 4700 rmfakecloud`)  
 also make sure the user has write permissions for the `data` directory
 `DATADIR=dirwherethedatais rmfakecloud setuser -u username -p newpassword`
 
-## Caveats
-make sure to set the DATADIR env
+### Caveats
+make sure to set the `DATADIR` env
 Execute it in the context of user under witch the service is running, otherwise the profile will have the wrong user/permissions
 
-# Handwriting Recognition
+## Handwriting Recognition
 In order to get hwr running with myScript register for a developer account and set the env variables: 
 
 `RMAPI_HWR_APPLICATIONKEY`  
 `RMAPI_HWR_HMAC`
 
-# Sending emails
-Define the following env variables:
+## Sending emails
+Set the following env variables:
 
 ```
 RM_SMTP_SERVER=smtp.gmail.com:465
@@ -84,14 +79,14 @@ If you want to provide custom FROM header for your mails, you can use:
 RM_SMTP_FROM='"ReMarkable self-hosted" <user@domain.com>'
 ```
 
-# [HTTPS HowTO](docs/https.md)
+## [HTTPS HowTO](docs/https.md)
 
-# Caveats/ WARNING
+### Caveats/ WARNING
 - (applies when you don't have security) connecting to the api will delete all your files, unless you mark them as not synced `synced:false` prior to syncing (advisable just to disconnect, reconnect the cloud)
 - **if you delete files from the users directory** on the host, on the next sync those will be deleted from the device
 - if you delete the whole user directory (by mistake) on the host, you should disconnect the cloud from the device and reconnect it
 
-# Troubleshooting
+## Troubleshooting
 - check the connectivity between the tablet and the host:
     ping my.remarkable.com (should be localhost)
     ping local.remarkable.com (should be localhost)
@@ -115,7 +110,7 @@ RM_SMTP_FROM='"ReMarkable self-hosted" <user@domain.com>'
 
     journalctl -u proxy
     ```
-- check if the CA cert was correctly installed
+- check whether the CA cert was installed correctly
     when doing `update-ca-certificates` there should have been `1 added`
     check the logs
 
@@ -127,7 +122,7 @@ RM_SMTP_FROM='"ReMarkable self-hosted" <user@domain.com>'
     ```
     if you see *SSL Handshake failed* then something is wrong with the certs
 
-# TODO
+## TODO
 - [ ] UI specify folder on upload
 - [ ] UI add/remove users
 - [ ] UI move files around
