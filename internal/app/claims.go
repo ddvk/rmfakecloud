@@ -21,6 +21,7 @@ type UserClaims struct {
 	DeviceDesc string       `json:"device-desc"`
 	DeviceID   string       `json:"device-id"`
 	Scopes     string       `json:"scopes,omitempty"`
+	Version    int          `json:"version"`
 	jwt.StandardClaims
 }
 
