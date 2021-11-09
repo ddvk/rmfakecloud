@@ -91,8 +91,12 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 // CreateBlobDocument creates a new document
 func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, stream io.Reader) (doc *storage.Document, err error) {
 	ext := path.Ext(filename)
+	if ext == "" {
+		ext = ".pdf"
+	}
 	switch ext {
 	case ".pdf":
+		fallthrough
 	case ".epub":
 	default:
 		return nil, errors.New("unsupported extension: " + ext)

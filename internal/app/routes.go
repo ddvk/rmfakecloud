@@ -80,6 +80,9 @@ func (app *App) registerRoutes(router *gin.Engine) {
 		// hwr
 		authRoutes.POST("/api/v1/page", app.handleHwr)
 
+		// upload docs from ext
+		authRoutes.POST("/doc/v1/files", app.uploadDoc)
+
 		//livesync
 		authRoutes.GET("/livesync/ws/json/2/:authid/sub", func(c *gin.Context) {
 			//TODO: not implemented yet
