@@ -79,6 +79,7 @@ type Config struct {
 	LogFile           string
 	HWRApplicationKey string
 	HWRHmac           string
+	TokenVersion      int
 }
 
 // IsHTTPS is it https

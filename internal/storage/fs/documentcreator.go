@@ -16,6 +16,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 )
 
 func createContent(fileType string) string {
@@ -62,8 +63,13 @@ func extractID(r io.Reader) (string, error) {
 // CreateDocument creates a new document
 func (fs *FileSystemStorage) CreateDocument(uid, filename, parent string, stream io.Reader) (doc *storage.Document, err error) {
 	ext := path.Ext(filename)
+	//HACK:
+	if ext == "" {
+		ext = ".pdf"
+	}
 	switch ext {
 	case ".pdf":
+		fallthrough
 	case ".epub":
 	default:
 		return nil, errors.New("unsupported extension: " + ext)
@@ -116,6 +122,7 @@ func (fs *FileSystemStorage) CreateDocument(uid, filename, parent string, stream
 		content := createContent(ext)
 		entry.Write([]byte(content))
 	} else {
+		logrus.Info("writing file")
 		_, err = io.Copy(file, stream)
 		if err != nil {
 			return

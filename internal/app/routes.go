@@ -30,6 +30,7 @@ func (app *App) registerRoutes(router *gin.Engine) {
 	router.POST("/token/json/2/user/new", app.newUserToken)
 
 	//unregister device
+	router.POST("/token/json/2/device/delete", app.deleteDevice)
 	router.POST("/token/json/3/device/delete", app.deleteDevice)
 
 	//service locator
@@ -79,6 +80,9 @@ func (app *App) registerRoutes(router *gin.Engine) {
 		authRoutes.POST("/api/v2/document", app.sendEmail)
 		// hwr
 		authRoutes.POST("/api/v1/page", app.handleHwr)
+
+		// upload docs from ext
+		authRoutes.POST("/doc/v1/files", app.uploadDoc)
 
 		//livesync
 		authRoutes.GET("/livesync/ws/json/2/:authid/sub", func(c *gin.Context) {

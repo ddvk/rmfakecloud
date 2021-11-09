@@ -39,6 +39,11 @@ func (app *App) authMiddleware() gin.HandlerFunc {
 				break
 			}
 		}
+		if isSync15 {
+			c.Set(syncVersionKey, Version15)
+		} else {
+			c.Set(syncVersionKey, Version10)
+		}
 
 		uid := strings.TrimPrefix(claims.Profile.UserID, "auth0|")
 		c.Set(userIDKey, uid)

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -53,6 +54,9 @@ func (app *App) getUserClaims(c *gin.Context) (*UserClaims, error) {
 		return nil, err
 	}
 	if claims.Profile.UserID == "" {
+		return nil, fmt.Errorf("wrong token, missing userid")
+	}
+	if claims.Version != app.cfg.TokenVersion {
 		return nil, fmt.Errorf("wrong token, missing userid")
 	}
 	return claims, nil
@@ -165,6 +169,7 @@ func (app *App) newUserToken(c *gin.Context) {
 			Id:        user.Email,
 			Audience:  APIUsage,
 		},
+		Version: app.cfg.TokenVersion,
 	}
 
 	tokenString, err := common.SignClaims(claims, app.cfg.JWTSecretKey)
@@ -175,6 +180,89 @@ func (app *App) newUserToken(c *gin.Context) {
 	c.String(http.StatusOK, tokenString)
 }
 
+type metapayload struct {
+	FileName string `json:"file_name"`
+}
+
+func (app *App) uploadDoc(c *gin.Context) {
+	uid := c.GetString(userIDKey)
+	syncVer := c.GetInt(syncVersionKey)
+	deviceId := c.GetString(deviceIDKey)
+	log.Info("uploading file for: ", uid)
+
+	form, err := c.MultipartForm()
+	if err != nil {
+		log.Error(err)
+		badReq(c, "not multiform")
+		return
+	}
+
+	meta := form.Value["meta"][0]
+	if meta == "" {
+		log.Warn(handlerLog, " missing 'meta'")
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	m := metapayload{}
+	err = json.Unmarshal([]byte(meta), &m)
+	if err != nil {
+		log.Warn(handlerLog, " meta not json")
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	if len(form.File["file"]) < 1 {
+		log.Warn(handlerLog, " missing 'file'")
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	file := form.File["file"][0]
+
+	f, err := file.Open()
+	if err != nil {
+		log.Error(handlerLog, err)
+		badReq(c, "cant open attachment")
+		return
+	}
+	defer f.Close()
+
+	if err != nil {
+		log.Error(handlerLog, err)
+		internalError(c, "cant upload document")
+		return
+	}
+	log.Info("Uploading: ", m.FileName)
+
+	//HACK:
+	if syncVer == Version15 {
+		log.Info("sync 15 upload")
+		_, err := app.blobStorer.CreateBlobDocument(uid, m.FileName, "", f)
+		if err != nil {
+			log.Error(handlerLog, err)
+			internalError(c, "cant upload document")
+			return
+		}
+		app.hub.NotifySync(uid, deviceId)
+	} else {
+		log.Info("sync 10 upload")
+		d, err := app.docStorer.CreateDocument(uid, m.FileName, "", f)
+		if err != nil {
+			log.Error(handlerLog, err)
+			internalError(c, "cant upload document")
+			return
+		}
+		ntf := hub.DocumentNotification{
+			Parent:  "",
+			ID:      d.ID,
+			Type:    d.Type,
+			Name:    d.Name,
+			Version: 1,
+		}
+		app.hub.Notify(uid, deviceId, ntf, hub.DocAddedEvent)
+	}
+	c.Status(http.StatusOK)
+}
 func (app *App) sendEmail(c *gin.Context) {
 	uid := c.GetString(userIDKey)
 	log.Info("Sending mail for: ", uid)
