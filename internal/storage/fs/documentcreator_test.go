@@ -37,7 +37,7 @@ func TestCreateDocument(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = os.Stat(path.Join(userdir, d.ID+ZipFileExt))
+	_, err = os.Stat(path.Join(userdir, d.ID+models.ZipFileExt))
 	if err != nil {
 		t.Error(err)
 	}

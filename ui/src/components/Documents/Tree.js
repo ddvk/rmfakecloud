@@ -1,4 +1,4 @@
-import { React, useCallback, useEffect, useState } from 'react';
+import { React, useEffect, useState } from 'react';
 import { Treebeard } from 'react-treebeard';
 import apiservice from "../../services/api.service"
 
@@ -91,7 +91,6 @@ const TreeExample = (props) => {
     const [downloadError, setDownloadError] = useState();
     const [dwn, setDownloadUrl] = useState();
     const [cursor, setCursor] = useState(false);
-    const [anchorPoint, setAnchorPoint] = useState();
     const {onFileSelected} = props
 
     const loadDocs = () =>
@@ -112,14 +111,6 @@ const TreeExample = (props) => {
     useEffect(() => {
         loadDocs()
     },[props.counter])
-
-    const handleContextMenu = useCallback(
-        (event) => {
-            event.preventDefault();
-            setAnchorPoint({x:event.x, y:event.y})
-        },
-        [setAnchorPoint ],
-    )
 
     useEffect(()=>{
         document.addEventListener("contextmenu", (event)=>{

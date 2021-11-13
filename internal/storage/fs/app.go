@@ -19,17 +19,17 @@ import (
 
 const (
 	tokenParam            = "token"
-	GenerationHeader      = "x-goog-generation"
-	GenerationMatchHeader = "x-goog-if-generation-match"
-	StorageUsage          = "storage"
+	generationHeader      = "x-goog-generation"
+	generationMatchHeader = "x-goog-if-generation-match"
+	storageUsage          = "storage"
 
-	ParamUID       = "uid"
-	ParamBlobID    = "blobid"
-	ParamExp       = "exp"
-	ParamSignature = "signature"
-	ParamScope     = "scope"
-	RouteBlob      = "/blobstorage"
-	RouteStorage   = "/storage"
+	paramUID       = "uid"
+	paramBlobID    = "blobid"
+	paramExp       = "exp"
+	paramSignature = "signature"
+	paramScope     = "scope"
+	routeBlob      = "/blobstorage"
+	routeStorage   = "/storage"
 )
 
 // ErrorNotFound not found
@@ -56,12 +56,12 @@ func NewApp(cfg *config.Config, fs *FileSystemStorage) *App {
 // RegisterRoutes blah
 func (app *App) RegisterRoutes(router *gin.Engine) {
 
-	router.GET(RouteStorage+"/:"+tokenParam, app.downloadDocument)
-	router.PUT(RouteStorage+"/:"+tokenParam, app.uploadDocument)
+	router.GET(routeStorage+"/:"+tokenParam, app.downloadDocument)
+	router.PUT(routeStorage+"/:"+tokenParam, app.uploadDocument)
 
 	//sync15
-	router.GET(RouteBlob, app.downloadBlob)
-	router.PUT(RouteBlob, app.uploadBlob)
+	router.GET(routeBlob, app.downloadBlob)
+	router.PUT(routeBlob, app.uploadBlob)
 }
 
 func (app *App) parseToken(token string) (*StorageClaim, error) {
@@ -70,7 +70,7 @@ func (app *App) parseToken(token string) (*StorageClaim, error) {
 	if err != nil {
 		return nil, err
 	}
-	if claim.StandardClaims.Audience != StorageUsage {
+	if claim.StandardClaims.Audience != storageUsage {
 		return nil, errors.New("not a storage token")
 	}
 	return claim, nil
@@ -126,11 +126,11 @@ func (app *App) downloadDocument(c *gin.Context) {
 }
 
 func (app *App) downloadBlob(c *gin.Context) {
-	uid := common.QueryS(ParamUID, c)
-	blobID := common.QueryS(ParamBlobID, c)
-	exp := common.QueryS(ParamExp, c)
-	signature := common.QueryS(ParamSignature, c)
-	scope := common.QueryS(ParamScope, c)
+	uid := common.QueryS(paramUID, c)
+	blobID := common.QueryS(paramBlobID, c)
+	exp := common.QueryS(paramExp, c)
+	signature := common.QueryS(paramSignature, c)
+	scope := common.QueryS(paramScope, c)
 
 	err := VerifyURLParams([]string{uid, blobID, exp, scope}, exp, signature, app.cfg.JWTSecretKey)
 	if err != nil {
@@ -164,16 +164,16 @@ func (app *App) downloadBlob(c *gin.Context) {
 	if blobID == "root" {
 		log.Debug("Sending gen: ", generation)
 	}
-	c.Header(GenerationHeader, strconv.FormatInt(generation, 10))
+	c.Header(generationHeader, strconv.FormatInt(generation, 10))
 	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
 }
 
 func (app *App) uploadBlob(c *gin.Context) {
-	uid := common.QueryS(ParamUID, c)
-	blobID := common.QueryS(ParamBlobID, c)
-	exp := common.QueryS(ParamExp, c)
-	signature := common.QueryS(ParamSignature, c)
-	scope := common.QueryS(ParamScope, c)
+	uid := common.QueryS(paramUID, c)
+	blobID := common.QueryS(paramBlobID, c)
+	exp := common.QueryS(paramExp, c)
+	signature := common.QueryS(paramSignature, c)
+	scope := common.QueryS(paramScope, c)
 
 	err := VerifyURLParams([]string{uid, blobID, exp, scope}, exp, signature, app.cfg.JWTSecretKey)
 	if err != nil {
@@ -194,7 +194,7 @@ func (app *App) uploadBlob(c *gin.Context) {
 	defer body.Close()
 
 	generation := int64(0)
-	gh := c.Request.Header.Get(GenerationMatchHeader)
+	gh := c.Request.Header.Get(generationMatchHeader)
 	if gh != "" {
 		log.Info("Client sent generation:", gh)
 		var err error
@@ -216,7 +216,7 @@ func (app *App) uploadBlob(c *gin.Context) {
 		return
 	}
 
-	c.Header(GenerationHeader, strconv.FormatInt(newgen, 10))
+	c.Header(generationHeader, strconv.FormatInt(newgen, 10))
 	c.JSON(http.StatusOK, gin.H{})
 }
 

@@ -15,6 +15,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/email"
 	"github.com/ddvk/rmfakecloud/internal/hwr"
 	"github.com/ddvk/rmfakecloud/internal/messages"
+	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 	"github.com/gorilla/websocket"
@@ -57,7 +58,7 @@ func (app *App) getUserClaims(c *gin.Context) (*UserClaims, error) {
 		return nil, fmt.Errorf("wrong token, missing userid")
 	}
 	if claims.Version != app.cfg.TokenVersion {
-		return nil, fmt.Errorf("wrong token, missing userid")
+		return nil, fmt.Errorf("wrong token version, server restarted")
 	}
 	return claims, nil
 }
@@ -184,6 +185,17 @@ type metapayload struct {
 	FileName string `json:"file_name"`
 }
 
+func extFromContentType(contentType string) (string, error) {
+	switch contentType {
+
+	case "application/epub+zip":
+		return models.EpubFileExt, nil
+	case "application/pdf":
+		return models.PdfFileExt, nil
+	}
+	return "", fmt.Errorf("unsupported content type %s", contentType)
+}
+
 func (app *App) uploadDoc(c *gin.Context) {
 	uid := c.GetString(userIDKey)
 	syncVer := c.GetInt(syncVersionKey)
@@ -218,6 +230,18 @@ func (app *App) uploadDoc(c *gin.Context) {
 		return
 	}
 	file := form.File["file"][0]
+	if file == nil {
+		log.Error(handlerLog, "no files")
+		badReq(c, "mising file")
+		return
+	}
+	contentType := file.Header.Get("Content-Type")
+	ext, err := extFromContentType(contentType)
+	if err != nil {
+		log.Error(handlerLog, err)
+		badReq(c, "unsupported content type")
+		return
+	}
 
 	f, err := file.Open()
 	if err != nil {
@@ -232,12 +256,13 @@ func (app *App) uploadDoc(c *gin.Context) {
 		internalError(c, "cant upload document")
 		return
 	}
-	log.Info("Uploading: ", m.FileName)
+	fileName := m.FileName + ext
+	log.Info("Uploading: ", fileName)
 
 	//HACK:
 	if syncVer == Version15 {
 		log.Info("sync 15 upload")
-		_, err := app.blobStorer.CreateBlobDocument(uid, m.FileName, "", f)
+		_, err := app.blobStorer.CreateBlobDocument(uid, fileName, "", f)
 		if err != nil {
 			log.Error(handlerLog, err)
 			internalError(c, "cant upload document")
@@ -246,7 +271,7 @@ func (app *App) uploadDoc(c *gin.Context) {
 		app.hub.NotifySync(uid, deviceId)
 	} else {
 		log.Info("sync 10 upload")
-		d, err := app.docStorer.CreateDocument(uid, m.FileName, "", f)
+		d, err := app.docStorer.CreateDocument(uid, fileName, "", f)
 		if err != nil {
 			log.Error(handlerLog, err)
 			internalError(c, "cant upload document")

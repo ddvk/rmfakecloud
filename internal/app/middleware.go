@@ -59,6 +59,7 @@ var dontLogBody = map[string]bool{
 	"/api/v2/document":         true,
 	"/ui/api/documents/upload": true,
 	"/v1/reports":              true,
+	"/doc/v1/files":            true,
 }
 
 func requestLoggerMiddleware() gin.HandlerFunc {
@@ -83,7 +84,7 @@ func requestLoggerMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		if log.IsLevelEnabled(log.DebugLevel) {
+		if log.IsLevelEnabled(log.TraceLevel) {
 			var buf bytes.Buffer
 			tee := io.TeeReader(c.Request.Body, &buf)
 			body, _ := ioutil.ReadAll(tee)

@@ -63,14 +63,10 @@ func extractID(r io.Reader) (string, error) {
 // CreateDocument creates a new document
 func (fs *FileSystemStorage) CreateDocument(uid, filename, parent string, stream io.Reader) (doc *storage.Document, err error) {
 	ext := path.Ext(filename)
-	//HACK:
-	if ext == "" {
-		ext = ".pdf"
-	}
 	switch ext {
-	case ".pdf":
+	case models.PdfFileExt:
 		fallthrough
-	case ".epub":
+	case models.EpubFileExt:
 	default:
 		return nil, errors.New("unsupported extension: " + ext)
 	}
@@ -78,14 +74,14 @@ func (fs *FileSystemStorage) CreateDocument(uid, filename, parent string, stream
 	var docid string
 
 	var isZip = false
-	if ext == ZipFileExt {
+	if ext == models.ZipFileExt {
 		docid, err = extractID(stream)
 		isZip = true
 	} else {
 		docid = uuid.New().String()
 	}
 	//create zip from pdf
-	zipfile := fs.getPathFromUser(uid, docid+ZipFileExt)
+	zipfile := fs.getPathFromUser(uid, docid+models.ZipFileExt)
 	file, err := os.Create(zipfile)
 	if err != nil {
 		return

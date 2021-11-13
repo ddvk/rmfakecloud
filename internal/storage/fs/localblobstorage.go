@@ -43,7 +43,7 @@ func (p *LocalBlobStorage) GetReader(hash string) (io.ReadCloser, error) {
 	return r, err
 }
 
-// Write writes the hash from the reader
+// Write stores the reader in the hash
 func (p *LocalBlobStorage) Write(hash string, r io.Reader) error {
 	_, err := p.fs.StoreBlob(p.uid, hash, r, -1)
 

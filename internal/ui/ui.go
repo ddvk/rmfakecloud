@@ -55,10 +55,13 @@ type ReactAppWrapper struct {
 const indexReplacement = "/default"
 
 // New Create a React app
-func New(cfg *config.Config, userStorer storage.UserStorer,
-	codeConnector codeGenerator, h *hub.Hub,
+func New(cfg *config.Config,
+	userStorer storage.UserStorer,
+	codeConnector codeGenerator,
+	h *hub.Hub,
 	docHandler documentHandler,
 	blobHandler blobHandler) *ReactAppWrapper {
+
 	sub, err := fs.Sub(webui.Assets, "build")
 	if err != nil {
 		panic("not embedded?")

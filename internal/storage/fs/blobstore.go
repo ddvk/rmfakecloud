@@ -91,13 +91,10 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 // CreateBlobDocument creates a new document
 func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, stream io.Reader) (doc *storage.Document, err error) {
 	ext := path.Ext(filename)
-	if ext == "" {
-		ext = ".pdf"
-	}
 	switch ext {
-	case ".pdf":
+	case models.PdfFileExt:
 		fallthrough
-	case ".epub":
+	case models.EpubFileExt:
 	default:
 		return nil, errors.New("unsupported extension: " + ext)
 	}
@@ -105,7 +102,7 @@ func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, st
 
 	docid := uuid.New().String()
 	//create metadata
-	name := strings.TrimSuffix(filename, ext)
+	docName := strings.TrimSuffix(filename, ext)
 	blobPath := fs.getUserBlobPath(uid)
 
 	tree, err := fs.GetTree(uid)
@@ -116,7 +113,7 @@ func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, st
 	log.Info("Creating metadata... parent: ", parent)
 
 	metadata := models.MetadataFile{
-		DocumentName:     name,
+		DocumentName:     docName,
 		CollectionType:   models.DocumentType,
 		Parent:           parent,
 		Version:          1,
@@ -140,7 +137,13 @@ func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, st
 
 	content := createContent(ext)
 	contentHash, size, err := models.Hash(strings.NewReader(content))
-	saveTo(strings.NewReader(content), contentHash, blobPath)
+	if err != nil {
+		return
+	}
+	err = saveTo(strings.NewReader(content), contentHash, blobPath)
+	if err != nil {
+		return
+	}
 	fi = models.NewFileHashEntry(contentHash, docid+models.ContentFileExt)
 	fi.Size = size
 
@@ -211,7 +214,7 @@ func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, st
 		ID:     docid,
 		Type:   models.DocumentType,
 		Parent: "",
-		Name:   name,
+		Name:   docName,
 	}
 	return
 }
@@ -263,14 +266,14 @@ func (fs *FileSystemStorage) GetBlobURL(uid, blobid, scope string) (docurl strin
 	}
 
 	params := url.Values{
-		ParamUID:       {uid},
-		ParamBlobID:    {blobid},
-		ParamExp:       {strExp},
-		ParamSignature: {signature},
-		ParamScope:     {scope},
+		paramUID:       {uid},
+		paramBlobID:    {blobid},
+		paramExp:       {strExp},
+		paramSignature: {signature},
+		paramScope:     {scope},
 	}
 
-	blobURL := uploadRL + RouteBlob + "?" + params.Encode()
+	blobURL := uploadRL + routeBlob + "?" + params.Encode()
 	log.Debugln("blobUrl: ", blobURL)
 	return blobURL, exp, nil
 }

@@ -9,7 +9,7 @@ import Documents from "./components/Documents";
 import NoMatch from "./components/NoMatch";
 
 import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
-import { AuthProvider, useAuthState } from "./common/useAuthContext";
+import { AuthProvider } from "./common/useAuthContext";
 import { PrivateRoute } from "./components/PrivateRoute";
 import CodeGenerator from "./components/CodeGenerator";
 import ResetPassword from "./components/ResetPassword";

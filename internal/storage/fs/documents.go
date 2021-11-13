@@ -62,7 +62,7 @@ func (fs *FileSystemStorage) ExportDocument(uid, id, outputType string, exportOp
 		return nil, err
 	}
 
-	zipFilePath := fs.getPathFromUser(uid, id+ZipFileExt)
+	zipFilePath := fs.getPathFromUser(uid, id+models.ZipFileExt)
 	log.Debugln("Fullpath:", zipFilePath)
 	rawStat, err := os.Stat(zipFilePath)
 	if err != nil {
@@ -115,7 +115,7 @@ func (fs *FileSystemStorage) ExportDocument(uid, id, outputType string, exportOp
 
 // GetDocument Opens a document by id
 func (fs *FileSystemStorage) GetDocument(uid, id string) (io.ReadCloser, error) {
-	fullPath := fs.getPathFromUser(uid, id+ZipFileExt)
+	fullPath := fs.getPathFromUser(uid, id+models.ZipFileExt)
 	log.Debugln("Fullpath:", fullPath)
 	reader, err := os.Open(fullPath)
 	return reader, err
@@ -138,7 +138,7 @@ func (fs *FileSystemStorage) RemoveDocument(uid, id string) error {
 		return err
 	}
 
-	zipfile := filepath.Base(id + ZipFileExt)
+	zipfile := filepath.Base(id + models.ZipFileExt)
 	fullPath = fs.getPathFromUser(uid, zipfile)
 	err = os.Rename(fullPath, path.Join(trashDir, zipfile))
 	if err != nil {
@@ -149,7 +149,7 @@ func (fs *FileSystemStorage) RemoveDocument(uid, id string) error {
 
 // StoreDocument stores a document
 func (fs *FileSystemStorage) StoreDocument(uid, id string, stream io.ReadCloser) error {
-	fullPath := fs.getPathFromUser(uid, id+ZipFileExt)
+	fullPath := fs.getPathFromUser(uid, id+models.ZipFileExt)
 	file, err := os.Create(fullPath)
 	if err != nil {
 		return err
@@ -170,7 +170,7 @@ func (fs *FileSystemStorage) GetStorageURL(uid, id string) (docurl string, expir
 		UserID:     uid,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: exp.Unix(),
-			Audience:  StorageUsage,
+			Audience:  storageUsage,
 		},
 	}
 	signedToken, err := common.SignClaims(claim, fs.Cfg.JWTSecretKey)
@@ -178,5 +178,5 @@ func (fs *FileSystemStorage) GetStorageURL(uid, id string) (docurl string, expir
 		return "", exp, err
 	}
 
-	return fmt.Sprintf("%s%s/%s", uploadRL, RouteStorage, url.QueryEscape(signedToken)), exp, nil
+	return fmt.Sprintf("%s%s/%s", uploadRL, routeStorage, url.QueryEscape(signedToken)), exp, nil
 }
