@@ -141,29 +141,19 @@ func FromEnv() *Config {
 	var cert tls.Certificate
 	certPath := os.Getenv(envTLSCert)
 	keyPath := os.Getenv(envTLSKey)
-	hasCert := false
 	if certPath != "" && keyPath != "" {
 
 		cert, err = tls.LoadX509KeyPair(certPath, keyPath)
 		if err != nil {
 			log.Fatal("unable to load certificate:", err)
 		}
-		hasCert = true
 	}
 	openRegistration, _ := strconv.ParseBool(os.Getenv(envRegistrationOpen))
 
 	uploadURL := os.Getenv(envStorageURL)
 	if uploadURL == "" {
-		host, err := os.Hostname()
-		if err != nil {
-			log.Warn("cannot get hostname")
-			host = DefaultHost
-		}
-		prefix := "http"
-		if hasCert {
-			prefix = "https"
-		}
-		uploadURL = fmt.Sprintf("%s://%s:%s", prefix, host, port)
+		//it will go through the local proxy
+		uploadURL = "https://" + DefaultHost
 	}
 
 	// smtp
