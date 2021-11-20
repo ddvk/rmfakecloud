@@ -146,10 +146,8 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	httpOnly := true
-	secure := app.cfg.IsHTTPS()
 	log.Debug("cookie expires after: ", expiresAfter)
-	c.SetCookie(cookieName, tokenString, int(expiresAfter.Seconds()), "/", "", secure, httpOnly)
+	c.SetCookie(cookieName, tokenString, int(expiresAfter.Seconds()), "/", "", app.cfg.HTTPSCookie, true)
 
 	c.String(http.StatusOK, tokenString)
 }

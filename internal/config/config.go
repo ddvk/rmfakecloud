@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 
 	"github.com/ddvk/rmfakecloud/internal/email"
 	log "github.com/sirupsen/logrus"
@@ -62,7 +61,8 @@ const (
 	// envHwrHmac myScript hmac key
 	envHwrHmac = "RMAPI_HWR_HMAC"
 	// envLogFile log file to use
-	envLogFile = "RM_LOGFILE"
+	envLogFile     = "RM_LOGFILE"
+	envHTTPSCookie = "RM_HTTPS_COOKIE"
 )
 
 // Config config
@@ -80,11 +80,7 @@ type Config struct {
 	HWRApplicationKey string
 	HWRHmac           string
 	TokenVersion      int
-}
-
-// IsHTTPS is it https
-func (cfg *Config) IsHTTPS() bool {
-	return strings.HasPrefix(cfg.StorageURL, "https")
+	HTTPSCookie       bool
 }
 
 // Verify verify
@@ -149,6 +145,7 @@ func FromEnv() *Config {
 		}
 	}
 	openRegistration, _ := strconv.ParseBool(os.Getenv(envRegistrationOpen))
+	httpsCookie, _ := strconv.ParseBool(os.Getenv(envHTTPSCookie))
 
 	uploadURL := os.Getenv(envStorageURL)
 	if uploadURL == "" {
@@ -185,6 +182,7 @@ func FromEnv() *Config {
 		LogFile:           os.Getenv(envLogFile),
 		HWRApplicationKey: os.Getenv(envHwrApplicationKey),
 		HWRHmac:           os.Getenv(envHwrHmac),
+		HTTPSCookie:       httpsCookie,
 	}
 	return &cfg
 }
@@ -199,10 +197,11 @@ General:
 	%s	Log verbosity level (debug, info, warn) (default: info)
 	%s		Port (default: %s)
 	%s		Local storage folder (default: %s)
-	%s	Url the tablet can resolve (default: http(s)://hostname:port)
+	%s	Url the tablet can resolve (default: https://local.apphost.com)
 	%s	Path to the server certificate.
 	%s		Path to the server certificate key.
 	%s	Write logs to file
+	%s Send auth cookie only via https
 
 Emails, smtp:
 	%s
@@ -226,6 +225,7 @@ myScript hwr (needs a developer account):
 		envTLSCert,
 		envTLSKey,
 		envLogFile,
+		envHTTPSCookie,
 
 		envSMTPServer,
 		envSMTPUsername,
