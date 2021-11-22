@@ -38,6 +38,18 @@ type User struct {
 	UpdatedAt     time.Time
 	IsAdmin       bool
 	Sync15        bool
+	Integrations  []IntegrationConfig
+}
+
+type IntegrationConfig struct {
+	ID       string
+	Provider string
+	Name     string
+	Username string
+	Password string
+	Address  string
+	// Insecure ignore TLS cert errors
+	Insecure bool
 }
 
 // GenPassword generates a new random password

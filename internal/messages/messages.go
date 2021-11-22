@@ -1,5 +1,7 @@
 package messages
 
+import "time"
+
 // BlobStorageRequest else
 type BlobStorageRequest struct {
 	Method       string `json:"http_method"`
@@ -105,13 +107,41 @@ type DeviceTokenRequest struct {
 	DeviceID   string `json:"deviceID"`
 }
 
-// SyncCompleted what else
+// SyncCompleted sync ended
 type SyncCompleted struct {
 	ID string `json:"id"`
 }
 
-// IntegrationsResponse what else
+// IntegrationsResponse integrations
 type IntegrationsResponse struct {
-	//TODO:
-	Integrations []string `json:"integrations"`
+	Integrations []Integration `json:"integrations"`
+}
+type Integration struct {
+	Added    time.Time `json:"added"`
+	ID       string    `json:"id"`
+	Issues   string    `json:"issues"`
+	Name     string    `json:"name"`
+	Provider string    `json:"provider"`
+	UserID   string    `json:"userID"`
+}
+
+type IntegrationFile struct {
+	DateChanged      time.Time `json:"dateChanged"`
+	FileExtension    string    `json:"fileExtension"`
+	FileID           string    `json:"fileID"`
+	FileType         string    `json:"fileType"`
+	ID               string    `json:"id"`
+	Name             string    `json:"name"`
+	ProvidedFileType string    `json:"providedFileType"`
+	Size             int       `json:"size"`
+	SourceFileType   string    `json:"sourceFileType"`
+}
+
+type IntegrationFolder struct {
+	Files      []IntegrationFile   `json:"files"`
+	FolderID   string              `json:"folderID"`
+	ID         string              `json:"id"`
+	Name       string              `json:"name"`
+	Path       string              `json:"path"`
+	SubFolders []IntegrationFolder `json:"subFolders"`
 }

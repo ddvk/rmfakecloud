@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/ddvk/rmfakecloud/internal/app"
 	"github.com/ddvk/rmfakecloud/internal/cli"
@@ -70,8 +69,6 @@ Commands:
 
 	gin.DefaultWriter = logger.Writer()
 
-	// invalidate user tokens on restart
-	cfg.TokenVersion = int(time.Now().Unix())
 	a := app.NewApp(cfg)
 	go a.Start()
 
