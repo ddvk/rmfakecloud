@@ -14,6 +14,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/email"
 	"github.com/ddvk/rmfakecloud/internal/hwr"
+	"github.com/ddvk/rmfakecloud/internal/integrations"
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	"github.com/gin-gonic/gin"
@@ -25,6 +26,8 @@ import (
 const (
 	internalErrorMessage = "Internal Error"
 	handlerLog           = "[handler] "
+	// a way to invalidate the user token
+	tokenVersion = 10
 )
 
 func (app *App) getDeviceClaims(c *gin.Context) (*DeviceClaims, error) {
@@ -57,8 +60,8 @@ func (app *App) getUserClaims(c *gin.Context) (*UserClaims, error) {
 	if claims.Profile.UserID == "" {
 		return nil, fmt.Errorf("wrong token, missing userid")
 	}
-	if claims.Version != app.cfg.TokenVersion {
-		return nil, fmt.Errorf("wrong token version, server restarted")
+	if claims.Version != tokenVersion {
+		return nil, fmt.Errorf("wrong token version, something has changed")
 	}
 	return claims, nil
 }
@@ -170,7 +173,7 @@ func (app *App) newUserToken(c *gin.Context) {
 			Id:        user.Email,
 			Audience:  APIUsage,
 		},
-		Version: app.cfg.TokenVersion,
+		Version: tokenVersion,
 	}
 
 	tokenString, err := common.SignClaims(claims, app.cfg.JWTSecretKey)
@@ -199,7 +202,7 @@ func extFromContentType(contentType string) (string, error) {
 func (app *App) uploadDoc(c *gin.Context) {
 	uid := c.GetString(userIDKey)
 	syncVer := c.GetInt(syncVersionKey)
-	deviceId := c.GetString(deviceIDKey)
+	deviceID := c.GetString(deviceIDKey)
 	log.Info("uploading file for: ", uid)
 
 	form, err := c.MultipartForm()
@@ -268,7 +271,7 @@ func (app *App) uploadDoc(c *gin.Context) {
 			internalError(c, "cant upload document")
 			return
 		}
-		app.hub.NotifySync(uid, deviceId)
+		app.hub.NotifySync(uid, deviceID)
 	} else {
 		log.Info("sync 10 upload")
 		d, err := app.docStorer.CreateDocument(uid, fileName, "", f)
@@ -284,7 +287,7 @@ func (app *App) uploadDoc(c *gin.Context) {
 			Name:    d.Name,
 			Version: 1,
 		}
-		app.hub.Notify(uid, deviceId, ntf, hub.DocAddedEvent)
+		app.hub.Notify(uid, deviceID, ntf, hub.DocAddedEvent)
 	}
 	c.Status(http.StatusOK)
 }
@@ -539,9 +542,110 @@ func (app *App) blobStorageUpload(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+func (app *App) integrationsGetMetadata(c *gin.Context) {
+	c.AbortWithStatus(http.StatusNotImplemented)
+}
+
+func (app *App) integrationsUpload(c *gin.Context) {
+	log.Info("uploading...")
+	uid := c.GetString(userIDKey)
+	integrationID := common.ParamS(integrationKey, c)
+	folderID := common.ParamS(folderKey, c)
+	name := common.QueryS("name", c)
+	fileType := common.QueryS("fileType", c)
+
+	integrationProvider, err := integrations.GetIntegrationProvider(app.userStorer, uid, integrationID)
+
+	if err != nil {
+		log.Error(fmt.Errorf("can't get integration, %v", err))
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	body := c.Request.Body
+	id, err := integrationProvider.Upload(folderID, name, fileType, body)
+
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"id": id})
+}
+
+func (app *App) integrationsGetFile(c *gin.Context) {
+	uid := c.GetString(userIDKey)
+	integrationID := common.ParamS(integrationKey, c)
+	fileID := common.ParamS(fileKey, c)
+
+	integrationProvider, err := integrations.GetIntegrationProvider(app.userStorer, uid, integrationID)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	reader, err := integrationProvider.Download(fileID)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	defer reader.Close()
+
+	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
+}
+func (app *App) integrationsList(c *gin.Context) {
+	uid := c.GetString(userIDKey)
+	integrationID := common.ParamS(integrationKey, c)
+	folder := common.ParamS(folderKey, c)
+	folderDepthStr := c.Query("folderDepth")
+	folderDepth := 1
+	if folderDepthStr != "" {
+		folderDepth, _ = strconv.Atoi(folderDepthStr)
+	}
+
+	integrationProvider, err := integrations.GetIntegrationProvider(app.userStorer, uid, integrationID)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	var res messages.IntegrationFolder
+
+	err = integrationProvider.List(&res, folder, folderDepth)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, &res)
+}
 func (app *App) integrations(c *gin.Context) {
-	// uid := c.GetString(userIDKey)
+	uid := c.GetString(userIDKey)
+	user, err := app.userStorer.GetUser(uid)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
 	var res messages.IntegrationsResponse
+	for _, userIntg := range user.Integrations {
+		resIntg := messages.Integration{
+			ID:       userIntg.ID,
+			Name:     userIntg.Name,
+			Provider: userIntg.Provider,
+			UserID:   uid,
+		}
+
+		res.Integrations = append(res.Integrations, resIntg)
+
+	}
+
 	c.JSON(http.StatusOK, &res)
 }
 func (app *App) uploadRequest(c *gin.Context) {

@@ -79,7 +79,6 @@ type Config struct {
 	LogFile           string
 	HWRApplicationKey string
 	HWRHmac           string
-	TokenVersion      int
 	HTTPSCookie       bool
 }
 

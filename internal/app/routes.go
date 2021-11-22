@@ -12,6 +12,12 @@ import (
 var mb uint64 = 2 << 20
 var kb uint64 = 2 << 10
 
+const (
+	integrationKey = "integrationid"
+	folderKey      = "folderid"
+	fileKey        = "file"
+)
+
 func (app *App) registerRoutes(router *gin.Engine) {
 
 	router.GET("/health", func(c *gin.Context) {
@@ -56,7 +62,6 @@ func (app *App) registerRoutes(router *gin.Engine) {
 			c.Status(http.StatusOK)
 			return
 		}
-		// log.Info(hex.Dump(body))
 		c.Status(http.StatusOK)
 	})
 
@@ -92,8 +97,14 @@ func (app *App) registerRoutes(router *gin.Engine) {
 			c.AbortWithStatus(http.StatusNoContent)
 		})
 
+		// integrations
+		authRoutes.GET("/integrations/v1/:"+integrationKey+"/folders/:"+folderKey, app.integrationsList)
+		authRoutes.GET("/integrations/v1/:"+integrationKey+"/files/:"+fileKey+"/metadata", app.integrationsGetMetadata)
+		authRoutes.GET("/integrations/v1/:"+integrationKey+"/files/:"+fileKey, app.integrationsGetFile)
+		authRoutes.POST("/integrations/v1/:"+integrationKey+"/files/:"+folderKey, app.integrationsUpload)
+		authRoutes.GET("/integrations/v1/", app.integrations)
+
 		// sync15
-		authRoutes.POST("/api/v1/integrations", app.integrations)
 		authRoutes.POST("/api/v1/signed-urls/downloads", app.blobStorageDownload)
 		authRoutes.POST("/api/v1/signed-urls/uploads", app.blobStorageUpload)
 		authRoutes.POST("/api/v1/sync-complete", app.syncComplete)

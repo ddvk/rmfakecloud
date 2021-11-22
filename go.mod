@@ -20,6 +20,7 @@ require (
 	github.com/poundifdef/go-remarkable2pdf v0.2.0
 	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5
 	github.com/sirupsen/logrus v1.8.1
+	github.com/studio-b12/gowebdav v0.0.0-20211109083228-3f8721cd4b6f
 	github.com/ugorji/go v1.2.6 // indirect
 	github.com/unidoc/pkcs7 v0.1.0 // indirect
 	github.com/unidoc/unipdf/v3 v3.29.0
