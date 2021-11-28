@@ -6,6 +6,7 @@ require (
 	github.com/adrg/strutil v0.2.3 // indirect
 	github.com/adrg/sysfont v0.1.2 // indirect
 	github.com/adrg/xdg v0.3.4 // indirect
+	github.com/dropbox/dropbox-sdk-go-unofficial/v6 v6.0.3 // indirect
 	github.com/gin-gonic/gin v1.7.4
 	github.com/go-playground/validator/v10 v10.9.0 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible
@@ -24,6 +25,7 @@ require (
 	github.com/ugorji/go v1.2.6 // indirect
 	github.com/unidoc/pkcs7 v0.1.0 // indirect
 	github.com/unidoc/unipdf/v3 v3.29.0
+	go.universe.tf/netboot v0.0.0-20210617221821-fc2840fa7b05 // indirect
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
 	golang.org/x/image v0.0.0-20210628002857-a66eb6448b8d // indirect
 	golang.org/x/sys v0.0.0-20211004093028-2c5d950f24ef // indirect

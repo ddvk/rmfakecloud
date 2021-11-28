@@ -3,7 +3,6 @@ package integrations
 import (
 	"crypto/tls"
 	"encoding/base64"
-	"fmt"
 	"io"
 	"net/http"
 	"path"
@@ -11,38 +10,14 @@ import (
 
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/model"
-	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/sirupsen/logrus"
 	"github.com/studio-b12/gowebdav"
 )
 
 const (
-	rootFolder     = "root"
-	logger         = "[webdav] "
-	webdavProvider = "webdav"
+	rootFolder = "root"
+	logger     = "[webdav] "
 )
-
-// IntegrationProvider abstracts 3rd party integrations
-type IntegrationProvider interface {
-	List(response *messages.IntegrationFolder, folderID string, depth int) error
-	Download(fileID string) (io.ReadCloser, error)
-	Upload(folderID, name, fileType string, reader io.ReadCloser) (string, error)
-}
-
-// GetIntegrationProvider finds the integration provider for the user
-func GetIntegrationProvider(storer storage.UserStorer, uid, integrationid string) (IntegrationProvider, error) {
-	usr, err := storer.GetUser(uid)
-	if err != nil {
-		return nil, err
-	}
-	for _, intg := range usr.Integrations {
-		if intg.Provider == webdavProvider {
-			return NewWebDav(intg), nil
-		}
-	}
-	return nil, fmt.Errorf("integration not found or no implmentation (only webdav) %s", integrationid)
-
-}
 
 func encodeName(n string) string {
 	return base64.URLEncoding.EncodeToString([]byte(n))
@@ -67,13 +42,15 @@ func NewWebDav(in model.IntegrationConfig) *WebDavIntegration {
 			WriteBufferSize: 4096,
 		}
 		c.SetTransport(tr)
-		c.SetInterceptor(func(method string, rq *http.Request) {
-			logrus.Trace(method, " ", rq.URL, " ")
-			if rq.Response != nil {
-				logrus.Trace("RSP ", rq.Response.Status, " ")
+		if logrus.IsLevelEnabled(logrus.TraceLevel) {
+			c.SetInterceptor(func(method string, rq *http.Request) {
+				logrus.Trace(method, " ", rq.URL, " ")
+				if rq.Response != nil {
+					logrus.Trace("RSP ", rq.Response.Status, " ")
 
-			}
-		})
+				}
+			})
+		}
 
 	}
 	return &WebDavIntegration{
@@ -101,7 +78,7 @@ func (w *WebDavIntegration) Upload(folderID, name, fileType string, reader io.Re
 	if err != nil {
 		return
 	}
-	// This fails with 400 without the connect because the reader gets closed, also it may cause high memory usage
+	// This fails with 400 without the connect, also it may cause high memory usage
 	// https://github.com/studio-b12/gowebdav/issues/24#issuecomment-5766910111
 	err = w.c.WriteStream(fullpath, reader, 0644)
 

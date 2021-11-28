@@ -626,26 +626,14 @@ func (app *App) integrationsList(c *gin.Context) {
 }
 func (app *App) integrations(c *gin.Context) {
 	uid := c.GetString(userIDKey)
-	user, err := app.userStorer.GetUser(uid)
+
+	var res messages.IntegrationsResponse
+	err := integrations.List(app.userStorer, uid, &res)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
-
-	var res messages.IntegrationsResponse
-	for _, userIntg := range user.Integrations {
-		resIntg := messages.Integration{
-			ID:       userIntg.ID,
-			Name:     userIntg.Name,
-			Provider: userIntg.Provider,
-			UserID:   uid,
-		}
-
-		res.Integrations = append(res.Integrations, resIntg)
-
-	}
-
 	c.JSON(http.StatusOK, &res)
 }
 func (app *App) uploadRequest(c *gin.Context) {

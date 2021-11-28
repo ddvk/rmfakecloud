@@ -42,12 +42,13 @@ type User struct {
 }
 
 type IntegrationConfig struct {
-	ID       string
-	Provider string
-	Name     string
-	Username string
-	Password string
-	Address  string
+	ID          string
+	Provider    string
+	Name        string
+	Username    string
+	Password    string
+	Address     string
+	Accesstoken string
 	// Insecure ignore TLS cert errors
 	Insecure bool
 }
