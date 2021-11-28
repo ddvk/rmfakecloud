@@ -5,7 +5,7 @@ rmfakecloud is a clone of the cloud sync the remarkable tablet is using, in case
 - after v0.0.3 the files in `/data` will have to be manually moved to the user that will be created
 - with v0.0.5 the new diff sync15 is added as an option, in order to use it modify the user with `setuser -u user -s`  
   or modify the profile and add `sync15:true`  
-  a full resync will be needed (the tablet will do it), the old files are kept as they are and everying is put in a new directory
+  a full resync will be needed (the tablet will do it), the old files are kept as they were and everying is put in a new directory
 
 ## Installation
 
@@ -20,21 +20,22 @@ Install and build the project, under Linux:
 run  
 `~/dist/rmfakecloud-x64`
 
-or clone an do: `go run .`  
+or clone an do: `go run ./cmd/rmfakecloud`  
 or `make run`  
 or `make all` artifacts are in the `dist` folder. the Arm binaries work on pi3 / Synology etc  
 or `make docker && ./rundocker.sh`
 
 
-### Docker
+### From Docker
 `docker run -it --rm -p 3000:3000 -e JWT_SECRET_KEY='something' ddvk/rmfakecloud` (you can pass `-h` to see the available options
 
 ### Configuration Environment Variables
 `JWT_SECRET_KEY` needed for the whole auth thing to work, set something long  
-**`STORAGE_URL`** the address of rmfakecloud **as visible from the tablet**, especially if the host is behind a reverse proxy or in a container (default: http://hostname:port)  
+`STORAGE_URL` controls whether file upload/download goes through the local proxy or directly. the address of rmfakecloud **as visible from the tablet**, especially if the host is behind a reverse proxy or in a container (default: http://hostname:port)  
 `PORT` port number (default: 3000)  
 `DATADIR` to set data/files directory (default: data in current dir)  
 `LOGLEVEL` default to **info** (set to **debug** for more logging or **warn**, **error** for less)
+**`RM_HTTPS_COOKIE=1`** UI, send auth cookies only via https 
 
 ## Initial Login
 open `http://localhost:3000` or wherever it was installed
@@ -45,10 +46,10 @@ Modifications that the tablet needs
 
 
 ## [WebDav](docs/webdav.md)
-3rd party integration with nextCloud
+3rd party integration (eg nextCloud)
 
 ## Uploading / managing documents
-The UI is still wip for cli [rmapi](https://github.com/juruen/rmapi) is quite good.
+The UI is still wip, for cli [rmapi](https://github.com/juruen/rmapi) is quite good.
 ```
 export RMAPI_AUTH=http(s)://yourcloud
 export RMAPI_DOC=http(s)://yourcloud
@@ -86,12 +87,18 @@ If you want to provide custom FROM header for your mails, you can use:
 RM_SMTP_FROM='"ReMarkable self-hosted" <user@domain.com>'
 ```
 
+
+## Development
+run `./dev.sh` which will start the UI and backend
+
 ## [HTTPS HowTO](docs/https.md)
 
 ### Caveats/ WARNING
-- (applies when you don't have security) connecting to the api will delete all your files, unless you mark them as not synced `synced:false` prior to syncing (advisable just to disconnect, reconnect the cloud)
+- (applies when you don't have security, version <= 0.0.3) connecting to the api will delete all your files, unless you mark them as not synced `synced:false` prior to syncing (advisable just to disconnect, reconnect the cloud)
 - **if you delete files from the users directory** on the host, on the next sync those will be deleted from the device
 - if you delete the whole user directory (by mistake) on the host, you should disconnect the cloud from the device and reconnect it
+- after an official update, the proxy and hosts file changes will be removed, the tablet will automatically disconnect from the cloud (by sending an invalid token to the official cloud and getting 403)
+  just reinstall the proxy and reconnect to your cloud
 
 ## Troubleshooting
 - check the connectivity between the tablet and the host:
@@ -124,7 +131,7 @@ RM_SMTP_FROM='"ReMarkable self-hosted" <user@domain.com>'
 - check xochitls's logs, stop the service, start manually with more logging
     ```
     systemctl stop xochitl
-    QT_LOGGING_RULES=xochitl.*=true xochitl | grep -A3 QUrl
+    QT_LOGGING_RULES=rm.network.*=true xochitl | grep -A3 QUrl
 
     ```
     if you see *SSL Handshake failed* then something is wrong with the certs
@@ -140,4 +147,6 @@ RM_SMTP_FROM='"ReMarkable self-hosted" <user@domain.com>'
 - [ ] UI share files between users
 - [ ] UI refactoring
 - [ ] UI sent emails history
-- [ ] livepreview
+- [ ] add message broker
+- [ ] add db
+- [ ] add blob storage
