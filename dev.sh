@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # This starts the webpack devserver and proxies the api requests to the backend
 dir=$(dirname $0)
