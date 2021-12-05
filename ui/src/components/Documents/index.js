@@ -32,12 +32,12 @@ export default function DocumentList() {
   const onPrev = () => {
     console.log(containerRef.current.offsetWidth);
     setPage((p) => {
-      return p - 1;
+      return Math.max(p - 1, 1);
     });
   };
   const onNext = () => {
     setPage((p) => {
-      return p + 1;
+      return Math.min(p + 1, pages);
     });
   };
 
