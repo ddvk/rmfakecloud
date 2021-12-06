@@ -61,7 +61,7 @@ type IntegrationConfig struct {
 
 	// Localfs
 	//TODO: experimental, security blah blah
-	LocalPath string
+	Path string
 }
 
 // GenPassword generates a new random password

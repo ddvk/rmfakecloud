@@ -22,7 +22,7 @@ type localFS struct {
 // newLocalFS localfs integration
 func newLocalFS(i model.IntegrationConfig) *localFS {
 	return &localFS{
-		rootPath: i.LocalPath,
+		rootPath: i.Path,
 	}
 }
 
