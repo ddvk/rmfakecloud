@@ -12,6 +12,7 @@ const (
 	webdavProvider  = "webdav"
 	dropboxProvider = "dropbox"
 	googleProvider  = "google"
+	localfsProvider = "localfs"
 )
 
 // IntegrationProvider abstracts 3rd party integrations
@@ -36,6 +37,8 @@ func GetIntegrationProvider(storer storage.UserStorer, uid, integrationid string
 			return NewWebDav(intg), nil
 		case dropboxProvider:
 			return NewDropbox(intg), nil
+		case localfsProvider:
+			return NewLocalFS(intg), nil
 		}
 	}
 	return nil, fmt.Errorf("integration not found or no implmentation (only webdav) %s", integrationid)

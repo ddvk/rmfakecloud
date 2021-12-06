@@ -51,6 +51,8 @@ type IntegrationConfig struct {
 	Accesstoken string
 	// Insecure ignore TLS cert errors
 	Insecure bool
+	// TODO: experimental, security blah blah
+	LocalPath string
 }
 
 // GenPassword generates a new random password
