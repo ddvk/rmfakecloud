@@ -3,9 +3,13 @@ package integrations
 import (
 	"fmt"
 	"io"
+	"io/fs"
+	"path"
+	"strings"
 
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/storage"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -17,7 +21,7 @@ const (
 
 // IntegrationProvider abstracts 3rd party integrations
 type IntegrationProvider interface {
-	List(response *messages.IntegrationFolder, folderID string, depth int) error
+	List(folderID string, depth int) (result *messages.IntegrationFolder, err error)
 	Download(fileID string) (io.ReadCloser, error)
 	Upload(folderID, name, fileType string, reader io.ReadCloser) (string, error)
 }
@@ -34,11 +38,11 @@ func GetIntegrationProvider(storer storage.UserStorer, uid, integrationid string
 		}
 		switch intg.Provider {
 		case webdavProvider:
-			return NewWebDav(intg), nil
+			return newWebDav(intg), nil
 		case dropboxProvider:
-			return NewDropbox(intg), nil
+			return newDropbox(intg), nil
 		case localfsProvider:
-			return NewLocalFS(intg), nil
+			return newLocalFS(intg), nil
 		}
 	}
 	return nil, fmt.Errorf("integration not found or no implmentation (only webdav) %s", integrationid)
@@ -59,12 +63,14 @@ func fixProviderName(n string) string {
 	}
 }
 
-func List(userstorer storage.UserStorer, uid string, res *messages.IntegrationsResponse) error {
+// List lists the integrations
+func List(userstorer storage.UserStorer, uid string) (*messages.IntegrationsResponse, error) {
 	user, err := userstorer.GetUser(uid)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	res := &messages.IntegrationsResponse{}
 	for _, userIntg := range user.Integrations {
 		resIntg := messages.Integration{
 			ID:       userIntg.ID,
@@ -74,6 +80,76 @@ func List(userstorer storage.UserStorer, uid string, res *messages.IntegrationsR
 		}
 
 		res.Integrations = append(res.Integrations, resIntg)
+	}
+
+	return res, nil
+}
+
+func visitDir(root, currentPath string, depth int, parentFolder *messages.IntegrationFolder,
+	readDir func(string) ([]fs.FileInfo, error)) error {
+	if depth < 1 {
+		return nil
+	}
+
+	fullPath := path.Join(root, currentPath)
+	logrus.Trace(loggerfs, "visiting: ", currentPath)
+	fs, err := readDir(fullPath)
+	if err != nil {
+		return err
+	}
+
+	hasDirs := false
+
+	for _, d := range fs {
+		entryName := d.Name()
+		entryPath := path.Join(currentPath, entryName)
+		encodedPath := encodeName(entryPath)
+		if d.IsDir() {
+			hasDirs = true
+
+			folder := messages.IntegrationFolder{
+				FolderID: encodedPath,
+				ID:       encodedPath,
+				Name:     entryName,
+			}
+
+			err = visitDir(root, entryPath, depth-1, &folder, readDir)
+			if err != nil {
+				return err
+			}
+
+			parentFolder.SubFolders = append(parentFolder.SubFolders, folder)
+			logrus.Trace(loggerfs, "dir added: ", entryPath)
+
+		} else {
+			ext := path.Ext(entryName)
+			contentType := contentTypeFromExt(ext)
+			if contentType == "" {
+				continue
+			}
+
+			docName := strings.TrimSuffix(entryName, ext)
+			extension := strings.TrimPrefix(ext, ".")
+
+			file := messages.IntegrationFile{
+				ProvidedFileType: contentType,
+				DateChanged:      d.ModTime(),
+				FileExtension:    extension,
+				FileType:         extension,
+				ID:               encodedPath,
+				FileID:           encodedPath,
+				Name:             docName,
+				Size:             int(d.Size()),
+				SourceFileType:   contentType,
+			}
+
+			parentFolder.Files = append(parentFolder.Files, file)
+			logrus.Trace(loggerfs, "file added: ", entryPath)
+		}
+	}
+
+	if !hasDirs {
+		parentFolder.SubFolders = make([]messages.IntegrationFolder, 0)
 	}
 
 	return nil

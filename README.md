@@ -44,8 +44,8 @@ if no users exist, the first login creates a user
 Modifications that the tablet needs
 
 
-## [WebDav](docs/webdav.md)
-3rd party integration with nextCloud
+## [Integrations](docs/integrations.md)
+3rd party integrations
 
 ## Uploading / managing documents
 The UI is still wip for cli [rmapi](https://github.com/juruen/rmapi) is quite good.

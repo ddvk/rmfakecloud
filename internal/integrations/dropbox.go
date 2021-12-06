@@ -14,7 +14,7 @@ type DropBox struct {
 	client files.Client
 }
 
-func NewDropbox(i model.IntegrationConfig) *DropBox {
+func newDropbox(i model.IntegrationConfig) *DropBox {
 	cfg := dropbox.Config{
 		Token: i.Accesstoken,
 	}
@@ -24,7 +24,8 @@ func NewDropbox(i model.IntegrationConfig) *DropBox {
 	}
 }
 
-func (d *DropBox) List(response *messages.IntegrationFolder, folderID string, depth int) error {
+func (d *DropBox) List(folderID string, depth int) (*messages.IntegrationFolder, error) {
+
 	args := files.ListFolderArg{
 		Recursive: true,
 		Limit:     3,
@@ -32,7 +33,7 @@ func (d *DropBox) List(response *messages.IntegrationFolder, folderID string, de
 	}
 	res, err := d.client.ListFolder(&args)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	entries := res.Entries
@@ -43,7 +44,7 @@ func (d *DropBox) List(response *messages.IntegrationFolder, folderID string, de
 
 		res, err = d.client.ListFolderContinue(arg)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		entries = append(entries, res.Entries...)
@@ -60,12 +61,13 @@ func (d *DropBox) List(response *messages.IntegrationFolder, folderID string, de
 			logrus.Info("folder:", f.Id)
 		}
 	}
-	response.ID = rootFolder
-	response.FolderID = rootFolder
-	response.Name = "DropBox Root"
+	response := &messages.IntegrationFolder{
+		ID:       rootFolder,
+		FolderID: rootFolder,
+		Name:     "DropBox Root",
+	}
 
-	return nil
-
+	return response, nil
 }
 func (d *DropBox) Download(fileID string) (io.ReadCloser, error) {
 	return nil, nil

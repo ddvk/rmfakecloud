@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"path"
-	"strings"
 
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/model"
@@ -31,8 +30,8 @@ func decodeName(n string) (string, error) {
 	return string(decoded), nil
 }
 
-// NewWebDav new webdav integration
-func NewWebDav(in model.IntegrationConfig) *WebDavIntegration {
+// newWebDav new webdav integration
+func newWebDav(in model.IntegrationConfig) *WebDavIntegration {
 	logrus.Tracef("new client, address: %s, user: %s pass: %s, insecure: %t ", in.Address, in.Username, in.Password, in.Insecure)
 	c := gowebdav.NewClient(in.Address, in.Username, in.Password)
 
@@ -99,74 +98,11 @@ func (w *WebDavIntegration) Download(fileID string) (io.ReadCloser, error) {
 }
 
 // List populates the response
-func (w *WebDavIntegration) List(response *messages.IntegrationFolder, folder string, depth int) error {
-
-	var visitDir func(curpath string, currentDepth, maxDepth int, e *messages.IntegrationFolder) error
-	visitDir = func(currentPath string, currentDepth, maxDepth int, parentFolder *messages.IntegrationFolder) error {
-
-		if currentDepth > maxDepth {
-			return nil
-		}
-
-		logrus.Trace(logger, "visiting: ", currentPath)
-		fs, err := w.c.ReadDir(currentPath)
-		if err != nil {
-			return err
-		}
-
-		hasDirs := false
-
-		for _, d := range fs {
-			entryName := d.Name()
-			fullPath := path.Join(currentPath, entryName)
-			escaped := encodeName(fullPath)
-			if d.IsDir() {
-				hasDirs = true
-				folder := messages.IntegrationFolder{}
-				folder.FolderID = escaped
-				folder.ID = escaped
-				folder.Name = entryName
-
-				err = visitDir(fullPath, currentDepth+1, maxDepth, &folder)
-				if err != nil {
-					return err
-				}
-
-				parentFolder.SubFolders = append(parentFolder.SubFolders, folder)
-				logrus.Trace(logger, "dir added: ", fullPath)
-
-			} else {
-				ext := path.Ext(entryName)
-				contentType := contentTypeFromExt(ext)
-				if contentType == "" {
-					continue
-				}
-
-				file := messages.IntegrationFile{}
-				file.ProvidedFileType = contentType
-				file.DateChanged = d.ModTime()
-				docName := strings.TrimSuffix(entryName, ext)
-				file.FileExtension = strings.TrimPrefix(ext, ".")
-				file.FileType = file.FileExtension
-				file.ID = escaped
-				file.FileID = escaped
-				file.Name = docName
-				file.Size = int(d.Size())
-				file.SourceFileType = file.ProvidedFileType
-
-				parentFolder.Files = append(parentFolder.Files, file)
-				logrus.Trace(logger, "file added: ", fullPath)
-			}
-		}
-		if !hasDirs {
-			parentFolder.SubFolders = make([]messages.IntegrationFolder, 0)
-		}
-
-		return nil
+func (w *WebDavIntegration) List(folder string, depth int) (*messages.IntegrationFolder, error) {
+	response := &messages.IntegrationFolder{
+		FolderID: folder,
+		ID:       folder,
 	}
-
-	response.FolderID = folder
-	response.ID = folder
 
 	if folder == rootFolder {
 		folder = "/"
@@ -174,16 +110,19 @@ func (w *WebDavIntegration) List(response *messages.IntegrationFolder, folder st
 	} else {
 		decoded, err := decodeName(folder)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		folder = decoded
 		response.Name = path.Base(folder)
 	}
 	logrus.Info("[webdav] query for: ", folder, " depth: ", depth)
 
-	err := visitDir(folder, 0, depth, response)
+	err := visitDir("", folder, depth, response, w.c.ReadDir)
+	if err != nil {
+		return nil, err
+	}
 
-	return err
+	return response, nil
 
 }
 

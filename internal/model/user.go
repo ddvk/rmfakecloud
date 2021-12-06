@@ -37,21 +37,30 @@ type User struct {
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 	IsAdmin       bool
-	Sync15        bool
-	Integrations  []IntegrationConfig
+	// Sync15 if the user should use this sync type (which uses a lot less bandwidth)
+	Sync15       bool
+	Integrations []IntegrationConfig
 }
 
+// IntegrationConfig config for various integrations
 type IntegrationConfig struct {
-	ID          string
-	Provider    string
-	Name        string
-	Username    string
-	Password    string
-	Address     string
-	Accesstoken string
+	ID       string
+	Provider string
+	Name     string
+
+	// WebDav
+	Username string
+	Password string
+	Address  string
+
 	// Insecure ignore TLS cert errors
 	Insecure bool
-	// TODO: experimental, security blah blah
+
+	// Dropbox
+	Accesstoken string
+
+	// Localfs
+	//TODO: experimental, security blah blah
 	LocalPath string
 }
 
