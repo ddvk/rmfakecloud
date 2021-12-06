@@ -5,7 +5,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/model"
 	"github.com/sirupsen/logrus"
 )
@@ -26,13 +25,11 @@ func TestListFiles(t *testing.T) {
 	}
 
 	w := GetWebDav()
-	var res messages.IntegrationFolder
-	err := w.List(&res, "root", 2)
+	res, err := w.List("root", 2)
 	if err != nil {
 		t.Error(err)
 	}
 	t.Log(res)
-
 }
 func TestUpload(t *testing.T) {
 	if skip {
@@ -62,5 +59,5 @@ func GetWebDav() IntegrationProvider {
 		Password: os.Getenv("WEBDAV_PASSWORD"),
 		Insecure: true,
 	}
-	return NewWebDav(config)
+	return newWebDav(config)
 }
