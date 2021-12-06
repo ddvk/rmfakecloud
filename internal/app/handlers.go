@@ -613,40 +613,27 @@ func (app *App) integrationsList(c *gin.Context) {
 		return
 	}
 
-	var res messages.IntegrationFolder
+	response, err := integrationProvider.List(folder, folderDepth)
 
-	err = integrationProvider.List(&res, folder, folderDepth)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
-	c.JSON(http.StatusOK, &res)
+	c.JSON(http.StatusOK, response)
 }
 func (app *App) integrations(c *gin.Context) {
 	uid := c.GetString(userIDKey)
-	user, err := app.userStorer.GetUser(uid)
+
+	response, err := integrations.List(app.userStorer, uid)
+
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
-
-	var res messages.IntegrationsResponse
-	for _, userIntg := range user.Integrations {
-		resIntg := messages.Integration{
-			ID:       userIntg.ID,
-			Name:     userIntg.Name,
-			Provider: userIntg.Provider,
-			UserID:   uid,
-		}
-
-		res.Integrations = append(res.Integrations, resIntg)
-
-	}
-
-	c.JSON(http.StatusOK, &res)
+	c.JSON(http.StatusOK, response)
 }
 func (app *App) uploadRequest(c *gin.Context) {
 	uid := c.GetString(userIDKey)
