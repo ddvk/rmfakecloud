@@ -136,7 +136,7 @@ func (app *App) newUserToken(c *gin.Context) {
 		return
 	}
 
-	scopes := []string{"hsu", "intgr", "screenshare", "hwcmail:-1", "mail:-1"}
+	scopes := []string{"intgr", "screenshare", "hwcmail:-1", "mail:-1"}
 
 	if user.Sync15 {
 		log.Info("Using sync 1.5")
@@ -164,6 +164,7 @@ func (app *App) newUserToken(c *gin.Context) {
 		DeviceDesc: deviceToken.DeviceDesc,
 		DeviceID:   deviceToken.DeviceID,
 		Scopes:     scopesStr,
+		Level:      "connect",
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 			NotBefore: now.Unix(),
