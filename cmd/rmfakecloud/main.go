@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"syscall"
@@ -17,19 +18,54 @@ import (
 
 var version string
 
+func configureLogging() io.Closer {
+	logfileName := os.Getenv(config.EnvLogFile)
+	loglevel := os.Getenv(config.EnvLogLevel)
+	logformat := os.Getenv(config.EnvLogFormat)
+
+	logger := logrus.StandardLogger()
+	var formatter logrus.Formatter
+	switch logformat {
+	case "json":
+		formatter = &logrus.JSONFormatter{}
+	default:
+		formatter = &logrus.TextFormatter{}
+	}
+	logger.SetFormatter(formatter)
+
+	var logFile io.Closer
+	if logfileName != "" {
+		logFile, err := os.OpenFile(logfileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "cannot open log file '%s' for writing\n", logfileName)
+		} else {
+			hook := lfshook.NewHook(logFile, &logrus.TextFormatter{DisableColors: true})
+			logger.Hooks.Add(hook)
+		}
+	}
+
+	if lvl, err := logrus.ParseLevel(loglevel); err == nil {
+		fmt.Println("Log level:", lvl)
+		logger.SetLevel(lvl)
+	}
+	gin.DefaultWriter = logger.Writer()
+	return logFile
+}
+
 func main() {
 	flag.Usage = func() {
 		flag.PrintDefaults()
 		fmt.Println("Version: ", version)
-		fmt.Printf(`
-Commands:
-	setuser		create users / reset passwords
-	listusers	list available users
-`)
+		fmt.Println(cli.Usage())
 		fmt.Println(config.EnvVars())
 	}
 
 	flag.Parse()
+
+	logging := configureLogging()
+	if logging != nil {
+		defer logging.Close()
+	}
 
 	cfg := config.FromEnv()
 
@@ -39,35 +75,9 @@ Commands:
 		return
 	}
 
-	fmt.Fprintln(os.Stderr, "run with -h for all available env variables")
 	cfg.Verify()
 
-	logger := logrus.StandardLogger()
-	logger.SetFormatter(&logrus.TextFormatter{})
-
-	if cfg.LogFile != "" {
-		var file, err = os.OpenFile(cfg.LogFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "cannot open log file '%s' for writing\n", cfg.LogFile)
-		} else {
-			defer file.Close()
-			hook := lfshook.NewHook(file, &logrus.TextFormatter{DisableColors: true})
-			logger.Hooks.Add(hook)
-		}
-	}
-
-	if lvl, err := logrus.ParseLevel(os.Getenv(config.EnvLogLevel)); err == nil {
-		fmt.Println("Log level:", lvl)
-		logger.SetLevel(lvl)
-	}
-
 	logrus.Info("Version: ", version)
-	// configs
-	logrus.Info("STORAGE_URL, The device should use this URL: ", cfg.StorageURL)
-	logrus.Info("Documents will be saved in:", cfg.DataDir)
-	logrus.Info("Listening on port:", cfg.Port)
-
-	gin.DefaultWriter = logger.Writer()
 
 	a := app.NewApp(cfg)
 	go a.Start()

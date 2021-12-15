@@ -42,6 +42,10 @@ type App struct {
 
 // Start starts the app
 func (app *App) Start() {
+	// configs
+	log.Info("The device should use this storage URL: ", app.cfg.StorageURL, " Override with: ", config.EnvStorageURL)
+	log.Info("Documents will be saved in: ", app.cfg.DataDir)
+	log.Info("Listening on port: ", app.cfg.Port)
 
 	var tlsConfig *tls.Config
 	if app.cfg.Certificate.Certificate != nil {
