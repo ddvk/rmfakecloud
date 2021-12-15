@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ddvk/rmfakecloud/internal/common"

@@ -9,7 +9,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/model"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 )

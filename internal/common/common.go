@@ -6,8 +6,10 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 )
+
+var signingMethod = jwt.SigningMethodHS256
 
 // GetToken gets the token from the headers
 func GetToken(c *gin.Context) (string, error) {
@@ -30,14 +32,14 @@ func ClaimsFromToken(claim jwt.Claims, token string, key []byte) error {
 	_, err := jwt.ParseWithClaims(token, claim,
 		func(token *jwt.Token) (interface{}, error) {
 			return key, nil
-		})
+		}, jwt.WithValidMethods([]string{signingMethod.Name}))
 
 	return err
 }
 
 // SignClaims signs the claims i.e. creates a token
 func SignClaims(claims jwt.Claims, key []byte) (string, error) {
-	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	jwtToken := jwt.NewWithClaims(signingMethod, claims)
 	jwtToken.Header["kid"] = "1"
 	return jwtToken.SignedString(key)
 }

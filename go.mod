@@ -9,7 +9,7 @@ require (
 	github.com/dropbox/dropbox-sdk-go-unofficial/v6 v6.0.3 // indirect
 	github.com/gin-gonic/gin v1.7.4
 	github.com/go-playground/validator/v10 v10.9.0 // indirect
-	github.com/golang-jwt/jwt v3.2.2+incompatible
+	github.com/golang-jwt/jwt/v4 v4.2.0
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/websocket v1.4.2
