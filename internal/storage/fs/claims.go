@@ -1,6 +1,6 @@
 package fs
 
-import "github.com/golang-jwt/jwt"
+import "github.com/golang-jwt/jwt/v4"
 
 // StorageClaim used for file retrieval
 type StorageClaim struct {

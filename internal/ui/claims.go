@@ -1,6 +1,6 @@
 package ui
 
-import "github.com/golang-jwt/jwt"
+import "github.com/golang-jwt/jwt/v4"
 
 // WebUserClaims the claims
 type WebUserClaims struct {
