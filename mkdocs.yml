@@ -1,5 +1,5 @@
 site_name: rmFakeCloud
-site_url: https://github.arnaut.me/rmfakecloud/
+# site_url: https://github.arnaut.me/rmfakecloud/
 site_description: Self hosted reMarkable sync cloud
 site_author: ddvk
 
@@ -11,9 +11,8 @@ theme:
   locale: en
   
 nav:
-    - Home: index.md
-    - Setup: tablet.md
-#     - Setup:
-#         - Device: tablet.md
-#         - HTTPS: https.md
-#     - Integrations: integrations.md
+  - Home: index.md
+  - Setup:
+      - Device: tablet.md
+      - HTTPS: https.md
+  - Integrations: integrations.md
