@@ -2,4 +2,6 @@ site_name: rmFakeCloud
 
 theme:
   name: material
+  features:
+    - navigation.tabs
   
