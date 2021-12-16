@@ -2,6 +2,10 @@ site_name: rmFakeCloud
 
 theme:
   name: material
-  features:
-    - navigation.tabs
   
+nav:
+    - Home: index.md
+    - Setup:
+        - Device: tablet.md
+        - HTTPS: https.md
+    - Integrations: integrations.md
