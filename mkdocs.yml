@@ -16,3 +16,4 @@ nav:
       - Device: tablet.md
       - HTTPS: https.md
   - Integrations: integrations.md
+  - Browser Extension: browser-extension.md
