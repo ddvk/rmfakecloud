@@ -1,6 +1,15 @@
 There are several ways to make it work, choose whatever works for you
 
 # Automatic
+## Variant 1
+Install using [toltec](https://toltec-dev.org/).
+```commandline
+opkg install rmfakecloud-proxy
+rmfakecloudctl set-upstream <URL>
+rmfakecloudctl enable
+```
+
+## Variant 2
 Get the installer from: [rmfakecloud-proxy](https://github.com/ddvk/rmfakecloud-proxy/releases)
 or run the automagic:  
 ```commandline
