@@ -17,7 +17,7 @@ nav:
       - Docker: install/docker.md
       - Environment Variables: install/environment.md
   - Device Setup:
-      - Device: remarkable/device.md
+      - Device: remarkable/setup.md
       - HTTPS: remarkable/https.md
   - Integrations:
       - WebDAV: integrations/webdav.md
