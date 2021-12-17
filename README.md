@@ -1,7 +1,7 @@
 # rmfakecloud
 This is a replacement of the cloud, in case you want to sync/backup your files and have full control of the hosting environment.
 
-## [Docs][(https://ddvk.github.io/rmfakecloud/)
+## [Docs](https://ddvk.github.io/rmfakecloud/)
 
 ## Breaking Changes
 - after v0.0.3 the files in `/data` will have to be manually moved to the user that will be created
