@@ -1,15 +1,14 @@
-# Tablet Setup
 There are several ways to make it work, choose whatever works for you
 
-## Automatic
+# Automatic
 Get the installer from: [rmfakecloud-proxy](https://github.com/ddvk/rmfakecloud-proxy/releases)
 or run the automagic:  
 ```commandline
 sh -c "$(wget https://raw.githubusercontent.com/ddvk/rmfakecloud/master/scripts/device/automagic.sh -O-)"
 ```
 
-
-# Variant 1
+# Manual
+## Variant 1
 A reverse proxy [rmfakecloud-proxy](https://github.com/ddvk/rmfakecloud-proxy/releases) has to be installed
 run rmfakecloud on whichever port you want, you can use either HTTP (not recommended) or HTTPS, generate a new cert for the url you chose e.g with Let's Encrypt
 
@@ -45,7 +44,7 @@ Windows/Mac Desktop Client:
 **PROS**: easy setup, you can use whichever port you want, you can get a real trusted ca cert from let's encrypt, if running in a trusted network you may chose to use HTTP  
 **CONS**: you have to configure HTTPS on the host yourself, additional Desktop config   
 
-# Variant 2
+## Variant 2
 Connect to the host directly, without a reverse proxy, with HTTPS on :443
 
 Steps:
@@ -66,7 +65,7 @@ Windows/Mac Desktop Client:
 **PROS**: you can use the Windows/Mac clients, no need for a proxy on the device  
 **CONS**: a bit harder to setup, each host has to trust the ca and modify the hosts file, you have to use port 443
 
-# Variant 3
+## Variant 3
 Same as Variant2, but instead of modifying any hosts file, make the changes on your DNS/router:
 - add the host entries directly on your router (Hosts in OpenWRT)
 - trust the ca.crt

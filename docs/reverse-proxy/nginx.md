@@ -1,12 +1,3 @@
-# HTTPS
-Now you can run TLS directly on rmfakecloud:
-```
-TLS_CERT=somecert
-TLS_KEY=somecertkey
-```
-
-
-# Behind a Reverse Proxy
 From @zeigerpuppy
 
 I have rmfakecloud up and running (reMarkable 2 client, Debian 9 server).  It's working great, sync, emails and handwriting recognition are all good.
@@ -96,6 +87,3 @@ systemctl start xochitl
 I think this is all good, happy to hear feedback but I think we should amend a section on the README to show how to configure with HTTPS.
 
 Now, the only thing needed is starting the server automatically....
-
-
-
