@@ -9,6 +9,8 @@ edit_uri: ""
 theme:
   name: material
   locale: en
+  features:
+    - toc.integrate
 
 markdown_extensions:
   - admonition
