@@ -2,9 +2,10 @@
 
 There are several ways to make it work, choose whatever works for you
 
-**IMPORTANT**: whenever the tablet receives a system update, the cloud
-connection will break, and [will have to be
-reenabled](#reenabling-after-a-system-update).
+!!! important
+    Whenever the tablet receives a system update, the cloud
+    connection will break, and [will have to be
+    reenabled](#reenabling-after-a-system-update).
 
 ## Automatic
 
@@ -18,7 +19,7 @@ rmfakecloudctl enable
 
 ### rmfakecloud-proxy script
 Get the installer from: [rmfakecloud-proxy](https://github.com/ddvk/rmfakecloud-proxy/releases)
-or run the automagic:  
+or run the automagic:
 ```commandline
 sh -c "$(wget https://raw.githubusercontent.com/ddvk/rmfakecloud/master/scripts/device/automagic.sh -O-)"
 ```
@@ -57,8 +58,8 @@ Windows/Mac Desktop Client:
 - run a reverse proxy on the host or somewhere else pointing it to rmfakecloud with the same certs
 - profit
 
-**PROS**: easy setup, you can use whichever port you want, you can get a real trusted ca cert from let's encrypt, if running in a trusted network you may chose to use HTTP  
-**CONS**: you have to configure HTTPS on the host yourself, additional Desktop config   
+**PROS**: easy setup, you can use whichever port you want, you can get a real trusted ca cert from let's encrypt, if running in a trusted network you may chose to use HTTP
+**CONS**: you have to configure HTTPS on the host yourself, additional Desktop config
 
 ### Modify device /etc/hosts
 Connect to the host directly, without a reverse proxy, with HTTPS on :443
@@ -67,18 +68,18 @@ Steps:
 - generate the certs from Variant 1, you get them (proxy.crt, proxy.key, ca.crt) and trust the ca.crt
 - run rmfakecloud with:
 ```
-    TLS_KEY=proxy.key  
+    TLS_KEY=proxy.key
     TLS_CERT=proxy.crt
     STORAGE_URL=https://local.apphost.com
 ```
 - modify `/etc/hosts` but use the rmfakecloud's ip instead of 127.0.0.1
-    
+
 Windows/Mac Desktop Client:
 - trust the `ca.crt`  (add it to Trusted Root CA, use cert.msc)
 - modify the hosts file (`\system32\drivers\etc\hosts`) add the same entries as on the tablet
 - profit
- 
-**PROS**: you can use the Windows/Mac clients, no need for a proxy on the device  
+
+**PROS**: you can use the Windows/Mac clients, no need for a proxy on the device
 **CONS**: a bit harder to setup, each host has to trust the ca and modify the hosts file, you have to use port 443
 
 ### Edit router DNS entries
@@ -87,7 +88,7 @@ Same as [the previous method](#modify-/etc/hosts), but instead of modifying any 
 - trust the ca.crt
 - profit
 
-**PROS**: a bit easier, you can you even the mobile apps if you manage to install the root ca  
+**PROS**: a bit easier, you can you even the mobile apps if you manage to install the root ca
 **CONS**: you can't use the official cloud anymore due to the mangled DNS
 
 ## Reenabling after a system update

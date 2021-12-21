@@ -1,16 +1,18 @@
 Building
 ========
 
-Dependencies:
--------------
+Dependencies
+------------
 
-* [nodejs](https://nodejs.org)
+To be able to compile from source, you'll need the following dependencies:
+
+* [nodejs](https://nodejs.org) version 16 at most
 * [yarn](https://yarnpkg.com/)
-* [go](https://go.dev/)
+* [go](https://go.dev/) version 1.16 at least
 * make
 
-Build:
-------
+Build
+-----
 
 ```sh
 git clone https://github.com/ddvk/rmfakecloud
@@ -21,8 +23,9 @@ make all
 Installing
 ==========
 
-1. Copy the rmfakecloud binary for your system from the `dist` folder to `/usr/local/bin` and rename it to `rmfakecloud`
+1. Copy the `rmfakecloud` binary for your system from the `dist` folder to `/usr/local/bin` and rename it to `rmfakecloud`
    e.g. `cp dist/rmfakecloud-x64 /usr/local/bin/rmfakecloud`
+   or `scp dist/rmfakecloud-armv7 raspberry:/usr/local/bin/rmfakecloud`
 2. Setup the service to run with your init system. See below for examples
 3. Create and modify the configuration file. See below for examples
 4. Create the library folder you specified in your configuration file.
@@ -51,6 +54,7 @@ depend() {
     need net localmount
 }
 ```
+
 /etc/conf.d/rmfakecloud
 ```sh
 # Basic settings
@@ -69,6 +73,8 @@ export RMAPI_HWR_APPLICATIONKEY=SOME_KEY
 export RMAPI_HWR_HMAC=SOME_KEY
 ```
 
+Make sure to replace `SOME_KEY` by the return of `openssl rand -base64 48`, see [configuration](configuration.md).
+
 SystemD
 -------
 rmfakecloud.service
@@ -85,6 +91,7 @@ WantedBy=multi-user.target
 Wants=network-online.target
 After=network-online.target
 ```
+
 rmfakecloud.conf
 ```sh
 JWT_SECRET_KEY=SOME_KEY
@@ -101,3 +108,5 @@ RM_SMTP_PASSWORD=MY_PASSWORD
 RMAPI_HWR_APPLICATIONKEY=SOME_KEY
 RMAPI_HWR_HMAC=SOME_KEY
 ```
+
+Make sure to replace `SOME_KEY` by the return of `openssl rand -base64 48`, see [configuration](configuration.md).

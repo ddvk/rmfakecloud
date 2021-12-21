@@ -9,21 +9,24 @@ edit_uri: ""
 theme:
   name: material
   locale: en
-  
+
+markdown_extensions:
+  - admonition
+
 nav:
   - Home: index.md
   - Cloud Setup:
       - From Source: install/source.md
-      - Docker: install/docker.md
-      - Environment Variables: install/environment.md
+      - With Docker: install/docker.md
+      - Configuration: install/configuration.md
+      - Reverse Proxy:
+          - Nginx: install/reverse-proxy/nginx.md
+          - Traefik: install/reverse-proxy/traefik.md
   - Device Setup:
       - Device: remarkable/setup.md
       - HTTPS: remarkable/https.md
-  - Integrations:
-      - WebDAV: integrations/webdav.md
-      - Local File System: integrations/local-file-system.md
+  - Usage:
+      - User Profile: usage/userprofile.md
+      - Integrations: usage/integrations.md
+      - Diff Sync: usage/diff-sync.md
   - Browser Extension: browser-extension.md
-  - Reverse Proxy:
-      - Nginx: reverse-proxy/nginx.md
-      - Traefik: reverse-proxy/traefik.md
-  - TODO: todo.md
