@@ -14,11 +14,12 @@ Build:
 
 ```sh
 git clone https://github.com/ddvk/rmfakecloud
+cd rmfakecloud
 make all
 ```
 
-Running
-=======
+Installing
+==========
 
 1. Copy the rmfakecloud binary for your system from the `dist` folder to `/usr/local/bin` and rename it to `rmfakecloud`
    e.g. `cp dist/rmfakecloud-x64 /usr/local/bin/rmfakecloud`
