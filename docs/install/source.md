@@ -12,16 +12,20 @@ Dependencies:
 Build:
 ------
 
-`git clone https://github.com/ddvk/rmfakecloud`
-`make all`
+```sh
+git clone https://github.com/ddvk/rmfakecloud
+make all
+```
 
 Running
 =======
 
-1. Copy the rmfakecloud binary for your system from the `dist` folder to `/usr/local/bin` and rename it to `rmfakecloud` e.g. `cp dist/rmfakecloud-x64 /usr/local/bin/rmfakecloud`
+1. Copy the rmfakecloud binary for your system from the `dist` folder to `/usr/local/bin` and rename it to `rmfakecloud`
+   e.g. `cp dist/rmfakecloud-x64 /usr/local/bin/rmfakecloud`
 2. Setup the service to run with your init system. See below for examples
 3. Create and modify the configuration file. See below for examples
-4. Create the library folder you specified in your configuration file. e.g. `mkdir /usr/local/lib/rmfakecloud`
+4. Create the library folder you specified in your configuration file.
+   e.g. `mkdir /usr/local/lib/rmfakecloud`
 5. Enable and start the service with your init system.
    e.g. `rc-update add rmfakecloud && service start rmfakecloud` or `systemctl enable --now rmfakecloud`
 
