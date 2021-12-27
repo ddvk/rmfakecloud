@@ -34,7 +34,7 @@ unzip -q "$CRX_NAME" -d "$EXT_ID/"
 cd "$EXT_ID/"
 # Substitute reMarkable domains with custom domain
 echo "Substituting these domain names for '$MY_DOMAIN':" 2>&1
-printf "%s " "${regex_match_domain_group[@]}" 2>&1 && echo
+printf "%s " "${replace_domains[@]}" 2>&1 && echo
 regex_match_domain_group="$(printf "%s|" "${replace_domains[@]}" | sed 's/\./\\./g')"
 regex_match_domain_group="(${regex_match_domain_group::-1})" # Remove trailing '|' and wrap in parentheses
 find ./ -type f -exec sed -E -i "s~(https?://)$regex_match_domain_group~\1$MY_DOMAIN~g" {} \; 
