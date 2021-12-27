@@ -2,6 +2,10 @@
 
 There are several ways to make it work, choose whatever works for you
 
+**IMPORTANT**: whenever the tablet receives a system update, the cloud
+connection will break, and [will have to be
+reenabled](#reenabling-after-a-system-update).
+
 ## Automatic
 
 ### toltec
@@ -85,3 +89,28 @@ Same as [the previous method](#modify-/etc/hosts), but instead of modifying any 
 
 **PROS**: a bit easier, you can you even the mobile apps if you manage to install the root ca  
 **CONS**: you can't use the official cloud anymore due to the mangled DNS
+
+## Reenabling after a system update
+
+Navigate to whatever directory the proxy was downloaded to on your device.
+
+* If you installed using the rmfakecloud-proxy script, this will likely be
+  `~/rmfakecloud/`.
+
+Run the below commands to reinstall the proxy service, which should reenable
+your cloud connection.
+
+```
+# stop services
+systemctl stop xochitl
+systemctl stop proxy
+
+# reinstall the proxy service
+./installer.sh uninstall
+./installer.sh install
+
+# restart services
+systemctl daemon-reload
+systemctl start proxy
+systemctl start xochitl
+```
