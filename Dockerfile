@@ -1,5 +1,5 @@
 ARG VERSION=0.0.0
-FROM node:alpine as uibuilder
+FROM node:lts-alpine as uibuilder
 WORKDIR /src
 COPY ui .
 RUN yarn && yarn build 
