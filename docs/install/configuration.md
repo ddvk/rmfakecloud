@@ -27,6 +27,11 @@ Then you'll obtains an application key and its corresponding HMAC to give to rmf
 
 ## Email settings
 
+!!! warning
+    Currently only TLS connections are supported.
+    It is not possible to use STARTTLS nor uncrypted connections.
+    Port 465 is most likely the one to use instead of 587, if your provider supports it.
+
 To be able to send email from your reMarkable, fill the following variables:
 
 | Variable name          | Description |
