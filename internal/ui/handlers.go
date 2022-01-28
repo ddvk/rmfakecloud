@@ -101,7 +101,7 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 	// Try to find the user
 	user, err := app.userStorer.GetUser(form.Email)
 	if err != nil {
-		log.Error(err)
+		log.Error(uiLogger, err, " cannot load user, login failed ip: ", c.ClientIP())
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
@@ -110,7 +110,7 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 		if err != nil {
 			log.Error(err)
 		} else if !ok {
-			log.Warn(uiLogger, "password mismatch for: ", form.Email)
+			log.Warn(uiLogger, "wrong password for: ", form.Email, ", login failed ip: ", c.ClientIP())
 		}
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
