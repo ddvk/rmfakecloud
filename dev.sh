@@ -5,6 +5,7 @@ dir=$(dirname $0)
 pushd $dir
 export JWT_SECRET_KEY=dev
 export LOGLEVEL=${1:-DEBUG}
+export STORAGE_URL=http://localhost:3000
 make runui &
 PID=$!
 trap "kill $PID" EXIT 

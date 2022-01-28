@@ -126,7 +126,9 @@ func (app *App) downloadDocument(c *gin.Context) {
 }
 
 func (app *App) downloadBlob(c *gin.Context) {
-	uid := common.QueryS(paramUID, c)
+	//not sanitized, email address etc
+	uid := c.Query(paramUID)
+
 	blobID := common.QueryS(paramBlobID, c)
 	exp := common.QueryS(paramExp, c)
 	signature := common.QueryS(paramSignature, c)
@@ -169,7 +171,9 @@ func (app *App) downloadBlob(c *gin.Context) {
 }
 
 func (app *App) uploadBlob(c *gin.Context) {
-	uid := common.QueryS(paramUID, c)
+	//not sanitized, email address etc
+	uid := c.Query(paramUID)
+
 	blobID := common.QueryS(paramBlobID, c)
 	exp := common.QueryS(paramExp, c)
 	signature := common.QueryS(paramSignature, c)
