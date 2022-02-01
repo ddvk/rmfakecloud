@@ -115,3 +115,12 @@ systemctl daemon-reload
 systemctl start proxy
 systemctl start xochitl
 ```
+
+# Login
+
+After you installed the proxy, you will need to login to your account on your device.
+1. Click `Menu > General > Account`
+2. Click on `Setup Account`
+3. On you main computer: Login to https://rmfakecloud.server.net then go to https://rmfakecloud.server.net/generatecode
+4. Enter the shown code on your device
+5. To check that sync is working correctly. Go to `Menu > Storage` and press 
