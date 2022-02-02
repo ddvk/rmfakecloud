@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -13,9 +14,11 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/email"
 	"github.com/ddvk/rmfakecloud/internal/hwr"
+	"github.com/ddvk/rmfakecloud/internal/integrations"
 	"github.com/ddvk/rmfakecloud/internal/messages"
+	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 )
@@ -23,6 +26,8 @@ import (
 const (
 	internalErrorMessage = "Internal Error"
 	handlerLog           = "[handler] "
+	// a way to invalidate the user token
+	tokenVersion = 10
 )
 
 func (app *App) getDeviceClaims(c *gin.Context) (*DeviceClaims, error) {
@@ -54,6 +59,9 @@ func (app *App) getUserClaims(c *gin.Context) (*UserClaims, error) {
 	}
 	if claims.Profile.UserID == "" {
 		return nil, fmt.Errorf("wrong token, missing userid")
+	}
+	if claims.Version != tokenVersion {
+		return nil, fmt.Errorf("wrong token version, something has changed")
 	}
 	return claims, nil
 }
@@ -128,7 +136,7 @@ func (app *App) newUserToken(c *gin.Context) {
 		return
 	}
 
-	scopes := []string{"hsu", "intgr", "screenshare", "hwcmail:-1", "mail:-1"}
+	scopes := []string{"intgr", "screenshare", "hwcmail:-1", "mail:-1"}
 
 	if user.Sync15 {
 		log.Info("Using sync 1.5")
@@ -147,7 +155,7 @@ func (app *App) newUserToken(c *gin.Context) {
 			Connection:    "Username-Password-Authentication",
 			Name:          user.Email,
 			Nickname:      user.Email, // user.Nickname,
-			Email:         user.Email,
+			Email:         fmt.Sprintf("%s (via %s)", user.Email, app.cfg.StorageURL),
 			EmailVerified: true,
 			Picture:       "image.png",
 			CreatedAt:     time.Now(),
@@ -156,6 +164,7 @@ func (app *App) newUserToken(c *gin.Context) {
 		DeviceDesc: deviceToken.DeviceDesc,
 		DeviceID:   deviceToken.DeviceID,
 		Scopes:     scopesStr,
+		Level:      "connect",
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 			NotBefore: now.Unix(),
@@ -165,6 +174,7 @@ func (app *App) newUserToken(c *gin.Context) {
 			Id:        user.Email,
 			Audience:  APIUsage,
 		},
+		Version: tokenVersion,
 	}
 
 	tokenString, err := common.SignClaims(claims, app.cfg.JWTSecretKey)
@@ -175,6 +185,113 @@ func (app *App) newUserToken(c *gin.Context) {
 	c.String(http.StatusOK, tokenString)
 }
 
+type metapayload struct {
+	FileName string `json:"file_name"`
+}
+
+func extFromContentType(contentType string) (string, error) {
+	switch contentType {
+
+	case "application/epub+zip":
+		return models.EpubFileExt, nil
+	case "application/pdf":
+		return models.PdfFileExt, nil
+	}
+	return "", fmt.Errorf("unsupported content type %s", contentType)
+}
+
+func (app *App) uploadDoc(c *gin.Context) {
+	uid := c.GetString(userIDKey)
+	syncVer := c.GetInt(syncVersionKey)
+	deviceID := c.GetString(deviceIDKey)
+	log.Info("uploading file for: ", uid)
+
+	form, err := c.MultipartForm()
+	if err != nil {
+		log.Error(err)
+		badReq(c, "not multiform")
+		return
+	}
+
+	meta := form.Value["meta"][0]
+	if meta == "" {
+		log.Warn(handlerLog, " missing 'meta'")
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	m := metapayload{}
+	err = json.Unmarshal([]byte(meta), &m)
+	if err != nil {
+		log.Warn(handlerLog, " meta not json")
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	if len(form.File["file"]) < 1 {
+		log.Warn(handlerLog, " missing 'file'")
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	file := form.File["file"][0]
+	if file == nil {
+		log.Error(handlerLog, "no files")
+		badReq(c, "mising file")
+		return
+	}
+	contentType := file.Header.Get("Content-Type")
+	ext, err := extFromContentType(contentType)
+	if err != nil {
+		log.Error(handlerLog, err)
+		badReq(c, "unsupported content type")
+		return
+	}
+
+	f, err := file.Open()
+	if err != nil {
+		log.Error(handlerLog, err)
+		badReq(c, "cant open attachment")
+		return
+	}
+	defer f.Close()
+
+	if err != nil {
+		log.Error(handlerLog, err)
+		internalError(c, "cant upload document")
+		return
+	}
+	fileName := m.FileName + ext
+	log.Info("Uploading: ", fileName)
+
+	//HACK:
+	if syncVer == Version15 {
+		log.Info("sync 15 upload")
+		_, err := app.blobStorer.CreateBlobDocument(uid, fileName, "", f)
+		if err != nil {
+			log.Error(handlerLog, err)
+			internalError(c, "cant upload document")
+			return
+		}
+		app.hub.NotifySync(uid, deviceID)
+	} else {
+		log.Info("sync 10 upload")
+		d, err := app.docStorer.CreateDocument(uid, fileName, "", f)
+		if err != nil {
+			log.Error(handlerLog, err)
+			internalError(c, "cant upload document")
+			return
+		}
+		ntf := hub.DocumentNotification{
+			Parent:  "",
+			ID:      d.ID,
+			Type:    d.Type,
+			Name:    d.Name,
+			Version: 1,
+		}
+		app.hub.Notify(uid, deviceID, ntf, hub.DocAddedEvent)
+	}
+	c.Status(http.StatusOK)
+}
 func (app *App) sendEmail(c *gin.Context) {
 	uid := c.GetString(userIDKey)
 	log.Info("Sending mail for: ", uid)
@@ -365,7 +482,7 @@ func (app *App) syncComplete(c *gin.Context) {
 }
 
 func formatExpires(t time.Time) string {
-	return strconv.FormatInt(t.Unix(), 10)
+	return t.UTC().Format(time.RFC3339Nano)
 }
 
 func (app *App) blobStorageDownload(c *gin.Context) {
@@ -381,7 +498,7 @@ func (app *App) blobStorageDownload(c *gin.Context) {
 		return
 	}
 
-	url, exp, err := app.blobStorer.GetBlobURL(uid, req.RelativePath)
+	url, exp, err := app.blobStorer.GetBlobURL(uid, req.RelativePath, "read")
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -411,7 +528,7 @@ func (app *App) blobStorageUpload(c *gin.Context) {
 		log.Info("--- Initial Sync ---")
 	}
 	uid := c.GetString(userIDKey)
-	url, exp, err := app.blobStorer.GetBlobURL(uid, req.RelativePath)
+	url, exp, err := app.blobStorer.GetBlobURL(uid, req.RelativePath, "write")
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -426,10 +543,98 @@ func (app *App) blobStorageUpload(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+func (app *App) integrationsGetMetadata(c *gin.Context) {
+	c.AbortWithStatus(http.StatusNotImplemented)
+}
+
+func (app *App) integrationsUpload(c *gin.Context) {
+	log.Info("uploading...")
+	uid := c.GetString(userIDKey)
+	integrationID := common.ParamS(integrationKey, c)
+	folderID := common.ParamS(folderKey, c)
+	name := common.QueryS("name", c)
+	fileType := common.QueryS("fileType", c)
+
+	integrationProvider, err := integrations.GetIntegrationProvider(app.userStorer, uid, integrationID)
+
+	if err != nil {
+		log.Error(fmt.Errorf("can't get integration, %v", err))
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	body := c.Request.Body
+	id, err := integrationProvider.Upload(folderID, name, fileType, body)
+
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"id": id})
+}
+
+func (app *App) integrationsGetFile(c *gin.Context) {
+	uid := c.GetString(userIDKey)
+	integrationID := common.ParamS(integrationKey, c)
+	fileID := common.ParamS(fileKey, c)
+
+	integrationProvider, err := integrations.GetIntegrationProvider(app.userStorer, uid, integrationID)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	reader, err := integrationProvider.Download(fileID)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	defer reader.Close()
+
+	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
+}
+func (app *App) integrationsList(c *gin.Context) {
+	uid := c.GetString(userIDKey)
+	integrationID := common.ParamS(integrationKey, c)
+	folder := common.ParamS(folderKey, c)
+	folderDepthStr := c.Query("folderDepth")
+	folderDepth := 1
+	if folderDepthStr != "" {
+		folderDepth, _ = strconv.Atoi(folderDepthStr)
+	}
+
+	integrationProvider, err := integrations.GetIntegrationProvider(app.userStorer, uid, integrationID)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	response, err := integrationProvider.List(folder, folderDepth)
+
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
 func (app *App) integrations(c *gin.Context) {
-	// uid := c.GetString(userIDKey)
-	var res messages.IntegrationsResponse
-	c.JSON(http.StatusOK, &res)
+	uid := c.GetString(userIDKey)
+
+	response, err := integrations.List(app.userStorer, uid)
+
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	c.JSON(http.StatusOK, response)
 }
 func (app *App) uploadRequest(c *gin.Context) {
 	uid := c.GetString(userIDKey)

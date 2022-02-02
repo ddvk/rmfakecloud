@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useAuthState, useAuthDispatch } from "./useAuthContext";
+import { useAuthState} from "../common/useAuthContext";
 import constants from "../common/constants"
 
 
@@ -7,17 +7,13 @@ const useFetch = (url, options) => {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
-  const { token } = useAuthState();
-  const dispatch = useAuthDispatch();
+  const { dispatch } = useAuthState();
 
   useEffect(() => {
     const init = async () => {
       try {
         const response = await fetch(`${constants.ROOT_URL}/${url}`, {
           method: "GET",
-          headers: new Headers({
-            Authorization: `Bearer ${token}`,
-          }),
         });
 
         if (response.ok) {
@@ -40,7 +36,7 @@ const useFetch = (url, options) => {
     };
 
     init();
-  }, [url, token, dispatch]); // rerun when...
+  }, [url, dispatch]); // rerun when...
 
   return { data, error, loading };
 };

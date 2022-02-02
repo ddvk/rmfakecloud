@@ -21,3 +21,6 @@ assets_vfsdata.go
 assets_vfsdata.go
 # Dependency directories (remove the comment below to include it)
 # vendor/
+
+# mkdoc build
+site/

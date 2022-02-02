@@ -16,6 +16,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 )
 
 func createContent(fileType string) string {
@@ -63,8 +64,9 @@ func extractID(r io.Reader) (string, error) {
 func (fs *FileSystemStorage) CreateDocument(uid, filename, parent string, stream io.Reader) (doc *storage.Document, err error) {
 	ext := path.Ext(filename)
 	switch ext {
-	case ".pdf":
-	case ".epub":
+	case models.PdfFileExt:
+		fallthrough
+	case models.EpubFileExt:
 	default:
 		return nil, errors.New("unsupported extension: " + ext)
 	}
@@ -72,14 +74,14 @@ func (fs *FileSystemStorage) CreateDocument(uid, filename, parent string, stream
 	var docid string
 
 	var isZip = false
-	if ext == ZipFileExt {
+	if ext == models.ZipFileExt {
 		docid, err = extractID(stream)
 		isZip = true
 	} else {
 		docid = uuid.New().String()
 	}
 	//create zip from pdf
-	zipfile := fs.getPathFromUser(uid, docid+ZipFileExt)
+	zipfile := fs.getPathFromUser(uid, docid+models.ZipFileExt)
 	file, err := os.Create(zipfile)
 	if err != nil {
 		return
@@ -116,6 +118,7 @@ func (fs *FileSystemStorage) CreateDocument(uid, filename, parent string, stream
 		content := createContent(ext)
 		entry.Write([]byte(content))
 	} else {
+		logrus.Info("writing file")
 		_, err = io.Copy(file, stream)
 		if err != nil {
 			return

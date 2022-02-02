@@ -22,6 +22,7 @@ func (app *ReactAppWrapper) authMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token, err := c.Cookie(cookieName)
 		if err == http.ErrNoCookie {
+			log.Warn("missing cookie, trying headers")
 			token, err = common.GetToken(c)
 		}
 

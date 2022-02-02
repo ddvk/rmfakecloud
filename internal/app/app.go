@@ -19,8 +19,11 @@ import (
 )
 
 const (
-	userIDKey   = "UserID"
-	deviceIDKey = "DeviceID"
+	userIDKey      = "UserID"
+	deviceIDKey    = "DeviceID"
+	syncVersionKey = "SyncVersion"
+	Version10      = 10
+	Version15      = 15
 )
 
 // App web app
@@ -39,6 +42,10 @@ type App struct {
 
 // Start starts the app
 func (app *App) Start() {
+	// configs
+	log.Info("The device should use this storage URL: ", app.cfg.StorageURL, " Override with: ", config.EnvStorageURL)
+	log.Info("Documents will be saved in: ", app.cfg.DataDir)
+	log.Info("Listening on port: ", app.cfg.Port)
 
 	var tlsConfig *tls.Config
 	if app.cfg.Certificate.Certificate != nil {
@@ -55,10 +62,12 @@ func (app *App) Start() {
 	}
 
 	if tlsConfig != nil {
+		log.Info("Using TLS")
 		if err := app.srv.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("listen: %s\n", err)
 		}
 	} else {
+		log.Info("Using plain HTTP")
 		if err := app.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("listen: %s\n", err)
 		}

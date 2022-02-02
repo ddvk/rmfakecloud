@@ -9,7 +9,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/model"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 )
@@ -101,7 +101,7 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 	// Try to find the user
 	user, err := app.userStorer.GetUser(form.Email)
 	if err != nil {
-		log.Error(err)
+		log.Error(uiLogger, err, " cannot load user, login failed ip: ", c.ClientIP())
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
@@ -110,7 +110,7 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 		if err != nil {
 			log.Error(err)
 		} else if !ok {
-			log.Warn(uiLogger, "password mismatch for: ", form.Email)
+			log.Warn(uiLogger, "wrong password for: ", form.Email, ", login failed ip: ", c.ClientIP())
 		}
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
@@ -146,10 +146,8 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	httpOnly := true
-	secure := app.cfg.IsHTTPS()
 	log.Debug("cookie expires after: ", expiresAfter)
-	c.SetCookie(cookieName, tokenString, int(expiresAfter.Seconds()), "/", "", secure, httpOnly)
+	c.SetCookie(cookieName, tokenString, int(expiresAfter.Seconds()), "/", "", app.cfg.HTTPSCookie, true)
 
 	c.String(http.StatusOK, tokenString)
 }
@@ -333,9 +331,10 @@ func (app *ReactAppWrapper) getAppUsers(c *gin.Context) {
 	uilist := make([]viewmodel.User, 0)
 	for _, u := range users {
 		usr := viewmodel.User{
-			ID:    u.ID,
-			Email: u.Email,
-			Name:  u.Name,
+			ID:        u.ID,
+			Email:     u.Email,
+			Name:      u.Name,
+			CreatedAt: u.CreatedAt,
 		}
 		uilist = append(uilist, usr)
 	}
@@ -363,5 +362,32 @@ func (app *ReactAppWrapper) getUser(c *gin.Context) {
 }
 
 func (app *ReactAppWrapper) updateUser(c *gin.Context) {
-	c.Status(http.StatusCreated)
+	var usr viewmodel.User
+	if err := c.ShouldBindJSON(&usr); err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	user, err := app.userStorer.GetUser(usr.ID)
+	if err != nil {
+		log.Error(err)
+		badReq(c, err.Error())
+		return
+	}
+
+	if user == nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, "Invalid user")
+		return
+	}
+	if usr.NewPassword == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, "empty password")
+		return
+	}
+	user.SetPassword(usr.NewPassword)
+	err = app.userStorer.UpdateUser(user)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.Status(http.StatusAccepted)
 }

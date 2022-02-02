@@ -12,11 +12,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	//ZipFileExt zip file extension
-	ZipFileExt = ".zip"
-)
-
 // GetAllMetadata load all metadata
 func (fs *FileSystemStorage) GetAllMetadata(uid string) (result []*messages.RawMetadata, err error) {
 	result = []*messages.RawMetadata{}

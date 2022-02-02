@@ -41,7 +41,9 @@ func ArchiveFromHashDoc(doc *HashDoc, rs RemoteStorage) (*exporter.MyArchive, er
 			if err != nil {
 				return nil, err
 			}
-		case ".pdf":
+		case EpubFileExt:
+			fallthrough
+		case PdfFileExt:
 			blob, err := rs.GetReader(f.Hash)
 			if err != nil {
 				return nil, err

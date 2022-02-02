@@ -4,7 +4,7 @@ OUT_DIR := dist
 CMD := ./cmd/rmfakecloud
 BINARY := rmfakecloud
 BUILD = go build -ldflags $(LDFLAGS) -o $(@) $(CMD) 
-ASSETS = internal/webassets/assets_vfsdata.go
+ASSETS = ui/build
 GOFILES := $(shell find . -iname '*.go' ! -iname "*_test.go")
 GOFILES += $(ASSETS)
 UIFILES := $(shell find ui/src)
@@ -13,10 +13,11 @@ UIFILES += ui/package.json
 TARGETS := $(addprefix $(OUT_DIR)/$(BINARY)-, x64 armv6 armv7 arm64 win64 docker)
 YARN	= yarn --cwd ui  
 
-.PHONY: all run dev devui clean test 
-all: $(TARGETS)
+.PHONY: all run runui clean test testgo testui
 
 build: $(OUT_DIR)/$(BINARY)-x64
+
+all: $(TARGETS)
 
 $(OUT_DIR)/$(BINARY)-x64:$(GOFILES)
 	GOOS=linux $(BUILD)
@@ -39,16 +40,10 @@ $(OUT_DIR)/$(BINARY)-docker:$(GOFILES)
 container: $(OUT_DIR)/$(BINARY)-docker
 	docker build -t rmfakecloud -f Dockerfile.make .
 	
-$(ASSETS): ui/build
-	go generate ./...
+run: $(ASSETS)
+	go run $(CMD)
 
-run: ui/build
-	go run -tags dev $(CMD)
-
-dev: 
-	find . -path ui -prune -false -o -iname "*.go" | entr -r  go run -tags dev $(CMD)
-
-ui/build: $(UIFILES) ui/yarn.lock
+$(ASSETS): $(UIFILES) ui/yarn.lock
 	$(YARN) build
 	@#remove unneeded stuff, todo: eject
 	@rm ui/build/service-worker.js ui/build/precache-manifest* ui/build/asset-manifest.json 2> /dev/null || true
@@ -60,15 +55,18 @@ ui/yarn.lock: ui/node_modules ui/package.json
 ui/node_modules:
 	mkdir -p $@
 
-devui: ui/yarn.lock
+runui: ui/yarn.lock
 	$(YARN) start
 
 clean:
-	rm -f $(ASSETS)
 	rm -f $(OUT_DIR)/*
-	rm -fr ui/build
+	rm -fr $(ASSETS)
 
-test: 
-	go test ./...
+test: testui testgo
+
+testui:
 	CI=true $(YARN) test
+
+testgo:
+	go test ./...
 

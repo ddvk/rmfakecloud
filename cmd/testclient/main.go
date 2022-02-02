@@ -112,7 +112,8 @@ func main() {
 		tokens, err := loadToken(*rmapiConf)
 		if err != nil {
 			return err
-		}
+        }
+		
 
 		if *host == "origin" {
 			*host = origin

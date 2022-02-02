@@ -31,16 +31,17 @@ const treeStyle = {
                     position: 'relative',
                     display: 'inline-block',
                     verticalAlign: 'top',
-                    marginLeft: '-5px',
+                    marginLeft: '5px',
                     height: '13px',
                     width: '14px'
                 },
                 wrapper: {
-                    position: 'absolute',
+                    // position: 'absolute',
                     verticalAlign: 'bottom',
                     // top: '50%',
                     // left: '50%',
-                    margin: '-7px 0 0 -7px',
+                    // margin: '-7px 0 0 -7px',
+                    margin: '0px 0px 0 0',
                     height: '14px'
                 },
                 height: 14,
@@ -59,15 +60,16 @@ const treeStyle = {
                 connector: {
                     width: '2px',
                     height: '12px',
-                    borderLeft: 'solid 2px black',
-                    borderBottom: 'solid 2px black',
+                    // borderLeft: 'solid 2px black',
+                    // borderBottom: 'solid 2px black',
                     position: 'absolute',
                     // top: '0px',
                     // left: '-21px'
                 },
                 title: {
                     lineHeight: '24px',
-                    verticalAlign: 'middle'
+                    // verticalAlign: 'middle',
+                    padding: '5px'
                 }
             },
             subtree: {
@@ -89,6 +91,7 @@ const TreeExample = (props) => {
     const [downloadError, setDownloadError] = useState();
     const [dwn, setDownloadUrl] = useState();
     const [cursor, setCursor] = useState(false);
+    const {onFileSelected} = props
 
     const loadDocs = () =>
         apiservice.listDocument()
@@ -109,6 +112,11 @@ const TreeExample = (props) => {
         loadDocs()
     },[props.counter])
 
+    useEffect(()=>{
+        document.addEventListener("contextmenu", (event)=>{
+        })
+    });
+
     if (data.loading) {
         return <div>Loading...</div>;
     }
@@ -120,7 +128,6 @@ const TreeExample = (props) => {
         return <div>No documents</div>;
     }
     const onToggle = (node, toggled) => {
-        console.log('toggle')
         if (cursor) {
             cursor.active = false;
         }
@@ -129,10 +136,16 @@ const TreeExample = (props) => {
         if (node.children) {
             node.toggled = toggled;
             setDownloadUrl(null);
+            if (onFileSelected) {
+                onFileSelected(null);
+            }
             props.onFolderChanged(node.id);
         } else {
             //TODO: another quick poc hack
             setDownloadUrl({id:node.id, name:node.name})
+            if (onFileSelected) {
+                onFileSelected(node.id);
+            }
         }
         setCursor(node);
         setData(Object.assign({}, data))

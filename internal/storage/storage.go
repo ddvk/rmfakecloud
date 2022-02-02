@@ -24,14 +24,16 @@ type DocumentStorer interface {
 	ExportDocument(uid, docid, outputType string, exportOption ExportOption) (io.ReadCloser, error)
 
 	GetStorageURL(uid, docid string) (string, time.Time, error)
+	CreateDocument(uid, name, parent string, stream io.Reader) (doc *Document, err error)
 }
 
 // BlobStorage stuff for sync15
 type BlobStorage interface {
-	GetBlobURL(uid, docid string) (string, time.Time, error)
+	GetBlobURL(uid, docid, scope string) (string, time.Time, error)
 
 	StoreBlob(uid, blobID string, s io.Reader, matchGeneration int64) (int64, error)
 	LoadBlob(uid, blobID string) (io.ReadCloser, int64, error)
+	CreateBlobDocument(uid, name, parent string, stream io.Reader) (doc *Document, err error)
 }
 
 // MetadataStorer manages document metadata

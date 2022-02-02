@@ -1,0 +1,34 @@
+site_name: rmfakecloud
+site_url: https://ddvk.github.io/rmfakecloud
+site_description: Self hosted reMarkable sync cloud
+site_author: ddvk
+
+repo_url: https://github.com/ddvk/rmfakecloud
+edit_uri: ""
+
+theme:
+  name: material
+  locale: en
+  features:
+    - toc.integrate
+
+markdown_extensions:
+  - admonition
+
+nav:
+  - Home: index.md
+  - Cloud Setup:
+      - From Source: install/source.md
+      - With Docker: install/docker.md
+      - Configuration: install/configuration.md
+      - Reverse Proxy:
+          - Nginx: install/reverse-proxy/nginx.md
+          - Traefik: install/reverse-proxy/traefik.md
+  - Device Setup:
+      - Device: remarkable/setup.md
+      - HTTPS: remarkable/https.md
+  - Usage:
+      - User Profile: usage/userprofile.md
+      - Integrations: usage/integrations.md
+      - Diff Sync: usage/diff-sync.md
+  - Browser Extension: browser-extension.md

@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/ddvk/rmfakecloud/internal/webassets"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 )
@@ -14,11 +13,13 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	router.StaticFS(app.prefix, app)
 
 	router.GET("/favicon.ico", func(c *gin.Context) {
-		c.FileFromFS("/favicon.ico", webassets.Assets)
+		c.FileFromFS("/favicon.ico", app.fs)
 	})
-
-	router.HEAD("/", func(c *gin.Context) {
-		c.Status(http.StatusOK)
+	router.GET("/robots.txt", func(c *gin.Context) {
+		c.FileFromFS("/robots.txt", app.fs)
+	})
+	router.GET("/pdf.worker.js", func(c *gin.Context) {
+		c.FileFromFS("/pdf.worker.js", app.fs)
 	})
 
 	//hack for index.html
@@ -46,6 +47,9 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	//with authentication
 	auth := r.Group("")
 	auth.Use(app.authMiddleware())
+	auth.HEAD("/", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
 	auth.GET("sync", func(c *gin.Context) {
 		uid := c.GetString(userIDContextKey)
 		br := c.GetString(browserIDContextKey)

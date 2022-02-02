@@ -104,3 +104,10 @@ func (cli *Cli) Handle(args []string) bool {
 
 	return false
 }
+
+func Usage() string {
+	return `Commands:
+	setuser		create users / reset passwords
+	listusers	list available users
+`
+}

@@ -2,6 +2,7 @@ package ui
 
 import (
 	"io"
+	"io/fs"
 	"net/http"
 	"path"
 
@@ -11,7 +12,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
-	"github.com/ddvk/rmfakecloud/internal/webassets"
+	webui "github.com/ddvk/rmfakecloud/ui"
 	"github.com/gin-gonic/gin"
 )
 
@@ -50,16 +51,23 @@ type ReactAppWrapper struct {
 	backend10       backend
 }
 
-//hack for serving index.html and serving index.html on /
+//hack for serving index.html on /
 const indexReplacement = "/default"
 
 // New Create a React app
-func New(cfg *config.Config, userStorer storage.UserStorer,
-	codeConnector codeGenerator, h *hub.Hub,
+func New(cfg *config.Config,
+	userStorer storage.UserStorer,
+	codeConnector codeGenerator,
+	h *hub.Hub,
 	docHandler documentHandler,
 	blobHandler blobHandler) *ReactAppWrapper {
+
+	sub, err := fs.Sub(webui.Assets, "build")
+	if err != nil {
+		panic("not embedded?")
+	}
 	staticWrapper := ReactAppWrapper{
-		fs:              webassets.Assets,
+		fs:              http.FS(sub),
 		prefix:          "/static",
 		cfg:             cfg,
 		userStorer:      userStorer,

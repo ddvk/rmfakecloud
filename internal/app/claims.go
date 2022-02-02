@@ -3,7 +3,7 @@ package app
 import (
 	"time"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 )
 
 // DeviceClaims device
@@ -21,6 +21,8 @@ type UserClaims struct {
 	DeviceDesc string       `json:"device-desc"`
 	DeviceID   string       `json:"device-id"`
 	Scopes     string       `json:"scopes,omitempty"`
+	Version    int          `json:"version"`
+	Level      string       `json:"level"`
 	jwt.StandardClaims
 }
 
