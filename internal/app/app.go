@@ -55,6 +55,10 @@ func (app *App) Start() {
 			},
 		}
 	}
+	if !app.cfg.TrustProxy {
+		app.router.SetTrustedProxies(nil)
+	}
+
 	app.srv = &http.Server{
 		Addr:      ":" + app.cfg.Port,
 		Handler:   app.router,

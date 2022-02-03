@@ -64,6 +64,7 @@ const (
 	// EnvLogFile log file to use
 	EnvLogFile     = "RM_LOGFILE"
 	envHTTPSCookie = "RM_HTTPS_COOKIE"
+	envTrustProxy  = "RM_TRUST_PROXY"
 )
 
 // Config config
@@ -81,6 +82,7 @@ type Config struct {
 	HWRApplicationKey string
 	HWRHmac           string
 	HTTPSCookie       bool
+	TrustProxy        bool
 }
 
 // Verify verify
@@ -172,7 +174,8 @@ func FromEnv() *Config {
 			FromOverride: os.Getenv(envSMTPFrom),
 		}
 	}
-	// hwr
+
+	trustProxy, _ := strconv.ParseBool(os.Getenv(envTrustProxy))
 
 	cfg := Config{
 		Port:              port,
@@ -186,6 +189,7 @@ func FromEnv() *Config {
 		HWRApplicationKey: os.Getenv(envHwrApplicationKey),
 		HWRHmac:           os.Getenv(envHwrHmac),
 		HTTPSCookie:       httpsCookie,
+		TrustProxy:        trustProxy,
 	}
 	return &cfg
 }
@@ -197,15 +201,19 @@ Environment Variables:
 
 General:
 	%s	Secret for signing JWT tokens
+	%s	Url the tablet can resolve (default: https://local.apphost.com)
+			needs to be set to the hostname or proxy if behind a proxy
+			especially if you want other tools to work (eg rmapi)
+
 	%s	Log verbosity level (debug, info, warn) (default: info)
 	%s	Log format: json (default: text)
 	%s		Port (default: %s)
 	%s		Local storage folder (default: %s)
-	%s	Url the tablet can resolve (default: https://local.apphost.com)
 	%s	Path to the server certificate.
 	%s		Path to the server certificate key.
 	%s	Write logs to file
 	%s Send auth cookie only via https
+	%s	Trust the proxy for X-Forwarded-For/X-Real-IP (set only if behind a proxy)
 
 Emails, smtp:
 	%s
@@ -220,17 +228,18 @@ myScript hwr (needs a developer account):
 	%s
 `,
 		envJWTSecretKey,
+		EnvStorageURL,
 		EnvLogLevel,
 		EnvLogFormat,
 		envPort,
 		DefaultPort,
 		envDataDir,
 		DefaultDataDir,
-		EnvStorageURL,
 		envTLSCert,
 		envTLSKey,
 		EnvLogFile,
 		envHTTPSCookie,
+		envTrustProxy,
 
 		envSMTPServer,
 		envSMTPUsername,

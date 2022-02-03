@@ -41,9 +41,10 @@ container: $(OUT_DIR)/$(BINARY)-docker
 	docker build -t rmfakecloud -f Dockerfile.make .
 	
 run: $(ASSETS)
-	go run $(CMD)
+	go run $(CMD) $(ARG)
 
 $(ASSETS): $(UIFILES) ui/yarn.lock
+	@cp ui/node_modules/pdfjs-dist/build/pdf.worker.js ui/public/
 	$(YARN) build
 	@#remove unneeded stuff, todo: eject
 	@rm ui/build/service-worker.js ui/build/precache-manifest* ui/build/asset-manifest.json 2> /dev/null || true
