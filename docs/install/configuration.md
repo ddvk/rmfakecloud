@@ -11,6 +11,7 @@ The configuration is made through environment variables.
 | `DATADIR`         | Set data/files directory (default: `data/` in current dir) |
 | `LOGLEVEL`        | Set the log verbosity. Default is **info**, set to **debug** for more logging or **warn**, **error** for less |
 | `RM_HTTPS_COOKIE` | For the UI, force cookies to be available only via https |
+| `RM_TRUST_PROXY`  | Trust the proxy for client ip addresses (X-Forwarded-For/X-Real-IP) default false |
 
 
 ## Handwriting recognition
