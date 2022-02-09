@@ -27,7 +27,7 @@ type SMTPConfig struct {
 	Server       string
 	Username     string
 	Password     string
-	FromOverride string
+	FromOverride *mail.Address
 	Helo         string
 	InsecureTLS  bool
 }
@@ -112,15 +112,16 @@ func (b *Builder) Send(cfg *SMTPConfig) (err error) {
 	if cfg == nil {
 		return fmt.Errorf("no smtp config")
 	}
-	frm := b.From
-	if cfg.FromOverride != "" {
-		frm = cfg.FromOverride
+	var from *mail.Address
+	if cfg.FromOverride != nil {
+		from = cfg.FromOverride
+	} else {
+		from, err = mail.ParseAddress(b.From)
+		if err != nil {
+			return err
+		}
 	}
 	//if not defined
-	from, err := mail.ParseAddress(frm)
-	if err != nil {
-		return err
-	}
 	to, err := mail.ParseAddressList(trimAddresses(b.To))
 	if err != nil {
 		return err

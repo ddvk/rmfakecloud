@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"crypto/tls"
 	"fmt"
+	"net/mail"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -29,11 +30,13 @@ const (
 	DefaultHost = "local.appspot.com"
 
 	// EnvLogLevel environment variable for the log level
-	EnvLogLevel  = "LOGLEVEL"
+	EnvLogLevel = "LOGLEVEL"
+	// EnvLogFormat type of log format
 	EnvLogFormat = "LOGFORMAT"
 	// envDataDir
-	envDataDir    = "DATADIR"
-	envPort       = "PORT"
+	envDataDir = "DATADIR"
+	envPort    = "PORT"
+	// EnvStorageURL the external name of the service
 	EnvStorageURL = "STORAGE_URL"
 	// envTLSCert the path of the cert file
 	envTLSCert = "TLS_CERT"
@@ -166,12 +169,20 @@ func FromEnv() *Config {
 	if servername != "" {
 		inSecureTLS, _ := strconv.ParseBool(os.Getenv(envSMTPInsecureTLS))
 		smtpCfg = &email.SMTPConfig{
-			Server:       servername,
-			Username:     os.Getenv(envSMTPUsername),
-			Password:     os.Getenv(envSMTPPassword),
-			Helo:         os.Getenv(envSMTPHelo),
-			InsecureTLS:  inSecureTLS,
-			FromOverride: os.Getenv(envSMTPFrom),
+			Server:      servername,
+			Username:    os.Getenv(envSMTPUsername),
+			Password:    os.Getenv(envSMTPPassword),
+			Helo:        os.Getenv(envSMTPHelo),
+			InsecureTLS: inSecureTLS,
+		}
+		fromOverride := os.Getenv(envSMTPFrom)
+		if fromOverride != "" {
+			fromAddress, err := mail.ParseAddress(os.Getenv(envSMTPFrom))
+			if err != nil {
+				log.Warn(envSMTPFrom, " can't parse address: ", fromAddress, err)
+			} else {
+				smtpCfg.FromOverride = fromAddress
+			}
 		}
 	}
 
