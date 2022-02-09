@@ -9,9 +9,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+func IsAdmin(c *gin.Context) bool {
+	return c.GetBool(AdminRole)
+}
+
 func (app *ReactAppWrapper) adminMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if !c.GetBool("Admin") {
+		if !IsAdmin(c) {
 			log.Warn("not admin")
 			c.AbortWithStatus(http.StatusForbidden)
 		}
@@ -66,8 +70,8 @@ func (app *ReactAppWrapper) authMiddleware() gin.HandlerFunc {
 		c.Set(browserIDContextKey, brid)
 		c.Set(isSync15Key, newsync)
 		for _, r := range claims.Roles {
-			if r == "Admin" {
-				c.Set("Admin", true)
+			if r == AdminRole {
+				c.Set(AdminRole, true)
 				break
 			}
 		}

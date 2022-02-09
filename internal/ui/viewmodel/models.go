@@ -17,6 +17,7 @@ type LoginForm struct {
 
 // ResetPasswordForm reset password
 type ResetPasswordForm struct {
+	UserID          string `json:"userid"`
 	Email           string `json:"email"`
 	CurrentPassword string `json:"currentPassword"`
 	NewPassword     string `json:"newPassword"`

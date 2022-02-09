@@ -11,7 +11,8 @@ export default function OwnUserProfile() {
 
   const [formErrors, setFormErrors] = useState({});
   const [resetPasswordForm, setResetPasswordForm] = useState({
-    email: user.Email,
+    userid: user.userid,
+    email: user.email,
     currentPassword: null,
     newPassword: null,
     confirmNewPassword: null,
@@ -75,6 +76,16 @@ export default function OwnUserProfile() {
 
   return (
     <Form onSubmit={handleSubmit}>
+      <Form.Group controlId="formUserId">
+        <Form.Label>UserId</Form.Label>
+        <Form.Control
+          type="email"
+          className="font-weight-bold"
+          placeholder="UserId"
+          value={resetPasswordForm.userid}
+          disabled
+        />
+      </Form.Group>
       <Form.Group controlId="formEmail">
         <Form.Label>Email address</Form.Label>
         <Form.Control
@@ -82,7 +93,7 @@ export default function OwnUserProfile() {
           className="font-weight-bold"
           placeholder="Enter email"
           value={resetPasswordForm.email}
-          disabled
+          onChange={handleChange}
         />
       </Form.Group>
       <Form.Group controlId="formPassword">

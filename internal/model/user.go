@@ -109,20 +109,16 @@ func sanitizeEmail(email string) string {
 }
 
 // NewUser create a new user object
-func NewUser(email string, rawPassword string) (*User, error) {
-	// id, err := genId()
-	// if err != nil {
-	// 	return nil, err
-	// }
-
+func NewUser(userId string, rawPassword string) (*User, error) {
 	password, err := hashPassword(rawPassword)
 	if err != nil {
 		return nil, err
 	}
 
+	sanitizedId := sanitizeEmail(userId)
 	return &User{
-		ID:            sanitizeEmail(email),
-		Email:         email,
+		ID:            sanitizedId,
+		Email:         sanitizedId,
 		EmailVerified: true,
 		Password:      password,
 		CreatedAt:     time.Now(),

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useHistory } from "react-router-dom";
 
 import NoMatch from "./NoMatch";
@@ -14,23 +14,35 @@ const userListUrl = "users";
 
 export default function UserProfile() {
   const { userid } = useParams();
+  
   const { data: user, loading, error } = useFetch(`${userListUrl}/${userid}`);
   const history = useHistory();
 
   const [formErrors, setFormErrors] = useState({});
-  const [resetPasswordForm, setResetPasswordForm] = useState({
+  const [profileForm, setProfileForm] = useState({
     newPassword: "",
+    email: "",
   });
 
+  useEffect(() => {
+    if (!user)
+      return
+
+    setProfileForm(oldState => ({
+      ...oldState,
+      email: user.email
+    }))
+  }, [user]);
+
   function handleChange({ target }) {
-    setResetPasswordForm({ ...resetPasswordForm, [target.name]: target.value });
+    setProfileForm({ ...profileForm, [target.name]: target.value });
   }
 
   function formIsValid() {
     const _errors = {};
 
-    if (!resetPasswordForm.newPassword)
-      _errors.error = "newPassword is required";
+    // if (!profileForm.newPassword)
+    //   _errors.error = "newPassword is required";
 
     setFormErrors(_errors);
 
@@ -45,9 +57,10 @@ export default function UserProfile() {
     try {
       await apiService.updateuser({
         userid,
-        newPassword: resetPasswordForm.newPassword,
+        newPassword: profileForm.newPassword,
+        email: profileForm.email
       });
-      history.push("/userList")
+      history.push("/users")
       
     } catch (e) {
       setFormErrors({ error: e.toString()});
@@ -63,14 +76,22 @@ export default function UserProfile() {
   return (
     <div>
       <Form onSubmit={handleSubmit}>
+          <Form.Label>UserId</Form.Label>
+          <Form.Control
+            className="font-weight-bold"
+            placeholder={userid}
+            value={user.userid}
+            disabled
+          />
         <Form.Group controlId="formEmail">
           <Form.Label>Email address</Form.Label>
           <Form.Control
             type="email"
             className="font-weight-bold"
             placeholder="Enter email"
-            value={userid}
-            disabled
+            name="email"
+            value={profileForm.email}
+            onChange={handleChange}
           />
         </Form.Group>
         <Form.Group controlId="formPasswordRepeat">
@@ -78,7 +99,7 @@ export default function UserProfile() {
           <Form.Control
             type="password"
             placeholder="new password"
-            value={resetPasswordForm.newPassword}
+            value={profileForm.newPassword}
             name="newPassword"
             onChange={handleChange}
           />

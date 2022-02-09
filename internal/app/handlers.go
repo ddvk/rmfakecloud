@@ -153,7 +153,7 @@ func (app *App) newUserToken(c *gin.Context) {
 			UserID:        deviceToken.UserID,
 			IsSocial:      false,
 			Connection:    "Username-Password-Authentication",
-			Name:          user.Email,
+			Name:          user.Name,
 			Nickname:      user.Email, // user.Nickname,
 			Email:         fmt.Sprintf("%s (via %s)", user.Email, app.cfg.StorageURL),
 			EmailVerified: true,
@@ -171,7 +171,7 @@ func (app *App) newUserToken(c *gin.Context) {
 			IssuedAt:  now.Unix(),
 			Subject:   "rM User Token",
 			Issuer:    "rM WebApp",
-			Id:        user.Email,
+			Id:        user.ID,
 			Audience:  APIUsage,
 		},
 		Version: tokenVersion,
@@ -317,6 +317,11 @@ func (app *App) sendEmail(c *gin.Context) {
 		From:    form.Value["from"][0],
 		To:      form.Value["to"][0],
 		Body:    stripAds(form.Value["html"][0]),
+	}
+
+	user, err := app.userStorer.GetUser(uid)
+	if err == nil && user.Email != "" {
+		emailClient.From = user.Email
 	}
 
 	for _, file := range form.File["attachment"] {

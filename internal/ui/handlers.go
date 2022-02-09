@@ -134,7 +134,7 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 		},
 	}
 	if user.IsAdmin {
-		claims.Roles = []string{"Admin"}
+		claims.Roles = []string{AdminRole}
 	} else {
 		claims.Roles = []string{"User"}
 	}
@@ -153,16 +153,15 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 }
 
 func (app *ReactAppWrapper) resetPassword(c *gin.Context) {
+	var req viewmodel.ResetPasswordForm
 
-	var form viewmodel.ResetPasswordForm
-
-	if err := c.ShouldBindJSON(&form); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Error(err)
 		badReq(c, err.Error())
 		return
 	}
 
-	user, err := app.userStorer.GetUser(form.Email)
+	user, err := app.userStorer.GetUser(req.Email)
 
 	if err != nil {
 		log.Error(err)
@@ -174,11 +173,11 @@ func (app *ReactAppWrapper) resetPassword(c *gin.Context) {
 
 	if user.ID != uid {
 		log.Error("Trying to change password for a different user.")
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "cannt do that"})
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "cant do that"})
 		return
 	}
 
-	ok, err := user.CheckPassword(form.CurrentPassword)
+	ok, err := user.CheckPassword(req.CurrentPassword)
 	if !ok {
 		if err != nil {
 			log.Error(err)
@@ -187,7 +186,9 @@ func (app *ReactAppWrapper) resetPassword(c *gin.Context) {
 		return
 	}
 
-	user.SetPassword(form.NewPassword)
+	if req.NewPassword != "" {
+		user.SetPassword(req.NewPassword)
+	}
 
 	err = app.userStorer.UpdateUser(user)
 
@@ -357,21 +358,33 @@ func (app *ReactAppWrapper) getUser(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusNotFound, "Invalid user")
 		return
 	}
+	if uid != user.ID && !IsAdmin(c) {
+		log.Warn("Only admins can query other users")
+		c.AbortWithStatusJSON(http.StatusUnauthorized, "")
+		return
+	}
 
-	c.JSON(http.StatusOK, user)
+	vmUser := &viewmodel.User{
+		ID:        user.ID,
+		Email:     user.Email,
+		Name:      user.Name,
+		CreatedAt: user.CreatedAt,
+	}
+
+	c.JSON(http.StatusOK, vmUser)
 }
 
 func (app *ReactAppWrapper) updateUser(c *gin.Context) {
-	var usr viewmodel.User
-	if err := c.ShouldBindJSON(&usr); err != nil {
+	var req viewmodel.User
+	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
-	user, err := app.userStorer.GetUser(usr.ID)
+	user, err := app.userStorer.GetUser(req.ID)
 	if err != nil {
 		log.Error(err)
-		badReq(c, err.Error())
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
@@ -379,11 +392,14 @@ func (app *ReactAppWrapper) updateUser(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusNotFound, "Invalid user")
 		return
 	}
-	if usr.NewPassword == "" {
-		c.AbortWithStatusJSON(http.StatusBadRequest, "empty password")
-		return
+	if req.NewPassword != "" {
+		user.SetPassword(req.NewPassword)
 	}
-	user.SetPassword(usr.NewPassword)
+
+	if req.Email != "" {
+		user.Email = req.Email
+	}
+
 	err = app.userStorer.UpdateUser(user)
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)

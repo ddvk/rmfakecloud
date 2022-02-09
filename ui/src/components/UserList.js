@@ -25,6 +25,7 @@ export default function UserList() {
         <thead>
           <tr>
             <th>#</th>
+            <th>Id</th>
             <th>Email</th>
             <th>Name</th>
             <th>Created</th>
@@ -35,8 +36,9 @@ export default function UserList() {
             <tr key={x.userid}>
               <td>{index}</td>
               <td>
-                <Link to={`/userList/${x.userid}`}>{x.email}</Link>
+                <Link to={`/users/${x.userid}`}>{x.userid}</Link>
               </td>
+              <td>{x.email}</td>
               <td>{x.Name}</td>
               {/* TODO: format datetime */}
               <td>{x.CreatedAt}</td>
