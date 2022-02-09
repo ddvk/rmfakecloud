@@ -51,10 +51,9 @@ func TestSendMail(t *testing.T) {
 	}
 
 	cfg := &SMTPConfig{
-		Server:       os.Getenv("RM_SMTP_SERVER"),
-		Username:     os.Getenv("RM_SMTP_USERNAME"),
-		Password:     os.Getenv("RM_SMTP_PASSWORD"),
-		FromOverride: os.Getenv("RM_SMTP_FROM"),
+		Server:   os.Getenv("RM_SMTP_SERVER"),
+		Username: os.Getenv("RM_SMTP_USERNAME"),
+		Password: os.Getenv("RM_SMTP_PASSWORD"),
 	}
 
 	file, _ := os.Open("test.txt")
