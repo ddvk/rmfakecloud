@@ -15,7 +15,8 @@ import CodeGenerator from "./components/CodeGenerator";
 import ResetPassword from "./components/ResetPassword";
 import Role from "./common/Role";
 import apiService from "./services/api.service";
-
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import "bootstrap/dist/css/bootstrap.min.css";
 
 export default function App() {
@@ -23,6 +24,7 @@ export default function App() {
     apiService.checkLogin()
   }, [])
   return (
+    <>
     <AuthProvider>
       <Router>
         <Navigationbar />
@@ -38,5 +40,7 @@ export default function App() {
           </Switch>
       </Router>
     </AuthProvider>
+    <ToastContainer autoClose={2000} />
+    </>
   );
 }

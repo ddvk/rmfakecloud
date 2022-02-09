@@ -7,7 +7,7 @@ import Button from "react-bootstrap/Button";
 import Spinner from "./Spinner";
 import useFetch from "../hooks/useFetch";
 import apiService from "../services/api.service";
-
+import { toast } from 'react-toastify';
 import { useParams } from "react-router-dom";
 
 const userListUrl = "users";
@@ -60,6 +60,7 @@ export default function UserProfile() {
         newPassword: profileForm.newPassword,
         email: profileForm.email
       });
+      toast("updated")
       history.push("/users")
       
     } catch (e) {
