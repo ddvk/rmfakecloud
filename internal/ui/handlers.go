@@ -370,6 +370,9 @@ func (app *ReactAppWrapper) getUser(c *gin.Context) {
 		Name:      user.Name,
 		CreatedAt: user.CreatedAt,
 	}
+	for _, i := range user.Integrations {
+		vmUser.Integrations = append(vmUser.Integrations, i.Name)
+	}
 
 	c.JSON(http.StatusOK, vmUser)
 }
@@ -406,4 +409,51 @@ func (app *ReactAppWrapper) updateUser(c *gin.Context) {
 		return
 	}
 	c.Status(http.StatusAccepted)
+}
+func (app *ReactAppWrapper) deleteUser(c *gin.Context) {
+	uid := c.Param(useridParam)
+	if uid == c.GetString(userIDContextKey) {
+		log.Error("can't remove current user ")
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	err := app.userStorer.RemoveUser(uid)
+	if err != nil {
+		log.Error("can't remove ", err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.Status(http.StatusAccepted)
+}
+
+func (app *ReactAppWrapper) createUser(c *gin.Context) {
+	var req viewmodel.User
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	if req.NewPassword == "" ||
+		req.Email == "" ||
+		req.ID == "" {
+
+		log.Warn("missing password, email or userid")
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	user, err := model.NewUser(req.ID, req.NewPassword)
+	if err != nil {
+		log.Error("can't create ", err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	user.Email = req.Email
+
+	err = app.userStorer.UpdateUser(user)
+	if err != nil {
+		log.Error("can't create ", err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.Status(http.StatusCreated)
 }

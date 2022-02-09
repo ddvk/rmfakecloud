@@ -71,6 +71,8 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	admin := auth.Group("")
 	admin.Use(app.adminMiddleware())
 	admin.GET("users/:userid", app.getUser)
+	admin.DELETE("users/:userid", app.deleteUser)
 	admin.PUT("users", app.updateUser)
+	admin.POST("users", app.createUser)
 	admin.GET("users", app.getAppUsers)
 }

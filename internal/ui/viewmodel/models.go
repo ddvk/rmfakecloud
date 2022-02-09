@@ -171,11 +171,12 @@ type DocumentList struct {
 
 // User user model
 type User struct {
-	ID          string `json:"userid"`
-	Email       string `json:"email"`
-	Name        string `json:"name"`
-	NewPassword string `json:"newpassword,omitempty"`
-	CreatedAt   time.Time
+	ID           string `json:"userid"`
+	Email        string `json:"email"`
+	Name         string `json:"name"`
+	NewPassword  string `json:"newpassword,omitempty"`
+	CreatedAt    time.Time
+	Integrations []string `json:"integrations,omitempty"`
 }
 
 // UpdateDoc with somethin

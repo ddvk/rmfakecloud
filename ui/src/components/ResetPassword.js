@@ -76,26 +76,6 @@ export default function OwnUserProfile() {
 
   return (
     <Form onSubmit={handleSubmit}>
-      <Form.Group controlId="formUserId">
-        <Form.Label>UserId</Form.Label>
-        <Form.Control
-          type="email"
-          className="font-weight-bold"
-          placeholder="UserId"
-          value={resetPasswordForm.userid}
-          disabled
-        />
-      </Form.Group>
-      <Form.Group controlId="formEmail">
-        <Form.Label>Email address</Form.Label>
-        <Form.Control
-          type="email"
-          className="font-weight-bold"
-          placeholder="Enter email"
-          value={resetPasswordForm.email}
-          onChange={handleChange}
-        />
-      </Form.Group>
       <Form.Group controlId="formPassword">
         <Form.Label>Old Password</Form.Label>
         <Form.Control

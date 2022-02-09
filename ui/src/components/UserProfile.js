@@ -104,6 +104,14 @@ export default function UserProfile() {
             onChange={handleChange}
           />
         </Form.Group>
+        <div>
+          <p>Integrations</p>
+          <ul>
+          {user.integrations && user.integrations.map((x, i) => 
+            (<li>{x}</li>)
+          )}
+          </ul>
+        </div>
         {formErrors.error && (
           <div className="alert alert-danger">{formErrors.error}</div>
         )}

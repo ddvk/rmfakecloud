@@ -49,6 +49,7 @@ type UserStorer interface {
 	GetUser(string) (*model.User, error)
 	RegisterUser(u *model.User) error
 	UpdateUser(u *model.User) error
+	RemoveUser(uid string) error
 }
 
 // Document represents a document in storage

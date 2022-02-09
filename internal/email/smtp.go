@@ -215,9 +215,8 @@ func (b *Builder) Send(cfg *SMTPConfig) (err error) {
 		return err
 	}
 
-	c.Quit()
-	log.Info("Message sent")
-	return nil
+	err = c.Quit()
+	return err
 }
 
 // SplittingWritter writes a stream and inserts a terminator

@@ -32,7 +32,6 @@ export default function App() {
             <PrivateRoute path="/generatecode" component={CodeGenerator} />
             <PrivateRoute path="/resetPassword" component={ResetPassword} />
             <PrivateRoute path="/users/:userid" component={UserProfile} /> 
-            <PrivateRoute path="/users?new=true" component={UserProfile} /> 
             <PrivateRoute path="/users" roles={[Role.Admin]} component={UserList} />
             <Route path="/login" component={Login} />
             <Route component={NoMatch} />
