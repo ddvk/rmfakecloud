@@ -1,8 +1,9 @@
 import React from "react";
 import useFetch from "../hooks/useFetch";
+import Spinner from "./Spinner";
 import { Link } from "react-router-dom";
 import { formatDate } from "../common/date";
-import { Alert, Card, Spinner, Table } from "react-bootstrap";
+import { Alert, Card, Table } from "react-bootstrap";
 
 const userListUrl = "users";
 
@@ -10,26 +11,7 @@ export default function UserList() {
   const { data: userList, error, loading } = useFetch(`${userListUrl}`);
 
   if (loading) {
-    return (
-        <Card
-            bg="dark"
-            text="white"
-
-            style={{
-                padding: "8px",
-                display: "flex",
-                width: "fit-content",
-                justifyContent: "space-between",
-                flexDirection: "row",
-                gap: "8px",
-                lineHeight: "1.75em",
-                margin: "auto",
-            }}
-        >
-            <Spinner animation="grow" role="status" />
-            <span>Loading users...</span>
-        </Card>
-    );
+    return <Spinner />
   }
 
   if (error) {
