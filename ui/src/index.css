@@ -10,3 +10,7 @@ body {
 canvas {
   max-width: 100%;
 }
+
+.transparent-modal .modal-content {
+  background-color: transparent;
+}

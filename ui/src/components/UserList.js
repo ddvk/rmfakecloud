@@ -1,14 +1,29 @@
-import React from "react";
+import React, {useState} from "react";
 import useFetch from "../hooks/useFetch";
 import Spinner from "./Spinner";
-import { Link } from "react-router-dom";
 import { formatDate } from "../common/date";
-import { Alert, Card, Table } from "react-bootstrap";
+import {Alert, Button, Card, Modal, Table} from "react-bootstrap";
+import UserProfileModal from "./UserProfileModal";
 
 const userListUrl = "users";
 
 export default function UserList() {
   const { data: userList, error, loading } = useFetch(`${userListUrl}`);
+  const [ state, setState ] = useState({showModal: false, modalUser: []});
+
+  function openModal(userid) {
+    setState({
+      showModal: true,
+      modalUser: userid,
+    });
+  }
+
+  function closeModal() {
+    setState({
+      showModal: false,
+      modalUser: null,
+    });
+  }
 
   if (loading) {
     return <Spinner />
@@ -33,7 +48,7 @@ export default function UserList() {
       text="white"
     >
       <Card.Header>User List</Card.Header>
-      <Table className="table-dark">
+      <Table striped bordered hover className="table-dark">
         <thead>
         <tr>
           <th>#</th>
@@ -44,17 +59,31 @@ export default function UserList() {
         </thead>
         <tbody>
           {userList.map((x, index) => (
-            <tr key={x.userid}>
+            <tr key={x.userid} onClick={() => openModal(x.userid)} style={{ cursor: "pointer" }}>
               <td>{index}</td>
-              <td>
-                <Link to={`/userList/${x.userid}`}>{x.email}</Link>
-              </td>
+              <td>{x.email}</td>
               <td>{x.Name}</td>
               <td>{formatDate(x.CreatedAt)}</td>
             </tr>
           ))}
         </tbody>
       </Table>
+      <Modal show={state.showModal} onHide={closeModal} className="transparent-modal">
+        <Card
+          bg="dark"
+          text="white"
+        >
+          <Card.Header>
+            <span>User Management: '{state.modalUser}'</span>
+          </Card.Header>
+          <Card.Body>
+            {state.showModal && <UserProfileModal userid={state.modalUser} />}
+          </Card.Body>
+          <Card.Footer style={{ display: "flex", justifyContent: "end" }}>
+            <Button onClick={closeModal}>Close</Button>
+          </Card.Footer>
+        </Card>
+      </Modal>
     </Card>
   );
 }
