@@ -3,6 +3,7 @@ import useFetch from "../hooks/useFetch";
 import Spinner from "./Spinner";
 import Table from "react-bootstrap/Table";
 import { Link } from "react-router-dom";
+import { formatDate } from "../common/date";
 
 const userListUrl = "users";
 
@@ -27,7 +28,7 @@ export default function UserList() {
             <th>#</th>
             <th>Email</th>
             <th>Name</th>
-            <th>Created</th>
+            <th>Created At</th>
           </tr>
         </thead>
         <tbody>
@@ -38,8 +39,7 @@ export default function UserList() {
                 <Link to={`/userList/${x.userid}`}>{x.email}</Link>
               </td>
               <td>{x.Name}</td>
-              {/* TODO: format datetime */}
-              <td>{x.CreatedAt}</td>
+              <td>{formatDate(x.CreatedAt)}</td>
             </tr>
           ))}
         </tbody>
