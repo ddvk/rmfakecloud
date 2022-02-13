@@ -1,6 +1,4 @@
 import React, { useState } from "react";
-import { useHistory } from "react-router-dom";
-
 import NoMatch from "./NoMatch";
 import Form from "react-bootstrap/Form";
 import Button from "react-bootstrap/Button";
@@ -15,9 +13,9 @@ const userListUrl = "users";
 export default function UserProfileModal(params) {
   const { userid } = params;
   const { data: user, loading, error } = useFetch(`${userListUrl}/${userid}`);
-  const history = useHistory();
 
   const [formErrors, setFormErrors] = useState({});
+  const [formInfo, setFormInfo] = useState({});
   const [resetPasswordForm, setResetPasswordForm] = useState({
     newPassword: "",
   });
@@ -47,8 +45,7 @@ export default function UserProfileModal(params) {
         userid,
         newPassword: resetPasswordForm.newPassword,
       });
-      history.push("/userList")
-      
+      setFormInfo({ message: "Password Updated Successfully" });
     } catch (e) {
       setFormErrors({ error: e.toString()});
     }
@@ -69,7 +66,16 @@ export default function UserProfileModal(params) {
 
   return (
     <div>
-      <div>
+      <Alert variant="danger" hidden={!formErrors.error}>
+        <Alert.Heading>An Error Occurred</Alert.Heading>
+        {formErrors.error}
+      </Alert>
+
+      <Alert variant="info" hidden={!formInfo.message}>
+        {formInfo.message}
+      </Alert>
+
+      <Form onSubmit={handleSubmit}>
         <Form.Label>Email address</Form.Label>
         <Form.Control
           type="email"
@@ -78,27 +84,19 @@ export default function UserProfileModal(params) {
           value={userid}
           disabled
         />
-      </div>
-      <Form onSubmit={handleSubmit}>
+
         <Form.Group controlId="formPasswordRepeat">
           <Form.Label>Change Password</Form.Label>
-          <div style={{ display: "flex", gap: "4px", }}>
-            <Form.Control
-              type="password"
-              placeholder="new password"
-              value={resetPasswordForm.newPassword}
-              name="newPassword"
-              onChange={handleChange}
-            />
-            <Button variant="primary" type="submit">
-              Save
-            </Button>
-          </div>
+          <Form.Control
+            type="password"
+            placeholder="new password"
+            value={resetPasswordForm.newPassword}
+            name="newPassword"
+            onChange={handleChange}
+          />
         </Form.Group>
-        {formErrors.error && (
-          <div className="alert alert-danger">{formErrors.error}</div>
-        )}
 
+        <Button variant="primary" type="submit">Save</Button>
       </Form>
     </div>
   );
