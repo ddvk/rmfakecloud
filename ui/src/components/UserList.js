@@ -15,12 +15,19 @@ export default function UserList() {
   const refresh = () =>{
     setIndex(previous => previous+1)
   }
-
-  const [profileForm, setProfileForm] = useState({
+  const initialState = {
     userid: "",
     email: "",
     password: ""
-  });
+  };
+
+
+  const [profileForm, setProfileForm] = useState(initialState);
+
+  function hide(){
+    setShow(false);
+    setProfileForm(initialState);
+  }
 
   if (loading) {
     return <Spinner />;
@@ -36,7 +43,7 @@ export default function UserList() {
     setShow(true)
   }
   const handleClose = e => {
-    setShow(false)
+    hide()
   }
   const remove = async id => {
     if (!window.confirm(`Are you sure you want to delete user: ${id}?`))
@@ -55,9 +62,9 @@ export default function UserList() {
       await apiService.createuser({
         userid: profileForm.userid,
         email: profileForm.email,
-        newPassword: profileForm.newPassword,
+        newPassword: profileForm.password,
       });
-      setShow(false)
+      hide()
       refresh()
       
     } catch (e) {
@@ -103,7 +110,7 @@ export default function UserList() {
           <Modal.Title>Modal heading</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-        <Form autocomplete="chrome-off" onSubmit={handleSave}>
+        <Form autoComplete="chrome-off" onSubmit={handleSave}>
           <Form.Label>UserId</Form.Label>
           <Form.Control
             className="font-weight-bold"
@@ -128,8 +135,8 @@ export default function UserList() {
           <Form.Control
             type="password"
             placeholder="new password"
-            value={profileForm.newPassword}
-            name="newPassword"
+            value={profileForm.password}
+            name="password"
             onChange={handleChange}
           />
         </Form.Group>
