@@ -92,7 +92,7 @@ export default function UserList() {
               <td>{x.email}</td>
               <td>{x.Name}</td>
               {/* TODO: format datetime */}
-              <td>{x.CreatedAt}</td>
+              <td>{new Date(x.CreatedAt).toLocaleString('sv')}</td>
               <td><Button variant="danger" onClick={() => remove(x.userid)}>Delete</Button></td>
             </tr>
           ))}

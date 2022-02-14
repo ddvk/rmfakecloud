@@ -121,6 +121,9 @@ function handleError(r) {
             window.location.reload(true);
             return
         }
+        if (r.status === 400) {
+          return r.text().then(text => {throw new Error(text)})
+        }
         return Promise.reject(r.status)
     }
 }

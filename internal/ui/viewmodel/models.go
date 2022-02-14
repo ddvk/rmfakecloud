@@ -179,6 +179,13 @@ type User struct {
 	Integrations []string `json:"integrations,omitempty"`
 }
 
+// NewUser new user creation
+type NewUser struct {
+	ID          string `json:"userid" binding:"required"`
+	Email       string `json:"email" binding:"email"`
+	NewPassword string `json:"newpassword" binding:"required"`
+}
+
 // UpdateDoc with somethin
 type UpdateDoc struct {
 }

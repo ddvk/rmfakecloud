@@ -427,21 +427,15 @@ func (app *ReactAppWrapper) deleteUser(c *gin.Context) {
 }
 
 func (app *ReactAppWrapper) createUser(c *gin.Context) {
-	var req viewmodel.User
+	var req viewmodel.NewUser
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Error(err)
-		c.AbortWithStatus(http.StatusBadRequest)
+		badReq(c, err.Error())
 		return
 	}
-	if req.NewPassword == "" ||
-		req.Email == "" ||
-		req.ID == "" {
 
-		log.Warn("missing password, email or userid")
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
 	user, err := model.NewUser(req.ID, req.NewPassword)
+
 	if err != nil {
 		log.Error("can't create ", err)
 		c.AbortWithStatus(http.StatusInternalServerError)
