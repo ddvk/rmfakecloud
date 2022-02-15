@@ -29,8 +29,7 @@ Then you'll obtains an application key and its corresponding HMAC to give to rmf
 ## Email settings
 
 !!! warning
-    Currently only TLS connections are supported.
-    It is not possible to use STARTTLS
+    STARTTLS has not been tested
     Port 465 is most likely the one to use instead of 587, if your provider supports it.
 
 To be able to send email from your reMarkable, fill the following variables:
@@ -43,5 +42,5 @@ To be able to send email from your reMarkable, fill the following variables:
 | `RM_SMTP_FROM`         | Custom `From:` header for the mails (eg. 'ReMarkable self-hosted <remarkable@my.example.net>') |
 | `RM_SMTP_HELO`         | Custom HELO, if your email provider needs it |
 | `RM_SMTP_NOTLS` | don't use tls |
-| `RM_SMTP_STARTTLS` | us starttls should be combined with NOTLS |
+| `RM_SMTP_STARTTLS` | use starttls command, should be combined with NOTLS |
 | `RM_SMTP_INSECURE_TLS` | If set, don't check the server certificate (not recommended) |
