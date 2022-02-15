@@ -145,3 +145,10 @@ type IntegrationFolder struct {
 	Path       string              `json:"path"`
 	SubFolders []IntegrationFolder `json:"subFolders"`
 }
+
+type IntegrationMetadata struct {
+	FileType  string `json:"fileType"`
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Thumbnail string `json:"thumbnail"`
+}

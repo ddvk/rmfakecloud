@@ -119,6 +119,7 @@ func (b *Builder) Send(cfg *SMTPConfig) (err error) {
 		from, err = mail.ParseAddress(b.From)
 		if err != nil {
 			log.Error("Invalid From address: ", b.From)
+            return err
 		}
 	}
 	//if not defined

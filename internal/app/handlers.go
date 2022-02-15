@@ -549,7 +549,9 @@ func (app *App) blobStorageUpload(c *gin.Context) {
 }
 
 func (app *App) integrationsGetMetadata(c *gin.Context) {
-	c.AbortWithStatus(http.StatusNotImplemented)
+	var metadata messages.IntegrationMetadata
+	metadata.Thumbnail = ""
+	c.JSON(http.StatusOK, &metadata)
 }
 
 func (app *App) integrationsUpload(c *gin.Context) {
