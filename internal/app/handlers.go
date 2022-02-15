@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
+	"net/mail"
 	"strconv"
 	"strings"
 	"time"
@@ -154,7 +156,7 @@ func (app *App) newUserToken(c *gin.Context) {
 			IsSocial:      false,
 			Connection:    "Username-Password-Authentication",
 			Name:          user.Name,
-			Nickname:      user.Email, // user.Nickname,
+			Nickname:      user.Nickname,
 			Email:         fmt.Sprintf("%s (via %s)", user.Email, app.cfg.StorageURL),
 			EmailVerified: true,
 			Picture:       "image.png",
@@ -292,39 +294,87 @@ func (app *App) uploadDoc(c *gin.Context) {
 	}
 	c.Status(http.StatusOK)
 }
+
+type emailForm struct {
+	To         string                  `form:"to"`
+	From       string                  `form:"from"`
+	Subject    string                  `form:"subject"`
+	Body       string                  `form:"html"`
+	Attachment []*multipart.FileHeader `form:"attachment"`
+}
+
 func (app *App) sendEmail(c *gin.Context) {
 	uid := c.GetString(userIDKey)
 	log.Info("Sending mail for: ", uid)
 
-	form, err := c.MultipartForm()
-	if err != nil {
-		log.Error(err)
-		badReq(c, "not multiform")
+	if app.cfg.SMTPConfig == nil {
+		log.Error("smtp not configured")
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+
+	var req emailForm
+
+	if err := c.Bind(&req); err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
 	if log.IsLevelEnabled(log.DebugLevel) {
-		for k := range form.File {
-			log.Debugln("form field", k)
+		log.Debug("from: ", req.From)
+		log.Debug("to: ", req.To)
+		log.Debug("body: ", req.Body)
+		for i, a := range req.Attachment {
+			log.Debug(" Attachment: ", i)
+			log.Debug(" FileName: ", a.Filename)
+			log.Debug(" FileHeader: ", a.Header)
+			log.Debug(" FileSize: ", a.Size)
 		}
-		for k := range form.Value {
-			log.Debugln("form value", k)
+	}
+
+	var from *mail.Address
+	if app.cfg.SMTPConfig.FromOverride != nil {
+		from = app.cfg.SMTPConfig.FromOverride
+	} else {
+		// try to use the user's email address if in the correct format
+		if user, err := app.userStorer.GetUser(uid); err == nil && user.Email != "" {
+			from, err = mail.ParseAddress(user.Email)
+			if err != nil {
+				log.Warn(handlerLog, "user: ", uid, " has invalid email address: ", user.Email)
+			} else {
+				log.Debug("using user's email address")
+			}
 		}
+
+		// fallback FROM the request from the tablet
+		if from == nil {
+			var err error
+			from, err = mail.ParseAddress(req.From)
+			if err != nil {
+				log.Warn(handlerLog, err)
+				c.AbortWithStatus(http.StatusBadRequest)
+				return
+			}
+			log.Debug("using from, from the request")
+		}
+	}
+	//parse TO addresses
+	to, err := mail.ParseAddressList(email.TrimAddresses(req.To))
+	if err != nil {
+		log.Warn(handlerLog, err)
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
 	}
 
 	emailClient := email.Builder{
-		Subject: form.Value["subject"][0],
-		ReplyTo: form.Value["reply-to"][0],
-		From:    form.Value["from"][0],
-		To:      form.Value["to"][0],
-		Body:    stripAds(form.Value["html"][0]),
+		Subject: req.Subject,
+		To:      to,
+		From:    from,
+		Body:    stripAds(req.Body),
 	}
 
-	user, err := app.userStorer.GetUser(uid)
-	if err == nil && user.Email != "" {
-		emailClient.From = user.Email
-	}
-
-	for _, file := range form.File["attachment"] {
+	for _, file := range req.Attachment {
 		f, err := file.Open()
 		if err != nil {
 			log.Error(handlerLog, err)

@@ -3,6 +3,7 @@ package email
 import (
 	"crypto/tls"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"mime"
@@ -20,6 +21,7 @@ const (
 	// MaxLineLength is the maximum line length per RFC 2045
 	MaxLineLength = 76
 	delimeter     = "**=myohmy689407924327898338383"
+	smtpLog       = "[smtp] "
 )
 
 // SMTPConfig smtp configuration
@@ -30,12 +32,14 @@ type SMTPConfig struct {
 	FromOverride *mail.Address
 	Helo         string
 	InsecureTLS  bool
+	NoTLS        bool
+	StartTLS     bool
 }
 
 // Builder builds emails
 type Builder struct {
-	From    string
-	To      string
+	From    *mail.Address
+	To      []*mail.Address
 	ReplyTo string
 	Body    string
 	Subject string
@@ -54,7 +58,7 @@ func sanitizeAttachmentName(name string) string {
 }
 
 // trimAddresses workaround for go < 1.15
-func trimAddresses(address string) string {
+func TrimAddresses(address string) string {
 	return strings.Trim(strings.Trim(address, " "), ",")
 }
 
@@ -110,35 +114,27 @@ func utf8encode(s string) string {
 // Send sends the email
 func (b *Builder) Send(cfg *SMTPConfig) (err error) {
 	if cfg == nil {
-		return fmt.Errorf("no smtp config")
+		return errors.New("no smtp config")
 	}
-	var from *mail.Address
-	if cfg.FromOverride != nil {
-		from = cfg.FromOverride
-	} else {
-		from, err = mail.ParseAddress(b.From)
-		if err != nil {
-			log.Error("Invalid From address: ", b.From)
-            return err
-		}
-	}
-	//if not defined
-	to, err := mail.ParseAddressList(trimAddresses(b.To))
+
+	host, _, err := net.SplitHostPort(cfg.Server)
 	if err != nil {
 		return err
 	}
 
-	log.Debug("from:", from)
-	log.Debug("to:", to)
-
-	host, _, _ := net.SplitHostPort(cfg.Server)
+	var conn net.Conn
 
 	tlsconfig := &tls.Config{
 		InsecureSkipVerify: cfg.InsecureTLS,
 		ServerName:         host,
 	}
 
-	conn, err := tls.Dial("tcp", cfg.Server, tlsconfig)
+	if cfg.NoTLS {
+		conn, err = net.Dial("tcp", cfg.Server)
+	} else {
+		conn, err = tls.Dial("tcp", cfg.Server, tlsconfig)
+	}
+
 	if err != nil {
 		return err
 	}
@@ -146,6 +142,13 @@ func (b *Builder) Send(cfg *SMTPConfig) (err error) {
 	c, err := smtp.NewClient(conn, host)
 	if err != nil {
 		return err
+	}
+
+	if cfg.StartTLS {
+		err = c.StartTLS(tlsconfig)
+		if err != nil {
+			return err
+		}
 	}
 
 	if cfg.Helo != "" {
@@ -162,11 +165,11 @@ func (b *Builder) Send(cfg *SMTPConfig) (err error) {
 		}
 	}
 
-	if err = c.Mail(from.Address); err != nil {
+	if err = c.Mail(b.From.Address); err != nil {
 		return err
 	}
 
-	for _, addr := range to {
+	for _, addr := range b.To {
 		if err = c.Rcpt(addr.Address); err != nil {
 			return err
 		}
@@ -176,23 +179,30 @@ func (b *Builder) Send(cfg *SMTPConfig) (err error) {
 	if err != nil {
 		return err
 	}
+
+	toList := make([]string, 0)
+	for _, toAddr := range b.To {
+		toList = append(toList, toAddr.String())
+	}
+	to := strings.Join(toList, ", ")
+
+	msgBuilder := strings.Builder{}
 	//basic email headers
-	msg := fmt.Sprintf("From: %s\r\n", utf8encode(from.String()))
-	msg += fmt.Sprintf("To: %s\r\n", utf8encode(b.To))
-	msg += fmt.Sprintf("Subject: %s\r\n", utf8encode(b.Subject))
-	// msg += fmt.Sprintf("ReplyTo: %s\r\n", b.ReplyTo)
+	msgBuilder.WriteString(fmt.Sprintf("From: %s\r\n", utf8encode(b.From.String())))
+	msgBuilder.WriteString(fmt.Sprintf("To: %s\r\n", utf8encode(to)))
+	msgBuilder.WriteString(fmt.Sprintf("Subject: %s\r\n", utf8encode(b.Subject)))
+	msgBuilder.WriteString("MIME-Version: 1.0\r\n")
+	msgBuilder.WriteString(fmt.Sprintf("Content-Type: multipart/mixed; boundary=\"%s\"\r\n", delimeter))
+	msgBuilder.WriteString(fmt.Sprintf("\r\n--%s\r\n", delimeter))
+	msgBuilder.WriteString("Content-Type: text/html; charset=\"utf-8\"\r\n")
+	msgBuilder.WriteString("Content-Transfer-Encoding: quoted-printable\r\n")
+	msgBuilder.WriteString("Content-Disposition: inline\r\n")
+	msgBuilder.WriteString("\r\n")
+	msgBuilder.WriteString(b.Body)
 
-	msg += "MIME-Version: 1.0\r\n"
-	msg += fmt.Sprintf("Content-Type: multipart/mixed; boundary=\"%s\"\r\n", delimeter)
+	msg := msgBuilder.String()
 
-	msg += fmt.Sprintf("\r\n--%s\r\n", delimeter)
-	msg += "Content-Type: text/html; charset=\"utf-8\"\r\n"
-	msg += "Content-Transfer-Encoding: quoted-printable\r\n"
-	msg += "Content-Disposition: inline\r\n"
-	msg += "\r\n"
-	msg += b.Body
-
-	log.Debug("mime msg", msg)
+	log.Debug("mime msg:\n", msg)
 
 	_, err = w.Write([]byte(msg))
 	if err != nil {
