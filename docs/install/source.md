@@ -81,6 +81,8 @@ rmfakecloud.service
 ```ini
 [Unit]
 Description=rmfakecloud
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 ExecStart=/usr/local/bin/rmfakecloud
@@ -88,8 +90,7 @@ EnvironmentFile=/etc/rmfakecloud.conf
 
 [Install]
 WantedBy=multi-user.target
-Wants=network-online.target
-After=network-online.target
+
 ```
 
 rmfakecloud.conf

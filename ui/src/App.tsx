@@ -28,6 +28,7 @@ export default function App() {
     <AuthProvider>
       <Router>
         <Navigationbar />
+        <div style={{ padding: "10px" }}>
           <Switch>
             <PrivateRoute exact path="/" component={Home} />
             <PrivateRoute path="/documents" component={Documents} />
@@ -38,6 +39,7 @@ export default function App() {
             <Route path="/login" component={Login} />
             <Route component={NoMatch} />
           </Switch>
+        </div>
       </Router>
     </AuthProvider>
     <ToastContainer autoClose={2000} />

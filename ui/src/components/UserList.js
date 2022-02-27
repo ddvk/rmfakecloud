@@ -1,160 +1,133 @@
 import React, {useState} from "react";
 import useFetch from "../hooks/useFetch";
 import Spinner from "./Spinner";
-import {Table, Button, Modal, Form} from "react-bootstrap";
-import { Link } from "react-router-dom";
+import {Alert, Button, Card, Modal, Table} from "react-bootstrap";
+import UserProfileModal from "./UserProfileModal";
+import NewUserModal from "./NewUserModal";
 import apiService from "../services/api.service";
+import {formatDate} from "../common/date";
+import { toast } from "react-toastify";
 const userListUrl = "users";
 
+const NewUser = 1;
+const UpdateUser = 2;
 export default function UserList() {
-  const [show, setShow] = useState(false);
   const [index, setIndex] = useState(false);
   const { data: userList, error, loading } = useFetch(`${userListUrl}`, index);
-  const [formErrors, setFormErrors] = useState({});
-
+  const [ state, setState ] = useState({showModal: 0, modalUser: null});
   const refresh = () =>{
     setIndex(previous => previous+1)
   }
-  const initialState = {
-    userid: "",
-    email: "",
-    password: ""
-  };
 
+  function openModal(index) {
+    let user = userList[index];
+    setState({
+      showModal: UpdateUser,
+      modalUser: user,
+    });
+  }
 
-  const [profileForm, setProfileForm] = useState(initialState);
-
-  function hide(){
-    setShow(false);
-    setProfileForm(initialState);
+  function closeModal() {
+    setState({
+      showModal: 0,
+      modalUser: null,
+    });
   }
 
   if (loading) {
-    return <Spinner />;
+    return <Spinner />
   }
+
   if (error) {
-    return <div>{error.message}</div>;
+    return (
+        <Alert variant="danger">
+            <Alert.Heading>An Error Occurred</Alert.Heading>
+            {`Error ${error.status}: ${error.statusText}`}
+        </Alert>
+    );
   }
 
   if (!userList.length) {
     return <div>No users</div>;
   }
   const newUser = e => {
-    setShow(true)
+    setState({
+      showModal: NewUser,
+    });
   }
-  const handleClose = e => {
-    hide()
+
+  const onSave  = () => {
+    closeModal();
+    refresh();
   }
-  const remove = async id => {
+
+  const remove = async (e, id) => {
+    e.preventDefault()
+    e.stopPropagation()
     if (!window.confirm(`Are you sure you want to delete user: ${id}?`))
-      return
+      return false
 
     try{
       await apiService.deleteuser(id)
       refresh()
     } catch(e){
-      //TODO:
+        toast.error('Error:'+ e)
     }
   }
-  const handleSave = async e => {
-    e.preventDefault()
-    try {
-      await apiService.createuser({
-        userid: profileForm.userid,
-        email: profileForm.email,
-        newPassword: profileForm.password,
-      });
-      hide()
-      refresh()
-      
-    } catch (e) {
-      setFormErrors({ error: e.toString()});
-    }
-  }
-  
-  const handleChange = ({ target }) => {
-    setProfileForm({ ...profileForm, [target.name]: target.value });
-  }
+  // const handleSave = async e => {
+  //   e.preventDefault()
+  //   try {
+  //     await apiService.createuser({
+  //       userid: profileForm.userid,
+  //       email: profileForm.email,
+  //       newPassword: profileForm.password,
+  //     });
+  //     hide()
+  //     refresh()
+  //     
+  //   } catch (e) {
+  //     setFormErrors({ error: e.toString()});
+  //   }
+  // }
+  //
+  // const handleChange = ({ target }) => {
+  //   setProfileForm({ ...profileForm, [target.name]: target.value });
+  // }
 
   return (
-    <>
-      <Table className="table-dark">
+    <Card bg="dark"
+      text="white">
+      <Card.Header>User List</Card.Header>
+      <Table striped bordered hover className="table-dark">
         <thead>
-          <tr>
-            <th>#</th>
+        <tr>
+          <th>#</th>
             <th>UserId</th>
-            <th>Email</th>
-            <th>Name</th>
-            <th>Created</th>
+          <th>Email</th>
+          <th>Name</th>
+          <th>Created At</th>
             <th><Button onClick={newUser}>New User</Button></th>
-          </tr>
+        </tr>
         </thead>
         <tbody>
           {userList.map((x, index) => (
-            <tr key={x.userid}>
+            <tr key={x.userid} onClick={() => openModal(index)} style={{ cursor: "pointer" }}>
               <td>{index}</td>
-              <td>
-                <Link to={`/users/${x.userid}`}>{x.userid}</Link>
-              </td>
+              <td>{x.userid}</td>
               <td>{x.email}</td>
               <td>{x.Name}</td>
-              {/* TODO: format datetime */}
-              <td>{new Date(x.CreatedAt).toLocaleString('sv')}</td>
-              <td><Button variant="danger" onClick={() => remove(x.userid)}>Delete</Button></td>
+              <td>{formatDate(x.CreatedAt)}</td>
+              <td><Button variant="danger" onClick={(e) => remove(e,x.userid)}>Delete</Button></td>
             </tr>
           ))}
         </tbody>
       </Table>
-      <Modal show={show} onHide={handleClose}>
-        <Modal.Header closeButton>
-          <Modal.Title>Modal heading</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-        <Form autoComplete="chrome-off" onSubmit={handleSave}>
-          <Form.Label>UserId</Form.Label>
-          <Form.Control
-            className="font-weight-bold"
-            placeholder="userid"
-            name="userid"
-            value={profileForm.userid}
-            onChange={handleChange}
-          />
-        <Form.Group controlId="formEmail">
-          <Form.Label>Email address</Form.Label>
-          <Form.Control
-            type="email"
-            className="font-weight-bold"
-            placeholder="Enter email"
-            name="email"
-            value={profileForm.email}
-            onChange={handleChange}
-          />
-        </Form.Group>
-        <Form.Group controlId="formPasswordRepeat">
-          <Form.Label>New Password</Form.Label>
-          <Form.Control
-            type="password"
-            placeholder="new password"
-            value={profileForm.password}
-            name="password"
-            onChange={handleChange}
-          />
-        </Form.Group>
-        {formErrors.error && (
-          <div className="alert alert-danger">{formErrors.error}</div>
-        )}
-        <input type="submit" hidden/>
-      </Form>
-</Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={handleClose}>
-            Close
-          </Button>
-          <Button variant="primary"  onClick={handleSave}>
-            Save Changes
-          </Button>
-        </Modal.Footer>
+      <Modal show={state.showModal === UpdateUser} onHide={closeModal} className="transparent-modal">
+            <UserProfileModal user={state.modalUser} onSave={onSave} onClose={closeModal} headerText={`Change User Email/Password: ${state.modalUser?.userid}`} />
       </Modal>
-      </>
+      <Modal show={state.showModal === NewUser} onHide={closeModal} className="transparent-modal">
+            <NewUserModal onSave={onSave} onClose={closeModal} />
+      </Modal>
+    </Card>
   );
 }
