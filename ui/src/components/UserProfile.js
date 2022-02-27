@@ -7,14 +7,14 @@ import Button from "react-bootstrap/Button";
 import Spinner from "./Spinner";
 import useFetch from "../hooks/useFetch";
 import apiService from "../services/api.service";
-import { toast } from 'react-toastify';
+import { toast } from "react-toastify";
 import { useParams } from "react-router-dom";
 
 const userListUrl = "users";
 
 export default function UserProfile() {
   const { userid } = useParams();
-  
+
   const { data: user, loading, error } = useFetch(`${userListUrl}/${userid}`);
   const history = useHistory();
 
@@ -25,13 +25,12 @@ export default function UserProfile() {
   });
 
   useEffect(() => {
-    if (!user)
-      return
+    if (!user) return;
 
-    setProfileForm(oldState => ({
+    setProfileForm((oldState) => ({
       ...oldState,
-      email: user.email
-    }))
+      email: user.email,
+    }));
   }, [user]);
 
   function handleChange({ target }) {
@@ -58,13 +57,12 @@ export default function UserProfile() {
       await apiService.updateuser({
         userid,
         newPassword: profileForm.newPassword,
-        email: profileForm.email
+        email: profileForm.email,
       });
-      toast("updated")
-      history.push("/users")
-      
+      toast("updated");
+      history.push("/users");
     } catch (e) {
-      setFormErrors({ error: e.toString()});
+      setFormErrors({ error: e.toString() });
     }
   }
 
@@ -77,13 +75,13 @@ export default function UserProfile() {
   return (
     <div>
       <Form onSubmit={handleSubmit}>
-          <Form.Label>UserId</Form.Label>
-          <Form.Control
-            className="font-weight-bold"
-            placeholder={userid}
-            value={user.userid}
-            disabled
-          />
+        <Form.Label>UserId</Form.Label>
+        <Form.Control
+          className="font-weight-bold"
+          placeholder={userid}
+          value={user.userid}
+          disabled
+        />
         <Form.Group controlId="formEmail">
           <Form.Label>Email address</Form.Label>
           <Form.Control
@@ -108,9 +106,7 @@ export default function UserProfile() {
         <div>
           <p>Integrations</p>
           <ul>
-          {user.integrations && user.integrations.map((x, i) => 
-            (<li>{x}</li>)
-          )}
+            {user.integrations && user.integrations.map((x, i) => <li>{x}</li>)}
           </ul>
         </div>
         {formErrors.error && (

@@ -46,6 +46,7 @@ func SignClaims(claims jwt.Claims, key []byte) (string, error) {
 
 var nameSeparators = regexp.MustCompile(`[./\\]`)
 
+// Sanitize removes all path separators
 func Sanitize(param string) string {
 	return nameSeparators.ReplaceAllString(param, "")
 }

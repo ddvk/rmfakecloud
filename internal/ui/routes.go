@@ -58,7 +58,9 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	})
 
 	auth.GET("newcode", app.newCode)
-	auth.POST("resetPassword", app.resetPassword)
+	auth.GET("profile", app.newCode)
+	auth.POST("changePassword", app.changePassword)
+	auth.POST("changeEmail", app.changePassword)
 
 	auth.GET("documents", app.listDocuments)
 	auth.GET("documents/:docid", app.getDocument)

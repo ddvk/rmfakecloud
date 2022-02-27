@@ -33,21 +33,21 @@ type FileSystemStorage struct {
 	Cfg *config.Config
 }
 
+func sanitizeFileName(fileName string) string {
+	return filepath.Clean(filepath.Base(fileName))
+}
+
+func (fs *FileSystemStorage) getUserPath(uid string) string {
+	return filepath.Join(fs.Cfg.DataDir, filepath.Base(userDir), sanitizeFileName(uid))
+}
+
 // gets the blobstorage path
 func (fs *FileSystemStorage) getUserBlobPath(uid string) string {
 	return filepath.Join(fs.getUserPath(uid), SyncFolder)
 }
 
-func (fs *FileSystemStorage) getUserPath(uid string) string {
-
-	return filepath.Join(fs.Cfg.DataDir, filepath.Base(userDir), filepath.Base(uid))
-}
 func (fs *FileSystemStorage) getPathFromUser(uid, path string) string {
-	return filepath.Join(fs.getUserPath(uid), filepath.Base(path))
-}
-
-func sanitize(id string) string {
-	return common.Sanitize(path.Base(id))
+	return filepath.Join(fs.getUserPath(uid), sanitizeFileName(path))
 }
 
 // ExportDocument Exports a document to the outputType
@@ -61,15 +61,15 @@ func (fs *FileSystemStorage) ExportDocument(uid, id, outputType string, exportOp
 	if err != nil {
 		return nil, err
 	}
+	sanitizedID := common.Sanitize(id)
 
-	zipFilePath := fs.getPathFromUser(uid, id+models.ZipFileExt)
+	zipFilePath := fs.getPathFromUser(uid, sanitizedID+models.ZipFileExt)
 	log.Debugln("Fullpath:", zipFilePath)
 	rawStat, err := os.Stat(zipFilePath)
 	if err != nil {
 		return nil, fmt.Errorf("cant find raw document %v", err)
 	}
 
-	sanitizedID := sanitize(id)
 	outputFilePath := path.Join(cacheDirPath, sanitizedID+"-annotated.pdf")
 	outStat, err := os.Stat(outputFilePath)
 

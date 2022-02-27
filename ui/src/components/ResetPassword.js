@@ -25,7 +25,7 @@ export default function OwnUserProfile() {
   function formIsValid() {
     const _errors = {};
 
-    if (!resetPasswordForm.email) _errors.email = "email is required";
+    // if (!resetPasswordForm.email) _errors.email = "email is required";
     if (!resetPasswordForm.currentPassword)
       _errors.currentPassword = "currentPassword id is required";
     if (!resetPasswordForm.newPassword)
@@ -75,7 +75,21 @@ export default function OwnUserProfile() {
   }
 
   return (
-    <Form onSubmit={handleSubmit}>
+    <Form onSubmit={handleSubmit} autoComplete="off">
+      <Form.Group controlId="email">
+        <Form.Label>email</Form.Label>
+        <Form.Control
+          name="email"
+          type="email"
+          placeholder="current password"
+          value={resetPasswordForm.currentEmail}
+          onChange={handleChange}
+          autoCaplete="off"
+        />
+        {formErrors.email && (
+          <div className="alert alert-danger">{formErrors.email}</div>
+        )}
+      </Form.Group>
       <Form.Group controlId="formPassword">
         <Form.Label>Old Password</Form.Label>
         <Form.Control
@@ -84,6 +98,7 @@ export default function OwnUserProfile() {
           placeholder="current password"
           value={resetPasswordForm.currentPassword}
           onChange={handleChange}
+          autoComplete="off"
         />
         {formErrors.currentPassword && (
           <div className="alert alert-danger">{formErrors.currentPassword}</div>

@@ -152,7 +152,7 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 	c.String(http.StatusOK, tokenString)
 }
 
-func (app *ReactAppWrapper) resetPassword(c *gin.Context) {
+func (app *ReactAppWrapper) changePassword(c *gin.Context) {
 	var req viewmodel.ResetPasswordForm
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -161,7 +161,7 @@ func (app *ReactAppWrapper) resetPassword(c *gin.Context) {
 		return
 	}
 
-	user, err := app.userStorer.GetUser(req.Email)
+	user, err := app.userStorer.GetUser(req.UserID)
 
 	if err != nil {
 		log.Error(err)

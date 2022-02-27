@@ -18,9 +18,15 @@ type LoginForm struct {
 // ResetPasswordForm reset password
 type ResetPasswordForm struct {
 	UserID          string `json:"userid"`
-	Email           string `json:"email"`
 	CurrentPassword string `json:"currentPassword"`
 	NewPassword     string `json:"newPassword"`
+}
+
+// ChangeEmail reset password
+type ChangeEmailForm struct {
+	UserID          string `json:"userid"`
+	Email           string `json:"email"`
+	CurrentPassword string `json:"currentPassword"`
 }
 
 // DocumentTree a tree of documents
@@ -188,4 +194,7 @@ type NewUser struct {
 
 // UpdateDoc with somethin
 type UpdateDoc struct {
+	DocumentID string `json:"documentId" binding:"required"`
+	ParentID   string `json:"parentId"`
+	Name       string `json:"name"`
 }

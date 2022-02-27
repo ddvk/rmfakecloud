@@ -9,7 +9,7 @@ import (
 )
 
 func TestParseEmptyAddress(t *testing.T) {
-	addreses := trimAddresses(", email@domain.com , blah@blah, ")
+	addreses := TrimAddresses(", email@domain.com , blah@blah, ")
 	to, err := mail.ParseAddressList(addreses)
 	if err != nil {
 		t.Error(err)
@@ -58,8 +58,8 @@ func TestSendMail(t *testing.T) {
 
 	file, _ := os.Open("test.txt")
 	sender := Builder{
-		To:      sendTo,
-		From:    "from@test.com",
+		To:      []*mail.Address{{Address: sendTo}},
+		From:    &mail.Address{Address: "from@test.com"},
 		Subject: "subj test 鬼 тест",
 		Body: `<!DOCTYPE html>
 		<html><body><h1>blah</h1></body></html>`,

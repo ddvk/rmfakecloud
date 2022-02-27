@@ -11,9 +11,9 @@ import (
 	"net/mail"
 	"net/smtp"
 	"net/url"
-	"path/filepath"
 	"strings"
 
+	"github.com/ddvk/rmfakecloud/internal/common"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -53,11 +53,7 @@ type emailAttachment struct {
 	data        io.Reader
 }
 
-func sanitizeAttachmentName(name string) string {
-	return filepath.Base(name)
-}
-
-// trimAddresses workaround for go < 1.15
+// TrimAddresses workaround for go < 1.15
 func TrimAddresses(address string) string {
 	return strings.Trim(strings.Trim(address, " "), ",")
 }
@@ -71,7 +67,7 @@ func (b *Builder) AddFile(name string, data io.Reader, contentType string) {
 	}
 	attachment := emailAttachment{
 		contentType: contentType,
-		filename:    sanitizeAttachmentName(name),
+		filename:    common.Sanitize(name),
 		data:        data,
 	}
 	b.attachments = append(b.attachments, attachment)
