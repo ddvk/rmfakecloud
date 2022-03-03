@@ -48,7 +48,7 @@ services:
     volumes:
       - /home/remarkable/rmfakecloud/data:/data
 ```
-  * `netowrk_mode: host` so that the docker container can reach my mail server
+  * `network_mode: host` so that the docker container can reach my mail server
 
 env:
 ```
