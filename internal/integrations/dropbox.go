@@ -61,14 +61,10 @@ func (d *DropBox) List(folderID string, depth int) (*messages.IntegrationFolder,
 			logrus.Info("folder:", f.Id)
 		}
 	}
-	response := &messages.IntegrationFolder{
-		ID:       rootFolder,
-		FolderID: rootFolder,
-		Name:     "DropBox Root",
-	}
-
+	response := messages.NewIntegrationFolder(rootFolder, "DropBox Root")
 	return response, nil
 }
+
 func (d *DropBox) Download(fileID string) (io.ReadCloser, error) {
 	return nil, nil
 
