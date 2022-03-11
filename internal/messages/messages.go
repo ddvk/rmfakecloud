@@ -137,11 +137,22 @@ type IntegrationFile struct {
 	SourceFileType   string    `json:"sourceFileType"`
 }
 
+func NewIntegrationFolder(id, name string) *IntegrationFolder {
+	return &IntegrationFolder{
+		FolderID:   id,
+		ID:         id,
+		Name:       name,
+		Path:       "",
+		Files:      []*IntegrationFile{},
+		SubFolders: []*IntegrationFolder{},
+	}
+}
+
 type IntegrationFolder struct {
-	Files      []IntegrationFile   `json:"files"`
-	FolderID   string              `json:"folderID"`
-	ID         string              `json:"id"`
-	Name       string              `json:"name"`
-	Path       string              `json:"path"`
-	SubFolders []IntegrationFolder `json:"subFolders"`
+	FolderID   string               `json:"folderID"`
+	ID         string               `json:"id"`
+	Name       string               `json:"name"`
+	Path       string               `json:"path"`
+	Files      []*IntegrationFile   `json:"files"`
+	SubFolders []*IntegrationFolder `json:"subFolders"`
 }

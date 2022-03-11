@@ -99,10 +99,7 @@ func (w *WebDavIntegration) Download(fileID string) (io.ReadCloser, error) {
 
 // List populates the response
 func (w *WebDavIntegration) List(folder string, depth int) (*messages.IntegrationFolder, error) {
-	response := &messages.IntegrationFolder{
-		FolderID: folder,
-		ID:       folder,
-	}
+	response := messages.NewIntegrationFolder(folder, "")
 
 	if folder == rootFolder {
 		folder = "/"

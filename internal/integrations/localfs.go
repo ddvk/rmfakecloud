@@ -28,10 +28,7 @@ func newLocalFS(i model.IntegrationConfig) *localFS {
 
 // List populates the response
 func (d *localFS) List(folder string, depth int) (*messages.IntegrationFolder, error) {
-	response := &messages.IntegrationFolder{
-		FolderID: folder,
-		ID:       folder,
-	}
+	response := messages.NewIntegrationFolder(folder, "")
 
 	if folder == rootFolder {
 		folder = "/"

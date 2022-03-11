@@ -98,22 +98,15 @@ func visitDir(root, currentPath string, depth int, parentFolder *messages.Integr
 		return err
 	}
 
-	hasDirs := false
-
 	for _, d := range fs {
 		entryName := d.Name()
 		entryPath := path.Join(currentPath, entryName)
 		encodedPath := encodeName(entryPath)
 		if d.IsDir() {
-			hasDirs = true
 
-			folder := messages.IntegrationFolder{
-				FolderID: encodedPath,
-				ID:       encodedPath,
-				Name:     entryName,
-			}
+			folder := messages.NewIntegrationFolder(encodedPath, entryName)
 
-			err = visitDir(root, entryPath, depth-1, &folder, readDir)
+			err = visitDir(root, entryPath, depth-1, folder, readDir)
 			if err != nil {
 				return err
 			}
@@ -131,7 +124,7 @@ func visitDir(root, currentPath string, depth int, parentFolder *messages.Integr
 			docName := strings.TrimSuffix(entryName, ext)
 			extension := strings.TrimPrefix(ext, ".")
 
-			file := messages.IntegrationFile{
+			file := &messages.IntegrationFile{
 				ProvidedFileType: contentType,
 				DateChanged:      d.ModTime(),
 				FileExtension:    extension,
@@ -146,10 +139,6 @@ func visitDir(root, currentPath string, depth int, parentFolder *messages.Integr
 			parentFolder.Files = append(parentFolder.Files, file)
 			logrus.Trace(loggerfs, "file added: ", entryPath)
 		}
-	}
-
-	if !hasDirs {
-		parentFolder.SubFolders = make([]messages.IntegrationFolder, 0)
 	}
 
 	return nil
