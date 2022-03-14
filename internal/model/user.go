@@ -24,6 +24,17 @@ const (
 	argon2configKeylen  = 32
 )
 
+var emailWhiteList *regexp.Regexp
+
+func init() {
+	var err error
+	emailWhiteList, err = regexp.Compile("[^a-zA-Z0-9.@-_]+")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+}
+
 // User holds the user profile
 type User struct {
 	ID            string
@@ -100,29 +111,21 @@ func hashPassword(raw string) (string, error) {
 }
 
 func sanitizeEmail(email string) string {
-	rg, err := regexp.Compile("[^a-zA-Z0-9.@-_]+")
-	if err != nil {
-		log.Fatal(err)
-	}
 	//remove all not whitelisted
-	return rg.ReplaceAllString(email, "")
+	return emailWhiteList.ReplaceAllString(email, "")
 }
 
 // NewUser create a new user object
-func NewUser(email string, rawPassword string) (*User, error) {
-	// id, err := genId()
-	// if err != nil {
-	// 	return nil, err
-	// }
-
+func NewUser(userID string, rawPassword string) (*User, error) {
 	password, err := hashPassword(rawPassword)
 	if err != nil {
 		return nil, err
 	}
 
+	sanitizedID := sanitizeEmail(userID)
 	return &User{
-		ID:            sanitizeEmail(email),
-		Email:         email,
+		ID:            sanitizedID,
+		Email:         sanitizedID,
 		EmailVerified: true,
 		Password:      password,
 		CreatedAt:     time.Now(),

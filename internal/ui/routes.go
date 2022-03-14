@@ -58,7 +58,9 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	})
 
 	auth.GET("newcode", app.newCode)
-	auth.POST("resetPassword", app.resetPassword)
+	auth.GET("profile", app.newCode)
+	auth.POST("changePassword", app.changePassword)
+	auth.POST("changeEmail", app.changePassword)
 
 	auth.GET("documents", app.listDocuments)
 	auth.GET("documents/:docid", app.getDocument)
@@ -71,6 +73,8 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	admin := auth.Group("")
 	admin.Use(app.adminMiddleware())
 	admin.GET("users/:userid", app.getUser)
+	admin.DELETE("users/:userid", app.deleteUser)
 	admin.PUT("users", app.updateUser)
+	admin.POST("users", app.createUser)
 	admin.GET("users", app.getAppUsers)
 }

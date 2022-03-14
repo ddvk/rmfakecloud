@@ -15,7 +15,8 @@ import CodeGenerator from "./components/CodeGenerator";
 import ResetPassword from "./components/ResetPassword";
 import Role from "./common/Role";
 import apiService from "./services/api.service";
-
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import "bootstrap/dist/css/bootstrap.min.css";
 
 export default function App() {
@@ -23,22 +24,25 @@ export default function App() {
     apiService.checkLogin()
   }, [])
   return (
+    <>
     <AuthProvider>
       <Router>
         <Navigationbar />
-        <div style={{ padding: "16px" }}>
+        <div style={{ padding: "10px" }}>
           <Switch>
             <PrivateRoute exact path="/" component={Home} />
             <PrivateRoute path="/documents" component={Documents} />
             <PrivateRoute path="/generatecode" component={CodeGenerator} />
             <PrivateRoute path="/resetPassword" component={ResetPassword} />
-            <PrivateRoute path="/userList/:userid" component={UserProfile} /> 
-            <PrivateRoute path="/userList" roles={[Role.Admin]} component={UserList} />
+            <PrivateRoute path="/users/:userid" component={UserProfile} /> 
+            <PrivateRoute path="/users" roles={[Role.Admin]} component={UserList} />
             <Route path="/login" component={Login} />
             <Route component={NoMatch} />
           </Switch>
         </div>
       </Router>
     </AuthProvider>
+    <ToastContainer autoClose={2000} />
+    </>
   );
 }

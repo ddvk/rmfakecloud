@@ -17,9 +17,16 @@ type LoginForm struct {
 
 // ResetPasswordForm reset password
 type ResetPasswordForm struct {
-	Email           string `json:"email"`
+	UserID          string `json:"userid"`
 	CurrentPassword string `json:"currentPassword"`
 	NewPassword     string `json:"newPassword"`
+}
+
+// ChangeEmail reset password
+type ChangeEmailForm struct {
+	UserID          string `json:"userid"`
+	Email           string `json:"email"`
+	CurrentPassword string `json:"currentPassword"`
 }
 
 // DocumentTree a tree of documents
@@ -170,13 +177,24 @@ type DocumentList struct {
 
 // User user model
 type User struct {
-	ID          string `json:"userid"`
-	Email       string `json:"email"`
-	Name        string `json:"name"`
-	NewPassword string `json:"newpassword,omitempty"`
-	CreatedAt   time.Time
+	ID           string `json:"userid"`
+	Email        string `json:"email"`
+	Name         string `json:"name"`
+	NewPassword  string `json:"newpassword,omitempty"`
+	CreatedAt    time.Time
+	Integrations []string `json:"integrations,omitempty"`
+}
+
+// NewUser new user creation
+type NewUser struct {
+	ID          string `json:"userid" binding:"required"`
+	Email       string `json:"email" binding:"email"`
+	NewPassword string `json:"newpassword" binding:"required"`
 }
 
 // UpdateDoc with somethin
 type UpdateDoc struct {
+	DocumentID string `json:"documentId" binding:"required"`
+	ParentID   string `json:"parentId"`
+	Name       string `json:"name"`
 }

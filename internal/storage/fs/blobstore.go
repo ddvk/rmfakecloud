@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/storage/exporter"
@@ -281,7 +282,7 @@ func (fs *FileSystemStorage) GetBlobURL(uid, blobid, scope string) (docurl strin
 // LoadBlob Opens a blob by id
 func (fs *FileSystemStorage) LoadBlob(uid, blobid string) (io.ReadCloser, int64, error) {
 	generation := int64(0)
-	blobPath := path.Join(fs.getUserBlobPath(uid), sanitize(blobid))
+	blobPath := path.Join(fs.getUserBlobPath(uid), common.Sanitize(blobid))
 	log.Debugln("Fullpath:", blobPath)
 	if blobid == rootFile {
 		historyPath := path.Join(fs.getUserBlobPath(uid), historyFile)
@@ -358,7 +359,7 @@ func (fs *FileSystemStorage) StoreBlob(uid, id string, stream io.Reader, matchGe
 		generation = generationFromFileSize(size)
 	}
 
-	blobPath := path.Join(fs.getUserBlobPath(uid), sanitize(id))
+	blobPath := path.Join(fs.getUserBlobPath(uid), common.Sanitize(id))
 	file, err := os.Create(blobPath)
 	if err != nil {
 		return

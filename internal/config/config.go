@@ -55,6 +55,10 @@ const (
 	envSMTPPassword = "RM_SMTP_PASSWORD"
 	// envSMTPHelo custom helo
 	envSMTPHelo = "RM_SMTP_HELO"
+	// no tls, for local smtp mocking etc
+	envSMTPNoTLS = "RM_SMTP_NOTLS"
+	// use starttls when notls was used
+	envSMTPStartTLS = "RM_SMTP_STARTTLS"
 	// envSMTPInsecureTLS dont check cert (bad)
 	envSMTPInsecureTLS = "RM_SMTP_INSECURE_TLS"
 	// envSMTPFrom custom from address
@@ -168,11 +172,15 @@ func FromEnv() *Config {
 
 	if servername != "" {
 		inSecureTLS, _ := strconv.ParseBool(os.Getenv(envSMTPInsecureTLS))
+		noTLS, _ := strconv.ParseBool(os.Getenv(envSMTPNoTLS))
+		startTLS, _ := strconv.ParseBool(os.Getenv(envSMTPStartTLS))
 		smtpCfg = &email.SMTPConfig{
 			Server:      servername,
 			Username:    os.Getenv(envSMTPUsername),
 			Password:    os.Getenv(envSMTPPassword),
 			Helo:        os.Getenv(envSMTPHelo),
+			NoTLS:       noTLS,
+			StartTLS:    startTLS,
 			InsecureTLS: inSecureTLS,
 		}
 		fromOverride := os.Getenv(envSMTPFrom)
@@ -230,6 +238,7 @@ Emails, smtp:
 	%s
 	%s
 	%s
+	%s	no tls/plaintext, for testing or something
 	%s	don't check the server certificate (not recommended)
 	%s	custom HELO (if your email server needs it)
 	%s	override the email's From:
@@ -255,6 +264,7 @@ myScript hwr (needs a developer account):
 		envSMTPServer,
 		envSMTPUsername,
 		envSMTPPassword,
+		envSMTPNoTLS,
 		envSMTPInsecureTLS,
 		envSMTPHelo,
 		envSMTPFrom,

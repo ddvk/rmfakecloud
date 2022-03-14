@@ -141,3 +141,19 @@ func (fs *FileSystemStorage) UpdateUser(u *model.User) (err error) {
 
 	return
 }
+
+// RemoveUser remove the user and their data
+func (fs *FileSystemStorage) RemoveUser(uid string) (err error) {
+	if uid == "" {
+		err = errors.New("empty id")
+		return
+	}
+
+	userSyncPath := fs.getUserPath(uid)
+	err = os.RemoveAll(userSyncPath)
+	if err != nil {
+		return
+	}
+
+	return
+}

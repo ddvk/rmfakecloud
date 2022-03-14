@@ -1,23 +1,17 @@
 import React, { useState } from "react";
-import NoMatch from "./NoMatch";
 import Form from "react-bootstrap/Form";
-import Button from "react-bootstrap/Button";
-import Spinner from "./Spinner";
-import useFetch from "../hooks/useFetch";
+import { Button, Card } from "react-bootstrap";
 import apiService from "../services/api.service";
 
-import {Alert} from "react-bootstrap";
-
-const userListUrl = "users";
+import { Alert } from "react-bootstrap";
 
 export default function UserProfileModal(params) {
-  const { userid } = params;
-  const { data: user, loading, error } = useFetch(`${userListUrl}/${userid}`);
+  const { user, onSave, headerText, onClose } = params;
 
   const [formErrors, setFormErrors] = useState({});
-  const [formInfo, setFormInfo] = useState({});
   const [resetPasswordForm, setResetPasswordForm] = useState({
     newPassword: "",
+    email: user?.email,
   });
 
   function handleChange({ target }) {
@@ -27,8 +21,10 @@ export default function UserProfileModal(params) {
   function formIsValid() {
     const _errors = {};
 
-    if (!resetPasswordForm.newPassword)
-      _errors.error = "newPassword is required";
+    // if (!resetPasswordForm.newPassword)
+    //   _errors.error = "newPassword is required";
+    //
+    if (!resetPasswordForm.email) _errors.error = "email is required";
 
     setFormErrors(_errors);
 
@@ -42,62 +38,65 @@ export default function UserProfileModal(params) {
 
     try {
       await apiService.updateuser({
-        userid,
+        userid: user.userid,
+        email: resetPasswordForm.email,
         newPassword: resetPasswordForm.newPassword,
       });
-      setFormInfo({ message: "Password Updated Successfully" });
+      onSave();
     } catch (e) {
-      setFormErrors({ error: e.toString()});
+      setFormErrors({ error: e.toString() });
     }
   }
 
-  if (loading) return <Spinner />;
-
-  if (error) {
-    return (
-      <Alert variant="danger">
-        <Alert.Heading>An Error Occurred</Alert.Heading>
-        {`Error ${error.status}: ${error.statusText}`}
-      </Alert>
-    );
-  }
-
-  if (!user) return <NoMatch />;
-
+  if (!user) return null;
   return (
-    <div>
-      <Alert variant="danger" hidden={!formErrors.error}>
-        <Alert.Heading>An Error Occurred</Alert.Heading>
-        {formErrors.error}
-      </Alert>
+    <Form onSubmit={handleSubmit}>
+      <Card bg="dark" text="white">
+        <Card.Header>
+          <span>{headerText}</span>
+        </Card.Header>
+        <Card.Body>
+          <div>
+            <Alert variant="danger" hidden={!formErrors.error}>
+              <Alert.Heading>An Error Occurred</Alert.Heading>
+              {formErrors.error}
+            </Alert>
 
-      <Alert variant="info" hidden={!formInfo.message}>
-        {formInfo.message}
-      </Alert>
-
-      <Form onSubmit={handleSubmit}>
-        <Form.Label>Email address</Form.Label>
-        <Form.Control
-          type="email"
-          className="font-weight-bold"
-          placeholder="Enter email"
-          value={userid}
-          disabled
-        />
-
-        <Form.Group controlId="formPasswordRepeat">
-          <Form.Label>Change Password</Form.Label>
-          <Form.Control
-            type="password"
-            placeholder="new password"
-            value={resetPasswordForm.newPassword}
-            name="newPassword"
-            onChange={handleChange}
-          />
-        </Form.Group>
-
-        <Button variant="primary" type="submit">Save</Button>
-      </Form>
-    </div>
+            <Form.Label>UserID</Form.Label>
+            <Form.Control
+              className="font-weight-bold"
+              placeholder=""
+              value={user.userid}
+              disabled
+            />
+            <Form.Label>Email</Form.Label>
+            <Form.Control
+              type="email"
+              className="font-weight-bold"
+              placeholder="Enter email"
+              name="email"
+              value={resetPasswordForm.email}
+              onChange={handleChange}
+            />
+            <Form.Group controlId="formPasswordRepeat">
+              <Form.Label>New Password</Form.Label>
+              <Form.Control
+                type="password"
+                placeholder="new password"
+                value={resetPasswordForm.newPassword}
+                name="newPassword"
+                onChange={handleChange}
+              />
+            </Form.Group>
+          </div>
+        </Card.Body>
+        <Card.Footer style={{ display: "flex", flex: "10", gap: "15px" }}>
+          <Button variant="primary" type="submit">
+            Save
+          </Button>
+          <Button onClick={onClose}>Close</Button>
+        </Card.Footer>
+      </Card>
+    </Form>
   );
 }
