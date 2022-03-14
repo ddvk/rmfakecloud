@@ -59,11 +59,16 @@ depend() {
 ```sh
 # Basic settings
 export JWT_SECRET_KEY=SOME_KEY
-export STORAGE_URL=https://example.com
+export STORAGE_URL=http(s)://host.where.rmfakecloud.is.running
 export PORT=80
 export DATADIR=/usr/local/lib/rmfakecloud
 export LOGLEVEL=info
-export RM_HTTPS_COOKIE=1
+# uncomment if using TLS
+#export PORT=443
+#export TLS_KEY=/path/to/somekey
+#export TLS_CERT=/path/to/somecert
+#export RM_HTTPS_COOKIE=1
+
 # Email
 export RM_SMTP_SERVER=smtp.gmail.com:465
 export RM_SMTP_USERNAME=MY_EMAIL_ADDRESS
@@ -75,7 +80,7 @@ export RMAPI_HWR_HMAC=SOME_KEY
 
 Make sure to replace `SOME_KEY` by the return of `openssl rand -base64 48`, see [configuration](configuration.md).
 
-SystemD
+systemd
 -------
 rmfakecloud.service
 ```ini
@@ -96,11 +101,16 @@ WantedBy=multi-user.target
 rmfakecloud.conf
 ```sh
 JWT_SECRET_KEY=SOME_KEY
-STORAGE_URL=https://example.com
+export STORAGE_URL=http(s)://host.where.rmfakecloud.is.running
 PORT=80
 DATADIR=/usr/local/lib/rmfakecloud
 LOGLEVEL=info
-RM_HTTPS_COOKIE=1
+# uncomment if using TLS
+#export PORT=443
+#export TLS_KEY=/path/to/somekey
+#export TLS_CERT=/path/to/somecert
+#export RM_HTTPS_COOKIE=1
+DATADIR=/usr/local/lib/rmfakecloud
 # Email
 RM_SMTP_SERVER=smtp.gmail.com:465
 RM_SMTP_USERNAME=MY_EMAIL_ADDRESS
@@ -110,4 +120,4 @@ RMAPI_HWR_APPLICATIONKEY=SOME_KEY
 RMAPI_HWR_HMAC=SOME_KEY
 ```
 
-Make sure to replace `SOME_KEY` by the return of `openssl rand -base64 48`, see [configuration](configuration.md).
+Make sure to replace `SOME_KEY` with the output of `openssl rand -base64 48`, see [configuration](configuration.md).
