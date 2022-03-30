@@ -38,6 +38,8 @@ const (
 	envPort    = "PORT"
 	// EnvStorageURL the external name of the service
 	EnvStorageURL = "STORAGE_URL"
+	// EnvStorageHOST the external name of the service
+	EnvStorageHost = "STORAGE_HOST"
 	// envTLSCert the path of the cert file
 	envTLSCert = "TLS_CERT"
 	// envTLSKey the path of the private key
@@ -78,6 +80,7 @@ const (
 type Config struct {
 	Port              string
 	StorageURL        string
+	StorageHost       string
 	DataDir           string
 	RegistrationOpen  bool
 	CreateFirstUser   bool
@@ -160,10 +163,14 @@ func FromEnv() *Config {
 	openRegistration, _ := strconv.ParseBool(os.Getenv(envRegistrationOpen))
 	httpsCookie, _ := strconv.ParseBool(os.Getenv(envHTTPSCookie))
 
+	storageHost := os.Getenv(EnvStorageHost)
+	if storageHost == "" {
+		storageHost = DefaultHost
+	}
 	uploadURL := os.Getenv(EnvStorageURL)
 	if uploadURL == "" {
 		//it will go through the local proxy
-		uploadURL = "https://" + DefaultHost
+		uploadURL = "https://" + storageHost
 	}
 
 	// smtp
@@ -199,6 +206,7 @@ func FromEnv() *Config {
 	cfg := Config{
 		Port:              port,
 		StorageURL:        uploadURL,
+		StorageHost:       storageHost,
 		DataDir:           dataDir,
 		JWTSecretKey:      dk,
 		JWTRandom:         jwtGenerated,

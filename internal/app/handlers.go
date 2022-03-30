@@ -13,7 +13,6 @@ import (
 
 	"github.com/ddvk/rmfakecloud/internal/app/hub"
 	"github.com/ddvk/rmfakecloud/internal/common"
-	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/email"
 	"github.com/ddvk/rmfakecloud/internal/hwr"
 	"github.com/ddvk/rmfakecloud/internal/integrations"
@@ -519,9 +518,9 @@ func (app *App) updateStatus(c *gin.Context) {
 func (app *App) locateService(c *gin.Context) {
 	svc := c.Param("service")
 	log.Infof("Requested: %s\n", svc)
-	host := config.DefaultHost
+	host := app.cfg.StorageHost
 	if svc == "blob-storage" {
-		host = "https://" + config.DefaultHost
+		host = app.cfg.StorageURL
 	}
 	response := messages.HostResponse{Host: host, Status: "OK"}
 	c.JSON(http.StatusOK, response)
