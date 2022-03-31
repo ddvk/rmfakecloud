@@ -81,7 +81,7 @@ export default function OwnUserProfile() {
         <Form.Control
           name="email"
           type="email"
-          placeholder="current password"
+          placeholder="email"
           value={resetPasswordForm.currentEmail}
           onChange={handleChange}
           autoCaplete="off"
