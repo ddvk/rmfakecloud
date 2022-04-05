@@ -101,16 +101,16 @@ WantedBy=multi-user.target
 rmfakecloud.conf
 ```sh
 JWT_SECRET_KEY=SOME_KEY
-export STORAGE_URL=http(s)://host.where.rmfakecloud.is.running
+STORAGE_URL=http(s)://host.where.rmfakecloud.is.running
 PORT=80
 DATADIR=/usr/local/lib/rmfakecloud
 LOGLEVEL=info
 # uncomment if using TLS
-#export PORT=443
-#export TLS_KEY=/path/to/somekey
-#export TLS_CERT=/path/to/somecert
-#export RM_HTTPS_COOKIE=1
-DATADIR=/usr/local/lib/rmfakecloud
+#PORT=443
+#TLS_KEY=/path/to/somekey
+#TLS_CERT=/path/to/somecert
+#RM_HTTPS_COOKIE=1
+
 # Email
 RM_SMTP_SERVER=smtp.gmail.com:465
 RM_SMTP_USERNAME=MY_EMAIL_ADDRESS
