@@ -33,13 +33,14 @@ Installing
 5. Enable and start the service with your init system.
    e.g. `rc-update add rmfakecloud && service start rmfakecloud` or `systemctl enable --now rmfakecloud`
 
-
 Init System Examples
 ====================
 
 OpenRC
 ------
+
 /etc/init.d/rmfakecloud
+
 ```sh
 #!/sbin/openrc-run
 
@@ -56,6 +57,7 @@ depend() {
 ```
 
 /etc/conf.d/rmfakecloud
+
 ```sh
 # Basic settings
 export JWT_SECRET_KEY=SOME_KEY
@@ -82,7 +84,9 @@ Make sure to replace `SOME_KEY` by the return of `openssl rand -base64 48`, see 
 
 systemd
 -------
+
 rmfakecloud.service
+
 ```ini
 [Unit]
 Description=rmfakecloud
@@ -99,6 +103,7 @@ WantedBy=multi-user.target
 ```
 
 rmfakecloud.conf
+
 ```sh
 JWT_SECRET_KEY=SOME_KEY
 STORAGE_URL=http(s)://host.where.rmfakecloud.is.running

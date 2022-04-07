@@ -10,26 +10,35 @@ There are several ways to make it work, choose whatever works for you
 ## Automatic
 
 ### toltec
+
 Install using [toltec](https://toltec-dev.org/).
+
 ```commandline
 opkg install rmfakecloud-proxy
 rmfakecloudctl set-upstream <URL>
 rmfakecloudctl enable
 ```
 
+The `<URL>` above has to be the same as in the `STORAGE_URL` server configuration.
+
 ### rmfakecloud-proxy script
+
 Get the installer from: [rmfakecloud-proxy](https://github.com/ddvk/rmfakecloud-proxy/releases)
 or run the automagic:
+
 ```commandline
 sh -c "$(wget https://raw.githubusercontent.com/ddvk/rmfakecloud/master/scripts/device/automagic.sh -O-)"
 ```
 
 ## Manual
+
 ### Installing a proxy on devices
+
 A reverse proxy [rmfakecloud-proxy](https://github.com/ddvk/rmfakecloud-proxy/releases) has to be installed
 run rmfakecloud on whichever port you want, you can use either HTTP (not recommended) or HTTPS, generate a new cert for the url you chose e.g with Let's Encrypt
 
 Steps (done by the automagic scripts):
+
 - generate a CA and host certificate for `*.appspot.com`
 - create the CA folder: `mkdir -p /usr/local/share/ca-certificates`
 - copy the CA.crt file to `/usr/local/share/ca-certificates` and run `update-ca-certificates`
@@ -37,14 +46,16 @@ Steps (done by the automagic scripts):
 - Run a reverse https proxy on the rm tablet as a service, e.g. [secure](https://github.com/yi-jiayu/secure),
 - stop xochitl `systemctl stop xochitl`
 - add the followint entries to `/etc/hosts`
-```
+
+    ```
     127.0.0.1 hwr-production-dot-remarkable-production.appspot.com
     127.0.0.1 service-manager-production-dot-remarkable-production.appspot.com
     127.0.0.1 local.appspot.com
     127.0.0.1 my.remarkable.com
     127.0.0.1 ping.remarkable.com
     127.0.0.1 internal.cloud.remarkable.com
-```
+    ```
+
 - set the address of your api host:port in the reverse proxy
     `secure -cert proxy.crt -key proxy.key http(s)://host_where_the_api_is_running:someport`
     or use the provided systemd unit file and put the config in proxycfg
@@ -54,6 +65,7 @@ Steps (done by the automagic scripts):
 - start xochitl `systemctl start xochitl`
 
 Windows/Mac Desktop Client:
+
 - modify the hosts file (`\system32\drivers\etc\hosts`) add the same entries as on the tablet
 - run a reverse proxy on the host or somewhere else pointing it to rmfakecloud with the same certs
 - profit
@@ -62,19 +74,24 @@ Windows/Mac Desktop Client:
 **CONS**: you have to configure HTTPS on the host yourself, additional Desktop config
 
 ### Modify device /etc/hosts
+
 Connect to the host directly, without a reverse proxy, with HTTPS on :443
 
 Steps:
+
 - generate the certs from Variant 1, you get them (proxy.crt, proxy.key, ca.crt) and trust the ca.crt
 - run rmfakecloud with:
-```
+
+    ```
     TLS_KEY=proxy.key
     TLS_CERT=proxy.crt
     STORAGE_URL=https://local.apphost.com
-```
+    ```
+
 - modify `/etc/hosts` but use the rmfakecloud's ip instead of 127.0.0.1
 
 Windows/Mac Desktop Client:
+
 - trust the `ca.crt`  (add it to Trusted Root CA, use cert.msc)
 - modify the hosts file (`\system32\drivers\etc\hosts`) add the same entries as on the tablet
 - profit
@@ -83,7 +100,9 @@ Windows/Mac Desktop Client:
 **CONS**: a bit harder to setup, each host has to trust the ca and modify the hosts file, you have to use port 443
 
 ### Edit router DNS entries
+
 Same as [the previous method](#modify-/etc/hosts), but instead of modifying any hosts file, make the changes on your DNS/router:
+
 - add the host entries directly on your router (Hosts in OpenWRT)
 - trust the ca.crt
 - profit
@@ -95,7 +114,7 @@ Same as [the previous method](#modify-/etc/hosts), but instead of modifying any 
 
 Navigate to whatever directory the proxy was downloaded to on your device.
 
-* If you installed using the rmfakecloud-proxy script, this will likely be
+- If you installed using the rmfakecloud-proxy script, this will likely be
   `~/rmfakecloud/`.
 
 Run the below commands to reinstall the proxy service, which should reenable
@@ -119,8 +138,12 @@ systemctl start xochitl
 # Login
 
 After you installed the proxy, you will need to login to your account on your device.
-1. Click `Menu > General > Account`
-2. Click on `Setup Account`
-3. On you main computer: Login to https://rmfakecloud.server.net then go to https://rmfakecloud.server.net/generatecode
-4. Enter the shown code on your device
-5. To check that sync is working correctly. Go to `Menu > Storage` and press 
+
+1. Click `Menu > General > Account`.
+2. Click on `Setup Account`.
+3. On your main computer:
+    1. Login to the rmfakecloud Web UI (if no proxy used, the same as the `STORAGE_URL` value in the server configuration).
+    2. Press the `Code` link in the menu.
+    3. Press the `Generate Code` button.
+4. Enter the shown code on your device.
+5. To check that sync is working correctly. Go to `Menu > Storage` and press `Check Sync`.
