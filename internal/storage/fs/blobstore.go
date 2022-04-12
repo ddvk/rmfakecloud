@@ -280,7 +280,7 @@ func (fs *FileSystemStorage) GetBlobURL(uid, blobid, scope string) (docurl strin
 }
 
 // LoadBlob Opens a blob by id
-func (fs *FileSystemStorage) LoadBlob(uid, blobid string) (io.ReadCloser, int64, error) {
+func (fs *FileSystemStorage) LoadBlob(uid, blobid string) (reader io.ReadCloser, gen int64, size int64, err error) {
 	generation := int64(0)
 	blobPath := path.Join(fs.getUserBlobPath(uid), common.Sanitize(blobid))
 	log.Debugln("Fullpath:", blobPath)
@@ -290,7 +290,7 @@ func (fs *FileSystemStorage) LoadBlob(uid, blobid string) (io.ReadCloser, int64,
 		err := lock.LockWithTimeout(time.Duration(time.Second * 5))
 		if err != nil {
 			log.Error("cannot obtain lock")
-			return nil, 0, err
+			return nil, 0, 0, err
 		}
 		defer lock.Unlock()
 
@@ -300,12 +300,13 @@ func (fs *FileSystemStorage) LoadBlob(uid, blobid string) (io.ReadCloser, int64,
 		}
 	}
 
-	if fi, err := os.Stat(blobPath); err != nil || fi.IsDir() {
-		return nil, 0, ErrorNotFound
+	fi, err := os.Stat(blobPath)
+	if err != nil || fi.IsDir() {
+		return nil, 0, 0, ErrorNotFound
 	}
 
-	reader, err := os.Open(blobPath)
-	return reader, generation, err
+	reader, err = os.Open(blobPath)
+	return reader, generation, fi.Size(), err
 }
 
 // StoreBlob stores a document

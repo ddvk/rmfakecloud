@@ -151,7 +151,7 @@ func (app *App) downloadBlob(c *gin.Context) {
 
 	log.Info("Requestng blob: ", blobID)
 
-	reader, generation, err := app.fs.LoadBlob(uid, blobID)
+	reader, generation, size, err := app.fs.LoadBlob(uid, blobID)
 	if err != nil {
 		if err == ErrorNotFound {
 			c.AbortWithStatus(http.StatusNotFound)
@@ -167,7 +167,7 @@ func (app *App) downloadBlob(c *gin.Context) {
 		log.Debug("Sending gen: ", generation)
 	}
 	c.Header(generationHeader, strconv.FormatInt(generation, 10))
-	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
+	c.DataFromReader(http.StatusOK, size, "application/octet-stream", reader, nil)
 }
 
 func (app *App) uploadBlob(c *gin.Context) {

@@ -14,7 +14,7 @@ type LocalBlobStorage struct {
 
 // GetRootIndex the hash of the root index
 func (p *LocalBlobStorage) GetRootIndex() (string, int64, error) {
-	r, gen, err := p.fs.LoadBlob(p.uid, rootFile)
+	r, gen, _, err := p.fs.LoadBlob(p.uid, rootFile)
 	if err == ErrorNotFound {
 		return "", 0, nil
 	}
@@ -39,7 +39,7 @@ func (p *LocalBlobStorage) WriteRootIndex(generation int64, roothash string) (in
 
 // GetReader reader for a given hash
 func (p *LocalBlobStorage) GetReader(hash string) (io.ReadCloser, error) {
-	r, _, err := p.fs.LoadBlob(p.uid, hash)
+	r, _, _, err := p.fs.LoadBlob(p.uid, hash)
 	return r, err
 }
 
