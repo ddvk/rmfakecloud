@@ -310,7 +310,7 @@ func (fs *FileSystemStorage) LoadBlob(uid, blobid string) (reader io.ReadCloser,
 }
 
 // StoreBlob stores a document
-func (fs *FileSystemStorage) StoreBlob(uid, id string, stream io.Reader, matchGen int64) (generation int64, err error) {
+func (fs *FileSystemStorage) StoreBlob(uid, id string, stream io.Reader, lastGen int64) (generation int64, err error) {
 	generation = 1
 
 	reader := stream
@@ -329,8 +329,8 @@ func (fs *FileSystemStorage) StoreBlob(uid, id string, stream io.Reader, matchGe
 			currentGen = generationFromFileSize(fi.Size())
 		}
 
-		if currentGen != matchGen && matchGen > 0 {
-			log.Warnf("wrong gen, has %d but is %d", matchGen, currentGen)
+		if currentGen != lastGen && currentGen > 0 {
+			log.Warnf("wrong generation, server %d, client %d", currentGen, lastGen)
 			return currentGen, ErrorWrongGeneration
 		}
 
