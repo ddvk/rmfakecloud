@@ -118,7 +118,7 @@ func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, st
 		CollectionType:   models.DocumentType,
 		Parent:           parent,
 		Version:          1,
-		LastModified:     strconv.FormatInt(time.Now().Unix(), 10),
+		LastModified:     strconv.FormatInt(time.Now().UnixMilli(), 10),
 		Synced:           true,
 		MetadataModified: true,
 	}
