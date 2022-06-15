@@ -291,8 +291,6 @@ func (app *App) uploadDocV2(c *gin.Context) {
 		return
 	}
 
-	fmt.Println(metaHeader)
-
 	meta := metaHeader[0]
 	if meta == "" {
 		log.Warn(handlerLog, "empty 'meta' header")
