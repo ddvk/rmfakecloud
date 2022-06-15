@@ -4,7 +4,7 @@ import { logout } from "../common/actions";
 import { useAuthState } from "../common/useAuthContext";
 
 type RouteProp = {
-  component: React.ComponentType<any>;
+  component: React.FC<any>;
   roles?: string[];
   exact?: boolean;
   path: string;
