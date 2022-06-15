@@ -1,8 +1,10 @@
 package app
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
@@ -265,23 +267,95 @@ func (app *App) uploadDoc(c *gin.Context) {
 	fileName := m.FileName + ext
 	log.Info("Uploading: ", fileName)
 
+	err = saveUpload(app, syncVer, uid, deviceID, fileName, f)
+
+	if err != nil {
+		log.Error(handlerLog, err)
+		internalError(c, "can't upload")
+		return
+	}
+	c.Status(http.StatusOK)
+}
+
+// new read on rm api
+func (app *App) uploadDocV2(c *gin.Context) {
+	uid := c.GetString(userIDKey)
+	syncVer := c.GetInt(syncVersionKey)
+	deviceID := c.GetString(deviceIDKey)
+	log.Info("uploading file for: ", uid)
+
+	metaHeader := c.Request.Header["Rm-Meta"]
+	if len(metaHeader) < 1 {
+		log.Warn(handlerLog, "missing 'meta' header")
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	fmt.Println(metaHeader)
+
+	meta := metaHeader[0]
+	if meta == "" {
+		log.Warn(handlerLog, "empty 'meta' header")
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	metaJSON, err := base64.StdEncoding.DecodeString(meta)
+	if err != nil {
+		log.Warn(handlerLog, "meta not base64 encoded")
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	m := metapayload{}
+	err = json.Unmarshal(metaJSON, &m)
+	if err != nil {
+		log.Warn(handlerLog, "meta not json")
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	contentType := c.Request.Header["Content-Type"]
+	if len(contentType) < 1 {
+		log.Warn(handlerLog, "missing content-type")
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	ext, err := extFromContentType(contentType[0])
+	if err != nil {
+		log.Error(handlerLog, err)
+		badReq(c, "unsupported content type")
+		return
+	}
+
+	f := c.Request.Body
+
+	fileName := m.FileName + ext
+	log.Info("Uploading: ", fileName)
+
+	err = saveUpload(app, syncVer, uid, deviceID, fileName, f)
+	if err != nil {
+		log.Error(handlerLog, err)
+		internalError(c, "can't upload")
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func saveUpload(app *App, syncVer int, uid, deviceID, fileName string, f io.ReadCloser) error {
 	//HACK:
 	if syncVer == Version15 {
 		log.Info("sync 15 upload")
 		_, err := app.blobStorer.CreateBlobDocument(uid, fileName, "", f)
 		if err != nil {
-			log.Error(handlerLog, err)
-			internalError(c, "cant upload document")
-			return
+			return err
 		}
 		app.hub.NotifySync(uid, deviceID)
 	} else {
 		log.Info("sync 10 upload")
 		d, err := app.docStorer.CreateDocument(uid, fileName, "", f)
 		if err != nil {
-			log.Error(handlerLog, err)
-			internalError(c, "cant upload document")
-			return
+			return err
 		}
 		ntf := hub.DocumentNotification{
 			Parent:  "",
@@ -292,7 +366,7 @@ func (app *App) uploadDoc(c *gin.Context) {
 		}
 		app.hub.Notify(uid, deviceID, ntf, hub.DocAddedEvent)
 	}
-	c.Status(http.StatusOK)
+	return nil
 }
 
 type emailForm struct {
