@@ -86,15 +86,13 @@ func (app *App) registerRoutes(router *gin.Engine) {
 		// hwr
 		authRoutes.POST("/api/v1/page", app.handleHwr)
 
-		// upload docs from ext
+		// read on remarkable extension
 		authRoutes.POST("/doc/v1/files", app.uploadDoc)
-
-		//livesync
-		authRoutes.GET("/livesync/ws/json/2/:authid/sub", func(c *gin.Context) {
-			//TODO: not implemented yet
-			authid := c.Param("authid")
-			log.Info("authid: ", authid)
-			c.AbortWithStatus(http.StatusNoContent)
+		// v2
+		authRoutes.POST("/doc/v2/files", app.uploadDocV2)
+		authRoutes.OPTIONS("/doc/v2/files", func(c *gin.Context) {
+			//TODO: seems to be a cors preflight
+			c.Status(http.StatusOK)
 		})
 
 		// integrations
