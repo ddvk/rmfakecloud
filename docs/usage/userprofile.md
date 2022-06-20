@@ -29,7 +29,7 @@ When using the Docker image, you can run :
 docker exec rmfakecloud /rmfakecloud-docker special-command
 ```
 
-#### `rmfakecloud listuser`
+#### `rmfakecloud listusers`
 
 This commands lists existing users.
 
