@@ -2,7 +2,7 @@ ARG VERSION=0.0.0
 FROM --platform=$BUILDPLATFORM node:lts-alpine as uibuilder
 WORKDIR /src
 COPY ui .
-RUN yarn && CI=false yarn build 
+RUN yarn && yarn build 
 
 FROM golang:1-alpine as gobuilder
 ARG VERSION

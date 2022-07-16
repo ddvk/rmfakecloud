@@ -1,5 +1,5 @@
 import React from "react";
-import { Dropdown, Nav, Navbar, Button, NavDropdown, Container } from "react-bootstrap";
+import { Nav, Navbar, Button, NavDropdown, Container } from "react-bootstrap";
 import { logout } from "../common/actions";
 import { useAuthState } from "../common/useAuthContext";
 import { NavLink } from "react-router-dom";
