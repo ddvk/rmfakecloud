@@ -107,7 +107,7 @@ func (p *PdfGenerator) Generate(zip *MyArchive, output io.Writer, options PdfGen
 				if len(line.Points) < 1 {
 					continue
 				}
-				if line.BrushType == rm.Eraser {
+				if line.BrushType == rm.Eraser || line.BrushType == rm.EraseArea {
 					continue
 				}
 
