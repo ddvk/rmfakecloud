@@ -1,0 +1,629 @@
+openapi: 3.0.1
+info:
+  title: MyScript IInk Batch Mode
+  description: Service to recognize myscript iink in batch mode
+  contact:
+    name: MyScript support
+    url: https://developer.myscript.com
+  license:
+    name: commercial license
+  version: 1.1.0
+servers:
+- url: https://cloud.myscript.com
+  description: Generated server url
+tags:
+- name: Batch mode
+paths:
+  /api/v4.0/iink/batch:
+    post:
+      tags:
+      - Batch mode
+      summary: Recognize iink
+      description: "This endpoint sends an json object representing an iink input\
+        \ to the recognition engine and sends back a payload whose format depends\
+        \ on the requested mime type. In case of error, an error object in json format\
+        \ is returned. That is why it is mandatory to ask in the Accept header the\
+        \ requested format + application/json"
+      operationId: batch
+      parameters:
+      - name: applicationKey
+        in: header
+        description: The application key that was given during registration.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      - name: userId
+        in: header
+        description: The userId (only for specific customers)
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+      - name: hmac
+        in: header
+        description: "The HMAC signature of the payload, using the secret hmac key\
+          \ that was given during registration and SHA-512 algorithm. See https://developer.myscript.com/support/account/registering-myscript-cloud/#computing-the-hmac-value"
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      - name: Accept
+        in: header
+        description: A comma-separated list of mime types for the response. Must contain
+          application/json as the error response is a json object. The first suitable
+          mime type for the recognition type will be used as content type for the
+          response
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: array
+          items:
+            type: string
+        example: "text/plain, application/json"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchInput'
+        required: true
+      responses:
+        "500":
+          description: Internal error. Please contact us for information.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        "401":
+          description: Wrong credentials
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        "403":
+          description: Operation not permitted
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        "200":
+          description: OK
+        "400":
+          description: An error was found in the request parameters
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        "406":
+          description: No suitable mime type was found for the response
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+components:
+  schemas:
+    BatchInput:
+      required:
+      - contentType
+      - strokeGroups
+      type: object
+      properties:
+        width:
+          title: width of the writing area
+          minimum: 0
+          type: integer
+          format: int32
+          example: 722
+        height:
+          title: height of the writing area
+          minimum: 0
+          type: integer
+          format: int32
+          example: 620
+        contentType:
+          title: recognition type
+          type: string
+          enum:
+          - Text
+          - Math
+          - Diagram
+          - Raw Content
+          - Text Document
+        conversionState:
+          title: "target of conversion, no conversion will be made if that parameter\
+            \ is not provided"
+          type: string
+          example: DIGITAL_EDIT
+          enum:
+          - DIGITAL_PUBLISH
+          - DIGITAL_EDIT
+        theme:
+          title: A global CSS styling for your content. See https://developer.myscript.com/docs/interactive-ink/latestweb/myscriptjs/styling/
+          type: string
+          example: "ink {color: #000000; -myscript-pen-width: 1; -myscript-pen-fill-style:\
+            \ none; -myscript-pen-fill-color: #FFFFFF00;} mycolor {color: #120f51;}\
+            \ .math { font-family: STIXGeneral;} .math-solved {font-family: STIXGeneral;\
+            \ color: #A8A8A8FF;} .text {font-family: Open Sans; font-size: 10;}"
+        strokeGroups:
+          title: The write entries that corresponds to the input iink
+          type: array
+          items:
+            $ref: '#/components/schemas/StrokeGroup'
+        configuration:
+          $ref: '#/components/schemas/ConfigurationMessage'
+        xDPI:
+          title: x resolution of the writing area in dpi
+          minimum: 0
+          type: number
+          format: float
+          example: 96
+        yDPI:
+          title: y resolution of the writing area in dpi
+          minimum: 0
+          type: number
+          format: float
+          example: 96
+      description: "The input of the recognition, including configuration, strokes,\
+        \ ..."
+    ConfigurationMessage:
+      title: Configuration
+      type: object
+      properties:
+        alwaysConnected:
+          type: boolean
+        lang:
+          title: lang
+          type: string
+          example: en_US
+        math:
+          $ref: '#/components/schemas/MathConfiguration'
+        text:
+          $ref: '#/components/schemas/TextConfiguration'
+        export:
+          $ref: '#/components/schemas/ExportConfiguration'
+        diagram:
+          $ref: '#/components/schemas/DiagramConfiguration'
+        gesture:
+          $ref: '#/components/schemas/GestureConfiguration'
+        raw-content:
+          $ref: '#/components/schemas/RawContentConfiguration'
+      description: The configuration for the recognition. See explanation for parameters
+        in https://developer.myscript.com/docs/interactive-ink/latest/reference/web/configuration-rest/
+    DiagramConfiguration:
+      type: object
+      properties:
+        text:
+          $ref: '#/components/schemas/TextConfConfiguration'
+        convert:
+          $ref: '#/components/schemas/DiagramConvertConfiguration'
+        sessiontime:
+          title: diagram.session-time
+          type: integer
+          format: int32
+          example: 750
+        enable-sub-blocks:
+          title: diagram.enable-sub-blocks
+          type: boolean
+          example: true
+        eraser:
+          $ref: '#/components/schemas/EraserConfiguration'
+    DiagramConvertConfiguration:
+      type: object
+      properties:
+        edge:
+          title: diagram.convert.edge
+          type: boolean
+          example: true
+        node:
+          title: diagram.convert.node
+          type: boolean
+          example: true
+        text:
+          title: diagram.convert.text
+          type: boolean
+          example: true
+    EraserConfiguration:
+      title: raw-content.eraser
+      type: object
+      properties:
+        erase-precisely:
+          title: eraser.erase-precisely
+          type: boolean
+          example: false
+    ExportConfiguration:
+      type: object
+      properties:
+        image:
+          $ref: '#/components/schemas/ImageConfiguration'
+        jiix:
+          $ref: '#/components/schemas/JiixConfiguration'
+        mathml:
+          $ref: '#/components/schemas/MathMLExport'
+        image-resolution:
+          title: export.image-resolution
+          type: integer
+          format: int32
+          example: 300
+    GestureConfiguration:
+      type: object
+      properties:
+        enable:
+          type: boolean
+    GuidesConfiguration:
+      type: object
+      properties:
+        enable:
+          title: text.guides.enable
+          type: boolean
+          example: true
+    ImageConfiguration:
+      title: export.image
+      type: object
+      properties:
+        guides:
+          title: export.image.guides
+          type: boolean
+        viewport:
+          $ref: '#/components/schemas/ImageViewportConfiguration'
+    ImageViewportConfiguration:
+      title: export.image.viewport
+      type: object
+      properties:
+        x:
+          title: export.image.viewport.x
+          type: integer
+          format: int32
+        "y":
+          title: export.image.viewport.y
+          type: integer
+          format: int32
+        width:
+          title: export.image.viewport.width
+          type: integer
+          format: int32
+        height:
+          title: export.image.viewport.height
+          type: integer
+          format: int32
+    JiixConfiguration:
+      type: object
+      properties:
+        strokes:
+          title: export.jiix.strokes
+          type: boolean
+          example: true
+        style:
+          title: export.jiix.style
+          type: boolean
+          example: false
+        bounding-box:
+          title: export.jiix.bounding-box
+          type: boolean
+          example: false
+        text:
+          $ref: '#/components/schemas/JiixTextConfiguration'
+    JiixTextConfiguration:
+      type: object
+      properties:
+        chars:
+          title: export.jiix.text.chars
+          type: boolean
+          example: false
+        words:
+          title: export.jiix.text.words
+          type: boolean
+          example: true
+    MarginConfiguration:
+      type: object
+      properties:
+        top:
+          title: math.margin.top
+          type: integer
+          format: int32
+          example: 10
+        left:
+          title: math.margin.left
+          type: integer
+          format: int32
+          example: 15
+        right:
+          title: math.margin.right
+          type: integer
+          format: int32
+          example: 15
+        bottom:
+          title: math.margin.bottom
+          type: integer
+          format: int32
+          example: 10
+    MathConfiguration:
+      type: object
+      properties:
+        solver:
+          $ref: '#/components/schemas/SolverConfiguration'
+        margin:
+          $ref: '#/components/schemas/MarginConfiguration'
+        customGrammarId:
+          title: math.customGrammarId
+          type: string
+          example: your_custom_grammar_id
+        customGrammarContent:
+          title: math.customGrammarContent
+          type: string
+          example: symbol = 0\nexpression ::= identity(symbol)\nstart(expression)
+        undo-redo:
+          $ref: '#/components/schemas/UndoRedoConfiguration'
+        session-time:
+          title: math.session-time
+          type: integer
+          format: int32
+          example: 750
+        eraser:
+          $ref: '#/components/schemas/EraserConfiguration'
+        recognition-timeout:
+          title: math.recognition-timeout
+          type: integer
+          format: int32
+          example: 30
+    MathMLExport:
+      type: object
+      properties:
+        flavor:
+          title: export.mathml.flavor
+          type: string
+          enum:
+          - standard
+          - ms-office
+    RawContentConfiguration:
+      type: object
+      properties:
+        recognition:
+          $ref: '#/components/schemas/Recognition'
+        text:
+          $ref: '#/components/schemas/TextConfConfiguration'
+        sessiontime:
+          title: raw-content.session-time
+          type: integer
+          format: int32
+          example: 750
+        eraser:
+          $ref: '#/components/schemas/EraserConfiguration'
+    Recognition:
+      type: object
+      properties:
+        text:
+          type: boolean
+        shape:
+          type: boolean
+    SolverConfiguration:
+      type: object
+      properties:
+        enable:
+          title: math.solver.enable
+          type: boolean
+          example: true
+        fractional-part-digits:
+          title: math.solver.fractional-part-digits
+          type: integer
+          format: int32
+          example: 3
+        decimal-separator:
+          title: math.solver.decimal-separator
+          type: string
+          example: "."
+        rounding-mode:
+          title: math.solver.rounding-mode
+          type: string
+          example: half up
+          enum:
+          - half up
+          - truncate
+        angle-unit:
+          title: math.solver.angle-unit
+          type: string
+          example: deg
+          enum:
+          - deg
+          - rad
+        fraction-mode:
+          title: math.solver.fraction-mode
+          type: string
+          example: decimal
+          enum:
+          - decimal
+          - rational
+          - mixed
+        options:
+          title: math.solver.options
+          type: string
+          example: algebraic
+          enum:
+          - algebraic
+          - numeric
+    Stroke:
+      title: Stroke
+      required:
+      - x
+      - "y"
+      type: object
+      properties:
+        id:
+          title: An optional id for the stroke
+          type: string
+        x:
+          title: The list of x coordinates of the stroke
+          type: array
+          example:
+          - 289
+          - 290
+          - 290
+          - 290
+          - 290
+          - 290
+          - 290
+          - 291
+          - 291
+          - 292
+          - 293
+          items:
+            title: The list of x coordinates of the stroke
+            type: number
+            format: float
+        "y":
+          title: The list of y coordinates of the stroke
+          type: array
+          example:
+          - 215
+          - 218
+          - 222
+          - 225
+          - 228
+          - 231
+          - 235
+          - 238
+          - 242
+          - 245
+          - 248
+          items:
+            title: The list of y coordinates of the stroke
+            type: number
+            format: float
+        t:
+          title: The list of timestamps of the stroke
+          type: array
+          example:
+          - 1516717383637
+          - 1516717383677
+          - 1516717383694
+          - 1516717383711
+          - 1516717383727
+          - 1516717383744
+          - 1516717383761
+          - 1516717383777
+          - 1516717383794
+          - 1516717383811
+          - 1516717383827
+          items:
+            title: The list of timestamps of the stroke
+            type: integer
+            format: int64
+        p:
+          title: The list of pressure information of the stroke
+          type: array
+          example:
+          - 0.5
+          - 0.8221720589961077
+          - 0.7145158745241171
+          - 0.6761535882018319
+          - 0.6761535882018319
+          - 0.6761535882018319
+          - 0.7145158745241171
+          - 0.6831899108492184
+          - 0.7145158745241171
+          - 0.6831899108492184
+          - 0.6831899108492184
+          items:
+            title: The list of pressure information of the stroke
+            type: number
+            format: float
+        pointerType:
+          title: The pointer type for the stroke
+          type: string
+          enum:
+          - "PEN, TOUCH, ERASER"
+        pointerId:
+          title: The pointer id
+          type: integer
+          format: int32
+      description: "Representation of a stroke, that is the capture of an user writing\
+        \ input between the moment when the writing device touches the writing surface\
+        \ and the moment when it is lifted from the surface. See https://developer.myscript.com/docs/interactive-ink/latest/web/myscriptjs/editing/\
+        \ for information about the components of a stroke"
+    StrokeGroup:
+      title: StrokeGroup
+      required:
+      - strokes
+      type: object
+      properties:
+        strokes:
+          title: a list of strokes
+          type: array
+          items:
+            $ref: '#/components/schemas/Stroke'
+        penStyle:
+          title: CSS style for the pen. See https://developer.myscript.com/docs/interactive-ink/latest/reference/web/styling/
+          type: string
+          example: "color: #120f51;↵-myscript-pen-width: 2;"
+        penStyleClasses:
+          title: CSS classes for the pen. Classes are to be provided in the general
+            CSS theme. See https://developer.myscript.com/docs/interactive-ink/latest/reference/web/styling/
+          type: string
+          example: ink mycolor
+      description: a list of strokes that share the same pen style
+    TextConfConfiguration:
+      title: raw-content.text
+      type: object
+      properties:
+        customResources:
+          title: text.configuration.customResources
+          type: array
+          example:
+          - your_custom_resource
+          items:
+            title: text.configuration.customResources
+            type: string
+            example: "[\"your_custom_resource\"]"
+        customLexicon:
+          title: text.configuration.customLexycon
+          type: array
+          example:
+          - word1
+          - word2
+          items:
+            title: text.configuration.customLexycon
+            type: string
+            example: "[\"word1\",\"word2\"]"
+        addLKText:
+          title: text.configuration.addLKText
+          type: boolean
+          example: true
+    TextConfiguration:
+      type: object
+      properties:
+        margin:
+          $ref: '#/components/schemas/MarginConfiguration'
+        guides:
+          $ref: '#/components/schemas/GuidesConfiguration'
+        configuration:
+          $ref: '#/components/schemas/TextConfConfiguration'
+        eraser:
+          $ref: '#/components/schemas/EraserConfiguration'
+    UndoRedoConfiguration:
+      title: math.undo-redo
+      type: object
+      properties:
+        mode:
+          title: math.undo-redo.mode
+          type: string
+          enum:
+          - stroke
+          - session
+          - "stroke,session"
+    errorMessage:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+  securitySchemes:
+    applicationKey:
+      type: apiKey
+      description: Moreover the calls must be signed using the content of the payload
+        and an hmac key. See https://developer.myscript.com/docs/interactive-ink/1.4/web/rest/architecture/#credentials
+      name: applicationKey
+      in: header

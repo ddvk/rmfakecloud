@@ -1,4 +1,4 @@
-VERSION :=$(shell git describe --tags)
+VERSION := $(shell git describe --tags)
 LDFLAGS := "-s -w -X main.version=$(VERSION)"
 OUT_DIR := dist
 CMD := ./cmd/rmfakecloud
@@ -12,8 +12,11 @@ UIFILES += $(shell find ui/public)
 UIFILES += ui/package.json
 TARGETS := $(addprefix $(OUT_DIR)/$(BINARY)-, x64 armv6 armv7 arm64 win64 docker)
 YARN	= yarn --cwd ui  
+HWR_GENERATED_DIR := "./internal/hwr/generated/"
+HWR_SWAGGER := "https://cloud.myscript.com/api/v4.0/iink/batch/api-docs"
+HWR_PACKAGE := generated
 
-.PHONY: all run runui clean test testgo testui
+.PHONY: all run runui clean test testgo testui generate_hwr_client
 
 build: $(OUT_DIR)/$(BINARY)-x64
 
@@ -39,7 +42,7 @@ $(OUT_DIR)/$(BINARY)-docker:$(GOFILES)
 
 container: $(OUT_DIR)/$(BINARY)-docker
 	docker build -t rmfakecloud -f Dockerfile.make .
-	
+
 run: $(ASSETS)
 	go run $(CMD) $(ARG)
 
@@ -60,6 +63,7 @@ runui: ui/yarn.lock
 	$(YARN) start
 
 clean:
+	rm -rf $(HWR_GENERATED_DIR)
 	rm -f $(OUT_DIR)/*
 	rm -fr $(ASSETS)
 
@@ -67,6 +71,9 @@ test: testui testgo
 
 testui:
 	CI=true $(YARN) test
+
+generate_hwr_client:
+	swagger-codegen generate -i $(HWR_SWAGGER) -l go -o $(HWR_GENERATED_DIR) --additional-properties packageName=$(HWR_PACKAGE)
 
 testgo:
 	go test ./...
