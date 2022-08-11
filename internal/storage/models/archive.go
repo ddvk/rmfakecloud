@@ -7,7 +7,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/ddvk/rmfakecloud/internal/storage/exporter"
+	"github.com/zgs225/rmfakecloud/internal/storage/exporter"
 	"github.com/juruen/rmapi/archive"
 	"github.com/juruen/rmapi/encoding/rm"
 	log "github.com/sirupsen/logrus"

@@ -1,8 +1,9 @@
-module github.com/ddvk/rmfakecloud
+module github.com/zgs225/rmfakecloud
 
 go 1.17
 
 require (
+	github.com/antihax/optional v1.0.0
 	github.com/dropbox/dropbox-sdk-go-unofficial/v6 v6.0.3
 	github.com/gin-gonic/gin v1.7.7
 	github.com/golang-jwt/jwt/v4 v4.2.0
@@ -16,6 +17,7 @@ require (
 	github.com/studio-b12/gowebdav v0.0.0-20220128162035-c7b1ff8a5e62
 	github.com/unidoc/unipdf/v3 v3.31.0
 	golang.org/x/crypto v0.0.0-20220131195533-30dcbda58838
+	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 )
 
@@ -46,7 +48,6 @@ require (
 	github.com/unidoc/unitype v0.2.1 // indirect
 	golang.org/x/image v0.0.0-20211028202545-6944b10bf410 // indirect
 	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
-	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
 	golang.org/x/sys v0.0.0-20220128215802-99c3d69c2c27 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect

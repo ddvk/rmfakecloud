@@ -3,7 +3,7 @@ site_url: https://ddvk.github.io/rmfakecloud
 site_description: Self hosted reMarkable sync cloud
 site_author: ddvk
 
-repo_url: https://github.com/ddvk/rmfakecloud
+repo_url: https://github.com/zgs225/rmfakecloud
 edit_uri: ""
 
 theme:

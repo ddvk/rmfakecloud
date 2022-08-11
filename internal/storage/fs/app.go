@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ddvk/rmfakecloud/internal/common"
-	"github.com/ddvk/rmfakecloud/internal/config"
+	"github.com/zgs225/rmfakecloud/internal/common"
+	"github.com/zgs225/rmfakecloud/internal/config"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 )
