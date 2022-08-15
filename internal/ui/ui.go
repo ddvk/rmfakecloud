@@ -6,14 +6,14 @@ import (
 	"net/http"
 	"path"
 
+	"github.com/gin-gonic/gin"
 	"github.com/zgs225/rmfakecloud/internal/app/hub"
 	"github.com/zgs225/rmfakecloud/internal/config"
 	"github.com/zgs225/rmfakecloud/internal/messages"
 	"github.com/zgs225/rmfakecloud/internal/storage"
 	"github.com/zgs225/rmfakecloud/internal/storage/models"
 	"github.com/zgs225/rmfakecloud/internal/ui/viewmodel"
-	webui "github.com/zgs225/rmfakecloud/ui"
-	"github.com/gin-gonic/gin"
+	webui "github.com/zgs225/rmfakecloud/new-ui"
 )
 
 type backend interface {
