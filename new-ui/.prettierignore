@@ -1,0 +1,4 @@
+# Ignore artifacts:
+dist
+coverage
+package-lock.json
