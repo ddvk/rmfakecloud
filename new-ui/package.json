@@ -1,50 +1,74 @@
 {
   "name": "new-ui",
-  "version": "0.1.0",
+  "author": {
+    "name": "Yuez",
+    "url": "https://yuez.me"
+  },
   "private": true,
-  "dependencies": {
-    "@chakra-ui/react": "^2.2.8",
-    "@emotion/react": "^11.0.0",
-    "@emotion/styled": "^11.0.0",
-    "@testing-library/jest-dom": "^5.16.4",
-    "@testing-library/react": "^13.0.1",
-    "@testing-library/user-event": "^14.1.0",
-    "@types/jest": "^28.1.1",
-    "@types/node": "^12.0.0",
-    "@types/react": "^18.0.9",
-    "@types/react-dom": "^18.0.4",
-    "framer-motion": "^6.2.9",
-    "i18next": "^21.9.0",
-    "i18next-browser-languagedetector": "^6.1.5",
-    "i18next-resources-to-backend": "^1.0.0",
-    "react": "^18.1.0",
-    "react-dom": "^18.1.0",
-    "react-i18next": "^11.18.3",
-    "react-icons": "^3.0.0",
-    "react-scripts": "5.0.1",
-    "typescript": "^4.6.3",
-    "web-vitals": "^2.1.4"
-  },
+  "version": "0.0.1",
+  "type": "module",
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "dev": "vite",
+    "build": "npm run reset:vite && tsc && vite build",
+    "preview": "vite preview",
+    "prettier": "prettier --ignore-path .gitignore \"**/*.+(ts|tsx|js|jsx|json|css|md|mdx|html)\"",
+    "prettier:fix": "prettier --ignore-path .gitignore \"**/*.+(ts|tsx|js|jsx|json|css|md|mdx|html)\" --write",
+    "lint": "eslint --ignore-path .gitignore --ext .js,.jsx,.ts,.tsx .",
+    "lint:fix": "npm run lint -- --fix",
+    "lint-staged": "lint-staged — config .lintstagedrc",
+    "clean": "rimraf node_modules && npm install --no-audit --no-fund --omit=optional",
+    "reset:vite": "rimraf ./.vite-cache ./dist",
+    "prepare": "cd .. && husky install new-ui/.husky"
   },
-  "eslintConfig": {
-    "extends": "react-app"
+  "browserslist": [
+    "defaults",
+    "not IE 11"
+  ],
+  "dependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "react-router-dom": "^6.3.0"
   },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  },
-  "proxy": "http://localhost:3000"
+  "devDependencies": {
+    "@babel/preset-env": "^7.18.2",
+    "@babel/preset-react": "^7.17.12",
+    "@babel/preset-typescript": "^7.17.12",
+    "@commitlint/cli": "^17.0.3",
+    "@commitlint/config-conventional": "^17.0.3",
+    "@types/node": "^18.0.3",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "@typescript-eslint/eslint-plugin": "^5.29.0",
+    "@typescript-eslint/parser": "^5.29.0",
+    "@vitejs/plugin-react": "^1.3.0",
+    "autoprefixer": "^10.4.7",
+    "commitlint-config-gitmoji": "^2.2.5",
+    "eslint": "^8.18.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-config-standard": "^17.0.0",
+    "eslint-plugin-import": "^2.26.0",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "eslint-plugin-promise": "^6.0.0",
+    "eslint-plugin-react": "^7.30.1",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-simple-import-sort": "^7.0.0",
+    "eslint-plugin-tailwindcss": "^3.6.0",
+    "husky": "^8.0.0",
+    "lint-staged": "^13.0.3",
+    "postcss": "^8.4.14",
+    "prettier": "2.7.1",
+    "rimraf": "^3.0.2",
+    "stylelint": "^14.9.1",
+    "stylelint-config-html": "^1.1.0",
+    "stylelint-config-prettier": "^9.0.3",
+    "stylelint-config-recess-order": "^3.0.0",
+    "stylelint-config-standard": "^26.0.0",
+    "tailwindcss": "^3.1.6",
+    "typescript": "^4.6.3",
+    "vite": "^3.0.2",
+    "vite-plugin-fonts": "^0.6.0",
+    "vite-plugin-html": "^3.2.0",
+    "vite-plugin-imagemin": "^0.6.1"
+  }
 }

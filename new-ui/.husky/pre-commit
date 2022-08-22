@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# https://github.com/typicode/husky/issues/968#issuecomment-1176848345
+exec 1> /dev/tty
+
+npx lint-staged
