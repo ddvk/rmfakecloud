@@ -5,7 +5,7 @@ module.exports = {
   theme: {
     extend: {},
     fontFamily: {
-      sans: ['CascadiaCodePL', 'system-ui']
+      sans: ['system-ui']
     }
   },
   plugins: []
