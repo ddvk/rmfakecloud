@@ -8,11 +8,13 @@
     "form": {
       "username": {
         "label": "用户名",
-        "placeholder": "请输入用户名"
+        "placeholder": "请输入用户名",
+        "required": "缺少用户名"
       },
       "password": {
         "label": "密码",
-        "placeholder": "请输入密码"
+        "placeholder": "请输入密码",
+        "required": "缺少密码"
       },
       "login-btn": "登录"
     }
