@@ -7,5 +7,6 @@
   "arrowParens": "always",
   "endOfLine": "auto",
   "trailingComma": "none",
-  "useTabs": false
+  "useTabs": false,
+  "singleAttributePerLine": true
 }

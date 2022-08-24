@@ -1,5 +1,20 @@
 {
   "greeting": {
     "message": "Avoid setting up a project from scratch. Start using VRTTV 🎉"
+  },
+  "login": {
+    "title": "Welcome Back!",
+    "subtitle": "Please fill in form to continue",
+    "form": {
+      "username": {
+        "label": "Username",
+        "placeholder": "please enter username"
+      },
+      "password": {
+        "label": "Password",
+        "placeholder": "please enter password"
+      },
+      "login-btn": "Sign In"
+    }
   }
 }
