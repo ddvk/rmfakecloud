@@ -27,13 +27,15 @@
   "dependencies": {
     "@headlessui/react": "^1.6.6",
     "@heroicons/react": "^1.0.6",
+    "formik": "^2.2.9",
     "i18next": "^21.9.1",
     "i18next-browser-languagedetector": "^6.1.5",
     "i18next-resources-to-backend": "^1.0.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "react-i18next": "^11.18.4",
-    "react-router-dom": "^6.3.0"
+    "react-router-dom": "^6.3.0",
+    "react-spinners": "^0.13.4"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.18.2",

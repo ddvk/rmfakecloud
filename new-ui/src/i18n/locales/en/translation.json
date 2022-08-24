@@ -8,11 +8,13 @@
     "form": {
       "username": {
         "label": "Username",
-        "placeholder": "please enter username"
+        "placeholder": "please enter username",
+        "required": "Username is required"
       },
       "password": {
         "label": "Password",
-        "placeholder": "please enter password"
+        "placeholder": "please enter password",
+        "required": "Password is required"
       },
       "login-btn": "Sign In"
     }
