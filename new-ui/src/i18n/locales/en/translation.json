@@ -4,7 +4,8 @@
   },
   "site": {
     "titles": {
-      "login": "Login"
+      "login": "Login",
+      "404": "Page Not Found"
     }
   },
   "login": {
