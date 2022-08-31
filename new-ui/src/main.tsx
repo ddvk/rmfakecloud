@@ -10,22 +10,30 @@ import { HelmetProvider } from 'react-helmet-async'
 import './i18n'
 
 import Fullscreen from './layouts/Fullscreen'
+import Navout from './layouts/Navout'
 import App from './components/App'
 import Login from './components/Login'
+import NotFound from './components/404'
 
 createRoot(document.getElementById('root') as Element).render(
   <React.StrictMode>
     <HelmetProvider>
       <BrowserRouter>
         <Routes>
-          <Route element={<Fullscreen />}>
+          <Route element={<Navout />}>
             <Route
               index
               element={<App />}
             />
+          </Route>
+          <Route element={<Fullscreen />}>
             <Route
               element={<Login />}
               path="/login"
+            />
+            <Route
+              element={<NotFound />}
+              path="*"
             />
           </Route>
         </Routes>
