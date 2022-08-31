@@ -17,6 +17,7 @@
         "required": "Password is required"
       },
       "login-btn": "Sign In"
-    }
+    },
+    "username_or_password_error": "Username or password error, please try again"
   }
 }

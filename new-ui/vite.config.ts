@@ -13,6 +13,14 @@ const { imagemin } = config
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  server: {
+    proxy: {
+      '/ui/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true
+      }
+    }
+  },
   plugins: [
     react(),
     viteImagemin(imagemin),
@@ -43,7 +51,8 @@ export default defineConfig({
     alias: [
       { find: '@/', replacement: '/src' },
       { find: '@/Assets', replacement: '/src/assets' },
-      { find: '@/Components', replacement: '/src/components' }
+      { find: '@/Components', replacement: '/src/components' },
+      { find: '@/API', replacement: '/src/api' }
     ]
   }
 })

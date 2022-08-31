@@ -1,12 +1,19 @@
+import { useTranslation } from 'react-i18next'
+
+import { listDocuments } from '../api'
+
 import react from '@/Assets/images/react.svg'
 import tailwindcss from '@/Assets/images/tailwindcss.svg'
 import typescript from '@/Assets/images/typescript.svg'
 import vercel from '@/Assets/images/vercel.svg'
 import vite from '@/Assets/images/vite.svg'
-import { useTranslation } from 'react-i18next'
 
 function App() {
   const { t } = useTranslation()
+
+  listDocuments()
+    .then((response) => console.log(response))
+    .catch((err) => console.error(err))
 
   return (
     <section className="flex flex-col items-center justify-center gap-7 text-center text-blue-100">
