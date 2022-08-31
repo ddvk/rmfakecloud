@@ -8,9 +8,13 @@ i18n
     resourcesToBackend((language, namespace, callback) => {
       import(`./locales/${language}/${namespace}.json`)
         .then((resources) => {
+          // eslint-disable-next-line promise/no-callback-in-promise
           callback(null, resources)
+
+          return 'ok'
         })
         .catch((error) => {
+          // eslint-disable-next-line promise/no-callback-in-promise
           callback(error, null)
         })
     })

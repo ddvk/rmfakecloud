@@ -17,6 +17,7 @@
         "required": "缺少密码"
       },
       "login-btn": "登录"
-    }
+    },
+    "username_or_password_error": "用户名或者密码错误，请重新登录"
   }
 }
