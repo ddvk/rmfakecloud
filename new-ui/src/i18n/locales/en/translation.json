@@ -8,6 +8,14 @@
       "404": "Page Not Found"
     }
   },
+  "nav": {
+    "documents": "Documents",
+    "users": "Users",
+    "devices": "Devices",
+    "profile": "Profile",
+    "change_password": "Change Password",
+    "logout": "Logout"
+  },
   "login": {
     "title": "Welcome Back!",
     "subtitle": "Please fill in form to continue",

@@ -8,6 +8,14 @@
       "404": "没有此页面"
     }
   },
+  "nav": {
+    "documents": "文档",
+    "users": "用户",
+    "devices": "设备",
+    "profile": "我的",
+    "change_password": "修改密码",
+    "logout": "登出"
+  },
   "login": {
     "title": "欢迎回来!",
     "subtitle": "请输入账号密码登录",

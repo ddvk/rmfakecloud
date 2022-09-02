@@ -32,13 +32,13 @@ export default function Login() {
       <Helmet>
         <title>{fullSiteTitle(t('site.titles.login'))}</title>
       </Helmet>
-      <div className='grid items-center justify-items-center'>
-        <div className='w-full max-w-md'>
-          <div className='text-center'>
-            <h1 className='mb-4 font-serif text-2xl font-bold text-neutral-200'>
+      <div className="grid items-center justify-items-center">
+        <div className="w-full max-w-md">
+          <div className="text-center">
+            <h1 className="mb-4 font-serif text-2xl font-bold text-neutral-200">
               {t('login.title')}
             </h1>
-            <p className='text-sm text-neutral-600'>{t('login.subtitle')}</p>
+            <p className="text-sm text-neutral-600">{t('login.subtitle')}</p>
           </div>
           <Formik
             initialValues={{ username: '', password: '' }}
@@ -84,54 +84,54 @@ export default function Login() {
           >
             {({ values, errors, touched, handleSubmit, handleChange, isSubmitting }) => (
               <form
-                className='mb-4 rounded px-8 pt-6 pb-8 shadow-md'
+                className="mb-4 rounded px-8 pt-6 pb-8 shadow-md"
                 onSubmit={handleSubmit}
               >
-                <div className='mb-4'>
-                  <label className='mb-2 block font-bold text-neutral-400'>
+                <div className="mb-4">
+                  <label className="mb-2 block font-bold text-neutral-400">
                     {t('login.form.username.label')}
                   </label>
                   <input
                     className={inputClassName(errors.username && touched.username)}
-                    id='username'
+                    id="username"
                     placeholder={t('login.form.username.placeholder')}
-                    type='text'
+                    type="text"
                     value={values.username}
                     onChange={handleChange}
                   />
                   {errors.username && touched.username ? (
-                    <p className='mt-2 text-xs text-red-600'>{errors.username}</p>
+                    <p className="mt-2 text-xs text-red-600">{errors.username}</p>
                   ) : (
                     <></>
                   )}
                 </div>
-                <div className='mb-9'>
-                  <label className='mb-2 block font-bold text-neutral-400'>
+                <div className="mb-9">
+                  <label className="mb-2 block font-bold text-neutral-400">
                     {t('login.form.password.label')}
                   </label>
                   <input
                     className={inputClassName(errors.password && touched.password)}
-                    id='password'
+                    id="password"
                     placeholder={t('login.form.password.placeholder')}
-                    type='password'
+                    type="password"
                     value={values.password}
                     onChange={handleChange}
                   />
                   {errors.password && touched.password ? (
-                    <p className='mt-2 text-xs text-red-600'>{errors.password}</p>
+                    <p className="mt-2 text-xs text-red-600">{errors.password}</p>
                   ) : (
                     <></>
                   )}
                 </div>
-                <div className='flex items-center justify-between'>
+                <div className="flex items-center justify-between">
                   <button
-                    className='w-full rounded bg-blue-700 py-3 font-bold text-neutral-200 hover:bg-blue-600 focus:outline-none disabled:bg-blue-500'
+                    className="w-full rounded bg-blue-700 py-3 font-bold text-neutral-200 hover:bg-blue-600 focus:outline-none disabled:bg-blue-500"
                     disabled={isSubmitting}
-                    type='submit'
+                    type="submit"
                   >
                     {isSubmitting ? (
                       <PulseLoader
-                        color='#e5e5e5'
+                        color="#e5e5e5"
                         cssOverride={{ lineHeight: 0, padding: '6px 0' }}
                         size={8}
                         speedMultiplier={0.8}
