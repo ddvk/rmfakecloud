@@ -118,13 +118,13 @@ function MobileNav(props: { items: RouteItem[] }) {
     return (
       <Menu.Item key={`nav-item-${i}`}>
         {route.children ? (
-          <div className="bg-slate-800 mx-3 mb-6 rounded shadow-inner">
-            <p className="pt-3 text-xs text-neutral-400 font-normal">{route.title}</p>
+          <div className="mx-3 mb-6 rounded bg-slate-800 shadow-inner">
+            <p className="pt-3 text-xs font-normal text-neutral-400">{route.title}</p>
             <ul>{subMenuItems}</ul>
           </div>
         ) : (
           <Link to={route.path || '#'}>
-            <p className="p-3 relative">{route.title}</p>
+            <p className="relative p-3">{route.title}</p>
           </Link>
         )}
       </Menu.Item>
@@ -134,7 +134,7 @@ function MobileNav(props: { items: RouteItem[] }) {
   return (
     <Menu>
       <Menu.Button>
-        <MenuIcon className="w-6 h-6 text-neutral-200" />
+        <MenuIcon className="h-6 w-6 text-neutral-200" />
       </Menu.Button>
       <Transition
         as={Fragment}
@@ -147,7 +147,7 @@ function MobileNav(props: { items: RouteItem[] }) {
       >
         <Menu.Items
           as="div"
-          className="absolute w-screen -translate-x-[calc(100%-40px)] top-[46px] bg-slate-900 text-neutral-200 text-center z-10 overflow-hidden font-semibold"
+          className="absolute top-[46px] z-10 w-screen translate-x-[calc(-100%+40px)] overflow-hidden bg-slate-900 text-center font-semibold text-neutral-200"
         >
           {menuItems}
         </Menu.Items>
