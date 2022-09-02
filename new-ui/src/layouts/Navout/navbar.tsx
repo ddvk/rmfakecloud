@@ -1,7 +1,7 @@
 import { Menu, Transition } from '@headlessui/react'
 import { useTranslation } from 'react-i18next'
 import { Link, matchPath, useLocation } from 'react-router-dom'
-import { ChevronDownIcon } from '@heroicons/react/solid'
+import { ChevronDownIcon, MenuIcon } from '@heroicons/react/solid'
 import { Fragment } from 'react'
 
 import Logo from './logo'
@@ -101,8 +101,64 @@ function Nav(props: { items: RouteItem[] }) {
   )
 }
 
+function MobileNav(props: { items: RouteItem[] }) {
+  const { items } = props
+
+  const menuItems = items.map((route, i) => {
+    const subMenuItems = (route.children || []).map((subRoute, j) => {
+      return (
+        <li key={`nav-item-${i}-sub-item-${j}`}>
+          <Link to={subRoute.path || '#'}>
+            <p className="p-3">{subRoute.title}</p>
+          </Link>
+        </li>
+      )
+    })
+
+    return (
+      <Menu.Item key={`nav-item-${i}`}>
+        {route.children ? (
+          <div className="bg-slate-800 mx-3 mb-6 rounded shadow-inner">
+            <p className="pt-3 text-xs text-neutral-400 font-normal">{route.title}</p>
+            <ul>{subMenuItems}</ul>
+          </div>
+        ) : (
+          <Link to={route.path || '#'}>
+            <p className="p-3 relative">{route.title}</p>
+          </Link>
+        )}
+      </Menu.Item>
+    )
+  })
+
+  return (
+    <Menu>
+      <Menu.Button>
+        <MenuIcon className="w-6 h-6 text-neutral-200" />
+      </Menu.Button>
+      <Transition
+        as={Fragment}
+        enter="transition-max-h ease-in duration-300"
+        enterFrom="max-h-0"
+        enterTo="max-h-screen"
+        leave="transition-max-h ease-out duration-300"
+        leaveFrom="max-h-screen"
+        leaveTo="max-h-0"
+      >
+        <Menu.Items
+          as="div"
+          className="absolute w-screen -translate-x-[calc(100%-40px)] top-[46px] bg-slate-900 text-neutral-200 text-center z-10 overflow-hidden font-semibold"
+        >
+          {menuItems}
+        </Menu.Items>
+      </Transition>
+    </Menu>
+  )
+}
+
 export default function Navbar() {
   const { t } = useTranslation()
+
   const routes: RouteItem[] = [
     {
       title: t('nav.documents'),
@@ -133,15 +189,18 @@ export default function Navbar() {
 
   return (
     <>
-      <div className="top-0 w-full flex-none border-slate-900/10 bg-slate-900/90 backdrop-blur transition-colors duration-500">
+      <div className="relative top-0 w-full flex-none border-slate-900/10 bg-slate-900 backdrop-blur transition-colors duration-500">
         <div className="mx-auto max-w-4xl">
           <div className="mx-4 border-slate-300/10 py-4">
             <div className="relative flex items-center">
               <Link to="/">
                 <Logo className="h-5 w-auto fill-gray-100" />
               </Link>
-              <div className="relative ml-auto md:flex">
+              <div className="relative ml-auto hidden md:flex">
                 <Nav items={routes} />
+              </div>
+              <div className="relative ml-auto md:hidden">
+                <MobileNav items={routes} />
               </div>
             </div>
           </div>
