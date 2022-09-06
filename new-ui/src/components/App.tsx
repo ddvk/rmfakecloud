@@ -1,12 +1,9 @@
+import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
 
+import { fullSiteTitle } from '../utils/site'
 import { listDocuments } from '../api'
-
-import react from '@/Assets/images/react.svg'
-import tailwindcss from '@/Assets/images/tailwindcss.svg'
-import typescript from '@/Assets/images/typescript.svg'
-import vercel from '@/Assets/images/vercel.svg'
-import vite from '@/Assets/images/vite.svg'
+import Uploader from './Uploader'
 
 function App() {
   const { t } = useTranslation()
@@ -16,58 +13,20 @@ function App() {
     .catch((err) => console.error(err))
 
   return (
-    <section className="flex flex-col items-center justify-center gap-7 text-center text-blue-100">
-      <h1 className="text-7xl font-bold tracking-wide">
-        VRTTV
-        <span className="block text-3xl italic">Boilerplate</span>
-      </h1>
-      <p className="max-w-sm text-base leading-7 sm:max-w-none">{t('greeting.message')}</p>
-      <a
-        className="rounded bg-blue-100 py-3 px-4 font-bold uppercase tracking-wide text-blue-700 shadow-md shadow-blue-800 transition-colors hover:bg-blue-900 hover:text-blue-100"
-        href="https://github.com/Drumpy/vrttv-boilerplate"
-        rel="noopener noreferrer"
-        target="_blank"
-      >
-        Get the boilerplate →
-      </a>
-      <div className="flex gap-8 pt-4">
-        <img
-          alt="Vite Icon"
-          className="text-blue-200 hover:text-blue-100"
-          height="32px"
-          src={vite}
-          width="32px"
-        />
-        <img
-          alt="React Icon"
-          className="fill-blue-500 hover:text-blue-100"
-          height="32px"
-          src={react}
-          width="32px"
-        />
-        <img
-          alt="Typescript Icon"
-          className="fill-blue-500 hover:text-blue-100"
-          height="32px"
-          src={typescript}
-          width="32px"
-        />
-        <img
-          alt="Tailwindcss Icon"
-          className="fill-blue-500 hover:text-blue-100"
-          height="32px"
-          src={tailwindcss}
-          width="32px"
-        />
-        <img
-          alt="Vercel Icon"
-          className="fill-blue-500 hover:text-blue-100"
-          height="32px"
-          src={vercel}
-          width="32px"
-        />
+    <>
+      <Helmet>
+        <title>{fullSiteTitle(t('nav.documents'))}</title>
+      </Helmet>
+      <div className="min-h-[calc(100vh-63px)] bg-slate-900 text-neutral-400">
+        <div className="mx-auto max-w-4xl">
+          <div className="mx-4 py-8">
+            <h1 className="text-neutral-200 font-semibold text-2xl mb-8">{t('nav.documents')}</h1>
+
+            <Uploader />
+          </div>
+        </div>
       </div>
-    </section>
+    </>
   )
 }
 

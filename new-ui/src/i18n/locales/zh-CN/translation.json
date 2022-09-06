@@ -33,5 +33,17 @@
       "login-btn": "登录"
     },
     "username_or_password_error": "用户名或者密码错误，请重新登录"
+  },
+  "documents": {
+    "uploader": {
+      "title": "拖拽或点击上传文件",
+      "subtitle": "(只支持上传 epub 或者 PDF 格式)",
+      "duplicated_document": "重复进入上传队列",
+      "progress_bar": {
+        "title": "个文件正在上传",
+        "current_file": "当前: "
+      },
+      "upload_success": "{{count}}个文件已上传"
+    }
   }
 }
