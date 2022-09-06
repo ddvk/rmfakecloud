@@ -189,7 +189,7 @@ export default function Navbar() {
 
   return (
     <>
-      <div className="relative top-0 w-full flex-none border-b z-50 border-slate-100/10 bg-slate-900 backdrop-blur transition-colors duration-500">
+      <div className="relative top-0 z-50 w-full flex-none border-b border-slate-100/10 bg-slate-900 backdrop-blur transition-colors duration-500">
         <div className="mx-auto max-w-4xl">
           <div className="mx-4 py-4">
             <div className="relative flex items-center">

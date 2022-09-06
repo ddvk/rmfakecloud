@@ -3,6 +3,7 @@ import { useState } from 'react'
 import Dropzone from 'react-dropzone'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'react-toastify'
+
 import Transfer from './transfer'
 
 interface UploadState {
@@ -70,48 +71,48 @@ export default function Uploader() {
           <section>
             <div
               {...getRootProps()}
-              className="flex flex-col h-44 md:h-80 rounded border-4 border-dashed border-slate-100/10 items-center justify-center text-slate-100/20 p-4 text-center whitespace-nowrap"
+              className="flex h-44 flex-col items-center justify-center whitespace-nowrap rounded border-4 border-dashed border-slate-100/10 p-4 text-center text-slate-100/20 md:h-80"
             >
               <input {...getInputProps()} />
               {uploadState.mode === 'file_selector' ? (
                 <>
-                  <p className="md:text-lg md:mb-1 font-semibold text-ellipsis relative max-w-full overflow-hidden">
+                  <p className="relative max-w-full overflow-hidden text-ellipsis font-semibold md:mb-1 md:text-lg">
                     {t('documents.uploader.title')}
                   </p>
-                  <p className="text-xs md:text-base text-ellipsis relative max-w-full overflow-hidden">
+                  <p className="relative max-w-full overflow-hidden text-ellipsis text-xs md:text-base">
                     {t('documents.uploader.subtitle')}
                   </p>
                 </>
               ) : uploadState.mode === 'progress_bar' ? (
                 <>
-                  <p className="md:text-lg md:mb-1 font-semibold text-ellipsis relative max-w-full overflow-hidden">
+                  <p className="relative max-w-full overflow-hidden text-ellipsis font-semibold md:mb-1 md:text-lg">
                     [{uploadState.uploadingOrUploaded}/{uploadState.total}]{' '}
                     {t('documents.uploader.progress_bar.title')}
                   </p>
-                  <p className="text-xs md:text-base text-ellipsis relative max-w-full overflow-hidden">
+                  <p className="relative max-w-full overflow-hidden text-ellipsis text-xs md:text-base">
                     {t('documents.uploader.progress_bar.current_file')}(
                     {uploadProgress(uploadState.current)}%){uploadState.current?.file.name}
                   </p>
                 </>
               ) : (
                 <>
-                  <p className="font-semibold text-ellipsis relative max-w-full overflow-hidden md:mb-1">
+                  <p className="relative max-w-full overflow-hidden text-ellipsis font-semibold md:mb-1">
                     <svg
-                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-12 w-12"
                       fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={1.5}
                       stroke="currentColor"
-                      className="w-12 h-12"
+                      strokeWidth={1.5}
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
                     >
                       <path
+                        d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                       />
                     </svg>
                   </p>
-                  <p className="text-xs md:text-base text-ellipsis relative max-w-full overflow-hidden">
+                  <p className="relative max-w-full overflow-hidden text-ellipsis text-xs md:text-base">
                     {t('documents.uploader.upload_success', { count: uploadState.total })}
                   </p>
                 </>

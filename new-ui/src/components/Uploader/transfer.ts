@@ -1,11 +1,11 @@
 import PQueue from 'p-queue'
-
-import { uploadDocument, UploadedFile } from '../../api/document'
 import { v4 as uuidv4 } from 'uuid'
 
+import { uploadDocument, UploadedFile } from '../../api/document'
+
 export default class Transfer<T extends File> {
-  concurrent: number = 1
-  deduplicated: boolean = false
+  concurrent = 1
+  deduplicated = false
 
   uploadedFiles: UploadedFile[] = []
   queue: PQueue
@@ -23,10 +23,12 @@ export default class Transfer<T extends File> {
     })
   }
 
-  uploadFiles(files: T[], forced: boolean = false) {
+  uploadFiles(files: T[], forced = false) {
     let duplicatedFiles: T[] = []
+
     if (this.deduplicated && !forced) {
       const [pendingFiles, duplicated] = this.checkDuplicatedFiles(...files)
+
       files = pendingFiles
       duplicatedFiles = duplicated
     }
@@ -46,12 +48,12 @@ export default class Transfer<T extends File> {
   protected initUploadedFiles(files: T[]) {
     files.forEach((file) => {
       const ctrl = new AbortController()
-      let uploadedFile: UploadedFile = {
+      const uploadedFile: UploadedFile = {
         id: uuidv4().toString(),
         uploadedSize: 0,
         status: 'pending',
         cancel: ctrl,
-        file: file
+        file
       }
 
       this.uploadedFiles.push(uploadedFile)
@@ -67,8 +69,8 @@ export default class Transfer<T extends File> {
   }
 
   protected checkDuplicatedFiles(...files: T[]): [T[], T[]] {
-    let duplicatedFiles: T[] = []
-    let pendingFiles: T[] = []
+    const duplicatedFiles: T[] = []
+    const pendingFiles: T[] = []
 
     files.forEach((f) => {
       const i = this.uploadedFiles.findIndex(
