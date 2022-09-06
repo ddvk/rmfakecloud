@@ -33,5 +33,17 @@
       "login-btn": "Sign In"
     },
     "username_or_password_error": "Username or password error, please try again"
+  },
+  "documents": {
+    "uploader": {
+      "title": "Drop files here, or click to select files",
+      "subtitle": "(Only epub and pdf files will be accepted)",
+      "duplicated_document": "already uploaded or in upload queue",
+      "progress_bar": {
+        "title": "files uploading",
+        "current_file": "Current: "
+      },
+      "upload_success": "{{count}} files uploaded"
+    }
   }
 }

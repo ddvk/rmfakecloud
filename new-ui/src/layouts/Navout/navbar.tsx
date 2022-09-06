@@ -147,7 +147,7 @@ function MobileNav(props: { items: RouteItem[] }) {
       >
         <Menu.Items
           as="div"
-          className="absolute top-[46px] z-10 w-screen translate-x-[calc(-100%+40px)] overflow-hidden bg-slate-900 text-center font-semibold text-neutral-200"
+          className="absolute top-[46px] z-10 w-screen translate-x-[calc(-100%+40px)] overflow-hidden border-b border-slate-100/10 bg-slate-900 text-center font-semibold text-neutral-200"
         >
           {menuItems}
         </Menu.Items>
@@ -189,9 +189,9 @@ export default function Navbar() {
 
   return (
     <>
-      <div className="relative top-0 w-full flex-none border-slate-900/10 bg-slate-900 backdrop-blur transition-colors duration-500">
+      <div className="relative top-0 w-full flex-none border-b z-50 border-slate-100/10 bg-slate-900 backdrop-blur transition-colors duration-500">
         <div className="mx-auto max-w-4xl">
-          <div className="mx-4 border-slate-300/10 py-4">
+          <div className="mx-4 py-4">
             <div className="relative flex items-center">
               <Link to="/">
                 <Logo className="h-5 w-auto fill-gray-100" />
