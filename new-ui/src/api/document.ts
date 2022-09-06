@@ -13,6 +13,7 @@ export function uploadDocument<T extends UploadedFile>(
   onChange?: (f: UploadedFile) => void
 ) {
   const data = new FormData()
+
   data.append('file', file.file)
 
   const promise = requests.postForm('/ui/api/documents/upload', data, {
@@ -23,6 +24,7 @@ export function uploadDocument<T extends UploadedFile>(
         file.status = 'uploading'
       }
       const { loaded, total } = event
+
       file.uploadedSize = loaded
       if (loaded === total) {
         file.status = 'uploaded'
