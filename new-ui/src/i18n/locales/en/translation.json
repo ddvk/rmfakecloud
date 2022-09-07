@@ -44,6 +44,14 @@
         "current_file": "Current: "
       },
       "upload_success": "{{count}} files uploaded"
+    },
+    "file_tree_view": {
+      "menu": {
+        "download": "Download",
+        "view": "View",
+        "rename": "Rename",
+        "remove": "Remove"
+      }
     }
   }
 }

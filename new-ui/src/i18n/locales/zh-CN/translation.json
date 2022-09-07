@@ -44,6 +44,14 @@
         "current_file": "当前: "
       },
       "upload_success": "{{count}}个文件已上传"
+    },
+    "file_tree_view": {
+      "menu": {
+        "download": "下载",
+        "view": "查看",
+        "rename": "重命名",
+        "remove": "删除"
+      }
     }
   }
 }
