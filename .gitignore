@@ -20,6 +20,7 @@ assets_vfsdata.go
 .vscode/
 .idea/
 assets_vfsdata.go
+__debug_bin
 # Dependency directories (remove the comment below to include it)
 # vendor/
 

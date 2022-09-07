@@ -4,9 +4,9 @@ import (
 	"sort"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/zgs225/rmfakecloud/internal/messages"
 	"github.com/zgs225/rmfakecloud/internal/storage/models"
-	log "github.com/sirupsen/logrus"
 )
 
 // LoginForm the login form
@@ -50,6 +50,7 @@ func makeDocument(d *messages.RawMetadata) (entry Entry) {
 		Name: d.VissibleName,
 		// LastModified: d.ModifiedClient,
 		DocumentType: d.Type,
+		Extension:    d.Extension,
 	}
 	return
 }
@@ -168,6 +169,7 @@ type Document struct {
 	DocumentType string `json:"type"` //notebook, pdf, epub
 	LastModified time.Time
 	Size         int
+	Extension    string `json:"extension"`
 }
 
 // DocumentList is a list of documents

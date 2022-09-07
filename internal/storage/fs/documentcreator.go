@@ -12,11 +12,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 	"github.com/zgs225/rmfakecloud/internal/messages"
 	"github.com/zgs225/rmfakecloud/internal/storage"
 	"github.com/zgs225/rmfakecloud/internal/storage/models"
-	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 )
 
 func createContent(fileType string) string {
@@ -127,7 +127,7 @@ func (fs *FileSystemStorage) CreateDocument(uid, filename, parent string, stream
 
 	//create metadata
 	name := strings.TrimSuffix(filename, ext)
-	doc1 := createRawMedatadata(docid, name, parent)
+	doc1 := createRawMedatadata(docid, name, ext, parent)
 
 	jsn, err := json.Marshal(doc1)
 	if err != nil {
@@ -146,7 +146,7 @@ func (fs *FileSystemStorage) CreateDocument(uid, filename, parent string, stream
 	return
 }
 
-func createRawMedatadata(id, name, parent string) *messages.RawMetadata {
+func createRawMedatadata(id, name, ext, parent string) *messages.RawMetadata {
 	doc := messages.RawMetadata{
 		ID:             id,
 		VissibleName:   name,
@@ -155,6 +155,7 @@ func createRawMedatadata(id, name, parent string) *messages.RawMetadata {
 		CurrentPage:    0,
 		Type:           models.DocumentType,
 		Parent:         parent,
+		Extension:      ext,
 	}
 	return &doc
 }
