@@ -2,16 +2,12 @@ import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
 
 import { fullSiteTitle } from '../utils/site'
-import { listDocuments } from '../api'
 
 import Uploader from './Uploader'
+import FileTreeView from './FileTreeView'
 
 function App() {
   const { t } = useTranslation()
-
-  listDocuments()
-    .then((response) => console.log(response))
-    .catch((err) => console.error(err))
 
   return (
     <>
@@ -24,6 +20,8 @@ function App() {
             <h1 className="mb-8 text-2xl font-semibold text-neutral-200">{t('nav.documents')}</h1>
 
             <Uploader />
+
+            <FileTreeView />
           </div>
         </div>
       </div>
