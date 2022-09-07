@@ -40,7 +40,7 @@ function FileElement(params: HashDocElementProp) {
         onClickDoc && onClickDoc(doc)
       }}
     >
-      <DocumentTextIcon className="top-[-1px] mr-2 h-6 w-6" />
+      <DocumentTextIcon className="top-[-1px] mr-2 h-6 w-6 shrink-0" />
       <p className="max-w-[calc(100%-28px)] overflow-hidden text-ellipsis whitespace-nowrap leading-6">
         {doc.name}
       </p>
@@ -59,7 +59,7 @@ function DirElement(params: HashDocElementProp) {
         onClickDoc && onClickDoc(doc)
       }}
     >
-      <FolderIcon className="top-[-1px] mr-2 h-6 w-6" />
+      <FolderIcon className="top-[-1px] mr-2 h-6 w-6 shrink-0" />
       <p className="max-w-[calc(100%-28px)] overflow-hidden text-ellipsis whitespace-nowrap leading-6">
         {doc.name}
       </p>
