@@ -75,18 +75,19 @@ type Attributes struct {
 
 // RawMetadata just a raw document, used by the legacy api
 type RawMetadata struct {
-	ID                string           `json:"ID"`
-	Version           int              `json:"Version"`
-	Message           string           `json:"Message"`
-	Success           bool             `json:"Success"`
-	BlobURLGet        string           `json:"BlobURLGet"`
-	BlobURLGetExpires string           `json:"BlobURLGetExpires"`
-	ModifiedClient    string           `json:"ModifiedClient"`
-	Type              common.EntryType `json:"Type"`
-	VissibleName      string           `json:"VissibleName"`
-	CurrentPage       int              `json:"CurrentPage"`
-	Bookmarked        bool             `json:"Bookmarked"`
-	Parent            string           `json:"Parent"`
+	ID                string `json:"ID"`
+	Version           int    `json:"Version"`
+	Message           string `json:"Message"`
+	Success           bool   `json:"Success"`
+	BlobURLGet        string `json:"BlobURLGet"`
+	BlobURLGetExpires string `json:"BlobURLGetExpires"`
+	ModifiedClient    string `json:"ModifiedClient"`
+	Type              string `json:"Type"`
+	VissibleName      string `json:"VissibleName"`
+	CurrentPage       int    `json:"CurrentPage"`
+	Bookmarked        bool   `json:"Bookmarked"`
+	Parent            string `json:"Parent"`
+	Extension         string `json:"Extension"`
 }
 
 // IDRequest request with only an id

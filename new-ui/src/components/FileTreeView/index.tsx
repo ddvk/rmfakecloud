@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next'
 import { Transition } from '@headlessui/react'
 import { Link } from 'react-router-dom'
 
+import { EpubIcon, PDFIcon } from '../../utils/icons'
 import { listDocuments } from '../../api'
 
 export interface HashDoc {
@@ -19,6 +20,7 @@ export interface HashDoc {
   name: string
   type: 'DocumentType' | 'CollectionType'
   size: number
+  extension?: string
   children?: HashDoc[]
   LastModified: string
 }
@@ -40,7 +42,13 @@ function FileElement(params: HashDocElementProp) {
         onClickDoc && onClickDoc(doc)
       }}
     >
-      <DocumentTextIcon className="top-[-1px] mr-2 h-6 w-6 shrink-0" />
+      {doc.extension === '.epub' ? (
+        <EpubIcon className="top-[-1px] mr-2 h-6 w-6 shrink-0" />
+      ) : doc.extension === '.pdf' ? (
+        <PDFIcon className="top-[-1px] mr-2 h-6 w-6 shrink-0" />
+      ) : (
+        <DocumentTextIcon className="top-[-1px] mr-2 h-6 w-6 shrink-0" />
+      )}
       <p className="max-w-[calc(100%-28px)] overflow-hidden text-ellipsis whitespace-nowrap leading-6">
         {doc.name}
       </p>
@@ -218,7 +226,11 @@ export default function FileTreeView() {
     return (
       <TreeElement
         key={doc.id || uuidv4()}
-        className={selected && selected.id === doc.id ? 'bg-slate-800 text-neutral-200' : ''}
+        className={
+          selected && selected.id === doc.id
+            ? 'bg-slate-800 fill-neutral-200 text-neutral-200'
+            : 'fill-neutral-400'
+        }
         doc={doc}
         onClickDoc={(doc) => {
           if (doc.type === 'DocumentType') {
