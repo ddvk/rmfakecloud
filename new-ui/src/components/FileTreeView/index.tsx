@@ -6,7 +6,7 @@ import {
   PencilAltIcon,
   TrashIcon,
   FolderIcon
-} from '@heroicons/react/solid'
+} from '@heroicons/react/outline'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Transition } from '@headlessui/react'
