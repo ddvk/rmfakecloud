@@ -3,6 +3,7 @@ package ui
 import (
 	"io"
 	"io/fs"
+	"log"
 	"net/http"
 	"path"
 
@@ -41,6 +42,7 @@ type blobHandler interface {
 // ReactAppWrapper encapsulates an app
 type ReactAppWrapper struct {
 	fs              http.FileSystem
+	imagesFS        http.FileSystem
 	prefix          string
 	cfg             *config.Config
 	userStorer      storage.UserStorer
@@ -62,13 +64,18 @@ func New(cfg *config.Config,
 	docHandler documentHandler,
 	blobHandler blobHandler) *ReactAppWrapper {
 
-	sub, err := fs.Sub(webui.Assets, "build")
+	sub, err := fs.Sub(webui.Assets, "dist")
 	if err != nil {
 		panic("not embedded?")
 	}
+	imagesSub, err := fs.Sub(webui.Assets, "dist/images")
+	if err != nil {
+		panic("not embedded images?")
+	}
 	staticWrapper := ReactAppWrapper{
 		fs:              http.FS(sub),
-		prefix:          "/static",
+		imagesFS:        http.FS(imagesSub),
+		prefix:          "/assets",
 		cfg:             cfg,
 		userStorer:      userStorer,
 		codeConnector:   codeConnector,
@@ -88,6 +95,7 @@ func New(cfg *config.Config,
 
 // Open opens a file from the fs (virtual)
 func (w ReactAppWrapper) Open(filepath string) (http.File, error) {
+	log.Println("Open: ", filepath)
 	fullpath := filepath
 	//index.html hack
 	if filepath != indexReplacement {
@@ -95,6 +103,7 @@ func (w ReactAppWrapper) Open(filepath string) (http.File, error) {
 	} else {
 		fullpath = "/index.html"
 	}
+
 	f, err := w.fs.Open(fullpath)
 	return f, err
 }

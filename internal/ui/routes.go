@@ -11,18 +11,9 @@ import (
 // RegisterRoutes the apps routes
 func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	router.StaticFS(app.prefix, app)
+	router.StaticFS("/images", app.imagesFS)
 
-	router.GET("/favicon.ico", func(c *gin.Context) {
-		c.FileFromFS("/favicon.ico", app.fs)
-	})
-	router.GET("/robots.txt", func(c *gin.Context) {
-		c.FileFromFS("/robots.txt", app.fs)
-	})
-	router.GET("/pdf.worker.js", func(c *gin.Context) {
-		c.FileFromFS("/pdf.worker.js", app.fs)
-	})
-
-	//hack for index.html
+	// hack for index.html
 	router.NoRoute(func(c *gin.Context) {
 		uri := c.Request.RequestURI
 		log.Info(uri)
