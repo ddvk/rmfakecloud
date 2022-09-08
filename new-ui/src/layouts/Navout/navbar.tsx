@@ -108,25 +108,28 @@ function MobileNav(props: { items: RouteItem[] }) {
     const subMenuItems = (route.children || []).map((subRoute, j) => {
       return (
         <li key={`nav-item-${i}-sub-item-${j}`}>
-          <Link to={subRoute.path || '#'}>
-            <p className="p-3">{subRoute.title}</p>
-          </Link>
+          <Menu.Item>
+            <Link to={subRoute.path || '#'}>
+              <p className="p-3">{subRoute.title}</p>
+            </Link>
+          </Menu.Item>
         </li>
       )
     })
 
-    return (
+    return route.children ? (
+      <div
+        key={`nav-item-${i}`}
+        className="mx-3 mb-6 rounded bg-slate-800 shadow-inner"
+      >
+        <p className="pt-3 text-xs font-normal text-neutral-400">{route.title}</p>
+        <ul>{subMenuItems}</ul>
+      </div>
+    ) : (
       <Menu.Item key={`nav-item-${i}`}>
-        {route.children ? (
-          <div className="mx-3 mb-6 rounded bg-slate-800 shadow-inner">
-            <p className="pt-3 text-xs font-normal text-neutral-400">{route.title}</p>
-            <ul>{subMenuItems}</ul>
-          </div>
-        ) : (
-          <Link to={route.path || '#'}>
-            <p className="relative p-3">{route.title}</p>
-          </Link>
-        )}
+        <Link to={route.path || '#'}>
+          <p className="relative p-3">{route.title}</p>
+        </Link>
       </Menu.Item>
     )
   })
@@ -177,7 +180,7 @@ export default function Navbar() {
       children: [
         {
           title: t('nav.change_password'),
-          path: '/profile/change_password'
+          path: '/profile/reset_password'
         },
         {
           title: t('nav.logout'),

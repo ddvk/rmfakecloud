@@ -5,15 +5,17 @@
   "site": {
     "titles": {
       "login": "Login",
-      "404": "Page Not Found"
-    }
+      "404": "Page Not Found",
+      "reset_password": "Reset Password"
+    },
+    "unknown_error": "Unknown error occurs"
   },
   "nav": {
     "documents": "Documents",
     "users": "Users",
     "devices": "Devices",
     "profile": "Profile",
-    "change_password": "Change Password",
+    "change_password": "Reset Password",
     "logout": "Logout"
   },
   "login": {
@@ -36,6 +38,25 @@
   },
   "logout": {
     "loading": "Logout..."
+  },
+  "reset_password": {
+    "form": {
+      "current_password": {
+        "label": "Current Password",
+        "required": "Current password is required"
+      },
+      "new_password": {
+        "label": "New Password",
+        "required": "New password is required",
+        "min": "New password is too short"
+      },
+      "new_password_confirmation": {
+        "label": "New Password Confirmation",
+        "equals": "New password confirmation doesn't match"
+      },
+      "submit-btn": "Submit",
+      "success": "Reset password successfully"
+    }
   },
   "documents": {
     "uploader": {

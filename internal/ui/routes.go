@@ -49,7 +49,7 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	})
 
 	auth.GET("newcode", app.newCode)
-	auth.GET("profile", app.newCode)
+	auth.GET("profile", app.profile)
 	auth.POST("changePassword", app.changePassword)
 	auth.POST("changeEmail", app.changePassword)
 

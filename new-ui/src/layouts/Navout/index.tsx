@@ -10,7 +10,7 @@ export default class Navout extends Component {
       <>
         <Navbar />
         <Outlet />
-        <ToastContainer />
+        <ToastContainer theme="dark" />
       </>
     )
   }
