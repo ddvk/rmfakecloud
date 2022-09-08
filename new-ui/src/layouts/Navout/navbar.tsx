@@ -120,7 +120,7 @@ function MobileNav(props: { items: RouteItem[] }) {
     return route.children ? (
       <div
         key={`nav-item-${i}`}
-        className="mx-3 mb-6 rounded bg-slate-800 shadow-inner"
+        className="mx-3 mb-6 rounded bg-slate-800"
       >
         <p className="pt-3 text-xs font-normal text-neutral-400">{route.title}</p>
         <ul>{subMenuItems}</ul>
