@@ -219,8 +219,10 @@ export default function FileTreeView() {
 
         return response
       })
-      .catch((err) => console.error(err))
-  }, [])
+      .catch((err) => {
+        throw err
+      })
+  }, [t])
 
   const children = docs.map((doc) => {
     return (

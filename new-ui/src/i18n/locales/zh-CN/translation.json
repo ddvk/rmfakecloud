@@ -34,6 +34,9 @@
     },
     "username_or_password_error": "用户名或者密码错误，请重新登录"
   },
+  "logout": {
+    "loading": "登出中..."
+  },
   "documents": {
     "uploader": {
       "title": "拖拽或点击上传文件",
