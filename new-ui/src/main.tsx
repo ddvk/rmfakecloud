@@ -13,6 +13,7 @@ import Fullscreen from './layouts/Fullscreen'
 import Navout from './layouts/Navout'
 import App from './components/App'
 import Login from './components/Login'
+import Logout from './components/Logout'
 import NotFound from './components/404'
 
 createRoot(document.getElementById('root') as Element).render(
@@ -30,6 +31,10 @@ createRoot(document.getElementById('root') as Element).render(
             <Route
               element={<Login />}
               path="/login"
+            />
+            <Route
+              element={<Logout />}
+              path="/logout"
             />
             <Route
               element={<NotFound />}
