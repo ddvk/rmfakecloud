@@ -5,13 +5,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/zgs225/rmfakecloud/internal/common"
-	"github.com/zgs225/rmfakecloud/internal/model"
-	"github.com/zgs225/rmfakecloud/internal/ui/viewmodel"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
+	"github.com/zgs225/rmfakecloud/internal/common"
+	"github.com/zgs225/rmfakecloud/internal/model"
+	"github.com/zgs225/rmfakecloud/internal/ui/viewmodel"
 )
 
 const (
@@ -450,4 +450,40 @@ func (app *ReactAppWrapper) createUser(c *gin.Context) {
 		return
 	}
 	c.Status(http.StatusCreated)
+}
+
+func (app *ReactAppWrapper) profile(c *gin.Context) {
+	uid := c.GetString(userIDContextKey)
+
+	// Try to find the user
+	user, err := app.userStorer.GetUser(uid)
+	if err != nil {
+		log.Error(err)
+		badReq(c, err.Error())
+		return
+	}
+
+	if user == nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, "Invalid user")
+		return
+	}
+
+	if uid != user.ID && !IsAdmin(c) {
+		log.Warn("Only admins can query other users")
+		c.AbortWithStatusJSON(http.StatusUnauthorized, "")
+		return
+	}
+
+	vmUser := &viewmodel.User{
+		ID:        user.ID,
+		Email:     user.Email,
+		Name:      user.Name,
+		CreatedAt: user.CreatedAt,
+	}
+
+	for _, i := range user.Integrations {
+		vmUser.Integrations = append(vmUser.Integrations, i.Name)
+	}
+
+	c.JSON(http.StatusOK, vmUser)
 }

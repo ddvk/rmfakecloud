@@ -5,8 +5,10 @@
   "site": {
     "titles": {
       "login": "登录",
-      "404": "没有此页面"
-    }
+      "404": "没有此页面",
+      "reset_password": "修改密码"
+    },
+    "unknown_error": "发生未知错误"
   },
   "nav": {
     "documents": "文档",
@@ -36,6 +38,25 @@
   },
   "logout": {
     "loading": "登出中..."
+  },
+  "reset_password": {
+    "form": {
+      "current_password": {
+        "label": "当前密码",
+        "required": "缺少当前密码"
+      },
+      "new_password": {
+        "label": "新密码",
+        "required": "缺少新密码",
+        "min": "密码长度太短"
+      },
+      "new_password_confirmation": {
+        "label": "新密码确认",
+        "equals": "两次输入的密码不相同"
+      },
+      "submit-btn": "提交",
+      "success": "密码修改成功"
+    }
   },
   "documents": {
     "uploader": {

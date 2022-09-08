@@ -119,6 +119,7 @@
         "prev": ["const", "let", "var"],
         "next": ["const", "let", "var"]
       }
-    ]
+    ],
+    "promise/catch-or-return": ["error", { "allowFinally": true }]
   }
 }

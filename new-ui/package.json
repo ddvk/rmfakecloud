@@ -42,7 +42,8 @@
     "react-router-dom": "^6.3.0",
     "react-spinners": "^0.13.4",
     "react-toastify": "^9.0.8",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.0",
+    "yup": "^0.32.11"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.18.2",
