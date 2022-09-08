@@ -7,9 +7,9 @@ RUN yarn && yarn build
 FROM golang:1-alpine as gobuilder
 ARG VERSION
 WORKDIR /src
+RUN apk add git
 COPY . .
 COPY --from=uibuilder /src/dist ./new-ui/dist
-RUN apk add git
 RUN go generate ./... && CGO_ENABLED=0 go build -ldflags "-s -w -X main.version=${VERSION}" -o rmfakecloud-docker ./cmd/rmfakecloud/
 
 FROM scratch
