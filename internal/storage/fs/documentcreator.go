@@ -127,7 +127,7 @@ func (fs *FileSystemStorage) CreateDocument(uid, filename, parent string, stream
 
 	//create metadata
 	name := strings.TrimSuffix(filename, ext)
-	doc1 := createRawMedatadata(docid, name, ext, parent)
+	doc1 := createRawMedatadata(docid, name, parent)
 
 	jsn, err := json.Marshal(doc1)
 	if err != nil {
@@ -146,7 +146,7 @@ func (fs *FileSystemStorage) CreateDocument(uid, filename, parent string, stream
 	return
 }
 
-func createRawMedatadata(id, name, ext, parent string) *messages.RawMetadata {
+func createRawMedatadata(id, name, parent string) *messages.RawMetadata {
 	doc := messages.RawMetadata{
 		ID:             id,
 		VissibleName:   name,
@@ -155,7 +155,6 @@ func createRawMedatadata(id, name, ext, parent string) *messages.RawMetadata {
 		CurrentPage:    0,
 		Type:           models.DocumentType,
 		Parent:         parent,
-		Extension:      ext,
 	}
 	return &doc
 }

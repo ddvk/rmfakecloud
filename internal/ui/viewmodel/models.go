@@ -50,7 +50,6 @@ func makeDocument(d *messages.RawMetadata) (entry Entry) {
 		Name: d.VissibleName,
 		// LastModified: d.ModifiedClient,
 		DocumentType: d.Type,
-		Extension:    d.Extension,
 	}
 	return
 }
@@ -169,7 +168,6 @@ type Document struct {
 	DocumentType string `json:"type"` //notebook, pdf, epub
 	LastModified time.Time
 	Size         int
-	Extension    string `json:"extension"`
 }
 
 // DocumentList is a list of documents

@@ -69,7 +69,6 @@ type RawMetadata struct {
 	CurrentPage       int    `json:"CurrentPage"`
 	Bookmarked        bool   `json:"Bookmarked"`
 	Parent            string `json:"Parent"`
-	Extension         string `json:"Extension"`
 }
 
 // IDRequest request with only an id
