@@ -15,7 +15,7 @@ function CodeDisplay({ code }: { code: string }) {
       <Transition.Child
         key={`char-${i}`}
         as="div"
-        className="h-full relative mt-[50%] md:mt-[35%] translate-y-[-50%]"
+        className="relative mt-[50%] h-full translate-y-[-50%] md:mt-[35%]"
         enter={`transition-opacity ease-in-out duration-[2s]`}
         enterFrom="opacity-0"
         enterTo="opacity-100"
@@ -30,10 +30,10 @@ function CodeDisplay({ code }: { code: string }) {
 
   return (
     <Transition
-      as="div"
-      show={true}
       appear={true}
-      className="relative min-h-[50vh] flex justify-around text-5xl text-neutral-200 font-bold font-[CascadiaCodePL]"
+      as="div"
+      className="relative flex min-h-[50vh] justify-around font-[CascadiaCodePL] text-5xl font-bold text-neutral-200"
+      show={true}
     >
       {innerDom}
     </Transition>
@@ -53,6 +53,7 @@ export default function Devices() {
       .then((response) => {
         setCode(response.data)
         setShowCode(true)
+
         return 'ok'
       })
       .catch((error) => {
@@ -76,8 +77,8 @@ export default function Devices() {
             <div className="fixed bottom-8 w-[calc(100%-32px)] md:mx-auto md:max-w-[calc(896px-32px)]">
               <button
                 className="w-full rounded bg-blue-700 py-3 font-bold text-neutral-200 hover:bg-blue-600 focus:outline-none disabled:bg-blue-500"
-                type="button"
                 disabled={isSubmitting}
+                type="button"
                 onClick={onClickHandler}
               >
                 {isSubmitting ? (
