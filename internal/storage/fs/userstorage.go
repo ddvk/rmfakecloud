@@ -6,8 +6,8 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/zgs225/rmfakecloud/internal/config"
-	"github.com/zgs225/rmfakecloud/internal/model"
+	"github.com/ddvk/rmfakecloud/internal/config"
+	"github.com/ddvk/rmfakecloud/internal/model"
 	log "github.com/sirupsen/logrus"
 )
 

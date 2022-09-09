@@ -1,9 +1,8 @@
-module github.com/zgs225/rmfakecloud
+module github.com/ddvk/rmfakecloud
 
 go 1.17
 
 require (
-	github.com/antihax/optional v1.0.0
 	github.com/dropbox/dropbox-sdk-go-unofficial/v6 v6.0.3
 	github.com/gin-gonic/gin v1.7.7
 	github.com/golang-jwt/jwt/v4 v4.2.0

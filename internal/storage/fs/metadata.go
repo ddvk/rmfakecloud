@@ -9,6 +9,7 @@ import (
 
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/storage"
+	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	log "github.com/sirupsen/logrus"
 )
 

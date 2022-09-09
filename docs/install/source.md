@@ -15,7 +15,7 @@ Build
 -----
 
 ```sh
-git clone https://github.com/zgs225/rmfakecloud
+git clone https://github.com/ddvk/rmfakecloud
 cd rmfakecloud
 make all
 ```

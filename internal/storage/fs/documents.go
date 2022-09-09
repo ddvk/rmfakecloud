@@ -17,6 +17,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/storage/exporter"
+	"github.com/ddvk/rmfakecloud/internal/storage/models"
 )
 
 // DefaultTrashDir name of the trash dir

@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/zgs225/rmfakecloud/internal/email"
+	"github.com/ddvk/rmfakecloud/internal/email"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/pbkdf2"
 )

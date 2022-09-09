@@ -9,7 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/zgs225/rmfakecloud/internal/config"
+	"github.com/ddvk/rmfakecloud/internal/config"
 )
 
 const (
@@ -28,7 +28,6 @@ func (hwr *HWRClient) SendRequest(data []byte) (body []byte, err error) {
 	if hwr.Cfg == nil || hwr.Cfg.HWRApplicationKey == "" || hwr.Cfg.HWRHmac == "" {
 		return nil, fmt.Errorf("no hwr key set")
 	}
-	data = hwr.setLanguageToChinese(data)
 	appKey := hwr.Cfg.HWRApplicationKey
 	fullkey := appKey + hwr.Cfg.HWRHmac
 	mac := hmac.New(sha512.New, []byte(fullkey))
@@ -62,8 +61,4 @@ func (hwr *HWRClient) SendRequest(data []byte) (body []byte, err error) {
 	}
 
 	return body, nil
-}
-
-func (hwr *HWRClient) setLanguageToChinese(data []byte) []byte {
-	return bytes.Replace(data, []byte("en_US"), []byte("zn_CN"), -1)
 }

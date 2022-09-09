@@ -9,6 +9,7 @@ import (
 
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/storage"
+	"github.com/ddvk/rmfakecloud/internal/storage/models"
 )
 
 func TestCreateDocument(t *testing.T) {
