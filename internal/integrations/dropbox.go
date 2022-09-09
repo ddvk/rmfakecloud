@@ -3,8 +3,8 @@ package integrations
 import (
 	"io"
 
-	"github.com/zgs225/rmfakecloud/internal/messages"
-	"github.com/zgs225/rmfakecloud/internal/model"
+	"github.com/ddvk/rmfakecloud/internal/messages"
+	"github.com/ddvk/rmfakecloud/internal/model"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 	"github.com/sirupsen/logrus"

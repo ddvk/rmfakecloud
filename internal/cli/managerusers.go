@@ -4,9 +4,9 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/zgs225/rmfakecloud/internal/config"
-	"github.com/zgs225/rmfakecloud/internal/model"
-	"github.com/zgs225/rmfakecloud/internal/storage/fs"
+	"github.com/ddvk/rmfakecloud/internal/config"
+	"github.com/ddvk/rmfakecloud/internal/model"
+	"github.com/ddvk/rmfakecloud/internal/storage/fs"
 	log "github.com/sirupsen/logrus"
 )
 

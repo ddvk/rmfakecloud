@@ -8,9 +8,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/zgs225/rmfakecloud/internal/app"
-	"github.com/zgs225/rmfakecloud/internal/cli"
-	"github.com/zgs225/rmfakecloud/internal/config"
+	"github.com/ddvk/rmfakecloud/internal/app"
+	"github.com/ddvk/rmfakecloud/internal/cli"
+	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/gin-gonic/gin"
 	"github.com/rifflock/lfshook"
 	"github.com/sirupsen/logrus"

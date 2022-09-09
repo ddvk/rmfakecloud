@@ -5,13 +5,13 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/ddvk/rmfakecloud/internal/common"
+	"github.com/ddvk/rmfakecloud/internal/model"
+	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
-	"github.com/zgs225/rmfakecloud/internal/common"
-	"github.com/zgs225/rmfakecloud/internal/model"
-	"github.com/zgs225/rmfakecloud/internal/ui/viewmodel"
 )
 
 const (

@@ -3,10 +3,10 @@ package ui
 import (
 	"io"
 
-	"github.com/zgs225/rmfakecloud/internal/app/hub"
-	"github.com/zgs225/rmfakecloud/internal/storage"
-	"github.com/zgs225/rmfakecloud/internal/storage/models"
-	"github.com/zgs225/rmfakecloud/internal/ui/viewmodel"
+	"github.com/ddvk/rmfakecloud/internal/app/hub"
+	"github.com/ddvk/rmfakecloud/internal/storage"
+	"github.com/ddvk/rmfakecloud/internal/storage/models"
+	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
 	log "github.com/sirupsen/logrus"
 )
 

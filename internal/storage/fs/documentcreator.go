@@ -12,11 +12,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ddvk/rmfakecloud/internal/messages"
+	"github.com/ddvk/rmfakecloud/internal/storage"
+	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
-	"github.com/zgs225/rmfakecloud/internal/messages"
-	"github.com/zgs225/rmfakecloud/internal/storage"
-	"github.com/zgs225/rmfakecloud/internal/storage/models"
 )
 
 func createContent(fileType string) string {

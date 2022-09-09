@@ -8,12 +8,12 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/zgs225/rmfakecloud/internal/app/hub"
-	"github.com/zgs225/rmfakecloud/internal/config"
-	"github.com/zgs225/rmfakecloud/internal/hwr"
-	"github.com/zgs225/rmfakecloud/internal/storage"
-	"github.com/zgs225/rmfakecloud/internal/storage/fs"
-	"github.com/zgs225/rmfakecloud/internal/ui"
+	"github.com/ddvk/rmfakecloud/internal/app/hub"
+	"github.com/ddvk/rmfakecloud/internal/config"
+	"github.com/ddvk/rmfakecloud/internal/hwr"
+	"github.com/ddvk/rmfakecloud/internal/storage"
+	"github.com/ddvk/rmfakecloud/internal/storage/fs"
+	"github.com/ddvk/rmfakecloud/internal/ui"
 
 	"github.com/gin-gonic/gin"
 )
