@@ -62,7 +62,7 @@ export default function Uploader() {
     <>
       <Dropzone
         accept={{ 'application/pdf': ['.pdf'], 'application/epub+zip': ['.epub'] }}
-        maxSize={25 * 1024 * 1024} // 25MB
+        maxSize={125 * 1024 * 1024} // 125MB
         onDrop={(acceptedFiles) => {
           transfer.uploadFiles(acceptedFiles)
         }}
