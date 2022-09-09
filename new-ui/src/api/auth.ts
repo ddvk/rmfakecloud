@@ -21,3 +21,7 @@ export function resetPassword(data: {
 }): Promise<AxiosResponse> {
   return requests.post('/ui/api/changePassword', data)
 }
+
+export function newCode(): Promise<AxiosResponse> {
+  return requests.get('/ui/api/newcode')
+}

@@ -77,5 +77,8 @@
         "remove": "删除"
       }
     }
+  },
+  "devices": {
+    "code-btn": "生成注册码"
   }
 }
