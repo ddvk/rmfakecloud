@@ -16,6 +16,7 @@ import Login from './components/Login'
 import Logout from './components/Logout'
 import NotFound from './components/404'
 import ResetPassword from './components/ResetPassword'
+import Devices from './components/Devices'
 
 createRoot(document.getElementById('root') as Element).render(
   <React.StrictMode>
@@ -33,6 +34,10 @@ createRoot(document.getElementById('root') as Element).render(
             <Route
               element={<ResetPassword />}
               path="profile/reset_password"
+            />
+            <Route
+              element={<Devices />}
+              path="devices"
             />
           </Route>
           <Route element={<Fullscreen />}>

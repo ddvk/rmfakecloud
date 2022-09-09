@@ -77,5 +77,8 @@
         "remove": "Remove"
       }
     }
+  },
+  "devices": {
+    "code-btn": "Generate Code"
   }
 }

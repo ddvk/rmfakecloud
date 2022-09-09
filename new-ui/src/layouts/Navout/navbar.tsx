@@ -196,7 +196,7 @@ export default function Navbar() {
         <div className="mx-auto max-w-4xl">
           <div className="mx-4 py-4">
             <div className="relative flex items-center">
-              <Link to="/">
+              <Link to="/" replace={true}>
                 <Logo className="h-5 w-auto fill-gray-100" />
               </Link>
               <div className="relative ml-auto hidden md:flex">
