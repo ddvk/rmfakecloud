@@ -303,8 +303,15 @@ func (app *ReactAppWrapper) updateDocument(c *gin.Context) {
 }
 func (app *ReactAppWrapper) deleteDocument(c *gin.Context) {
 	uid := c.GetString(userIDContextKey)
-	docid := c.Param("docid")
-	backend := app.getBackend(c)
+	docId := common.ParamS(docIDParam, c)
+	backend := getBackend(c)
+	err := backend.DeleteDocument(uid, docId)
+
+	if err != nil {
+		log.Error("Delete document error: ", err)
+		badReq(c, err.Error())
+		return
+	}
 
 	err := backend.DeleteDocument(uid, docid)
 	if err != nil {
