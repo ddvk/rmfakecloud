@@ -219,9 +219,9 @@ type NewUser struct {
 
 // UpdateDoc with somethin
 type UpdateDoc struct {
-	DocumentID string `json:"documentId" binding:"required"`
-	ParentID   string `json:"parentId"`
-	Name       string `json:"name"`
+	SetParentToRoot bool   `json:"setParentToRoot"`
+	ParentID        string `json:"parentId"`
+	Name            string `json:"name"`
 }
 
 type NewFolder struct {

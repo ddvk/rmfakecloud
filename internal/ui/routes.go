@@ -58,9 +58,7 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	auth.POST("documents/upload", app.createDocument)
 
 	//move, rename
-	auth.DELETE("documents/:docid", app.deleteDocument)
-	auth.PUT("documents", app.updateDocument)
-	auth.POST("folders", app.createFolder)
+	auth.PUT("documents/:docid", app.updateDocument)
 	auth.GET("documents/:docid/metadata", app.getDocumentMetadata)
 
 	//admin
