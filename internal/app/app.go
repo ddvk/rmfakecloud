@@ -142,7 +142,8 @@ func NewApp(cfg *config.Config) App {
 			Cfg: cfg,
 		},
 	}
-	uiApp := ui.New(cfg, fsStorage, codeConnector, ntfHub, fsStorage, fsStorage)
+
+	uiApp := ui.New(cfg, fsStorage, codeConnector, ntfHub, fsStorage, fsStorage, fsStorage)
 
 	storageapp := fs.NewApp(cfg, fsStorage)
 

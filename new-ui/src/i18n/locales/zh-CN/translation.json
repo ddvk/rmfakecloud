@@ -8,7 +8,16 @@
       "404": "没有此页面",
       "reset_password": "修改密码"
     },
-    "unknown_error": "发生未知错误"
+    "unknown_error": "发生未知错误",
+    "dialog": {
+      "confirm-btn": "确认",
+      "cancel-btn": "取消",
+      "delete_title": "删除文档",
+      "doc_delete_content": "删除操作不可撤销，确定删除《{{name}}》吗?"
+    }
+  },
+  "notifications": {
+    "document_deleted": "文档已删除"
   },
   "nav": {
     "documents": "文档",

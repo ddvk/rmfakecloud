@@ -10,20 +10,13 @@ import {
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Transition } from '@headlessui/react'
-import { Link } from 'react-router-dom'
+import { toast } from 'react-toastify'
 
 import { EpubIcon, PDFIcon } from '../../utils/icons'
 import { listDocuments } from '../../api'
-
-export interface HashDoc {
-  id: string
-  name: string
-  type: 'DocumentType' | 'CollectionType'
-  size: number
-  extension?: string
-  children?: HashDoc[]
-  LastModified: string
-}
+import { deleteDocument } from '../../api/document'
+import { ConfirmationDialog } from '../Dialog'
+import { HashDoc } from '../../utils/models'
 
 type HashDocElementProp = {
   doc: HashDoc
@@ -99,44 +92,95 @@ function TreeElement(params: HashDocElementProp) {
   return <></>
 }
 
-function FileMenu(params: { doc?: HashDoc | null }) {
-  const { doc } = params
+interface FileMenuProps {
+  doc?: HashDoc | null
+  onDocDeleted?: (doc: HashDoc) => void
+}
+
+function FileMenu(params: FileMenuProps) {
+  const { doc, onDocDeleted } = params
   const { t } = useTranslation()
+  const [isOpenDialog, setIsOpenDialog] = useState(false)
+  const [dialogIsLoading, setDialogIsLoading] = useState(false)
 
   return (
-    <Transition
-      as="div"
-      className="fixed inset-x-0 bottom-0 flex h-20 items-center justify-around border-t border-slate-100/10 bg-slate-900 md:mx-auto md:max-w-4xl md:border-x"
-      enter="transition-translate-y duration-300"
-      enterFrom="translate-y-full"
-      enterTo="translate-y-0"
-      leave="transition-translate-y duration-300"
-      leaveFrom="translate-y-0"
-      leaveTo="translate-y-full"
-      show={new Boolean(doc).valueOf()}
-    >
-      <Link
-        target="_blank"
-        to={`/ui/api/documents/${doc?.id}`}
+    <>
+      <ConfirmationDialog
+        content={t('site.dialog.doc_delete_content', { name: doc?.name })}
+        isLoading={dialogIsLoading}
+        isOpen={isOpenDialog}
+        title={t('site.dialog.delete_title')}
+        onClose={() => {
+          setIsOpenDialog(false)
+          setDialogIsLoading(false)
+        }}
+        onConfirm={() => {
+          if (!doc) {
+            return
+          }
+
+          setDialogIsLoading(true)
+
+          deleteDocument(doc.id)
+            .then(() => {
+              toast.success(t('notifications.document_deleted'))
+              onDocDeleted && onDocDeleted(doc)
+
+              return 'ok'
+            })
+            .catch((err) => {
+              throw err
+            })
+            .finally(() => {
+              setDialogIsLoading(false)
+              setIsOpenDialog(false)
+            })
+        }}
+      />
+      <Transition
+        as="div"
+        className="fixed inset-x-0 bottom-0 z-10"
+        enter="transition-translate-y duration-300"
+        enterFrom="translate-y-full"
+        enterTo="translate-y-0"
+        leave="transition-translate-y duration-300"
+        leaveFrom="translate-y-0"
+        leaveTo="translate-y-full"
+        show={new Boolean(doc).valueOf()}
       >
-        <div className="cursor-pointer p-4 hover:text-neutral-200">
-          <SaveIcon className="mx-auto mb-1 h-6 w-6" />
-          <p className="text-xs">{t('documents.file_tree_view.menu.download')}</p>
+        <div className="mx-auto max-w-4xl border-t border-slate-100/20 md:border-none">
+          <div className="rounded bg-slate-900 md:mx-4 md:border-x md:border-t md:border-slate-100/20">
+            <div className="flex justify-between md:justify-around">
+              <div className="cursor-pointer p-4 hover:text-neutral-200">
+                <SaveIcon className="mx-auto mb-1 h-6 w-6" />
+                <p className="text-xs">{t('documents.file_tree_view.menu.download')}</p>
+              </div>
+              <div className="cursor-pointer p-4 hover:text-neutral-200">
+                <EyeIcon className="mx-auto mb-1 h-6 w-6" />
+                <p className="text-xs">{t('documents.file_tree_view.menu.view')}</p>
+              </div>
+              <div className="cursor-pointer p-4 hover:text-neutral-200">
+                <PencilAltIcon className="mx-auto mb-1 h-6 w-6" />
+                <p className="text-xs">{t('documents.file_tree_view.menu.rename')}</p>
+              </div>
+              <div
+                className="cursor-pointer p-4 hover:text-neutral-200"
+                onClick={() => {
+                  if (!doc) {
+                    return
+                  }
+
+                  setIsOpenDialog(true)
+                }}
+              >
+                <TrashIcon className="mx-auto mb-1 h-6 w-6" />
+                <p className="text-xs">{t('documents.file_tree_view.menu.remove')}</p>
+              </div>
+            </div>
+          </div>
         </div>
-      </Link>
-      <div className="cursor-pointer p-4 hover:text-neutral-200">
-        <EyeIcon className="mx-auto mb-1 h-6 w-6" />
-        <p className="text-xs">{t('documents.file_tree_view.menu.view')}</p>
-      </div>
-      <div className="cursor-pointer p-4 hover:text-neutral-200">
-        <PencilAltIcon className="mx-auto mb-1 h-6 w-6" />
-        <p className="text-xs">{t('documents.file_tree_view.menu.rename')}</p>
-      </div>
-      <div className="cursor-pointer p-4 hover:text-neutral-200">
-        <TrashIcon className="mx-auto mb-1 h-6 w-6" />
-        <p className="text-xs">{t('documents.file_tree_view.menu.remove')}</p>
-      </div>
-    </Transition>
+      </Transition>
+    </>
   )
 }
 
@@ -254,6 +298,24 @@ export default function FileTreeView() {
     )
   })
 
+  function removeDoc(doc: HashDoc) {
+    const newDocs: HashDoc[] = []
+
+    for (const docEntry of docs) {
+      if (doc.id === docEntry.id) {
+        continue
+      }
+      newDocs.push(docEntry)
+    }
+
+    setDocs(newDocs)
+  }
+
+  const onDocDeleted = (doc: HashDoc) => {
+    setSelected(null)
+    removeDoc(doc)
+  }
+
   return (
     <>
       <Breadcrumbs
@@ -262,7 +324,10 @@ export default function FileTreeView() {
         onClickBreadcrumb={(_item, index) => popd(index)}
       />
       <div className="divide-y divide-slate-800">{children}</div>
-      <FileMenu doc={selected} />
+      <FileMenu
+        doc={selected}
+        onDocDeleted={onDocDeleted}
+      />
     </>
   )
 }

@@ -272,8 +272,16 @@ func (app *ReactAppWrapper) updateDocument(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 func (app *ReactAppWrapper) deleteDocument(c *gin.Context) {
-	// uid := c.GetString(userID)
-	// docid := c.Param("docid")
+	uid := c.GetString(userIDContextKey)
+	docId := common.ParamS(docIDParam, c)
+	backend := getBackend(c)
+	err := backend.DeleteDocument(uid, docId)
+
+	if err != nil {
+		log.Error("Delete document error: ", err)
+		badReq(c, err.Error())
+		return
+	}
 
 	c.Status(http.StatusOK)
 }

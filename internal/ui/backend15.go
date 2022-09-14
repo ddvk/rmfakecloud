@@ -33,6 +33,10 @@ func (b *backend15) CreateDocument(uid, filename, parent string, stream io.Reade
 	return
 }
 
+func (d *backend15) DeleteDocument(uid, docid string) error {
+	return nil
+}
+
 func (b *backend15) Sync(uid string) {
 	logrus.Info("notifying")
 	b.h.NotifySync(uid, uuid.NewString())

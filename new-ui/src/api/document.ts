@@ -1,3 +1,5 @@
+import { AxiosResponse } from 'axios'
+
 import requests from '../utils/request'
 
 export interface UploadedFile {
@@ -34,4 +36,8 @@ export function uploadDocument<T extends UploadedFile>(
   })
 
   return promise
+}
+
+export function deleteDocument(id: string): Promise<AxiosResponse> {
+  return requests.delete(`/ui/api/documents/${id}`)
 }
