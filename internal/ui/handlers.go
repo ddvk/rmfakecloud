@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/ddvk/rmfakecloud/internal/app/hub"
 	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/model"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
@@ -259,6 +260,19 @@ func (app *ReactAppWrapper) getDocument(c *gin.Context) {
 	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
 }
 
+func (app *ReactAppWrapper) getDocumentMetadata(c *gin.Context) {
+	uid := c.GetString(userIDContextKey)
+	docid := common.ParamS(docIDParam, c)
+	metadata, err := app.metadataStore.GetMetadata(uid, docid)
+
+	if err != nil {
+		badReq(c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, metadata)
+}
+
 func (app *ReactAppWrapper) updateDocument(c *gin.Context) {
 	upd := viewmodel.UpdateDoc{}
 	if err := c.ShouldBindJSON(&upd); err != nil {
@@ -266,11 +280,63 @@ func (app *ReactAppWrapper) updateDocument(c *gin.Context) {
 		badReq(c, err.Error())
 		return
 	}
-	// uid := c.GetString(userID)
-	// docid := c.Param("docid")
+	uid := c.GetString(userIDContextKey)
+	docid := common.ParamS(docIDParam, c)
+
+	metadata, err := app.metadataStore.GetMetadata(uid, docid)
+
+	if err != nil {
+		badReq(c, err.Error())
+		return
+	}
+
+	dirty := false
+
+	// Rename
+	if len(upd.Name) > 0 && upd.Name != metadata.VissibleName {
+		metadata.VissibleName = upd.Name
+		dirty = true
+	}
+
+	// Move
+	if len(upd.ParentID) > 0 && upd.ParentID != metadata.Parent {
+		parent, err := app.metadataStore.GetMetadata(uid, upd.ParentID)
+
+		if err != nil {
+			badReq(c, err.Error())
+			return
+		}
+
+		metadata.Parent = parent.ID
+		dirty = true
+	}
+
+	if upd.SetParentToRoot && metadata.Parent != "" {
+		metadata.Parent = ""
+		dirty = true
+	}
+
+	if dirty {
+		metadata.Version += 1
+		if err = app.metadataStore.UpdateMetadata(uid, metadata); err != nil {
+			badReq(c, err.Error())
+			return
+		}
+
+		app.h.Notify(uid, "web", hub.DocumentNotification{
+			ID:      metadata.ID,
+			Type:    metadata.Type,
+			Version: metadata.Version,
+			Parent:  metadata.Parent,
+			Name:    metadata.VissibleName,
+		}, hub.DocAddedEvent)
+
+		log.Info(uiLogger, "document updated: id=", metadata.ID)
+	}
 
 	c.Status(http.StatusOK)
 }
+
 func (app *ReactAppWrapper) deleteDocument(c *gin.Context) {
 	uid := c.GetString(userIDContextKey)
 	docId := common.ParamS(docIDParam, c)

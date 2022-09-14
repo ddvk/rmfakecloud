@@ -48,6 +48,7 @@ type ReactAppWrapper struct {
 	prefix          string
 	cfg             *config.Config
 	userStorer      storage.UserStorer
+	metadataStore   storage.MetadataStorer
 	codeConnector   codeGenerator
 	h               *hub.Hub
 	documentHandler documentHandler
@@ -82,6 +83,7 @@ func New(cfg *config.Config,
 		prefix:          "/assets",
 		cfg:             cfg,
 		userStorer:      userStorer,
+		metadataStore:   metadataStore,
 		codeConnector:   codeConnector,
 		h:               h,
 		documentHandler: docHandler,

@@ -95,6 +95,7 @@ function TreeElement(params: HashDocElementProp) {
 interface FileMenuProps {
   doc?: HashDoc | null
   onDocDeleted?: (doc: HashDoc) => void
+  onDocEditing?: (doc: HashDoc) => void
 }
 
 function FileMenu(params: FileMenuProps) {
@@ -159,7 +160,13 @@ function FileMenu(params: FileMenuProps) {
                 <EyeIcon className="mx-auto mb-1 h-6 w-6" />
                 <p className="text-center text-xs">{t('documents.file_tree_view.menu.view')}</p>
               </div>
-              <div className="basis-1/4 cursor-pointer p-4 hover:text-neutral-200">
+              <div
+                className="basis-1/4 cursor-pointer p-4 hover:text-neutral-200"
+                onClick={() => {
+                  const { onDocEditing } = params
+                  onDocEditing && doc && onDocEditing(doc)
+                }}
+              >
                 <PencilAltIcon className="mx-auto mb-1 h-6 w-6" />
                 <p className="text-center text-xs">{t('documents.file_tree_view.menu.rename')}</p>
               </div>
