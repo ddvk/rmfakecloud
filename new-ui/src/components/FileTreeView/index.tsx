@@ -164,6 +164,7 @@ function FileMenu(params: FileMenuProps) {
                 className="basis-1/4 cursor-pointer p-4 hover:text-neutral-200"
                 onClick={() => {
                   const { onDocEditing } = params
+
                   onDocEditing && doc && onDocEditing(doc)
                 }}
               >
