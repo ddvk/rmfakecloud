@@ -6,6 +6,8 @@ export interface User {
   integrations?: string[]
 }
 
+type HashDocMode = 'display' | 'editing'
+
 export interface HashDoc {
   id: string
   name: string
@@ -14,4 +16,7 @@ export interface HashDoc {
   extension?: string
   children?: HashDoc[]
   LastModified: string
+
+  preMode?: HashDocMode
+  mode?: HashDocMode
 }

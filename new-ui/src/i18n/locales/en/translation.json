@@ -17,7 +17,8 @@
     }
   },
   "notifications": {
-    "document_deleted": "Document deleted."
+    "document_deleted": "Document deleted.",
+    "document_renamed": "Document renamed."
   },
   "nav": {
     "documents": "Documents",
@@ -85,6 +86,14 @@
         "rename": "Rename",
         "remove": "Remove"
       }
+    },
+    "rename_form": {
+      "name": {
+        "label": "New Doc Name",
+        "required": "New document name is required"
+      },
+      "submit-btn": "Save",
+      "cancel-btn": "Discard"
     }
   },
   "devices": {

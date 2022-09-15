@@ -17,7 +17,8 @@
     }
   },
   "notifications": {
-    "document_deleted": "文档已删除"
+    "document_deleted": "文档已删除",
+    "document_renamed": "文档已重命名"
   },
   "nav": {
     "documents": "文档",
@@ -85,6 +86,14 @@
         "rename": "重命名",
         "remove": "删除"
       }
+    },
+    "rename_form": {
+      "name": {
+        "label": "新文件名",
+        "required": "缺少新文件名"
+      },
+      "submit-btn": "保存",
+      "cancel-btn": "取消"
     }
   },
   "devices": {
