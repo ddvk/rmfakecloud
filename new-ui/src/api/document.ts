@@ -41,3 +41,7 @@ export function uploadDocument<T extends UploadedFile>(
 export function deleteDocument(id: string): Promise<AxiosResponse> {
   return requests.delete(`/ui/api/documents/${id}`)
 }
+
+export function renameDocument(id: string, name: string): Promise<AxiosResponse> {
+  return requests.put(`/ui/api/documents/${id}`, { name })
+}
