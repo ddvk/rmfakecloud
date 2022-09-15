@@ -265,7 +265,7 @@ function FileMenu(params: FileMenuProps) {
       />
       <Transition
         as="div"
-        className="fixed inset-x-0 bottom-0 z-10"
+        className="sticky w-full bottom-0 z-10"
         enter="transition-translate-y duration-300"
         enterFrom="translate-y-full"
         enterTo="translate-y-0"
@@ -274,8 +274,8 @@ function FileMenu(params: FileMenuProps) {
         leaveTo="translate-y-full"
         show={new Boolean(doc).valueOf()}
       >
-        <div className="mx-auto max-w-4xl border-t border-slate-100/20 md:border-none">
-          <div className="rounded bg-slate-900 md:mx-4 md:border-x md:border-t md:border-slate-100/20">
+        <div className="-mx-4 md:mx-auto max-w-4xl border-t border-slate-100/20 md:border-none">
+          <div className="rounded bg-slate-900 md:border-x md:border-t md:border-slate-100/20">
             <div className="flex justify-between md:justify-around">
               <div className="basis-1/4 cursor-pointer p-4 hover:text-neutral-200">
                 <SaveIcon className="mx-auto mb-1 h-6 w-6" />
