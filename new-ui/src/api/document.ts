@@ -45,3 +45,10 @@ export function deleteDocument(id: string): Promise<AxiosResponse> {
 export function renameDocument(id: string, name: string): Promise<AxiosResponse> {
   return requests.put(`/ui/api/documents/${id}`, { name })
 }
+
+export function exportDocument(id: string): Promise<AxiosResponse> {
+  return requests.get(`/ui/api/documents/${id}`, {
+    responseType: 'blob',
+    timeout: 1000 * 60 * 10 /* 10mins */
+  })
+}
