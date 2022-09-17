@@ -12,6 +12,7 @@ import (
 func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	router.StaticFS(app.prefix, app)
 	router.StaticFS("/images", app.imagesFS)
+	router.StaticFS("/lib", app.libFS)
 
 	// hack for index.html
 	router.NoRoute(func(c *gin.Context) {

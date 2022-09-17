@@ -5,6 +5,7 @@ import { defineConfig } from 'vite'
 import { VitePluginFonts } from 'vite-plugin-fonts'
 import { createHtmlPlugin } from 'vite-plugin-html'
 import viteImagemin from 'vite-plugin-imagemin'
+import { viteStaticCopy } from 'vite-plugin-static-copy'
 
 import config from './config.js'
 import postcss from './postcss.config.js'
@@ -24,6 +25,18 @@ export default defineConfig({
   plugins: [
     react(),
     viteImagemin(imagemin),
+    viteStaticCopy({
+      targets: [
+        {
+          src: 'node_modules/pdfjs-dist/build/pdf.worker.min.js',
+          dest: 'lib/'
+        },
+        {
+          src: 'node_modules/pdfjs-dist/cmaps/',
+          dest: 'lib/'
+        }
+      ]
+    }),
     createHtmlPlugin({
       minify: true,
       entry: '/src/main.tsx'

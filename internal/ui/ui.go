@@ -45,6 +45,7 @@ type blobHandler interface {
 type ReactAppWrapper struct {
 	fs              http.FileSystem
 	imagesFS        http.FileSystem
+	libFS           http.FileSystem
 	prefix          string
 	cfg             *config.Config
 	userStorer      storage.UserStorer
@@ -77,9 +78,14 @@ func New(cfg *config.Config,
 	if err != nil {
 		panic("not embedded images?")
 	}
+	libSub, err := fs.Sub(webui.Assets, "dist/lib")
+	if err != nil {
+		panic("not embedded lib?")
+	}
 	staticWrapper := ReactAppWrapper{
 		fs:              http.FS(sub),
 		imagesFS:        http.FS(imagesSub),
+		libFS:           http.FS(libSub),
 		prefix:          "/assets",
 		cfg:             cfg,
 		userStorer:      userStorer,

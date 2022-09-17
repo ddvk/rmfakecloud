@@ -98,5 +98,10 @@
   },
   "devices": {
     "code-btn": "生成注册码"
+  },
+  "document_viewer": {
+    "pdf": {
+      "load_error": "PDF 文件加载失败"
+    }
   }
 }
