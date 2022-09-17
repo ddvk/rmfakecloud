@@ -2,7 +2,9 @@ package ui
 
 import (
 	"fmt"
+	"io"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/ddvk/rmfakecloud/internal/app/hub"
@@ -257,9 +259,16 @@ func (app *ReactAppWrapper) getDocument(c *gin.Context) {
 	var exportOption storage.ExportOption = 0
 
 	log.Info("exporting ", docid)
-	backend := app.getBackend(c)
 
-	reader, err := backend.Export(uid, docid, exportType, exportOption)
+	metadata, err := app.metadataStore.GetMetadata(uid, docid)
+
+	if err != nil {
+		badReq(c, err.Error())
+		return
+	}
+
+	backend := getBackend(c)
+	reader, err := backend.Export(uid, docid, "pdf", 0)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -267,7 +276,26 @@ func (app *ReactAppWrapper) getDocument(c *gin.Context) {
 	}
 
 	defer reader.Close()
-	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
+
+	// Create temp file and returns, this will fix content length missing bug
+	tmpFile, err := os.CreateTemp(os.TempDir(), "")
+	if err != nil {
+		log.Error(err)
+		c.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+	defer func() {
+		tmpFile.Close()
+		os.Remove(tmpFile.Name())
+	}()
+
+	if _, err = io.Copy(tmpFile, reader); err != nil {
+		log.Error(err)
+		c.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+
+	c.FileAttachment(tmpFile.Name(), metadata.VissibleName+".pdf")
 }
 
 func (app *ReactAppWrapper) getDocumentMetadata(c *gin.Context) {
@@ -276,6 +304,10 @@ func (app *ReactAppWrapper) getDocumentMetadata(c *gin.Context) {
 	metadata, err := app.metadataStore.GetMetadata(uid, docid)
 
 	if err != nil {
+		if os.IsNotExist(err) {
+			c.AbortWithStatus(http.StatusNotFound)
+			return
+		}
 		badReq(c, err.Error())
 		return
 	}

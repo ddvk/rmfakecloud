@@ -10,6 +10,10 @@ export interface UploadedFile {
   cancel: AbortController
 }
 
+export function getMetadata(id: string): Promise<AxiosResponse> {
+  return requests.get(`/ui/api/documents/${id}/metadata`)
+}
+
 export function uploadDocument<T extends UploadedFile>(
   file: T,
   onChange?: (f: UploadedFile) => void

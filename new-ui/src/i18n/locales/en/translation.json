@@ -98,5 +98,10 @@
   },
   "devices": {
     "code-btn": "Generate Code"
+  },
+  "document_viewer": {
+    "pdf": {
+      "load_error": "Failed to load PDF File"
+    }
   }
 }

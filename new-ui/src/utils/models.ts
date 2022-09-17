@@ -8,10 +8,12 @@ export interface User {
 
 type HashDocMode = 'display' | 'editing'
 
+type HashDocType = 'DocumentType' | 'CollectionType'
+
 export interface HashDoc {
   id: string
   name: string
-  type: 'DocumentType' | 'CollectionType'
+  type: HashDocType
   size: number
   extension?: string
   children?: HashDoc[]
@@ -19,4 +21,19 @@ export interface HashDoc {
 
   preMode?: HashDocMode
   mode?: HashDocMode
+}
+
+export interface HashDocMetadata {
+  ID: string
+  Type: HashDocType
+  VissibleName: string
+  Version?: number
+  Message?: string
+  Success?: boolean
+  BlobURLGet?: string
+  BlobURLGetExpires?: string
+  ModifiedClient: string
+  CurrentPage?: number
+  Bookmarked?: boolean
+  Parent?: string
 }

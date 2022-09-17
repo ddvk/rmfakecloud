@@ -15,6 +15,7 @@ import { PulseLoader } from 'react-spinners'
 import * as Yup from 'yup'
 import { Formik, Form, Field, ErrorMessage } from 'formik'
 import fileDownload from 'js-file-download'
+import { Link } from 'react-router-dom'
 
 import { EpubIcon, PDFIcon } from '../../utils/icons'
 import { listDocuments } from '../../api'
@@ -321,10 +322,16 @@ function FileMenu(params: FileMenuProps) {
                 )}
                 <p className="text-center text-xs">{t('documents.file_tree_view.menu.download')}</p>
               </div>
-              <div className="basis-1/4 cursor-pointer p-4 hover:text-neutral-200">
-                <EyeIcon className="mx-auto mb-1 h-6 w-6" />
-                <p className="text-center text-xs">{t('documents.file_tree_view.menu.view')}</p>
-              </div>
+              <Link
+                className="basis-1/4 p-4 "
+                target="_blank"
+                to={`/documents/${doc?.id}/viewer`}
+              >
+                <div className="hover:text-neutral-200">
+                  <EyeIcon className="mx-auto mb-1 h-6 w-6" />
+                  <p className="text-center text-xs">{t('documents.file_tree_view.menu.view')}</p>
+                </div>
+              </Link>
               <div
                 className="basis-1/4 cursor-pointer p-4 hover:text-neutral-200"
                 onClick={() => {

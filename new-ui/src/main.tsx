@@ -17,6 +17,7 @@ import Logout from './components/Logout'
 import NotFound from './components/404'
 import ResetPassword from './components/ResetPassword'
 import Devices from './components/Devices'
+import DocumentViewer from './components/DocumentViewer'
 
 createRoot(document.getElementById('root') as Element).render(
   <React.StrictMode>
@@ -41,6 +42,10 @@ createRoot(document.getElementById('root') as Element).render(
             />
           </Route>
           <Route element={<Fullscreen />}>
+            <Route
+              element={<DocumentViewer />}
+              path="/documents/:docId/viewer"
+            />
             <Route
               element={<Login />}
               path="/login"
