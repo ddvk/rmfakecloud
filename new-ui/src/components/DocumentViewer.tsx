@@ -14,17 +14,23 @@ import useWindowDimensions from '../utils/hooks'
 import { HashDocMetadata } from '../utils/models'
 import { getMetadata } from '../api/document'
 
+interface PageInfo {
+  current?: number
+  totalPageNum?: number
+}
+
 export default function DocumentViewer() {
   const { docId } = useParams()
   const { t } = useTranslation()
   const [metadata, setMetadata] = useState<HashDocMetadata | null>(null)
   const [isLoadingDocument, setIsLoadingDocument] = useState(true)
   const [isDocNotFound, setIsDocNotFound] = useState(false)
-  const [numPages, setNumPages] = useState<number | null>(null)
   const [loadingProgress, setLoadingProgress] = useState(0)
   const [pageScale, setPageScale] = useState(1)
   const [pageWidth, setPageWidth] = useState<number | null>(null)
   const { width: windowWidth } = useWindowDimensions()
+  const [pageInfo, setPageInfo] = useState<PageInfo>({})
+  const { current, totalPageNum } = pageInfo
 
   useEffect(() => {
     if (!pageWidth) {
@@ -69,6 +75,30 @@ export default function DocumentViewer() {
       })
   }, [docId])
 
+  useEffect(() => {
+    function handleScroll() {
+      const docHeight = document.body.offsetHeight
+      const posHeight = window.innerHeight + window.scrollY
+      const { current, totalPageNum } = pageInfo
+
+      // scroll to bottom
+      if (posHeight >= docHeight - 50 && current && totalPageNum) {
+        if (current < totalPageNum) {
+          setPageInfo({
+            current: current + 1,
+            totalPageNum
+          })
+
+          return
+        }
+      }
+    }
+
+    window.addEventListener('scroll', handleScroll)
+
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [pageInfo])
+
   return isDocNotFound ? (
     <Navigate
       replace={true}
@@ -95,20 +125,28 @@ export default function DocumentViewer() {
         }}
         onLoadSuccess={(pdf) => {
           setIsLoadingDocument(false)
-          setNumPages(pdf.numPages)
+          setPageInfo({
+            totalPageNum: pdf.numPages,
+            current: pdf.numPages > 0 ? 1 : 0
+          })
         }}
       >
-        {Array.from(new Array(numPages), (_el, index) => (
-          <Page
-            key={`page_${index + 1}`}
-            className="my-4 block"
-            pageNumber={index + 1}
-            scale={pageScale}
-            onLoadSuccess={(page) => {
-              setPageWidth(page.width)
-            }}
-          />
-        ))}
+        {Array.from(new Array(totalPageNum), (_el, index) => {
+          const page = index + 1
+
+          if (current && page - current <= 2)
+            return (
+              <Page
+                key={`page_${index + 1}`}
+                className="my-2 block"
+                pageNumber={index + 1}
+                scale={pageScale}
+                onLoadSuccess={(page) => {
+                  setPageWidth(page.width / pageScale)
+                }}
+              />
+            )
+        })}
       </Document>
     </>
   )
