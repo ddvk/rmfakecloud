@@ -69,6 +69,7 @@
     }
   },
   "documents": {
+    "empty": "没有文档",
     "uploader": {
       "title": "拖拽或点击上传文件",
       "subtitle": "(只支持上传 epub 或者 PDF 格式)",
