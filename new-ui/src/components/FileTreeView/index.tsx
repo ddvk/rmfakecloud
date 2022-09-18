@@ -14,12 +14,11 @@ import { toast } from 'react-toastify'
 import { PulseLoader } from 'react-spinners'
 import * as Yup from 'yup'
 import { Formik, Form, Field, ErrorMessage } from 'formik'
-import fileDownload from 'js-file-download'
 import { Link } from 'react-router-dom'
 
 import { EpubIcon, PDFIcon } from '../../utils/icons'
 import { listDocuments } from '../../api'
-import { deleteDocument, exportDocument, renameDocument } from '../../api/document'
+import { deleteDocument, renameDocument } from '../../api/document'
 import { ConfirmationDialog } from '../Dialog'
 import { HashDoc } from '../../utils/models'
 import { inputClassName } from '../../utils/form'
@@ -230,7 +229,6 @@ function FileMenu(params: FileMenuProps) {
   const { t } = useTranslation()
   const [isOpenDialog, setIsOpenDialog] = useState(false)
   const [dialogIsLoading, setDialogIsLoading] = useState(false)
-  const [isDownloading, setIsDownloading] = useState(false)
 
   return (
     <>
@@ -280,48 +278,18 @@ function FileMenu(params: FileMenuProps) {
         <div className="-mx-4 max-w-4xl border-t border-slate-100/20 md:mx-auto md:border-none">
           <div className="rounded bg-slate-900 md:border-x md:border-t md:border-slate-100/20">
             <div className="flex justify-between md:justify-around">
-              <div
-                className="basis-1/4 cursor-pointer p-4 hover:text-neutral-200"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  e.preventDefault()
-
-                  if (!doc) {
-                    return
-                  }
-
-                  if (isDownloading) {
-                    return
-                  }
-
-                  setIsDownloading(true)
-
-                  exportDocument(doc.id)
-                    .then((response) => {
-                      fileDownload(response.data, `${doc.name}.pdf`)
-
-                      return 'ok'
-                    })
-                    .catch((err) => {
-                      throw err
-                    })
-                    .finally(() => {
-                      setIsDownloading(false)
-                    })
-                }}
+              <Link
+                className="basis-1/4 p-4 "
+                target="_blank"
+                to={`/ui/api/documents/${doc?.id}/`}
               >
-                {isDownloading ? (
-                  <PulseLoader
-                    color="#e5e5e5"
-                    cssOverride={{ margin: '0 auto', width: 'fit-content', display: 'block' }}
-                    size={6}
-                    speedMultiplier={0.8}
-                  />
-                ) : (
+                <div className="hover:text-neutral-200">
                   <SaveIcon className="mx-auto mb-1 h-6 w-6" />
-                )}
-                <p className="text-center text-xs">{t('documents.file_tree_view.menu.download')}</p>
-              </div>
+                  <p className="text-center text-xs">
+                    {t('documents.file_tree_view.menu.download')}
+                  </p>
+                </div>
+              </Link>
               <Link
                 className="basis-1/4 p-4 "
                 target="_blank"
