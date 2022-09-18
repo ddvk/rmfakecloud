@@ -69,6 +69,7 @@
     }
   },
   "documents": {
+    "empty": "No Doucment",
     "uploader": {
       "title": "Drop files here, or click to select files",
       "subtitle": "(Only epub and pdf files will be accepted)",
