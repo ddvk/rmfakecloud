@@ -416,15 +416,35 @@ export default function FileTreeView() {
       })
   }, [t])
 
-  const children = docs.map((doc) => {
+  const children = docs.map((doc, i) => {
+    function isActivedOrNext(): boolean {
+      if (!selected) {
+        return false
+      }
+
+      if (i > 0) {
+        const prev = docs[i - 1]
+
+        if (prev.id === selected.id) {
+          return true
+        }
+      }
+
+      if (doc.id === selected.id) {
+        return true
+      }
+
+      return false
+    }
+
     return (
       <TreeElement
         key={doc.id || uuidv4()}
-        className={
+        className={`${
           selected && selected.id === doc.id
             ? '-mx-4 bg-slate-800 fill-neutral-200 px-4 text-neutral-200'
             : 'fill-neutral-400'
-        }
+        } ${isActivedOrNext() ? 'mt-px' : 'border-t border-slate-800'}`}
         doc={doc}
         onClickDoc={(doc) => {
           if (doc.mode === 'editing') {
@@ -516,7 +536,7 @@ export default function FileTreeView() {
         items={breakcrumbItems}
         onClickBreadcrumb={(_item, index) => popd(index)}
       />
-      <div className="divide-y divide-slate-800">{children}</div>
+      <div>{children}</div>
       <FileMenu
         doc={selected}
         onDocDeleted={onDocDeleted}
