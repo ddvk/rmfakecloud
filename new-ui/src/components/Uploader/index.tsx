@@ -13,7 +13,11 @@ interface UploadState {
   mode: 'progress_bar' | 'file_selector' | 'show_success'
 }
 
-export default function Uploader() {
+export default function Uploader({
+  onFilesUploaded
+}: {
+  onFilesUploaded?: (files: UploadedFile[]) => void
+}) {
   const { t } = useTranslation()
   const transfer = new Transfer(1, true)
   const [uploadState, setUploadState] = useState<UploadState>({
@@ -41,6 +45,8 @@ export default function Uploader() {
       current: file,
       mode: uploadSuccess ? 'show_success' : files.length > 0 ? 'progress_bar' : 'file_selector'
     })
+
+    uploadSuccess && onFilesUploaded && onFilesUploaded(files)
   }
 
   transfer.onDuplicatedFiles = (files) => {

@@ -368,11 +368,12 @@ function Breadcrumbs(params: {
   )
 }
 
-export default function FileTreeView() {
+export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
   const { t } = useTranslation()
   const [docs, setDocs] = useState<HashDoc[]>([])
   const [selected, setSelected] = useState<HashDoc | null>(null)
   const [breakcrumbItems, setBreakcrumbItems] = useState<BreakcrumbItem[]>([])
+  const [isLoading, setIsLoading] = useState(false)
 
   function pushd(dir: HashDoc) {
     if (dir.type === 'DocumentType' || undefined === dir.children) {
@@ -402,6 +403,8 @@ export default function FileTreeView() {
   }
 
   useEffect(() => {
+    setIsLoading(true)
+
     listDocuments()
       .then((response) => {
         const data = response.data as { Entries: HashDoc[]; Trash: HashDoc[] }
@@ -414,7 +417,10 @@ export default function FileTreeView() {
       .catch((err) => {
         throw err
       })
-  }, [t])
+      .finally(() => {
+        setIsLoading(false)
+      })
+  }, [t, reloadCnt])
 
   const children = docs.map((doc, i) => {
     function isActivedOrNext(): boolean {
@@ -536,7 +542,18 @@ export default function FileTreeView() {
         items={breakcrumbItems}
         onClickBreadcrumb={(_item, index) => popd(index)}
       />
-      <div>{children}</div>
+      {isLoading ? (
+        <div className="relative mt-24 text-center">
+          <PulseLoader
+            color="#e5e5e5"
+            cssOverride={{ lineHeight: 0, padding: '6px 0' }}
+            size={8}
+            speedMultiplier={0.8}
+          />
+        </div>
+      ) : (
+        <div>{children}</div>
+      )}
       <FileMenu
         doc={selected}
         onDocDeleted={onDocDeleted}
