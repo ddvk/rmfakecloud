@@ -157,6 +157,14 @@ export default function DocumentViewer() {
                 className="animate-fadein my-4"
                 pageNumber={index + 1}
                 scale={pageScale}
+                onLoadSuccess={({ originalWidth }) => {
+                  setPageInfo((prev) => {
+                    return {
+                      ...prev,
+                      originalWidth
+                    }
+                  })
+                }}
               />
             )}
             style={{
