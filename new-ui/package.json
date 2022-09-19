@@ -43,7 +43,7 @@
     "react-router-dom": "^6.3.0",
     "react-spinners": "^0.13.4",
     "react-toastify": "^9.0.8",
-    "react-virtualized": "^9.22.3",
+    "react-virtuoso": "^2.19.0",
     "uuid": "^9.0.0",
     "yup": "^0.32.11"
   },
