@@ -6,6 +6,7 @@ import { Document, Page, pdfjs } from 'react-pdf'
 import { PulseLoader } from 'react-spinners'
 import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
+import { List } from 'react-virtualized'
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css'
 import 'react-pdf/dist/esm/Page/TextLayer.css'
 
@@ -15,34 +16,52 @@ import { HashDocMetadata } from '../utils/models'
 import { getMetadata } from '../api/document'
 
 interface PageInfo {
-  current?: number
   totalPageNum?: number
+  originalWidth?: number
+  originalHeight?: number
+  scale: number
+  isLoadingDocument?: boolean
 }
 
 export default function DocumentViewer() {
   const { docId } = useParams()
   const { t } = useTranslation()
   const [metadata, setMetadata] = useState<HashDocMetadata | null>(null)
-  const [isLoadingDocument, setIsLoadingDocument] = useState(true)
   const [isDocNotFound, setIsDocNotFound] = useState(false)
   const [loadingProgress, setLoadingProgress] = useState(0)
-  const [pageScale, setPageScale] = useState(1)
-  const [pageWidth, setPageWidth] = useState<number | null>(null)
   const { width: windowWidth } = useWindowDimensions()
-  const [pageInfo, setPageInfo] = useState<PageInfo>({})
-  const { current, totalPageNum } = pageInfo
+  const [pageInfo, setPageInfo] = useState<PageInfo>({ scale: 1, isLoadingDocument: true })
+  const {
+    totalPageNum,
+    scale: pageScale,
+    originalWidth: pageWidth,
+    originalHeight: pageHeight,
+    isLoadingDocument
+  } = pageInfo
 
   useEffect(() => {
     if (!pageWidth) {
       return
     }
     if (windowWidth > pageWidth) {
-      setPageScale(1)
+      setPageInfo((prev) => {
+        return {
+          ...prev,
+          scale: 1,
+          isLoadingDocument: false
+        }
+      })
 
       return
     }
 
-    setPageScale((windowWidth - 32) / pageWidth)
+    setPageInfo((prev) => {
+      return {
+        ...prev,
+        scale: (windowWidth - 32) / pageWidth,
+        isLoadingDocument: false
+      }
+    })
   }, [windowWidth, pageWidth])
 
   pdfjs.GlobalWorkerOptions.workerSrc = '/lib/pdf.worker.min.js'
@@ -75,30 +94,6 @@ export default function DocumentViewer() {
       })
   }, [docId])
 
-  useEffect(() => {
-    function handleScroll() {
-      const docHeight = document.body.offsetHeight
-      const posHeight = window.innerHeight + window.scrollY
-      const { current, totalPageNum } = pageInfo
-
-      // scroll to bottom
-      if (posHeight >= docHeight - 50 && current && totalPageNum) {
-        if (current < totalPageNum) {
-          setPageInfo({
-            current: current + 1,
-            totalPageNum
-          })
-
-          return
-        }
-      }
-    }
-
-    window.addEventListener('scroll', handleScroll)
-
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [pageInfo])
-
   return isDocNotFound ? (
     <Navigate
       replace={true}
@@ -124,29 +119,54 @@ export default function DocumentViewer() {
           setLoadingProgress(Math.floor((loaded / total) * 100))
         }}
         onLoadSuccess={(pdf) => {
-          setIsLoadingDocument(false)
-          setPageInfo({
-            totalPageNum: pdf.numPages,
-            current: pdf.numPages > 0 ? 1 : 0
-          })
+          pdf
+            .getPage(1)
+            .then((page) => {
+              const [x1, y1, x2, y2] = page.view
+
+              setPageInfo({
+                totalPageNum: pdf.numPages,
+                originalHeight: y2 - y1,
+                originalWidth: x2 - x1,
+                scale: (() => {
+                  const pageWidth = x2 - x1
+
+                  if (windowWidth > pageWidth) {
+                    return 1
+                  }
+
+                  return (windowWidth - 32) / pageWidth
+                })()
+              })
+
+              return true
+            })
+            .catch((err) => {
+              // eslint-disable-next-line no-console
+              console.error(err)
+            })
         }}
       >
-        {Array.from(new Array(totalPageNum), (_el, index) => {
-          const page = index + 1
-
-          if (current && page - current <= 2)
-            return (
-              <Page
-                key={`page_${index + 1}`}
-                className="my-2 block"
-                pageNumber={index + 1}
-                scale={pageScale}
-                onLoadSuccess={(page) => {
-                  setPageWidth(page.width / pageScale)
-                }}
-              />
-            )
-        })}
+        {!isLoadingDocument && pageHeight && totalPageNum && pageWidth && (
+          <List
+            height={pageHeight * pageScale * totalPageNum + 16 * (totalPageNum + 1)}
+            rowCount={totalPageNum}
+            rowHeight={pageHeight * pageScale + 16}
+            rowRenderer={({ key, index, style }) => (
+              <div
+                key={key}
+                className="my-4"
+                style={style}
+              >
+                <Page
+                  pageNumber={index + 1}
+                  scale={pageScale}
+                />
+              </div>
+            )}
+            width={pageWidth * pageScale}
+          />
+        )}
       </Document>
     </>
   )

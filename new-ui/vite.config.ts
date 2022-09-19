@@ -1,5 +1,7 @@
 /** @type {import('vite').UserConfig} */
 
+import * as path from 'path'
+
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { VitePluginFonts } from 'vite-plugin-fonts'
@@ -67,5 +69,21 @@ export default defineConfig({
       { find: '@/Components', replacement: '/src/components' },
       { find: '@/API', replacement: '/src/api' }
     ]
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      plugins: [
+        {
+          name: 'resolve-fixup',
+          setup(build) {
+            build.onResolve({ filter: /react-virtualized/ }, async () => {
+              return {
+                path: path.resolve('./node_modules/react-virtualized/dist/umd/react-virtualized.js')
+              }
+            })
+          }
+        }
+      ]
+    }
   }
 })
