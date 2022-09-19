@@ -6,7 +6,7 @@ import { Document, Page, pdfjs } from 'react-pdf'
 import { PulseLoader } from 'react-spinners'
 import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
-import { List } from 'react-virtualized'
+import { Virtuoso } from 'react-virtuoso'
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css'
 import 'react-pdf/dist/esm/Page/TextLayer.css'
 
@@ -148,23 +148,23 @@ export default function DocumentViewer() {
         }}
       >
         {!isLoadingDocument && pageHeight && totalPageNum && pageWidth && (
-          <List
-            height={pageHeight * pageScale * totalPageNum + 16 * (totalPageNum + 1)}
-            rowCount={totalPageNum}
-            rowHeight={pageHeight * pageScale + 16}
-            rowRenderer={({ key, index, style }) => (
-              <div
-                key={key}
-                className="my-4"
-                style={style}
-              >
-                <Page
-                  pageNumber={index + 1}
-                  scale={pageScale}
-                />
-              </div>
+          <Virtuoso
+            fixedItemHeight={pageHeight * pageScale + 16}
+            itemContent={(index) => (
+              <Page
+                key={`page_${index + 1}`}
+                // eslint-disable-next-line tailwindcss/no-custom-classname
+                className="animate-fadein my-4"
+                pageNumber={index + 1}
+                scale={pageScale}
+              />
             )}
-            width={pageWidth * pageScale}
+            style={{
+              height: pageHeight * pageScale * totalPageNum + 16 * (totalPageNum + 1),
+              width: pageWidth * pageScale,
+              overflowY: 'hidden'
+            }}
+            totalCount={totalPageNum}
           />
         )}
       </Document>
