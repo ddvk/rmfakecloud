@@ -629,5 +629,10 @@ func (app *ReactAppWrapper) createFolder(c *gin.Context) {
 		Name:    doc.Name,
 	}, hub.DocAddedEvent)
 
-	c.JSON(http.StatusOK, doc)
+	c.JSON(http.StatusOK, gin.H{
+		"id":      doc.ID,
+		"name":    doc.Name,
+		"type":    doc.Type,
+		"version": doc.Version,
+	})
 }

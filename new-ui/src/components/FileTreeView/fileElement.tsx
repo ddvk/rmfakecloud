@@ -1,4 +1,4 @@
-/* eslint-disable tailwindcss/no-custom-classname */
+/* eslint-disable tailwindcss/no-custom-classname, @typescript-eslint/no-unused-vars */
 
 import { DocumentTextIcon } from '@heroicons/react/outline'
 import { ErrorMessage, Field, Form, Formik } from 'formik'
@@ -15,7 +15,16 @@ import { EpubIcon, PDFIcon } from '../../utils/icons'
 import { HashDocElementProp } from './props'
 
 export default function FileElement(params: HashDocElementProp) {
-  const { doc, onClickDoc, onDocEditingDiscard, onDocRenamed, className, ...remainParams } = params
+  const {
+    doc,
+    onClickDoc,
+    onDocEditingDiscard,
+    onDocRenamed,
+    onFolderCreated: _onFolderCreated,
+    onFolderCreationDiscarded: _onFolderCreationDiscarded,
+    className,
+    ...remainParams
+  } = params
   const [unmountForm, setUnmountForm] = useState(false)
   const { preMode } = doc
   let { mode } = doc

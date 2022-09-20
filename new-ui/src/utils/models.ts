@@ -6,7 +6,7 @@ export interface User {
   integrations?: string[]
 }
 
-type HashDocMode = 'display' | 'editing'
+type HashDocMode = 'display' | 'editing' | 'creating'
 
 type HashDocType = 'DocumentType' | 'CollectionType'
 

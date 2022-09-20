@@ -6,8 +6,8 @@ module.exports = {
     extend: {
       keyframes: {
         'roll-down': {
-          '0%': { opacity: 0, 'max-height': '0' },
-          '100%': { opacity: 1, 'max-height': '100vh' }
+          '0%': { 'max-height': '0' },
+          '100%': { 'max-height': '100vh' }
         },
         fadein: {
           from: { opacity: 0 },

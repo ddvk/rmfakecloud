@@ -18,7 +18,8 @@
   },
   "notifications": {
     "document_deleted": "Document deleted.",
-    "document_renamed": "Document renamed."
+    "document_renamed": "Document renamed.",
+    "folder_created": "New folder created."
   },
   "nav": {
     "documents": "Documents",
@@ -95,6 +96,17 @@
       },
       "submit-btn": "Save",
       "cancel-btn": "Discard"
+    },
+    "new_folder_form": {
+      "name": {
+        "label": "Folder name",
+        "required": "Folder name is required"
+      },
+      "submit-btn": "Save",
+      "cancel-btn": "Discard"
+    },
+    "breadcrumbs": {
+      "new_folder": "New Folder"
     }
   },
   "devices": {

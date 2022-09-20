@@ -18,7 +18,8 @@
   },
   "notifications": {
     "document_deleted": "文档已删除",
-    "document_renamed": "文档已重命名"
+    "document_renamed": "文档已重命名",
+    "folder_created": "文件夹已创建"
   },
   "nav": {
     "documents": "文档",
@@ -95,6 +96,17 @@
       },
       "submit-btn": "保存",
       "cancel-btn": "取消"
+    },
+    "new_folder_form": {
+      "name": {
+        "label": "文件夹名称",
+        "required": "缺少文件夹名称"
+      },
+      "submit-btn": "保存",
+      "cancel-btn": "取消"
+    },
+    "breadcrumbs": {
+      "new_folder": "创建新文件夹"
     }
   },
   "devices": {
