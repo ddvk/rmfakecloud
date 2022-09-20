@@ -56,3 +56,7 @@ export function exportDocument(id: string): Promise<AxiosResponse> {
     timeout: 1000 * 60 * 10 /* 10mins */
   })
 }
+
+export function createFolder(name: string): Promise<AxiosResponse> {
+  return requests.post('/ui/api/folders', { name })
+}

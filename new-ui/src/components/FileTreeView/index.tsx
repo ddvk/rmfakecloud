@@ -96,6 +96,7 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
             : 'fill-neutral-400'
         } ${isActivedOrNext() ? 'mt-px' : 'border-t border-slate-800'}`}
         doc={doc}
+        index={i}
         onClickDoc={(doc) => {
           if (doc.mode === 'editing') {
             return
@@ -142,6 +143,26 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
 
           setDocs(newDocs)
         }}
+        onFolderCreated={(doc, i) => {
+          setDocs((prevDocs) => {
+            return prevDocs.map((entity, index) => {
+              if (index === i) {
+                return {
+                  ...doc,
+                  preMode: 'creating',
+                  mode: 'display'
+                }
+              }
+
+              return entity
+            })
+          })
+        }}
+        onFolderCreationDiscarded={(_doc, i) => {
+          setDocs((prevDocs) => {
+            return prevDocs.filter((_hashDoc, index) => index !== i)
+          })
+        }}
       />
     )
   })
@@ -166,7 +187,9 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
 
   const onDocEditing = (doc: HashDoc) => {
     const newDocs = docs.map((entity) => {
-      entity.mode = 'display'
+      if (entity.mode !== 'creating') {
+        entity.mode = 'display'
+      }
       if (doc.id === entity.id) {
         entity.preMode = entity.mode
         entity.mode = 'editing'
@@ -185,6 +208,20 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
         className="sticky top-0 mt-8 border-b border-slate-100/10 bg-slate-900 py-4"
         items={breakcrumbItems}
         onClickBreadcrumb={(_item, index) => popd(index)}
+        onClickNewFolder={() => {
+          setDocs((prevDocs) => {
+            const newFolder: HashDoc = {
+              id: '',
+              name: '',
+              type: 'CollectionType',
+              size: 0,
+              LastModified: '',
+              mode: 'creating'
+            }
+
+            return [newFolder, ...prevDocs]
+          })
+        }}
       />
       {isLoading ? (
         <div className="relative mt-24 text-center">

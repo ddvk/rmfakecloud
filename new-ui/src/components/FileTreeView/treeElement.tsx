@@ -14,7 +14,7 @@ export default function TreeElement(params: HashDocElementProp) {
     )
   }
 
-  if (undefined !== doc.children) {
+  if (undefined !== doc.children || doc.type === 'CollectionType') {
     return (
       <DirElement
         doc={doc}
