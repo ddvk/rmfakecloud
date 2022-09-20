@@ -25,6 +25,7 @@ type DocumentStorer interface {
 
 	GetStorageURL(uid, docid string) (string, time.Time, error)
 	CreateDocument(uid, name, parent string, stream io.Reader) (doc *Document, err error)
+	CreateFolder(uid, name string) (*Document, error)
 }
 
 // BlobStorage stuff for sync15

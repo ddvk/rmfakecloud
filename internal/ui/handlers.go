@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/ddvk/rmfakecloud/internal/app/hub"
@@ -593,4 +594,40 @@ func (app *ReactAppWrapper) profile(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, vmUser)
+}
+
+func (app *ReactAppWrapper) createFolder(c *gin.Context) {
+	var req viewmodel.NewFolder
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Error(err)
+		badReq(c, err.Error())
+		return
+	}
+	req.Name = strings.TrimSpace(req.Name)
+
+	if len(req.Name) == 0 {
+		log.Error("folder name required")
+		badReq(c, "folder name required")
+		return
+	}
+
+	uid := c.GetString(userIDContextKey)
+
+	doc, err := app.documentHandler.CreateFolder(uid, req.Name)
+
+	if err != nil {
+		log.Error(err)
+		c.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+
+	app.h.Notify(uid, "web", hub.DocumentNotification{
+		ID:      doc.ID,
+		Type:    doc.Type,
+		Version: doc.Version,
+		Parent:  doc.Parent,
+		Name:    doc.Name,
+	}, hub.DocAddedEvent)
+
+	c.JSON(http.StatusOK, doc)
 }
