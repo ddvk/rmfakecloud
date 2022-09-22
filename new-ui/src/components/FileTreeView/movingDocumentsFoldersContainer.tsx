@@ -48,6 +48,10 @@ export default function MovingDocumentsFoldersContainer(
   }, [show, isAtLeastMiddleScreen, isScrollable])
 
   useEffect(() => {
+    if (!show) {
+      return
+    }
+
     setIsLoading(true)
 
     listDocuments()
@@ -70,7 +74,7 @@ export default function MovingDocumentsFoldersContainer(
       .finally(() => {
         setIsLoading(false)
       })
-  }, [])
+  }, [show])
 
   const children = folders.map((folder, i) => {
     function isActivedOrNext(): boolean {
