@@ -7,13 +7,13 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'react-toastify'
 import * as Yup from 'yup'
 import { PulseLoader } from 'react-spinners'
-import { Transition } from '@headlessui/react'
 
 import { renameDocument } from '../../api/document'
 import { inputClassName } from '../../utils/form'
 import { EpubIcon, PDFIcon } from '../../utils/icons'
 
 import { HashDocElementProp } from './props'
+import { Transition } from '@headlessui/react'
 
 export default function FileElement(params: HashDocElementProp) {
   const {
@@ -179,13 +179,13 @@ export default function FileElement(params: HashDocElementProp) {
       >
         {innerDom}
         <Transition
-          enter="transition-[translate margin] duration-150 ease-in"
-          enterFrom="translate-x-full ml-[-28px] md:ml-[-36px]"
-          enterTo="translate-x-0 ml-0"
-          leave="transition-[translate marigin] transform duration-150 ease-out"
-          leaveFrom="translate-x-0 ml-0"
-          leaveTo="translate-x-full ml-[-28px] md:ml-[-36px]"
           show={multiple}
+          enter="transition-translate transform duration-300 ease-in"
+          enterFrom="translate-x-[36px]"
+          enterTo="translate-x-0"
+          leave="transition-translate transform duration-300 ease-out"
+          leaveFrom="translate-x-0"
+          leaveTo="translate-x-[36px]"
         >
           <CheckBox checked={checked} />{' '}
         </Transition>
@@ -200,23 +200,13 @@ function CheckBox(props: { checked: boolean }) {
 
   return (
     <div className="ml-2 shrink-0 md:ml-4">
-      <div
-        className={`h-5 w-5 rounded-full transition-colors duration-150 ${
-          checked ? 'bg-sky-700 p-1 text-neutral-200' : 'border-2 border-neutral-400'
-        }`}
-      >
-        <Transition
-          enter="transition-opacity duration-150 ease-in"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="transition-opacity duration-150 ease-out"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-          show={checked}
-        >
+      {checked ? (
+        <div className="h-5 w-5 rounded-full bg-sky-700 p-1 text-neutral-200">
           <CheckIcon className="relative top-[1px] stroke-2" />
-        </Transition>
-      </div>
+        </div>
+      ) : (
+        <div className="h-5 w-5 rounded-full border-2 border-neutral-400" />
+      )}
     </div>
   )
 }
