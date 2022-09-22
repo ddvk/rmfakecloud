@@ -151,13 +151,13 @@ export default function MovingDocumentsFoldersContainer(
         leaveTo="translate-y-[100%]"
       >
         <div className="mx-auto h-full max-w-4xl">
-          <div className="relative h-full rounded-t-3xl bg-slate-900 shadow-lg shadow-slate-900/50 md:mx-4">
-            <div className="h-full overflow-y-auto px-4">
+          <div className="relative h-full overflow-y-auto rounded-t-3xl bg-slate-900 shadow-lg shadow-slate-900/50 md:mx-4">
+            <div className="h-auto min-h-full px-4 pb-[80px]">
               {isLoading ? (
                 <Loader />
               ) : (
                 <>
-                  <div className="mt-4 flex items-center py-6 text-neutral-200">
+                  <div className="sticky top-0 mt-4 flex items-center bg-slate-900 py-6 text-neutral-200">
                     <button
                       className="mr-2 h-6 w-6 shrink-0 rounded-full bg-slate-100/10"
                       onClick={discardFn}
@@ -176,7 +176,7 @@ export default function MovingDocumentsFoldersContainer(
                 </>
               )}
             </div>
-            <div className="fixed inset-x-0 bottom-0 my-4 text-center backdrop-blur-sm">
+            <div className="fixed inset-x-0 bottom-0 py-4 text-center backdrop-blur-sm">
               <button
                 className="w-56 rounded-3xl bg-blue-700 py-3 font-bold text-neutral-200 hover:bg-blue-600 disabled:bg-blue-500/90"
                 disabled={isLoading}
