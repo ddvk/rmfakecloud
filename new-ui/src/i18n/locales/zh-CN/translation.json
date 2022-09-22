@@ -19,7 +19,8 @@
   "notifications": {
     "document_deleted": "文档已删除",
     "document_renamed": "文档已重命名",
-    "folder_created": "文件夹已创建"
+    "folder_created": "文件夹已创建",
+    "documents_moved": "已移动{{total}}份文档: 成功: {{succeeded}}份, 失败: {{failed}}份"
   },
   "nav": {
     "documents": "文档",
@@ -106,7 +107,16 @@
       "cancel-btn": "取消"
     },
     "breadcrumbs": {
-      "new_folder": "创建新文件夹"
+      "new_folder": "创建新文件夹",
+      "move_documents": "移动文档",
+      "move_documents_selected_tip": "已选择 {{count}} 项",
+      "move_documents_submit": "移动",
+      "move_documents_container": {
+        "submit": "移动到此处",
+        "title": "移动到 {{folder}}",
+        "root_folder": "根目录",
+        "moving": "正在移动"
+      }
     }
   },
   "devices": {

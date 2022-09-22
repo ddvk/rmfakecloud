@@ -1,8 +1,8 @@
 /* eslint-disable tailwindcss/no-custom-classname, @typescript-eslint/no-unused-vars */
 
-import { DocumentTextIcon } from '@heroicons/react/outline'
+import { DocumentTextIcon, CheckIcon } from '@heroicons/react/outline'
 import { ErrorMessage, Field, Form, Formik } from 'formik'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'react-toastify'
 import * as Yup from 'yup'
@@ -17,17 +17,27 @@ import { HashDocElementProp } from './props'
 export default function FileElement(params: HashDocElementProp) {
   const {
     doc,
+    index,
     onClickDoc,
     onDocEditingDiscard,
     onDocRenamed,
-    onFolderCreated: _onFolderCreated,
-    onFolderCreationDiscarded: _onFolderCreationDiscarded,
+    onFolderCreated,
+    onFolderCreationDiscarded,
+    onCheckBoxChanged,
+    multiple,
     className,
     ...remainParams
   } = params
   const [unmountForm, setUnmountForm] = useState(false)
+  const [checked, setChecked] = useState(false)
   const { preMode } = doc
   let { mode } = doc
+
+  useEffect(() => {
+    if (!multiple) {
+      setChecked(false)
+    }
+  }, [multiple])
 
   if (!mode) {
     mode = 'display'
@@ -142,7 +152,7 @@ export default function FileElement(params: HashDocElementProp) {
         ) : (
           <DocumentTextIcon className="top-[-1px] mr-2 h-6 w-6 shrink-0" />
         )}
-        <p className="max-w-[calc(100%-28px)] overflow-hidden text-ellipsis whitespace-nowrap leading-6">
+        <p className="max-w-[calc(100%-28px)] flex-1 overflow-hidden text-ellipsis whitespace-nowrap leading-6">
           {doc.name}
         </p>
       </>
@@ -152,17 +162,40 @@ export default function FileElement(params: HashDocElementProp) {
   return (
     <>
       <div
-        className={`flex cursor-pointer select-none py-6 ${
+        className={`flex cursor-pointer select-none items-center py-6 ${
           editingToDisplay ? 'animate-fadein' : ''
         } ${className || ''}`}
         {...remainParams}
         onClick={() => {
+          if (multiple) {
+            setChecked(!checked)
+            onCheckBoxChanged && onCheckBoxChanged({ doc, index, checked: !checked })
+
+            return
+          }
           onClickDoc && onClickDoc(doc)
         }}
       >
         {innerDom}
+        {multiple ? <CheckBox checked={checked} /> : <></>}
       </div>
       {editingToDisplay && !unmountForm ? formDom : <></>}
     </>
+  )
+}
+
+function CheckBox(props: { checked: boolean }) {
+  const { checked } = props
+
+  return (
+    <div className="ml-2 shrink-0 md:ml-4">
+      {checked ? (
+        <div className="h-5 w-5 rounded-full bg-sky-700 p-1 text-neutral-200">
+          <CheckIcon className="relative top-[1px] stroke-2" />
+        </div>
+      ) : (
+        <div className="h-5 w-5 rounded-full border-2 border-neutral-400" />
+      )}
+    </div>
   )
 }

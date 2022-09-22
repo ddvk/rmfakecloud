@@ -1,6 +1,8 @@
-import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
+import { DotsVerticalIcon, XIcon } from '@heroicons/react/solid'
+import { Menu, Transition } from '@headlessui/react'
+import { FolderAddIcon, CollectionIcon, ArrowsExpandIcon } from '@heroicons/react/outline'
 
 import { HashDoc } from '../../utils/models'
 
@@ -9,15 +11,39 @@ export interface BreakcrumbItem {
   docs: HashDoc[]
 }
 
-export default function Breadcrumbs(params: {
-  items: BreakcrumbItem[]
-  className?: string
-  onClickBreadcrumb?: (item: BreakcrumbItem, index: number) => void
-  onClickNewFolder?: () => void
-}) {
-  const { items, className, onClickBreadcrumb, onClickNewFolder } = params
+interface MovingDocumentsHeaderEventProps {
+  onDiscardMovingDocuments?: () => void
+  onMovingDocumentsSubmit?: () => void
+}
+
+export default function Breadcrumbs(
+  params: {
+    items: BreakcrumbItem[]
+    className?: string
+    isMovingDocuments?: boolean
+    checkedDocCount?: number
+    onClickBreadcrumb?: (item: BreakcrumbItem, index: number) => void
+    onClickNewFolder?: () => void
+    onClickMoveDocuments?: () => void
+  } & MovingDocumentsHeaderEventProps
+) {
+  const {
+    items,
+    className,
+    checkedDocCount,
+    isMovingDocuments,
+    onClickBreadcrumb,
+    onClickNewFolder,
+    onClickMoveDocuments,
+    onDiscardMovingDocuments: discardMovingDocumentsFn,
+    onMovingDocumentsSubmit
+  } = params
   const { t } = useTranslation()
   const [isShowCreateFolder, setIsShowCreateFolder] = useState(true)
+
+  const onDiscardMovingDocuments = () => {
+    discardMovingDocumentsFn && discardMovingDocumentsFn()
+  }
 
   useEffect(() => {
     setIsShowCreateFolder(items.length <= 1)
@@ -42,37 +68,110 @@ export default function Breadcrumbs(params: {
 
   return (
     <div className={className}>
-      <div className="flex">
-        <ul className="flex text-sm font-semibold text-sky-600">{innerDom}</ul>
-        <div className="ml-auto flex">
-          {isShowCreateFolder ? (
-            <Link
-              title={t('documents.breadcrumbs.new_folder')}
-              to="#"
-              onClick={(e) => {
-                e.preventDefault()
-                onClickNewFolder && onClickNewFolder()
-              }}
+      {isMovingDocuments ? (
+        <MovingDocumentsHeader
+          count={checkedDocCount}
+          onDiscardMovingDocuments={onDiscardMovingDocuments}
+          onMovingDocumentsSubmit={onMovingDocumentsSubmit}
+        />
+      ) : (
+        <div className="flex">
+          <ul className="flex items-center text-sm font-semibold text-sky-600">{innerDom}</ul>
+          <Menu
+            as="div"
+            className="relative ml-auto"
+          >
+            <div>
+              <Menu.Button>
+                <DotsVerticalIcon className="h-6 w-6 transition-colors duration-300 hover:text-sky-600" />
+              </Menu.Button>
+            </div>
+            <Transition
+              as={Fragment}
+              enter="transition ease-out duration-100"
+              enterFrom="transform opacity-0 scale-95"
+              enterTo="transform opacity-100 scale-100"
+              leave="transition ease-in duration-75"
+              leaveFrom="transform opacity-100 scale-100"
+              leaveTo="transform opacity-0 scale-95"
             >
-              <svg
-                className="h-6 w-6"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={1.5}
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M12 10.5v6m3-3H9m4.06-7.19l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </Link>
-          ) : (
-            <></>
-          )}
+              <Menu.Items className="absolute right-1 mt-1 w-56 origin-top-right divide-y divide-slate-100/20 rounded-md bg-slate-800 shadow-lg ring-1 ring-slate-800 focus:outline-none">
+                <div className="p-2">
+                  <Menu.Item>
+                    {({ active }) => (
+                      <button
+                        className={`${
+                          active ? 'bg-slate-900 text-sky-600' : 'text-neutral-400'
+                        } group flex w-full items-center rounded-md p-2 text-sm font-bold disabled:text-neutral-400/20`}
+                        disabled={!isShowCreateFolder}
+                        onClick={() => {
+                          onClickNewFolder && onClickNewFolder()
+                        }}
+                      >
+                        <FolderAddIcon className="mr-2 h-5 w-5" />
+                        {t('documents.breadcrumbs.new_folder')}
+                      </button>
+                    )}
+                  </Menu.Item>
+                </div>
+                <div className="p-2">
+                  <Menu.Item>
+                    {({ active }) => (
+                      <button
+                        className={`${
+                          active ? 'bg-slate-900 text-sky-600' : 'text-neutral-400'
+                        } group flex w-full items-center rounded-md p-2 text-sm font-bold`}
+                        onClick={() => {
+                          onClickMoveDocuments && onClickMoveDocuments()
+                        }}
+                      >
+                        <CollectionIcon className="mr-2 h-5 w-5" />
+                        {t('documents.breadcrumbs.move_documents')}
+                      </button>
+                    )}
+                  </Menu.Item>
+                </div>
+              </Menu.Items>
+            </Transition>
+          </Menu>
         </div>
+      )}
+    </div>
+  )
+}
+
+function MovingDocumentsHeader(
+  props: {
+    count?: number
+  } & MovingDocumentsHeaderEventProps
+) {
+  const { count, onDiscardMovingDocuments, onMovingDocumentsSubmit } = props
+  const { t } = useTranslation()
+
+  return (
+    <div className="flex items-center text-neutral-200">
+      <button
+        className="mr-2 h-6 w-6 shrink-0 rounded-full bg-slate-100/10"
+        onClick={() => {
+          onDiscardMovingDocuments && onDiscardMovingDocuments()
+        }}
+      >
+        <XIcon className="mx-auto h-4 w-4" />
+      </button>
+      <div className="flex-1 font-bold">
+        {t('documents.breadcrumbs.move_documents_selected_tip', { count: count || 0 })}
+      </div>
+      <div className="ml-auto shrink-0">
+        <button
+          className="flex h-6 items-center rounded font-bold transition-colors duration-200 hover:text-sky-700 disabled:text-neutral-200/40"
+          disabled={count === 0}
+          onClick={() => {
+            onMovingDocumentsSubmit && onMovingDocumentsSubmit()
+          }}
+        >
+          <ArrowsExpandIcon className="mr-2 h-4 w-4" />
+          {t('documents.breadcrumbs.move_documents_submit')}
+        </button>
       </div>
     </div>
   )
