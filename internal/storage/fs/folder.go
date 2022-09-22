@@ -11,17 +11,9 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 )
 
 func (fs *FileSystemStorage) CreateFolder(uid, name string) (*storage.Document, error) {
-	log := logrus.WithFields(logrus.Fields{
-		"uid":  uid,
-		"name": name,
-	})
-
-	log.Debugf("creating folder...")
-
 	docID := uuid.New().String()
 
 	// Create zip file
@@ -35,8 +27,6 @@ func (fs *FileSystemStorage) CreateFolder(uid, name string) (*storage.Document, 
 
 	zipWriter := zip.NewWriter(zipFile)
 	defer zipWriter.Close()
-
-	log.Debugf("zip file created")
 
 	contentEntry, err := zipWriter.Create(docID + models.ContentFileExt)
 	if err != nil {
@@ -71,10 +61,6 @@ func (fs *FileSystemStorage) CreateFolder(uid, name string) (*storage.Document, 
 		Name:    md.VissibleName,
 		Version: md.Version,
 	}
-
-	log.Debug("metadata file created.")
-
-	log.Info("folder created")
 
 	return doc, nil
 }
