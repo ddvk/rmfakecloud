@@ -138,7 +138,9 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
           selected && selected.id === doc.id
             ? '-mx-4 bg-slate-800 fill-neutral-200 px-4 text-neutral-200'
             : 'fill-neutral-400'
-        } ${isActivedOrNext() ? 'mt-px' : 'border-t border-slate-800'}`}
+        } ${
+          isActivedOrNext() ? 'mt-px' : 'border-t border-slate-800'
+        } hover:-mx-4 hover:bg-slate-800 hover:fill-neutral-200 hover:px-4 hover:text-neutral-200 transition-colors`}
         doc={doc}
         index={i}
         multiple={isMovingDocuments}
