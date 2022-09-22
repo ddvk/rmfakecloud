@@ -140,7 +140,7 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
             : 'fill-neutral-400'
         } ${
           isActivedOrNext() ? 'mt-px' : 'border-t border-slate-800'
-        } hover:-mx-4 hover:bg-slate-800 hover:fill-neutral-200 hover:px-4 hover:text-neutral-200 transition-colors`}
+        } transition-colors hover:-mx-4 hover:bg-slate-800 hover:fill-neutral-200 hover:px-4 hover:text-neutral-200`}
         doc={doc}
         index={i}
         multiple={isMovingDocuments}
