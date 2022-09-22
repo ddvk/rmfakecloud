@@ -271,7 +271,7 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
     <>
       <Breadcrumbs
         checkedDocCount={checkedDocs.length}
-        className={`sticky top-0 mt-8 border-b border-slate-100/10 bg-slate-900 py-4 z-10 ${breadcrumbsAnimationClass}`}
+        className={`sticky top-0 z-10 mt-8 border-b border-slate-100/10 bg-slate-900 py-4 ${breadcrumbsAnimationClass}`}
         isMovingDocuments={isMovingDocuments}
         items={breakcrumbItems}
         onClickBreadcrumb={(_item, index) => popd(index)}
