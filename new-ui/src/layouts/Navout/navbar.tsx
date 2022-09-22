@@ -33,15 +33,19 @@ function Nav(props: { items: RouteItem[] }) {
         return (
           <div
             key={`nav-item-${i}-menuitem-${j}`}
-            className="p-3"
+            className="p-2"
           >
             <Menu.Item>
-              <Link
-                className="transition-colors duration-300 hover:text-neutral-100"
-                to={route.path ? route.path : '#'}
-              >
-                {route.title}
-              </Link>
+              {({ active }) => (
+                <Link
+                  className={`block w-full rounded-md p-2 text-sm font-bold text-neutral-400 ${
+                    active ? 'bg-slate-900 text-sky-600' : ''
+                  }`}
+                  to={route.path ? route.path : '#'}
+                >
+                  {route.title}
+                </Link>
+              )}
             </Menu.Item>
           </div>
         )
@@ -68,7 +72,7 @@ function Nav(props: { items: RouteItem[] }) {
             leaveFrom="transform opacity-100 scale-100"
             leaveTo="transform opacity-0 scale-95"
           >
-            <Menu.Items className="absolute right-0 mt-3 w-56 origin-top-right divide-y divide-gray-700 rounded-md bg-slate-900/95 text-neutral-400 shadow-lg ring-1 ring-black/5 focus:outline-none">
+            <Menu.Items className="absolute right-1 mt-1 w-56 origin-top-right divide-y divide-slate-100/20 rounded-md bg-slate-800 shadow-lg ring-1 ring-slate-800 focus:outline-none">
               {menuItems}
             </Menu.Items>
           </Transition>

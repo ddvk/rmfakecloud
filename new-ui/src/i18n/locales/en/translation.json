@@ -19,7 +19,8 @@
   "notifications": {
     "document_deleted": "Document deleted.",
     "document_renamed": "Document renamed.",
-    "folder_created": "New folder created."
+    "folder_created": "New folder created.",
+    "documents_moved": "[{{succeeded}}/{{total}}] documents moved, {{failed}} failed."
   },
   "nav": {
     "documents": "Documents",
@@ -106,7 +107,16 @@
       "cancel-btn": "Discard"
     },
     "breadcrumbs": {
-      "new_folder": "New Folder"
+      "new_folder": "New Folder",
+      "move_documents": "Move Documents",
+      "move_documents_selected_tip": "{{count}} ITEMS SELECTED",
+      "move_documents_submit": "Move",
+      "move_documents_container": {
+        "submit": "Move To Here",
+        "title": "Move to {{folder}}",
+        "root_folder": "ROOT",
+        "moving": "Moving"
+      }
     }
   },
   "devices": {

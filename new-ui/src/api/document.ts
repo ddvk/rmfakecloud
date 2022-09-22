@@ -50,6 +50,13 @@ export function renameDocument(id: string, name: string): Promise<AxiosResponse>
   return requests.put(`/ui/api/documents/${id}`, { name })
 }
 
+export function moveDocumentTo(id: string, parentID?: string): Promise<AxiosResponse> {
+  return requests.put(`/ui/api/documents/${id}`, {
+    parentId: parentID,
+    setParentToRoot: !parentID
+  })
+}
+
 export function exportDocument(id: string): Promise<AxiosResponse> {
   return requests.get(`/ui/api/documents/${id}`, {
     responseType: 'blob',

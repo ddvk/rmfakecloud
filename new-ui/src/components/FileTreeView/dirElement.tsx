@@ -17,11 +17,13 @@ import { HashDocElementProp } from './props'
 export default function DirElement(params: HashDocElementProp) {
   const {
     doc,
+    index,
     onClickDoc,
     onDocEditingDiscard,
     onDocRenamed,
     onFolderCreated,
     onFolderCreationDiscarded,
+    onCheckBoxChanged,
     className,
     ...remainParams
   } = params
@@ -62,7 +64,7 @@ export default function DirElement(params: HashDocElementProp) {
             const newDoc = { ...(response.data as HashDoc), children: [] }
 
             toast.success(t('notifications.folder_created'))
-            onFolderCreated && onFolderCreated(newDoc, remainParams.index)
+            onFolderCreated && onFolderCreated(newDoc, index)
 
             return 'ok'
           })
@@ -101,9 +103,10 @@ export default function DirElement(params: HashDocElementProp) {
               className="mr-2 w-full basis-1/2 rounded border border-slate-600 py-3 font-bold text-neutral-200 focus:outline-none"
               type="button"
               onClick={(e) => {
+                e.preventDefault()
                 e.stopPropagation()
                 setUnmountForm(false)
-                onFolderCreationDiscarded && onFolderCreationDiscarded(doc, remainParams.index)
+                onFolderCreationDiscarded && onFolderCreationDiscarded(doc, index)
               }}
             >
               {t('documents.new_folder_form.cancel-btn')}

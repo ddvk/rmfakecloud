@@ -4,13 +4,17 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PulseLoader } from 'react-spinners'
 import { v4 as uuidv4 } from 'uuid'
+import PQueue from 'p-queue'
+import { toast } from 'react-toastify'
 
 import { listDocuments } from '../../api'
+import { moveDocumentTo } from '../../api/document'
 import { HashDoc } from '../../utils/models'
 
 import Breadcrumbs, { BreakcrumbItem } from './breadcrumb'
 import FileMenu from './menu'
 import TreeElement from './treeElement'
+import MovingDocumentsFoldersContainer from './movingDocumentsFoldersContainer'
 
 export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
   const { t } = useTranslation()
@@ -18,6 +22,12 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
   const [selected, setSelected] = useState<HashDoc | null>(null)
   const [breakcrumbItems, setBreakcrumbItems] = useState<BreakcrumbItem[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [loadingText, setLoadingText] = useState('')
+  const [isMovingDocuments, setIsMovingDocuments] = useState(false)
+  const [checkedDocs, setCheckedDocs] = useState<{ doc: HashDoc; index: number }[]>([])
+  const [isShowMovingDocumentsFolders, setIsShowMovingDocumentsFolders] = useState(false)
+  const [innerReloadCnt, setInnerReloadCnt] = useState(0)
+  const [stayInFolder, setStayInFolder] = useState<HashDoc | null>(null)
 
   function pushd(dir: HashDoc) {
     if (dir.type === 'DocumentType' || undefined === dir.children) {
@@ -29,6 +39,7 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
     setBreakcrumbItems(items)
     setSelected(null)
     setDocs(dir.children)
+    setStayInFolder(dir)
   }
 
   function popd(toIndex?: number) {
@@ -44,6 +55,9 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
     setBreakcrumbItems(items)
     setSelected(null)
     setDocs(item.docs)
+    if (toIndex === 0) {
+      setStayInFolder(null)
+    }
   }
 
   useEffect(() => {
@@ -53,8 +67,23 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
       .then((response) => {
         const data = response.data as { Entries: HashDoc[]; Trash: HashDoc[] }
 
-        setDocs(data.Entries)
-        setBreakcrumbItems([{ title: t('nav.documents'), docs: data.Entries }])
+        const breadcrumbItems = [{ title: t('nav.documents'), docs: data.Entries }]
+        let docs = data.Entries
+
+        if (stayInFolder) {
+          data.Entries.forEach((entry) => {
+            if (entry.id === stayInFolder.id) {
+              breadcrumbItems.push({
+                title: entry.name,
+                docs: entry.children || []
+              })
+              docs = entry.children || []
+            }
+          })
+        }
+
+        setBreakcrumbItems(breadcrumbItems)
+        setDocs(docs)
 
         return response
       })
@@ -64,7 +93,8 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
       .finally(() => {
         setIsLoading(false)
       })
-  }, [t, reloadCnt])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t, reloadCnt, innerReloadCnt])
 
   const children = docs.map((doc, i) => {
     function isActivedOrNext(): boolean {
@@ -97,7 +127,28 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
         } ${isActivedOrNext() ? 'mt-px' : 'border-t border-slate-800'}`}
         doc={doc}
         index={i}
+        multiple={isMovingDocuments}
+        onCheckBoxChanged={({ doc, index, checked }) => {
+          setCheckedDocs((prev) => {
+            const i = prev.findIndex((item) => {
+              return item.doc.id === doc.id
+            })
+
+            if (checked && i === -1) {
+              prev.push({ doc, index })
+            }
+
+            if (!checked && i !== -1) {
+              prev.splice(i, 1)
+            }
+
+            return [...prev]
+          })
+        }}
         onClickDoc={(doc) => {
+          if (isMovingDocuments) {
+            return
+          }
           if (doc.mode === 'editing') {
             return
           }
@@ -205,9 +256,15 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
   return (
     <>
       <Breadcrumbs
+        checkedDocCount={checkedDocs.length}
         className="sticky top-0 mt-8 border-b border-slate-100/10 bg-slate-900 py-4"
+        isMovingDocuments={isMovingDocuments}
         items={breakcrumbItems}
         onClickBreadcrumb={(_item, index) => popd(index)}
+        onClickMoveDocuments={() => {
+          setIsMovingDocuments(true)
+          setSelected(null)
+        }}
         onClickNewFolder={() => {
           setDocs((prevDocs) => {
             const newFolder: HashDoc = {
@@ -222,6 +279,13 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
             return [newFolder, ...prevDocs]
           })
         }}
+        onDiscardMovingDocuments={() => {
+          setCheckedDocs([])
+          setIsMovingDocuments(false)
+        }}
+        onMovingDocumentsSubmit={() => {
+          setIsShowMovingDocumentsFolders(true)
+        }}
       />
       {isLoading ? (
         <div className="relative mt-24 text-center">
@@ -231,6 +295,13 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
             size={8}
             speedMultiplier={0.8}
           />
+          {loadingText.length > 0 ? (
+            <p className="mt-2 overflow-hidden text-ellipsis whitespace-nowrap text-sm">
+              {loadingText}
+            </p>
+          ) : (
+            <></>
+          )}
         </div>
       ) : children.length > 0 ? (
         <div>{children}</div>
@@ -257,6 +328,81 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
         doc={selected}
         onDocDeleted={onDocDeleted}
         onDocEditing={onDocEditing}
+      />
+      <MovingDocumentsFoldersContainer
+        show={isShowMovingDocumentsFolders}
+        onDiscardMove={() => {
+          setIsShowMovingDocumentsFolders(false)
+        }}
+        onMoveTo={(folder) => {
+          setIsShowMovingDocumentsFolders(false)
+          setIsLoading(true)
+          let finishedOrUpdating = 0
+          let current = checkedDocs.length > 0 ? checkedDocs[0] : null
+          let succeededCount = 0
+          let failedCount = 0
+          const updateLoadingText = () => {
+            setLoadingText(
+              `[${finishedOrUpdating}/${checkedDocs.length}]${t(
+                'documents.breadcrumbs.move_documents_container.moving'
+              )} ${current?.doc.name}`
+            )
+          }
+
+          updateLoadingText()
+
+          const queue = new PQueue({
+            concurrency: 1,
+            autoStart: false,
+            timeout: 30 * 1000 // 30s per operation
+          })
+
+          for (const item of checkedDocs) {
+            queue.add(() => {
+              return moveDocumentTo(item.doc.id, folder?.id)
+            })
+          }
+
+          queue.on('active', () => {
+            current = checkedDocs[finishedOrUpdating]
+            finishedOrUpdating++
+            updateLoadingText()
+          })
+
+          queue.on('completed', () => {
+            succeededCount++
+          })
+
+          queue.on('error', () => {
+            failedCount++
+          })
+
+          queue.on('empty', () => {
+            if (succeededCount + failedCount === checkedDocs.length) {
+              const msg = t('notifications.documents_moved', {
+                total: checkedDocs.length,
+                succeeded: succeededCount,
+                failed: failedCount
+              })
+
+              if (succeededCount === 0) {
+                toast.error(msg)
+              } else if (failedCount > 0) {
+                toast.warning(msg)
+              } else {
+                toast.success(msg)
+              }
+
+              setIsLoading(false)
+              setLoadingText('')
+              setIsMovingDocuments(false)
+              setCheckedDocs([])
+              setInnerReloadCnt(innerReloadCnt + 1)
+            }
+          })
+
+          queue.start()
+        }}
       />
     </>
   )
