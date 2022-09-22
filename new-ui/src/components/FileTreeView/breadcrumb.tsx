@@ -81,11 +81,9 @@ export default function Breadcrumbs(
             as="div"
             className="relative ml-auto"
           >
-            <div>
-              <Menu.Button>
-                <DotsVerticalIcon className="h-6 w-6 transition-colors duration-300 hover:text-sky-600" />
-              </Menu.Button>
-            </div>
+            <Menu.Button>
+              <DotsVerticalIcon className="h-6 w-6 transition-colors duration-300 hover:text-sky-600" />
+            </Menu.Button>
             <Transition
               as={Fragment}
               enter="transition ease-out duration-100"
@@ -161,7 +159,7 @@ function MovingDocumentsHeader(
       <div className="flex-1 font-bold">
         {t('documents.breadcrumbs.move_documents_selected_tip', { count: count || 0 })}
       </div>
-      <div className="ml-auto shrink-0">
+      <div className="ml-auto shrink-0 py-[3px]">
         <button
           className="flex h-6 items-center rounded font-bold transition-colors duration-200 hover:text-sky-700 disabled:text-neutral-200/40"
           disabled={count === 0}

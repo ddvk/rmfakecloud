@@ -21,6 +21,7 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
   const [docs, setDocs] = useState<HashDoc[]>([])
   const [selected, setSelected] = useState<HashDoc | null>(null)
   const [breakcrumbItems, setBreakcrumbItems] = useState<BreakcrumbItem[]>([])
+  const [breadcrumbsAnimationClass, setBreadcrumbsAnimationClass] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [loadingText, setLoadingText] = useState('')
   const [isMovingDocuments, setIsMovingDocuments] = useState(false)
@@ -95,6 +96,19 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [t, reloadCnt, innerReloadCnt])
+
+  useEffect(() => {
+    if (isMovingDocuments) {
+      setBreadcrumbsAnimationClass('animate-flip-x')
+
+      return
+    }
+
+    if (breadcrumbsAnimationClass.length > 0) {
+      setBreadcrumbsAnimationClass('animate-flip-x-reverse')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMovingDocuments])
 
   const children = docs.map((doc, i) => {
     function isActivedOrNext(): boolean {
@@ -257,7 +271,7 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
     <>
       <Breadcrumbs
         checkedDocCount={checkedDocs.length}
-        className="sticky top-0 mt-8 border-b border-slate-100/10 bg-slate-900 py-4"
+        className={`sticky top-0 mt-8 border-b border-slate-100/10 bg-slate-900 py-4 ${breadcrumbsAnimationClass}`}
         isMovingDocuments={isMovingDocuments}
         items={breakcrumbItems}
         onClickBreadcrumb={(_item, index) => popd(index)}
