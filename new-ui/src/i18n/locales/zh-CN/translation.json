@@ -12,12 +12,23 @@
     "dialog": {
       "confirm-btn": "确认",
       "cancel-btn": "取消",
-      "delete_title": "删除文档",
-      "doc_delete_content": "删除操作不可撤销，确定删除《{{name}}》吗?"
+      "CollectionType": {
+        "delete_title": "删除文件夹",
+        "doc_delete_content": "删除操作不可撤销，确定删除文件夹 {{name}} 吗?"
+      },
+      "DocumentType": {
+        "delete_title": "删除文档",
+        "doc_delete_content": "删除操作不可撤销，确定删除《{{name}}》吗?"
+      }
     }
   },
   "notifications": {
-    "document_deleted": "文档已删除",
+    "CollectionType": {
+      "document_deleted": "文件夹已删除"
+    },
+    "DocumentType": {
+      "document_deleted": "文档已删除"
+    },
     "document_renamed": "文档已重命名",
     "folder_renamed": "文件夹已重命名",
     "folder_created": "文件夹已创建",

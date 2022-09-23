@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"errors"
 	"io"
 
 	"github.com/ddvk/rmfakecloud/internal/app/hub"
@@ -43,6 +44,26 @@ func (d *backend10) DeleteDocument(uid, docid string) error {
 
 	if err != nil {
 		return err
+	}
+
+	// Check if document is folder, it must be empty
+	if meta.Type == models.CollectionType {
+		tree, err := d.GetDocumentTree(uid)
+		if err != nil {
+			return err
+		}
+
+		for _, entry := range tree.Entries {
+			dir, ok := entry.(*viewmodel.Directory)
+			if !ok {
+				continue
+			}
+			if dir.ID == meta.ID {
+				if len(dir.Entries) > 0 {
+					return errors.New("can't remove non-empty folder")
+				}
+			}
+		}
 	}
 
 	if err = d.documentHandler.RemoveDocument(uid, docid); err != nil {
