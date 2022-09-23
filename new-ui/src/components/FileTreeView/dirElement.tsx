@@ -174,7 +174,7 @@ export default function DirElement(params: HashDocElementProp) {
   return (
     <>
       <div
-        className={`flex cursor-pointer py-6 ${className || ''}`}
+        className={`flex cursor-pointer py-6 select-none ${className || ''}`}
         {...remainParams}
         onClick={(e) => {
           if (doc.mode === 'creating' || doc.mode === 'editing') {
