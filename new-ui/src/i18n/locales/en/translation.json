@@ -19,6 +19,7 @@
   "notifications": {
     "document_deleted": "Document deleted.",
     "document_renamed": "Document renamed.",
+    "folder_renamed": "Folder renamed.",
     "folder_created": "New folder created.",
     "documents_moved": "[{{succeeded}}/{{total}}] documents moved, {{failed}} failed."
   },

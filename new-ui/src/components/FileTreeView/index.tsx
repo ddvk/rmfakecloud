@@ -15,32 +15,63 @@ import Breadcrumbs, { BreakcrumbItem } from './breadcrumb'
 import FileMenu from './menu'
 import TreeElement from './treeElement'
 import MovingDocumentsFoldersContainer from './movingDocumentsFoldersContainer'
+import ContextMenu from './contectMenu'
 
 export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
   const { t } = useTranslation()
+  // Docs to rendered in the file tree view
   const [docs, setDocs] = useState<HashDoc[]>([])
+  // Selected doc when click on a file
   const [selected, setSelected] = useState<HashDoc | null>(null)
+  // Breadcrumbs
   const [breakcrumbItems, setBreakcrumbItems] = useState<BreakcrumbItem[]>([])
+  // Breadcrumbs mode switch animation between normal/moving documents
   const [breadcrumbsAnimationClass, setBreadcrumbsAnimationClass] = useState('')
+  // Whether show docs reloading component
   const [isLoading, setIsLoading] = useState(false)
+  // Text for docs reloading component
   const [loadingText, setLoadingText] = useState('')
+  // Whether show moving documents checkboxes
   const [isMovingDocuments, setIsMovingDocuments] = useState(false)
+  // Checked documents when moving documents
   const [checkedDocs, setCheckedDocs] = useState<{ doc: HashDoc; index: number }[]>([])
+  // Whether show moving documents to folder container
   const [isShowMovingDocumentsFolders, setIsShowMovingDocumentsFolders] = useState(false)
+  // Hack for trigger reload docs
   const [innerReloadCnt, setInnerReloadCnt] = useState(0)
+  // Auto enter speicified folder when docs reloaded
   const [stayInFolder, setStayInFolder] = useState<HashDoc | null>(null)
+  // Selected folder when right clicked or long pressed
+  const [contextMenuDoc, setContextMenuDoc] = useState<{
+    doc: HashDoc
+    index: number
+    x: number
+    y: number
+  } | null>(null)
+  // Remembered position to scroll to after docs changed
+  const [rememberedPos, setRememberedPos] = useState<{ x: number; y: number } | null>(null)
+
+  // Long press timeout id
+  let pressTimer: NodeJS.Timeout
 
   function pushd(dir: HashDoc) {
     if (dir.type === 'DocumentType' || undefined === dir.children) {
       return
     }
 
+    if (breakcrumbItems.length > 0) {
+      breakcrumbItems[breakcrumbItems.length - 1].posX = window.pageXOffset
+      breakcrumbItems[breakcrumbItems.length - 1].posY = window.pageYOffset
+    }
+
     const items: BreakcrumbItem[] = [...breakcrumbItems, { title: dir.name, docs: dir.children }]
 
     setBreakcrumbItems(items)
     setSelected(null)
+    setContextMenuDoc(null)
     setDocs(dir.children)
     setStayInFolder(dir)
+    clearTimeout(pressTimer)
   }
 
   function popd(toIndex?: number) {
@@ -55,9 +86,19 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
 
     setBreakcrumbItems(items)
     setSelected(null)
-    setDocs(item.docs)
+    setDocs(
+      item.docs.map((doc) => {
+        return { ...doc, preMode: undefined, mode: 'display' }
+      })
+    )
     if (toIndex === 0) {
       setStayInFolder(null)
+    }
+    if (item.posX || item.posY) {
+      setRememberedPos({
+        x: item.posX || 0,
+        y: item.posY || 0
+      })
     }
   }
 
@@ -109,6 +150,17 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMovingDocuments])
+
+  useEffect(() => {
+    if (rememberedPos) {
+      window.scroll({
+        top: rememberedPos.y,
+        left: rememberedPos.x,
+        behavior: 'auto'
+      })
+      setRememberedPos(null)
+    }
+  }, [rememberedPos])
 
   const children = docs.map((doc, i) => {
     function isActivedOrNext(): boolean {
@@ -183,6 +235,14 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
             pushd(doc)
           }
         }}
+        onContextMenu={(e) => {
+          if (doc.type === 'DocumentType') {
+            return
+          }
+          e.preventDefault()
+
+          setContextMenuDoc({ doc, index: i, x: e.clientX, y: e.clientY })
+        }}
         onDocEditingDiscard={(doc) => {
           const newDocs = docs.map((entity) => {
             if (doc.id === entity.id) {
@@ -229,6 +289,14 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
           setDocs((prevDocs) => {
             return prevDocs.filter((_hashDoc, index) => index !== i)
           })
+        }}
+        onTouchEnd={() => {
+          clearTimeout(pressTimer)
+        }}
+        onTouchStart={(e) => {
+          pressTimer = setTimeout(() => {
+            setContextMenuDoc({ doc, index: i, x: e.touches[0].clientX, y: e.touches[0].clientY })
+          }, 1000)
         }}
       />
     )
@@ -418,6 +486,33 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
           })
 
           queue.start()
+        }}
+      />
+      <ContextMenu
+        {...contextMenuDoc}
+        onClickMenuItem={({ doc, menuItem }) => {
+          if (!doc) {
+            return
+          }
+
+          if (menuItem === 'rename') {
+            setDocs((prevDocs) => {
+              return prevDocs.map((prevDoc) => {
+                prevDoc.preMode = prevDoc.mode
+                if (prevDoc.id === doc.id) {
+                  prevDoc.mode = 'editing'
+                } else {
+                  prevDoc.mode = 'display'
+                }
+
+                return prevDoc
+              })
+            })
+            setContextMenuDoc(null)
+          }
+        }}
+        onDismissMenu={() => {
+          setContextMenuDoc(null)
         }}
       />
     </>

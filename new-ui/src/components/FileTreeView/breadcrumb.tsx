@@ -9,6 +9,8 @@ import { HashDoc } from '../../utils/models'
 export interface BreakcrumbItem {
   title: string
   docs: HashDoc[]
+  posX?: number
+  posY?: number
 }
 
 interface MovingDocumentsHeaderEventProps {
