@@ -1,13 +1,12 @@
+import { Transition } from '@headlessui/react'
+import { EyeIcon, PencilAltIcon, SaveIcon, TrashIcon } from '@heroicons/react/outline'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Transition } from '@headlessui/react'
-import { toast } from 'react-toastify'
 import { Link } from 'react-router-dom'
-import { SaveIcon, EyeIcon, PencilAltIcon, TrashIcon } from '@heroicons/react/outline'
 
-import { deleteDocument } from '../../api/document'
 import { HashDoc } from '../../utils/models'
-import { ConfirmationDialog } from '../Dialog'
+
+import RemoveDocDialog from './removeDocDialog'
 
 export interface FileMenuProps {
   doc?: HashDoc | null
@@ -18,42 +17,17 @@ export interface FileMenuProps {
 export default function FileMenu(params: FileMenuProps) {
   const { doc, onDocDeleted } = params
   const { t } = useTranslation()
-  const [isOpenDialog, setIsOpenDialog] = useState(false)
-  const [dialogIsLoading, setDialogIsLoading] = useState(false)
+
+  const [removingDoc, setRemovingDoc] = useState<HashDoc | null>(null)
 
   return (
     <>
-      <ConfirmationDialog
-        content={t('site.dialog.doc_delete_content', { name: doc?.name })}
-        isLoading={dialogIsLoading}
-        isOpen={isOpenDialog}
-        title={t('site.dialog.delete_title')}
-        onClose={() => {
-          setIsOpenDialog(false)
-          setDialogIsLoading(false)
+      <RemoveDocDialog
+        doc={removingDoc}
+        onDismissDialog={() => {
+          setRemovingDoc(null)
         }}
-        onConfirm={() => {
-          if (!doc) {
-            return
-          }
-
-          setDialogIsLoading(true)
-
-          deleteDocument(doc.id)
-            .then(() => {
-              toast.success(t('notifications.document_deleted'))
-              onDocDeleted && onDocDeleted(doc)
-
-              return 'ok'
-            })
-            .catch((err) => {
-              throw err
-            })
-            .finally(() => {
-              setDialogIsLoading(false)
-              setIsOpenDialog(false)
-            })
-        }}
+        onDocDeleted={onDocDeleted}
       />
       <Transition
         as="div"
@@ -109,7 +83,7 @@ export default function FileMenu(params: FileMenuProps) {
                     return
                   }
 
-                  setIsOpenDialog(true)
+                  setRemovingDoc(doc)
                 }}
               >
                 <TrashIcon className="mx-auto mb-1 h-6 w-6" />

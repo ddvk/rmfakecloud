@@ -2,7 +2,6 @@ import { ErrorMessage, Field, Form, Formik } from 'formik'
 import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
 import { PulseLoader } from 'react-spinners'
-import { AxiosError } from 'axios'
 import { toast } from 'react-toastify'
 import * as Yup from 'yup'
 
@@ -53,12 +52,8 @@ export default function ResetPassword() {
 
                     return 'ok'
                   })
-                  .catch((err: AxiosError) => {
-                    const response = err.response || { data: { error: t('site.unknown_error') } }
-                    const errMsg =
-                      (response.data as { error?: string }).error || t('site.unknown_error')
-
-                    toast.error(errMsg)
+                  .catch((err) => {
+                    throw err
                   })
                   .finally(() => {
                     setSubmitting(false)

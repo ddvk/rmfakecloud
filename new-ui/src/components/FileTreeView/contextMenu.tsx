@@ -1,5 +1,5 @@
 import { Transition } from '@headlessui/react'
-import { PencilAltIcon } from '@heroicons/react/outline'
+import { TrashIcon, PencilAltIcon } from '@heroicons/react/outline'
 import { MouseEventHandler, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -15,7 +15,7 @@ interface ContextMenuProps {
   onDismissMenu?: () => void
 }
 
-type MenuItemType = 'rename'
+type MenuItemType = 'rename' | 'remove'
 
 export default function ContextMenu({
   doc,
@@ -87,6 +87,11 @@ export default function ContextMenu({
       icon: <PencilAltIcon className="mr-2 h-6 w-6 shrink-0" />,
       title: t('documents.file_tree_view.menu.rename'),
       menuItem: 'rename'
+    },
+    {
+      icon: <TrashIcon className="mr-2 h-6 w-6 shrink-0" />,
+      title: t('documents.file_tree_view.menu.remove'),
+      menuItem: 'remove'
     }
   ]
 

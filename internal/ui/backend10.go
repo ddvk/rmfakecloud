@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"errors"
 	"io"
 	"time"
 
@@ -56,6 +57,49 @@ func (d *backend10) CreateDocument(uid, filename, parent string, stream io.Reade
 	log.Info(uiLogger, ui10, "Uploaded document id", doc.ID)
 	d.hub.Notify(uid, webDevice, ntf, messages.DocAddedEvent)
 	return
+}
+
+func (d *backend10) DeleteDocument(uid, docid string) error {
+	meta, err := d.metadataStore.GetMetadata(uid, docid)
+
+	if err != nil {
+		return err
+	}
+
+	// Check if document is folder, it must be empty
+	if meta.Type == models.CollectionType {
+		tree, err := d.GetDocumentTree(uid)
+		if err != nil {
+			return err
+		}
+
+		for _, entry := range tree.Entries {
+			dir, ok := entry.(*viewmodel.Directory)
+			if !ok {
+				continue
+			}
+			if dir.ID == meta.ID {
+				if len(dir.Entries) > 0 {
+					return errors.New("can't remove non-empty folder")
+				}
+			}
+		}
+	}
+
+	if err = d.documentHandler.RemoveDocument(uid, docid); err != nil {
+		return err
+	}
+
+	ntf := hub.DocumentNotification{
+		ID:      meta.ID,
+		Type:    meta.Type,
+		Version: meta.Version,
+		Parent:  meta.Parent,
+		Name:    meta.VissibleName,
+	}
+	log.Info(uiLogger, "Document deleted: id=", meta.ID, " name=", meta.VissibleName)
+	d.h.Notify(uid, "web", ntf, hub.DocDeletedEvent)
+	return nil
 }
 
 func (d *backend10) GetDocumentTree(uid string) (tree *viewmodel.DocumentTree, err error) {

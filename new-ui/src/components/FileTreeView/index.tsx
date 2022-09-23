@@ -15,7 +15,8 @@ import Breadcrumbs, { BreakcrumbItem } from './breadcrumb'
 import FileMenu from './menu'
 import TreeElement from './treeElement'
 import MovingDocumentsFoldersContainer from './movingDocumentsFoldersContainer'
-import ContextMenu from './contectMenu'
+import ContextMenu from './contextMenu'
+import RemoveDocDialog from './removeDocDialog'
 
 export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
   const { t } = useTranslation()
@@ -50,6 +51,7 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
   } | null>(null)
   // Remembered position to scroll to after docs changed
   const [rememberedPos, setRememberedPos] = useState<{ x: number; y: number } | null>(null)
+  const [removingFolder, setRemovingFolder] = useState<HashDoc | null>(null)
 
   // Long press timeout id
   let pressTimer: NodeJS.Timeout
@@ -239,8 +241,12 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
           if (doc.type === 'DocumentType') {
             return
           }
+          if (isMovingDocuments) {
+            return
+          }
           e.preventDefault()
 
+          setSelected(null)
           setContextMenuDoc({ doc, index: i, x: e.clientX, y: e.clientY })
         }}
         onDocEditingDiscard={(doc) => {
@@ -294,7 +300,14 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
           clearTimeout(pressTimer)
         }}
         onTouchStart={(e) => {
+          if (doc.type === 'DocumentType') {
+            return
+          }
+          if (isMovingDocuments) {
+            return
+          }
           pressTimer = setTimeout(() => {
+            setSelected(null)
             setContextMenuDoc({ doc, index: i, x: e.touches[0].clientX, y: e.touches[0].clientY })
           }, 1000)
         }}
@@ -317,6 +330,7 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
 
   const onDocDeleted = (doc: HashDoc) => {
     setSelected(null)
+    setRemovingFolder(null)
     removeDoc(doc)
   }
 
@@ -510,10 +524,21 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
             })
             setContextMenuDoc(null)
           }
+
+          if (menuItem === 'remove') {
+            setRemovingFolder(doc)
+          }
         }}
         onDismissMenu={() => {
           setContextMenuDoc(null)
         }}
+      />
+      <RemoveDocDialog
+        doc={removingFolder}
+        onDismissDialog={() => {
+          setRemovingFolder(null)
+        }}
+        onDocDeleted={onDocDeleted}
       />
     </>
   )

@@ -12,12 +12,23 @@
     "dialog": {
       "confirm-btn": "Confirm",
       "cancel-btn": "Discard",
-      "delete_title": "Delete Document",
-      "doc_delete_content": "The operation is not reversible. Do you confirm to delete \"{{name}}\"?"
+      "CollectionType": {
+        "delete_title": "Delete Folder",
+        "doc_delete_content": "The operation is not reversible. Do you confirm to delete \"{{name}}\"?"
+      },
+      "DocumentType": {
+        "delete_title": "Delete Document",
+        "doc_delete_content": "The operation is not reversible. Do you confirm to delete \"{{name}}\"?"
+      }
     }
   },
   "notifications": {
-    "document_deleted": "Document deleted.",
+    "CollectionType": {
+      "document_deleted": "Folder deleted."
+    },
+    "DocumentType": {
+      "document_deleted": "Document deleted."
+    },
     "document_renamed": "Document renamed.",
     "folder_renamed": "Folder renamed.",
     "folder_created": "New folder created.",
