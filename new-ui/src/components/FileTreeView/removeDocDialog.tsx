@@ -52,6 +52,7 @@ export default function RemoveDocDialog({
             onDismissDialog && onDismissDialog()
           }, 200)
           toast.error(t('notifications.CollectionType.nonempty'))
+
           return
         }
 
