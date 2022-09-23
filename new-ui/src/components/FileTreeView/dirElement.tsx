@@ -85,7 +85,7 @@ export default function DirElement(params: HashDocElementProp) {
             }
 
             if (mode === 'editing') {
-              toast.success('notifications.folder_renamed')
+              toast.success(t('notifications.folder_renamed'))
               onDocRenamed && onDocRenamed(doc, values.name)
             }
 
