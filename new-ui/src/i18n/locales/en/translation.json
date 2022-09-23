@@ -24,7 +24,8 @@
   },
   "notifications": {
     "CollectionType": {
-      "document_deleted": "Folder deleted."
+      "document_deleted": "Folder deleted.",
+      "nonempty": "Can't remove non-empty folder."
     },
     "DocumentType": {
       "document_deleted": "Document deleted."

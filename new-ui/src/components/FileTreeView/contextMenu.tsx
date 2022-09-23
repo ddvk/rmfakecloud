@@ -58,7 +58,7 @@ export default function ContextMenu({
       setTranslateX('')
     }
 
-    const menuHeight = 56
+    const menuHeight = 56 * 2
 
     if (windowHeight - y < menuHeight) {
       setTranslateY('-translate-y-full')
