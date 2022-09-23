@@ -13,7 +13,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (fs *FileSystemStorage) CreateFolder(uid, name string) (*storage.Document, error) {
+func (fs *FileSystemStorage) CreateFolder(uid, name, parentID string) (*storage.Document, error) {
 	docID := uuid.New().String()
 
 	// Create zip file
@@ -46,6 +46,7 @@ func (fs *FileSystemStorage) CreateFolder(uid, name string) (*storage.Document, 
 	md := messages.RawMetadata{
 		ID:             docID,
 		VissibleName:   strings.TrimSpace(name),
+		Parent:         parentID,
 		Version:        1,
 		ModifiedClient: time.Now().UTC().Format(time.RFC3339Nano),
 		Type:           models.CollectionType,

@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment } from 'react'
 import { DotsVerticalIcon, XIcon } from '@heroicons/react/solid'
 import { Menu, Transition } from '@headlessui/react'
 import { FolderAddIcon, CollectionIcon, ArrowsExpandIcon } from '@heroicons/react/outline'
@@ -7,6 +7,7 @@ import { FolderAddIcon, CollectionIcon, ArrowsExpandIcon } from '@heroicons/reac
 import { HashDoc } from '../../utils/models'
 
 export interface BreakcrumbItem {
+  id?: string
   title: string
   docs: HashDoc[]
   posX?: number
@@ -41,21 +42,16 @@ export default function Breadcrumbs(
     onMovingDocumentsSubmit
   } = params
   const { t } = useTranslation()
-  const [isShowCreateFolder, setIsShowCreateFolder] = useState(true)
 
   const onDiscardMovingDocuments = () => {
     discardMovingDocumentsFn && discardMovingDocumentsFn()
   }
 
-  useEffect(() => {
-    setIsShowCreateFolder(items.length <= 1)
-  }, [items])
-
   const innerDom = items.map((item, i) => {
     return (
       <li
         key={`breakcrumb-item-${i}`}
-        className="cursor-pointer after:mx-2 after:text-neutral-400 after:content-['>'] last:after:hidden"
+        className="cursor-pointer whitespace-nowrap after:mx-2 after:text-neutral-400 after:content-['>'] last:after:hidden"
         onClick={(e) => {
           e.preventDefault()
           if (onClickBreadcrumb) {
@@ -78,13 +74,15 @@ export default function Breadcrumbs(
         />
       ) : (
         <div className="flex">
-          <ul className="flex items-center text-sm font-semibold text-sky-600">{innerDom}</ul>
+          <ul className="relative flex max-w-full flex-nowrap items-center overflow-hidden text-ellipsis text-sm font-semibold text-sky-600">
+            {innerDom}
+          </ul>
           <Menu
             as="div"
             className="relative ml-auto"
           >
             <Menu.Button>
-              <DotsVerticalIcon className="h-6 w-6 transition-colors duration-300 hover:text-sky-600" />
+              <DotsVerticalIcon className="relative top-[3px] h-6 w-6 transition-colors duration-300 hover:text-sky-600" />
             </Menu.Button>
             <Transition
               as={Fragment}
@@ -103,7 +101,6 @@ export default function Breadcrumbs(
                         className={`${
                           active ? 'bg-slate-900 text-sky-600' : 'text-neutral-400'
                         } group flex w-full items-center rounded-md p-2 text-sm font-bold disabled:text-neutral-400/20`}
-                        disabled={!isShowCreateFolder}
                         onClick={() => {
                           onClickNewFolder && onClickNewFolder()
                         }}

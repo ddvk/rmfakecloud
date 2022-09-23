@@ -16,6 +16,7 @@ export interface HashDoc {
   type: HashDocType
   size: number
   extension?: string
+  parent?: string
   children?: HashDoc[]
   LastModified: string
 

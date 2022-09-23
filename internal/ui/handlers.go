@@ -12,6 +12,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/model"
 	"github.com/ddvk/rmfakecloud/internal/storage"
+	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
@@ -648,7 +649,20 @@ func (app *ReactAppWrapper) createFolder(c *gin.Context) {
 
 	uid := c.GetString(userIDContextKey)
 
-	doc, err := app.documentHandler.CreateFolder(uid, req.Name)
+	// Check parent is legal
+	if len(req.ParentID) > 0 {
+		md, err := app.metadataStore.GetMetadata(uid, req.ParentID)
+		if err != nil {
+			badReq(c, err.Error())
+			return
+		}
+		if md.Type != models.CollectionType {
+			badReq(c, "parent is not folder")
+			return
+		}
+	}
+
+	doc, err := app.documentHandler.CreateFolder(uid, req.Name, req.ParentID)
 
 	if err != nil {
 		log.Error(err)

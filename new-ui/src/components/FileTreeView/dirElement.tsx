@@ -62,7 +62,7 @@ export default function DirElement(params: HashDocElementProp) {
         let promise: Promise<AxiosResponse> | null = null
 
         if (mode === 'creating') {
-          promise = createFolder(values.name)
+          promise = createFolder(values.name, doc.parent)
         }
 
         if (mode === 'editing') {

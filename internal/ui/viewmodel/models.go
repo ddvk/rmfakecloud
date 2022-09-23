@@ -225,6 +225,6 @@ type UpdateDoc struct {
 }
 
 type NewFolder struct {
+	Name     string `json:"name" binding:"required"`
 	ParentID string `json:"parentId"`
-	Name     string `json:"name"`
 }

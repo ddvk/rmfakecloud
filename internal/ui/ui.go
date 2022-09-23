@@ -33,7 +33,8 @@ type codeGenerator interface {
 type documentHandler interface {
 	CreateDocument(uid, name, parent string, stream io.Reader) (doc *storage.Document, err error)
 	CreateFolder(uid, name, parent string) (doc *storage.Document, err error)
-	GetAllMetadata(uid string) (documents []*messages.RawMetadata, err error)
+	RemoveDocument(uid, docid string) error
+	GetAllMetadata(uid string) (do []*messages.RawMetadata, err error)
 	ExportDocument(uid, id, format string, exportOption storage.ExportOption) (stream io.ReadCloser, err error)
 	GetMetadata(uid, id string) (*messages.RawMetadata, error)
 	UpdateMetadata(uid string, r *messages.RawMetadata) error
