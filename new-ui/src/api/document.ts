@@ -64,6 +64,6 @@ export function exportDocument(id: string): Promise<AxiosResponse> {
   })
 }
 
-export function createFolder(name: string): Promise<AxiosResponse> {
-  return requests.post('/ui/api/folders', { name })
+export function createFolder(name: string, parent?: string): Promise<AxiosResponse> {
+  return requests.post('/ui/api/folders', { name, parentId: parent || '' })
 }

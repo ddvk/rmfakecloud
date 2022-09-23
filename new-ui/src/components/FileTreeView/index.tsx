@@ -25,7 +25,7 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
   // Selected doc when click on a file
   const [selected, setSelected] = useState<HashDoc | null>(null)
   // Breadcrumbs
-  const [breakcrumbItems, setBreakcrumbItems] = useState<BreakcrumbItem[]>([])
+  const [breadcrumbItems, setBreakcrumbItems] = useState<BreakcrumbItem[]>([])
   // Breadcrumbs mode switch animation between normal/moving documents
   const [breadcrumbsAnimationClass, setBreadcrumbsAnimationClass] = useState('')
   // Whether show docs reloading component
@@ -40,8 +40,6 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
   const [isShowMovingDocumentsFolders, setIsShowMovingDocumentsFolders] = useState(false)
   // Hack for trigger reload docs
   const [innerReloadCnt, setInnerReloadCnt] = useState(0)
-  // Auto enter speicified folder when docs reloaded
-  const [stayInFolder, setStayInFolder] = useState<HashDoc | null>(null)
   // Selected folder when right clicked or long pressed
   const [contextMenuDoc, setContextMenuDoc] = useState<{
     doc: HashDoc
@@ -61,24 +59,26 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
       return
     }
 
-    if (breakcrumbItems.length > 0) {
-      breakcrumbItems[breakcrumbItems.length - 1].posX = window.pageXOffset
-      breakcrumbItems[breakcrumbItems.length - 1].posY = window.pageYOffset
+    if (breadcrumbItems.length > 0) {
+      breadcrumbItems[breadcrumbItems.length - 1].posX = window.pageXOffset
+      breadcrumbItems[breadcrumbItems.length - 1].posY = window.pageYOffset
     }
 
-    const items: BreakcrumbItem[] = [...breakcrumbItems, { title: dir.name, docs: dir.children }]
+    const items: BreakcrumbItem[] = [
+      ...breadcrumbItems,
+      { id: dir.id, title: dir.name, docs: dir.children }
+    ]
 
     setBreakcrumbItems(items)
     setSelected(null)
     setContextMenuDoc(null)
     setDocs(dir.children)
-    setStayInFolder(dir)
     clearTimeout(pressTimer)
   }
 
   function popd(toIndex?: number) {
     toIndex = toIndex || 0
-    const items: BreakcrumbItem[] = [...breakcrumbItems]
+    const items: BreakcrumbItem[] = [...breadcrumbItems]
 
     while (items.length > toIndex + 1) {
       items.pop()
@@ -93,9 +93,6 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
         return { ...doc, preMode: undefined, mode: 'display' }
       })
     )
-    if (toIndex === 0) {
-      setStayInFolder(null)
-    }
     if (item.posX || item.posY) {
       setRememberedPos({
         x: item.posX || 0,
@@ -111,23 +108,43 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
       .then((response) => {
         const data = response.data as { Entries: HashDoc[]; Trash: HashDoc[] }
 
-        const breadcrumbItems = [{ title: t('nav.documents'), docs: data.Entries }]
+        const newBreadcrumbItems: BreakcrumbItem[] =
+          breadcrumbItems.length === 0
+            ? [{ title: t('nav.documents'), docs: data.Entries }]
+            : [{ ...breadcrumbItems[0], docs: data.Entries }]
+
         let docs = data.Entries
 
-        if (stayInFolder) {
-          data.Entries.forEach((entry) => {
-            if (entry.id === stayInFolder.id) {
-              breadcrumbItems.push({
+        for (let i = 1; i < breadcrumbItems.length; i++) {
+          let found = false
+          const breadcrumbItem = breadcrumbItems[i]
+
+          for (const entry of docs) {
+            if (entry.id === breadcrumbItem.id) {
+              newBreadcrumbItems.push({
+                ...breadcrumbItem,
+                id: entry.id,
                 title: entry.name,
                 docs: entry.children || []
               })
               docs = entry.children || []
+              found = true
+              break
             }
-          })
+          }
+          if (!found) {
+            break
+          }
         }
 
-        setBreakcrumbItems(breadcrumbItems)
+        setBreakcrumbItems(newBreadcrumbItems)
         setDocs(docs)
+        const last = newBreadcrumbItems[newBreadcrumbItems.length - 1]
+
+        setRememberedPos({
+          x: last.posX || 0,
+          y: last.posY || 0
+        })
 
         return response
       })
@@ -139,6 +156,31 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [t, reloadCnt, innerReloadCnt])
+
+  // Remember scroll position
+  useEffect(() => {
+    function handler() {
+      setBreakcrumbItems((items) => {
+        return items.map((item, i) => {
+          if (i < items.length - 1) {
+            return item
+          }
+
+          return {
+            ...item,
+            posX: window.pageXOffset,
+            posY: window.pageYOffset
+          }
+        })
+      })
+    }
+
+    window.addEventListener('scroll', handler)
+
+    return function () {
+      window.removeEventListener('scroll', handler)
+    }
+  }, [])
 
   useEffect(() => {
     if (isMovingDocuments) {
@@ -194,7 +236,7 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
             : 'fill-neutral-400'
         } ${
           isActivedOrNext() ? 'mt-px' : 'border-t border-slate-800'
-        } hover:-mx-4 hover:bg-slate-800 hover:fill-neutral-200 hover:px-4 hover:text-neutral-200`}
+        } md:hover:-mx-4 md:hover:bg-slate-800 md:hover:fill-neutral-200 md:hover:px-4 md:hover:text-neutral-200`}
         doc={doc}
         index={i}
         multiple={isMovingDocuments}
@@ -274,22 +316,22 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
             return entity
           })
 
-          setDocs(newDocs)
-        }}
-        onFolderCreated={(doc, i) => {
-          setDocs((prevDocs) => {
-            return prevDocs.map((entity, index) => {
-              if (index === i) {
-                return {
-                  ...doc,
-                  preMode: 'creating',
-                  mode: 'display'
-                }
+          setBreakcrumbItems((items) => {
+            return items.map((item, i) => {
+              if (i < items.length - 1) {
+                return item
               }
 
-              return entity
+              return {
+                ...item,
+                docs: newDocs
+              }
             })
           })
+          setDocs(newDocs)
+        }}
+        onFolderCreated={() => {
+          setInnerReloadCnt(innerReloadCnt + 1)
         }}
         onFolderCreationDiscarded={(_doc, i) => {
           setDocs((prevDocs) => {
@@ -318,23 +360,10 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
     )
   })
 
-  function removeDoc(doc: HashDoc) {
-    const newDocs: HashDoc[] = []
-
-    for (const docEntry of docs) {
-      if (doc.id === docEntry.id) {
-        continue
-      }
-      newDocs.push(docEntry)
-    }
-
-    setDocs(newDocs)
-  }
-
-  const onDocDeleted = (doc: HashDoc) => {
+  const onDocDeleted = () => {
     setSelected(null)
     setRemovingFolder(null)
-    removeDoc(doc)
+    setInnerReloadCnt(innerReloadCnt + 1)
   }
 
   const onDocEditing = (doc: HashDoc) => {
@@ -360,7 +389,7 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
         checkedDocCount={checkedDocs.length}
         className={`sticky top-0 z-10 mt-8 border-b border-slate-100/10 bg-slate-900 py-4 ${breadcrumbsAnimationClass}`}
         isMovingDocuments={isMovingDocuments}
-        items={breakcrumbItems}
+        items={breadcrumbItems}
         onClickBreadcrumb={(_item, index) => popd(index)}
         onClickMoveDocuments={() => {
           setIsMovingDocuments(true)
@@ -372,6 +401,10 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
               id: '',
               name: '',
               type: 'CollectionType',
+              parent:
+                breadcrumbItems.length > 1
+                  ? breadcrumbItems[breadcrumbItems.length - 1].id
+                  : undefined,
               size: 0,
               LastModified: '',
               mode: 'creating'

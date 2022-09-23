@@ -28,7 +28,7 @@ func TestFileCreateFolder_CreateFolder(t *testing.T) {
 
 	fs := NewStorage(cfg)
 
-	doc, err := fs.CreateFolder(testuser, "TestDir")
+	doc, err := fs.CreateFolder(testuser, "TestDir", "")
 	if err != nil {
 		t.Error(err)
 	}

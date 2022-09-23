@@ -201,5 +201,6 @@ type UpdateDoc struct {
 
 // NewFolder new folder creation
 type NewFolder struct {
-	Name string `json:"name" binding:"required"`
+	Name     string `json:"name" binding:"required"`
+	ParentID string `json:"parentId"`
 }
