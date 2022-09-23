@@ -1,6 +1,6 @@
 /* eslint-disable tailwindcss/no-custom-classname */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PulseLoader } from 'react-spinners'
 import { v4 as uuidv4 } from 'uuid'
@@ -52,7 +52,7 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
   const [removingFolder, setRemovingFolder] = useState<HashDoc | null>(null)
 
   // Long press timeout id
-  let pressTimer: NodeJS.Timeout
+  const pressTimer = useRef<NodeJS.Timeout | null>(null)
 
   function pushd(dir: HashDoc) {
     if (dir.type === 'DocumentType' || undefined === dir.children) {
@@ -73,7 +73,9 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
     setSelected(null)
     setContextMenuDoc(null)
     setDocs(dir.children)
-    clearTimeout(pressTimer)
+    if (pressTimer.current) {
+      clearTimeout(pressTimer.current)
+    }
   }
 
   function popd(toIndex?: number) {
@@ -339,10 +341,11 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
           })
         }}
         onTouchEnd={() => {
-          clearTimeout(pressTimer)
+          pressTimer.current && clearTimeout(pressTimer.current)
         }}
         onTouchMove={() => {
-          clearTimeout(pressTimer)
+          pressTimer.current && clearTimeout(pressTimer.current)
+          setContextMenuDoc(null)
         }}
         onTouchStart={(e) => {
           if (doc.type === 'DocumentType') {
@@ -351,7 +354,7 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
           if (isMovingDocuments) {
             return
           }
-          pressTimer = setTimeout(() => {
+          pressTimer.current = setTimeout(() => {
             setSelected(null)
             setContextMenuDoc({ doc, index: i, x: e.touches[0].clientX, y: e.touches[0].clientY })
           }, 1000)
@@ -398,7 +401,7 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
         onClickNewFolder={() => {
           setDocs((prevDocs) => {
             const newFolder: HashDoc = {
-              id: '',
+              id: uuidv4(),
               name: '',
               type: 'CollectionType',
               parent:

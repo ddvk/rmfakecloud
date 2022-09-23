@@ -137,7 +137,7 @@ function ContextMenuItem({
   return (
     <div className="w-full p-2">
       <button
-        className="flex w-full items-center rounded p-2 transition-colors hover:bg-slate-900 hover:text-sky-600"
+        className="flex w-full flex-nowrap items-center rounded p-2 transition-colors hover:bg-slate-900 hover:text-sky-600"
         onClick={onClick}
         onMouseUp={(e) => {
           e.stopPropagation()
