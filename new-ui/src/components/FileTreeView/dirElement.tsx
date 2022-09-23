@@ -1,6 +1,7 @@
 /* eslint-disable tailwindcss/no-custom-classname, @typescript-eslint/no-unused-vars */
 
 import { FolderIcon } from '@heroicons/react/outline'
+import { AxiosResponse } from 'axios'
 import { ErrorMessage, Field, Form, Formik } from 'formik'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -8,7 +9,7 @@ import { PulseLoader } from 'react-spinners'
 import { toast } from 'react-toastify'
 import * as Yup from 'yup'
 
-import { createFolder } from '../../api/document'
+import { createFolder, renameDocument } from '../../api/document'
 import { inputClassName } from '../../utils/form'
 import { HashDoc } from '../../utils/models'
 
@@ -40,7 +41,8 @@ export default function DirElement(params: HashDocElementProp) {
   if (!mode) {
     mode = 'display'
   }
-  const creatingToDisplay = mode === 'display' && preMode === 'creating'
+  const creatingOrEditingToDisplay =
+    mode === 'display' && (preMode === 'creating' || preMode === 'editing')
 
   const formFadeout = () => {
     setTimeout(() => {
@@ -48,7 +50,7 @@ export default function DirElement(params: HashDocElementProp) {
     }, 500)
   }
 
-  if (creatingToDisplay) {
+  if (creatingOrEditingToDisplay) {
     formFadeout()
   }
 
@@ -57,14 +59,35 @@ export default function DirElement(params: HashDocElementProp) {
       initialValues={{ name: doc.name }}
       validationSchema={validationSchema}
       onSubmit={(values, { setSubmitting }) => {
+        let promise: Promise<AxiosResponse> | null = null
+
+        if (mode === 'creating') {
+          promise = createFolder(values.name)
+        }
+
+        if (mode === 'editing') {
+          promise = renameDocument(doc.id, values.name)
+        }
+
+        if (!promise) {
+          return
+        }
+
         setSubmitting(true)
 
-        createFolder(values.name)
+        promise
           .then((response) => {
-            const newDoc = { ...(response.data as HashDoc), children: [] }
+            if (mode === 'creating') {
+              const newDoc = { ...(response.data as HashDoc), children: [] }
 
-            toast.success(t('notifications.folder_created'))
-            onFolderCreated && onFolderCreated(newDoc, index)
+              toast.success(t('notifications.folder_created'))
+              onFolderCreated && onFolderCreated(newDoc, index)
+            }
+
+            if (mode === 'editing') {
+              toast.success('notifications.folder_renamed')
+              onDocRenamed && onDocRenamed(doc, values.name)
+            }
 
             return 'ok'
           })
@@ -79,7 +102,7 @@ export default function DirElement(params: HashDocElementProp) {
       {({ isSubmitting, errors, touched }) => (
         <Form
           className={`w-full overflow-hidden ${
-            creatingToDisplay ? 'animate-roll-up' : 'animate-roll-down'
+            creatingOrEditingToDisplay ? 'animate-roll-up' : 'animate-roll-down'
           }`}
         >
           <div className="mb-4">
@@ -100,7 +123,7 @@ export default function DirElement(params: HashDocElementProp) {
           </div>
           <div className="flex">
             <button
-              className="mr-2 w-full basis-1/2 rounded border border-slate-600 py-3 font-bold text-neutral-200 focus:outline-none"
+              className="mr-2 w-full basis-1/2 rounded border border-slate-600 bg-slate-900 py-3 font-bold text-neutral-200 focus:outline-none"
               type="button"
               onClick={(e) => {
                 e.preventDefault()
@@ -135,7 +158,7 @@ export default function DirElement(params: HashDocElementProp) {
 
   let innerDom: JSX.Element
 
-  if (mode === 'creating') {
+  if (mode === 'creating' || mode === 'editing') {
     innerDom = formDom
   } else {
     innerDom = (
@@ -154,7 +177,7 @@ export default function DirElement(params: HashDocElementProp) {
         className={`flex cursor-pointer py-6 ${className || ''}`}
         {...remainParams}
         onClick={(e) => {
-          if (doc.mode === 'creating') {
+          if (doc.mode === 'creating' || doc.mode === 'editing') {
             return
           }
 
@@ -163,10 +186,13 @@ export default function DirElement(params: HashDocElementProp) {
 
           onClickDoc && onClickDoc(doc)
         }}
+        onMouseUp={(e) => {
+          e.stopPropagation()
+        }}
       >
         {innerDom}
       </div>
-      {creatingToDisplay && !unmountForm ? formDom : <></>}
+      {creatingOrEditingToDisplay && !unmountForm ? formDom : <></>}
     </>
   )
 }

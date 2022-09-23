@@ -19,6 +19,7 @@
   "notifications": {
     "document_deleted": "文档已删除",
     "document_renamed": "文档已重命名",
+    "folder_renamed": "文件夹已重命名",
     "folder_created": "文件夹已创建",
     "documents_moved": "已移动{{total}}份文档: 成功: {{succeeded}}份, 失败: {{failed}}份"
   },
