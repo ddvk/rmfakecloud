@@ -75,10 +75,12 @@ export default function ContextMenu({
 
     window.addEventListener('scroll', handler)
     window.addEventListener('mouseup', handler)
+    window.addEventListener('touchmove', handler)
 
     return () => {
       window.removeEventListener('scroll', handler)
       window.removeEventListener('mouseup', handler)
+      window.removeEventListener('touchmove', handler)
     }
   }, [onDismissMenu])
 
