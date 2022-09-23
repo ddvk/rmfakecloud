@@ -46,6 +46,15 @@ export default function RemoveDocDialog({
           return
         }
 
+        if (type === 'CollectionType' && doc.children !== undefined && doc.children.length > 0) {
+          setIsOpen(false)
+          setTimeout(() => {
+            onDismissDialog && onDismissDialog()
+          }, 200)
+          toast.error(t('notifications.CollectionType.nonempty'))
+          return
+        }
+
         setIsLoading(true)
 
         deleteDocument(doc.id)

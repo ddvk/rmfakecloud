@@ -299,6 +299,9 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
         onTouchEnd={() => {
           clearTimeout(pressTimer)
         }}
+        onTouchMove={() => {
+          clearTimeout(pressTimer)
+        }}
         onTouchStart={(e) => {
           if (doc.type === 'DocumentType') {
             return

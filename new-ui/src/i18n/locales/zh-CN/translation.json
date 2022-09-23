@@ -24,7 +24,8 @@
   },
   "notifications": {
     "CollectionType": {
-      "document_deleted": "文件夹已删除"
+      "document_deleted": "文件夹已删除",
+      "nonempty": "文件夹非空，无法删除"
     },
     "DocumentType": {
       "document_deleted": "文档已删除"
