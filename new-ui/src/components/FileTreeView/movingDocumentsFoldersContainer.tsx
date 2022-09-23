@@ -1,7 +1,7 @@
 import { Transition } from '@headlessui/react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { XIcon } from '@heroicons/react/outline'
+import { ChevronLeftIcon } from '@heroicons/react/outline'
 import { PulseLoader } from 'react-spinners'
 
 import { HashDoc } from '../../utils/models'
@@ -9,6 +9,7 @@ import { listDocuments } from '../../api'
 import { MD_SCREEN_SIZE } from '../../utils/size'
 
 import DirElement from './dirElement'
+import Breadcrumbs, { BreakcrumbItem } from './breadcrumb'
 
 interface MovingDocumentsFoldersContainerProps {
   show: boolean
@@ -28,6 +29,35 @@ export default function MovingDocumentsFoldersContainer(
   const [isLoading, setIsLoading] = useState(false)
   const [folders, setFolders] = useState<HashDoc[]>([])
   const [selected, setSelected] = useState<HashDoc | null>(null)
+  const [breadcrumbItems, setBreakcrumbItems] = useState<BreakcrumbItem[]>([])
+
+  function pushd(dir: HashDoc) {
+    if (dir.type === 'DocumentType' || undefined === dir.children) {
+      return
+    }
+    const folders = (dir.children || []).filter((child) => child.type !== 'DocumentType')
+
+    setSelected(dir)
+    setFolders(folders)
+    setBreakcrumbItems((items) => {
+      return [...items, { id: dir.id, title: dir.name, docs: folders, folder: dir }]
+    })
+  }
+
+  function popd(toIndex?: number) {
+    const maxIndex =
+      toIndex !== undefined ? toIndex : breadcrumbItems.length > 1 ? breadcrumbItems.length - 2 : 0
+    const items: BreakcrumbItem[] = [...breadcrumbItems].filter((_doc, i) => i <= maxIndex)
+    const lastItem = items[items.length - 1]
+
+    if (!lastItem.folder) {
+      setSelected(null)
+    } else {
+      setSelected(lastItem.folder)
+    }
+    setFolders(lastItem.docs)
+    setBreakcrumbItems(items)
+  }
 
   useEffect(() => {
     if (show) {
@@ -63,8 +93,9 @@ export default function MovingDocumentsFoldersContainer(
           if (entry.type !== 'DocumentType') {
             folders.push(entry)
           }
-          setFolders(folders)
         }
+        setFolders(folders)
+        setBreakcrumbItems([{ title: t('nav.documents'), docs: folders }])
 
         return true
       })
@@ -74,7 +105,7 @@ export default function MovingDocumentsFoldersContainer(
       .finally(() => {
         setIsLoading(false)
       })
-  }, [show])
+  }, [show, t])
 
   const children = folders.map((folder, i) => {
     function isActivedOrNext(): boolean {
@@ -104,16 +135,11 @@ export default function MovingDocumentsFoldersContainer(
           selected && selected.id === folder.id
             ? '-mx-4 bg-slate-800 fill-neutral-200 px-4 text-neutral-200'
             : 'fill-neutral-400'
-        } ${isActivedOrNext() ? 'mt-px' : 'border-t border-slate-800'}`}
+        } ${isActivedOrNext() ? 'mt-px' : i > 0 ? 'border-t border-slate-800' : ''}`}
         doc={folder}
         index={i}
         onClickDoc={(doc) => {
-          if (selected && doc.id === selected.id) {
-            setSelected(null)
-
-            return
-          }
-          setSelected(doc)
+          pushd(doc)
         }}
       />
     )
@@ -161,20 +187,34 @@ export default function MovingDocumentsFoldersContainer(
                 <Loader />
               ) : (
                 <>
-                  <div className="sticky top-0 mt-4 flex items-center bg-slate-900 py-6 text-neutral-200">
-                    <button
-                      className="mr-2 h-6 w-6 shrink-0 rounded-full bg-slate-100/10"
-                      onClick={discardFn}
-                    >
-                      <XIcon className="mx-auto h-4 w-4" />
-                    </button>
-                    <h1 className="overflow-hidden text-ellipsis whitespace-nowrap font-bold">
-                      {t('documents.breadcrumbs.move_documents_container.title', {
-                        folder:
-                          selected?.name ||
-                          t('documents.breadcrumbs.move_documents_container.root_folder')
-                      })}
-                    </h1>
+                  <div className="sticky top-0 mt-4 border-b border-slate-800 bg-slate-900 pt-6 text-neutral-200">
+                    <div className="flex items-center">
+                      <button
+                        className="relative left-[-6px] h-6 w-6 shrink-0"
+                        onClick={() => {
+                          if (breadcrumbItems.length > 1) {
+                            popd()
+                          } else {
+                            discardFn()
+                          }
+                        }}
+                      >
+                        <ChevronLeftIcon className="mx-auto h-6 w-6" />
+                      </button>
+                      <h1 className="overflow-hidden text-ellipsis whitespace-nowrap font-bold">
+                        {t('documents.breadcrumbs.move_documents_container.title', {
+                          folder:
+                            selected?.name ||
+                            t('documents.breadcrumbs.move_documents_container.root_folder')
+                        })}
+                      </h1>
+                    </div>
+                    <Breadcrumbs
+                      className="mt-2 mb-4"
+                      hideMoreMenu={true}
+                      items={breadcrumbItems}
+                      onClickBreadcrumb={(_item, toIndex) => popd(toIndex)}
+                    />
                   </div>
                   {children}
                 </>

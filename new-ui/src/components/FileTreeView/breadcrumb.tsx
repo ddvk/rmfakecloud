@@ -10,6 +10,7 @@ export interface BreakcrumbItem {
   id?: string
   title: string
   docs: HashDoc[]
+  folder?: HashDoc
   posX?: number
   posY?: number
 }
@@ -24,6 +25,7 @@ export default function Breadcrumbs(
     items: BreakcrumbItem[]
     className?: string
     isMovingDocuments?: boolean
+    hideMoreMenu?: boolean
     checkedDocCount?: number
     onClickBreadcrumb?: (item: BreakcrumbItem, index: number) => void
     onClickNewFolder?: () => void
@@ -33,6 +35,7 @@ export default function Breadcrumbs(
   const {
     items,
     className,
+    hideMoreMenu,
     checkedDocCount,
     isMovingDocuments,
     onClickBreadcrumb,
@@ -77,60 +80,64 @@ export default function Breadcrumbs(
           <ul className="relative flex max-w-full flex-nowrap items-center overflow-hidden text-ellipsis text-sm font-semibold text-sky-600">
             {innerDom}
           </ul>
-          <Menu
-            as="div"
-            className="relative ml-auto"
-          >
-            <Menu.Button>
-              <DotsVerticalIcon className="relative top-[3px] h-6 w-6 transition-colors duration-300 hover:text-sky-600" />
-            </Menu.Button>
-            <Transition
-              as={Fragment}
-              enter="transition ease-out duration-100"
-              enterFrom="transform opacity-0 scale-95"
-              enterTo="transform opacity-100 scale-100"
-              leave="transition ease-in duration-75"
-              leaveFrom="transform opacity-100 scale-100"
-              leaveTo="transform opacity-0 scale-95"
+          {hideMoreMenu ? (
+            <></>
+          ) : (
+            <Menu
+              as="div"
+              className="relative ml-auto"
             >
-              <Menu.Items className="absolute right-1 mt-1 w-56 origin-top-right divide-y divide-slate-100/20 rounded-md bg-slate-800 shadow-lg ring-1 ring-slate-800 focus:outline-none">
-                <div className="p-2">
-                  <Menu.Item>
-                    {({ active }) => (
-                      <button
-                        className={`${
-                          active ? 'bg-slate-900 text-sky-600' : 'text-neutral-400'
-                        } group flex w-full items-center rounded-md p-2 text-sm font-bold disabled:text-neutral-400/20`}
-                        onClick={() => {
-                          onClickNewFolder && onClickNewFolder()
-                        }}
-                      >
-                        <FolderAddIcon className="mr-2 h-5 w-5" />
-                        {t('documents.breadcrumbs.new_folder')}
-                      </button>
-                    )}
-                  </Menu.Item>
-                </div>
-                <div className="p-2">
-                  <Menu.Item>
-                    {({ active }) => (
-                      <button
-                        className={`${
-                          active ? 'bg-slate-900 text-sky-600' : 'text-neutral-400'
-                        } group flex w-full items-center rounded-md p-2 text-sm font-bold`}
-                        onClick={() => {
-                          onClickMoveDocuments && onClickMoveDocuments()
-                        }}
-                      >
-                        <CollectionIcon className="mr-2 h-5 w-5" />
-                        {t('documents.breadcrumbs.move_documents')}
-                      </button>
-                    )}
-                  </Menu.Item>
-                </div>
-              </Menu.Items>
-            </Transition>
-          </Menu>
+              <Menu.Button>
+                <DotsVerticalIcon className="relative top-[3px] h-6 w-6 transition-colors duration-300 hover:text-sky-600" />
+              </Menu.Button>
+              <Transition
+                as={Fragment}
+                enter="transition ease-out duration-100"
+                enterFrom="transform opacity-0 scale-95"
+                enterTo="transform opacity-100 scale-100"
+                leave="transition ease-in duration-75"
+                leaveFrom="transform opacity-100 scale-100"
+                leaveTo="transform opacity-0 scale-95"
+              >
+                <Menu.Items className="absolute right-1 mt-1 w-56 origin-top-right divide-y divide-slate-100/20 rounded-md bg-slate-800 shadow-lg ring-1 ring-slate-800 focus:outline-none">
+                  <div className="p-2">
+                    <Menu.Item>
+                      {({ active }) => (
+                        <button
+                          className={`${
+                            active ? 'bg-slate-900 text-sky-600' : 'text-neutral-400'
+                          } group flex w-full items-center rounded-md p-2 text-sm font-bold disabled:text-neutral-400/20`}
+                          onClick={() => {
+                            onClickNewFolder && onClickNewFolder()
+                          }}
+                        >
+                          <FolderAddIcon className="mr-2 h-5 w-5" />
+                          {t('documents.breadcrumbs.new_folder')}
+                        </button>
+                      )}
+                    </Menu.Item>
+                  </div>
+                  <div className="p-2">
+                    <Menu.Item>
+                      {({ active }) => (
+                        <button
+                          className={`${
+                            active ? 'bg-slate-900 text-sky-600' : 'text-neutral-400'
+                          } group flex w-full items-center rounded-md p-2 text-sm font-bold`}
+                          onClick={() => {
+                            onClickMoveDocuments && onClickMoveDocuments()
+                          }}
+                        >
+                          <CollectionIcon className="mr-2 h-5 w-5" />
+                          {t('documents.breadcrumbs.move_documents')}
+                        </button>
+                      )}
+                    </Menu.Item>
+                  </div>
+                </Menu.Items>
+              </Transition>
+            </Menu>
+          )}
         </div>
       )}
     </div>
