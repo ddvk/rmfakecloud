@@ -298,7 +298,9 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
             if (doc.id === entity.id) {
               entity.preMode = entity.mode
               entity.mode = 'display'
-              setSelected(entity)
+              if (entity.type === 'DocumentType') {
+                setSelected(entity)
+              }
             }
 
             return entity
