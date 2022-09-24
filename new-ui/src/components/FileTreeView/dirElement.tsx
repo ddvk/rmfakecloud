@@ -129,7 +129,12 @@ export default function DirElement(params: HashDocElementProp) {
                 e.preventDefault()
                 e.stopPropagation()
                 setUnmountForm(false)
-                onFolderCreationDiscarded && onFolderCreationDiscarded(doc, index)
+                if (doc.mode === 'creating') {
+                  onFolderCreationDiscarded && onFolderCreationDiscarded(doc, index)
+                }
+                if (doc.mode === 'editing') {
+                  onDocEditingDiscard && onDocEditingDiscard(doc)
+                }
               }}
             >
               {t('documents.new_folder_form.cancel-btn')}
