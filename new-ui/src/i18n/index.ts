@@ -8,7 +8,7 @@ i18n.on('languageChanged', (lng) => {
   if (lng === 'en') {
     return
   }
-  import(`./locales/${lng}/moment`)
+  import(`./locales/${lng}/moment.js`)
     .then(({ default: locale }) => {
       moment.locale(lng, locale)
 
