@@ -18,6 +18,9 @@ import NotFound from './components/404'
 import ResetPassword from './components/ResetPassword'
 import Devices from './components/Devices'
 import DocumentViewer from './components/DocumentViewer'
+import Users from './components/Users'
+import NewUser from './components/NewUser'
+import EditUser from './components/EditUser'
 
 createRoot(document.getElementById('root') as Element).render(
   <React.StrictMode>
@@ -39,6 +42,18 @@ createRoot(document.getElementById('root') as Element).render(
             <Route
               element={<Devices />}
               path="devices"
+            />
+            <Route
+              element={<Users />}
+              path="users"
+            />
+            <Route
+              element={<NewUser />}
+              path="users/new"
+            />
+            <Route
+              element={<EditUser />}
+              path="users/:userId/edit"
             />
           </Route>
           <Route element={<Fullscreen />}>

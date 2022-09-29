@@ -38,3 +38,10 @@ export interface HashDocMetadata {
   Bookmarked?: boolean
   Parent?: string
 }
+
+export interface AppUser {
+  userid: string
+  email?: string
+  name?: string
+  CreatedAt?: string
+}

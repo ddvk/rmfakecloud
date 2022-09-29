@@ -6,7 +6,10 @@
     "titles": {
       "login": "登录",
       "404": "没有此页面",
-      "reset_password": "修改密码"
+      "reset_password": "修改密码",
+      "users": "用户",
+      "new_user": "创建新用户",
+      "edit_user": "编辑用户"
     },
     "unknown_error": "发生未知错误",
     "dialog": {
@@ -23,6 +26,7 @@
     }
   },
   "notifications": {
+    "forbidden": "权限不足",
     "CollectionType": {
       "document_deleted": "文件夹已删除",
       "nonempty": "文件夹非空，无法删除"
@@ -33,7 +37,11 @@
     "document_renamed": "文档已重命名",
     "folder_renamed": "文件夹已重命名",
     "folder_created": "文件夹已创建",
-    "documents_moved": "已移动{{total}}份文档: 成功: {{succeeded}}份, 失败: {{failed}}份"
+    "documents_moved": "已移动{{total}}份文档: 成功: {{succeeded}}份, 失败: {{failed}}份",
+    "user_removed": "用户已删除",
+    "failed_user_remove": "用户删除失败",
+    "user_created": "新用户已创建",
+    "user_updated": "用户已更新"
   },
   "nav": {
     "documents": "文档",
@@ -138,6 +146,53 @@
   "document_viewer": {
     "pdf": {
       "load_error": "PDF 文件加载失败"
+    }
+  },
+  "users": {
+    "list_table": {
+      "columns": {
+        "user_id": {
+          "title": "用户 ID"
+        },
+        "email": {
+          "title": "邮箱"
+        },
+        "name": {
+          "title": "姓名"
+        },
+        "created_at": {
+          "title": "创建时间"
+        },
+        "actions": {
+          "title": "操作",
+          "new_user": "创建新用户",
+          "edit": "编辑",
+          "remove": "删除",
+          "remove_confirmation": "确认要删除用户 {{user}} 吗?"
+        }
+      }
+    }
+  },
+  "new_user": {
+    "form": {
+      "user_id": {
+        "label": "用户 ID",
+        "required": "缺少用户 ID"
+      },
+      "email": {
+        "label": "邮箱",
+        "required": "缺少邮箱",
+        "invalid": "邮箱格式错误"
+      },
+      "password": {
+        "label": "密码",
+        "required": "缺少密码",
+        "min": "密码长度太短"
+      },
+      "password_confirmation": {
+        "label": "密码确认",
+        "equals": "两次输入的密码不相同"
+      }
     }
   }
 }
