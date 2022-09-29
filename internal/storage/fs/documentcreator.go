@@ -26,6 +26,7 @@ func createContent(fileType string) string {
 		`
 {
 	"dummyDocument": false,
+	"coverPageNumber": 0,
 	"extraMetadata": {
 		"LastPen": "Finelinerv2",
 		"LastTool": "Finelinerv2",
