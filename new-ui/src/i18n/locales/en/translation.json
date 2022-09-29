@@ -6,7 +6,10 @@
     "titles": {
       "login": "Login",
       "404": "Page Not Found",
-      "reset_password": "Reset Password"
+      "reset_password": "Reset Password",
+      "users": "Users",
+      "new_user": "New User",
+      "edit_user": "Edit User"
     },
     "unknown_error": "Unknown error occurs",
     "dialog": {
@@ -23,6 +26,7 @@
     }
   },
   "notifications": {
+    "forbidden": "Not permit",
     "CollectionType": {
       "document_deleted": "Folder deleted.",
       "nonempty": "Can't remove non-empty folder."
@@ -33,7 +37,11 @@
     "document_renamed": "Document renamed.",
     "folder_renamed": "Folder renamed.",
     "folder_created": "New folder created.",
-    "documents_moved": "[{{succeeded}}/{{total}}] documents moved, {{failed}} failed."
+    "documents_moved": "[{{succeeded}}/{{total}}] documents moved, {{failed}} failed.",
+    "user_removed": "User removed.",
+    "failed_user_remove": "Failed to remove user.",
+    "user_created": "User created.",
+    "user_updated": "User updated"
   },
   "nav": {
     "documents": "Documents",
@@ -138,6 +146,53 @@
   "document_viewer": {
     "pdf": {
       "load_error": "Failed to load PDF File"
+    }
+  },
+  "users": {
+    "list_table": {
+      "columns": {
+        "user_id": {
+          "title": "User ID"
+        },
+        "email": {
+          "title": "Email"
+        },
+        "name": {
+          "title": "Name"
+        },
+        "created_at": {
+          "title": "Created At"
+        },
+        "actions": {
+          "title": "Actions",
+          "new_user": "New User",
+          "edit": "Edit",
+          "remove": "Remove",
+          "remove_confirmation": "Confirm to remove user {{user}}?"
+        }
+      }
+    }
+  },
+  "new_user": {
+    "form": {
+      "user_id": {
+        "label": "User ID",
+        "required": "User ID is required"
+      },
+      "email": {
+        "label": "Email",
+        "required": "Email is required",
+        "invalid": "Invalid email"
+      },
+      "password": {
+        "label": "Password",
+        "required": "password is required",
+        "min": "password is too short"
+      },
+      "password_confirmation": {
+        "label": "Password Confirmation",
+        "equals": "password confirmation doesn't match"
+      }
     }
   }
 }

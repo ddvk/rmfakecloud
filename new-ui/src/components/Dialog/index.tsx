@@ -3,7 +3,7 @@ import { Transition, Dialog } from '@headlessui/react'
 import { useTranslation } from 'react-i18next'
 import { PulseLoader } from 'react-spinners'
 
-interface ConfirmationDialogProps {
+export interface ConfirmationDialogProps {
   isOpen: boolean
   isLoading?: boolean
   onClose: () => void
