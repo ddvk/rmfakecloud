@@ -6,6 +6,7 @@ import { PulseLoader } from 'react-spinners'
 import { v4 as uuidv4 } from 'uuid'
 import PQueue from 'p-queue'
 import { toast } from 'react-toastify'
+import Sticky from 'react-stickynode'
 
 import { listDocuments } from '../../api'
 import { moveDocumentTo } from '../../api/document'
@@ -17,7 +18,6 @@ import TreeElement from './treeElement'
 import MovingDocumentsFoldersContainer from './movingDocumentsFoldersContainer'
 import ContextMenu from './contextMenu'
 import RemoveDocDialog from './removeDocDialog'
-import Sticky from 'react-stickynode'
 
 export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
   const { t } = useTranslation()
