@@ -144,7 +144,7 @@ function ContextMenuItem({
         }}
       >
         {icon}
-        <p className="text-sm font-bold whitespace-nowrap">{title}</p>
+        <p className="whitespace-nowrap text-sm font-bold">{title}</p>
       </button>
     </div>
   )
