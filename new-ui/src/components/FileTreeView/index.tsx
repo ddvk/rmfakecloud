@@ -398,7 +398,7 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
 
   return (
     <>
-      <Sticky>
+      <Sticky innerZ={10}>
         <Breadcrumbs
           checkedDocCount={checkedDocs.length}
           className={`z-10 mx-4 border-b border-slate-100/10 bg-slate-900 py-4 ${breadcrumbsAnimationClass}`}
