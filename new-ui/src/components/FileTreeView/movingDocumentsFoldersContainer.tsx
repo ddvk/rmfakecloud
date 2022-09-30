@@ -30,6 +30,7 @@ export default function MovingDocumentsFoldersContainer(
   const [folders, setFolders] = useState<HashDoc[]>([])
   const [selected, setSelected] = useState<HashDoc | null>(null)
   const [breadcrumbItems, setBreakcrumbItems] = useState<BreakcrumbItem[]>([])
+  const [treeAnimation, setTreeAnimation] = useState('')
 
   function pushd(dir: HashDoc) {
     if (dir.type === 'DocumentType' || undefined === dir.children) {
@@ -42,6 +43,8 @@ export default function MovingDocumentsFoldersContainer(
     setBreakcrumbItems((items) => {
       return [...items, { id: dir.id, title: dir.name, docs: folders, folder: dir }]
     })
+    setTreeAnimation('animate-[slidein_150ms_ease-out]')
+    setTimeout(() => setTreeAnimation(''), 150)
   }
 
   function popd(toIndex?: number) {
@@ -57,6 +60,8 @@ export default function MovingDocumentsFoldersContainer(
     }
     setFolders(lastItem.docs)
     setBreakcrumbItems(items)
+    setTreeAnimation('animate-[slideout_150ms_ease-in]')
+    setTimeout(() => setTreeAnimation(''), 150)
   }
 
   useEffect(() => {
@@ -182,7 +187,7 @@ export default function MovingDocumentsFoldersContainer(
       >
         <div className="mx-auto h-full max-w-4xl">
           <div className="relative h-full overflow-y-auto rounded-t-3xl bg-slate-900 shadow-lg shadow-slate-900/50 md:mx-4">
-            <div className="h-auto min-h-full px-4 pb-[80px]">
+            <div className="h-auto min-h-full overflow-x-hidden px-4 pb-[80px]">
               {isLoading ? (
                 <Loader />
               ) : (
@@ -216,7 +221,7 @@ export default function MovingDocumentsFoldersContainer(
                       onClickBreadcrumb={(_item, toIndex) => popd(toIndex)}
                     />
                   </div>
-                  {children}
+                  <div className={`${treeAnimation}`}>{children}</div>
                 </>
               )}
             </div>

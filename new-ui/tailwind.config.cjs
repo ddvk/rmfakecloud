@@ -24,6 +24,14 @@ module.exports = {
         'flip-x-reverse': {
           '0%': { transform: 'rotateX(-180deg)' },
           '100%': { transform: 'rotateX(0deg)' }
+        },
+        slidein: {
+          '0%': { transform: 'translateX(100%)', opacity: 0 },
+          '100%': { transform: 'translateX(0)', opacity: 1 }
+        },
+        slideout: {
+          '0%': { transform: 'translateX(0)', opacity: 1 },
+          '100%': { transform: 'translateX(100%)', opacity: 0 }
         }
       },
       animation: {

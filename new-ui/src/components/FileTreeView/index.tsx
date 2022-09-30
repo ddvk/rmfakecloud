@@ -49,7 +49,10 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
   } | null>(null)
   // Remembered position to scroll to after docs changed
   const [rememberedPos, setRememberedPos] = useState<{ x: number; y: number } | null>(null)
+  // Folder to be removed when click "Remove Folder" on context menu
   const [removingFolder, setRemovingFolder] = useState<HashDoc | null>(null)
+  // Folder enter/exit animation
+  const [treeAnimation, setTreeAnimation] = useState('')
 
   // Long press timeout id
   const pressTimer = useRef<NodeJS.Timeout | null>(null)
@@ -76,6 +79,8 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
     if (pressTimer.current) {
       clearTimeout(pressTimer.current)
     }
+    setTreeAnimation('animate-[slidein_150ms_ease-out]')
+    setTimeout(() => setTreeAnimation(''), 150)
   }
 
   function popd(toIndex?: number) {
@@ -95,6 +100,8 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
         return { ...doc, preMode: undefined, mode: 'display' }
       })
     )
+    setTreeAnimation('animate-[slideout_150ms_ease-in]')
+    setTimeout(() => setTreeAnimation(''), 150)
     if (item.posX || item.posY) {
       setRememberedPos({
         x: item.posX || 0,
@@ -443,9 +450,11 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
           )}
         </div>
       ) : children.length > 0 ? (
-        <div className="min-h-[calc(100vh-475px)] md:min-h-screen">{children}</div>
+        <div className={`min-h-[calc(100vh-475px)] md:min-h-screen ${treeAnimation}`}>
+          {children}
+        </div>
       ) : (
-        <div className="relative mt-20 text-center text-slate-100/10">
+        <div className={`relative mt-20 text-center text-slate-100/10 ${treeAnimation}`}>
           <svg
             className="mx-auto h-16 w-16"
             fill="none"
