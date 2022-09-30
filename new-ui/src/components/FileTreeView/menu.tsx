@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
 import { HashDoc } from '../../utils/models'
+import { isWindows } from '../../utils/ua'
 
 import RemoveDocDialog from './removeDocDialog'
 
@@ -31,7 +32,9 @@ export default function FileMenu(params: FileMenuProps) {
       />
       <Transition
         as="div"
-        className={`fixed inset-x-0 bottom-0 z-10 w-full ${removingDoc ? 'md:pr-4' : ''}`}
+        className={`fixed inset-x-0 bottom-0 z-10 w-full ${
+          removingDoc && isWindows() ? 'md:pr-4' : ''
+        }`}
         enter="transition-translate-y duration-300"
         enterFrom="translate-y-full"
         enterTo="translate-y-0"
