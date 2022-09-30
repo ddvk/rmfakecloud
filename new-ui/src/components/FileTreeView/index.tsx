@@ -443,7 +443,7 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
           )}
         </div>
       ) : children.length > 0 ? (
-        <div>{children}</div>
+        <div className="min-h-[calc(100vh-475px)] md:min-h-screen">{children}</div>
       ) : (
         <div className="relative mt-20 text-center text-slate-100/10">
           <svg

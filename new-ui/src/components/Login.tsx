@@ -73,7 +73,7 @@ export default function Login() {
           >
             {({ values, errors, touched, handleSubmit, handleChange, isSubmitting }) => (
               <form
-                className="mb-4 rounded px-8 pt-6 pb-8 shadow-md"
+                className="mb-4 rounded px-8 pt-6 pb-8"
                 onSubmit={handleSubmit}
               >
                 <div className="mb-4">
