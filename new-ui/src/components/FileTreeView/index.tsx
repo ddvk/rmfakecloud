@@ -399,7 +399,7 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
     <>
       <Breadcrumbs
         checkedDocCount={checkedDocs.length}
-        className={`sticky top-0 z-10 mt-8 border-b border-slate-100/10 bg-slate-900 py-4 ${breadcrumbsAnimationClass}`}
+        className={`sticky top-0 z-10 mx-4 mt-8 border-b border-slate-100/10 bg-slate-900 py-4 ${breadcrumbsAnimationClass}`}
         isMovingDocuments={isMovingDocuments}
         items={breadcrumbItems}
         onClickBreadcrumb={(_item, index) => popd(index)}
@@ -450,7 +450,7 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
           )}
         </div>
       ) : children.length > 0 ? (
-        <div className={`min-h-[calc(100vh-475px)] md:min-h-screen ${treeAnimation}`}>
+        <div className={`min-h-[calc(100vh-475px)] md:min-h-screen mx-4 ${treeAnimation}`}>
           {children}
         </div>
       ) : (

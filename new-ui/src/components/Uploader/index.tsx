@@ -74,7 +74,7 @@ export default function Uploader({
         }}
       >
         {({ getRootProps, getInputProps }) => (
-          <section>
+          <section className="mx-4">
             <div
               {...getRootProps()}
               className="flex h-44 flex-col items-center justify-center whitespace-nowrap rounded border-4 border-dashed border-slate-100/10 p-4 text-center text-slate-100/20 md:h-80"
