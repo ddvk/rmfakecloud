@@ -41,7 +41,7 @@ export default function FileMenu(params: FileMenuProps) {
         show={new Boolean(doc).valueOf()}
       >
         <div className="-mx-4 max-w-4xl border-t border-slate-100/20 md:mx-auto md:border-none">
-          <div className="rounded bg-slate-900 md:border-x md:border-t md:border-slate-100/20 md:mx-4">
+          <div className="rounded bg-slate-900 md:mx-4 md:border-x md:border-t md:border-slate-100/20">
             <div className="flex justify-between md:justify-around">
               <Link
                 className="basis-1/4 p-4 "

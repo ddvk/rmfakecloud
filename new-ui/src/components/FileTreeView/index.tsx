@@ -450,7 +450,7 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
           )}
         </div>
       ) : children.length > 0 ? (
-        <div className={`min-h-[calc(100vh-475px)] md:min-h-screen mx-4 ${treeAnimation}`}>
+        <div className={`mx-4 min-h-[calc(100vh-475px)] md:min-h-screen ${treeAnimation}`}>
           {children}
         </div>
       ) : (
