@@ -31,7 +31,7 @@ export default function FileMenu(params: FileMenuProps) {
       />
       <Transition
         as="div"
-        className="sticky bottom-0 z-10 w-full"
+        className={`fixed inset-x-0 bottom-0 z-10 w-full ${removingDoc ? 'md:pr-4' : ''}`}
         enter="transition-translate-y duration-300"
         enterFrom="translate-y-full"
         enterTo="translate-y-0"
@@ -41,7 +41,7 @@ export default function FileMenu(params: FileMenuProps) {
         show={new Boolean(doc).valueOf()}
       >
         <div className="-mx-4 max-w-4xl border-t border-slate-100/20 md:mx-auto md:border-none">
-          <div className="rounded bg-slate-900 md:border-x md:border-t md:border-slate-100/20">
+          <div className="rounded bg-slate-900 md:border-x md:border-t md:border-slate-100/20 md:mx-4">
             <div className="flex justify-between md:justify-around">
               <Link
                 className="basis-1/4 p-4 "

@@ -18,8 +18,10 @@ function App() {
       </Helmet>
       <div className="min-h-[calc(100vh-63px)] bg-slate-900 text-neutral-400 md:min-h-[calc(100vh-57px)]">
         <div className="mx-auto max-w-4xl">
-          <div className="relative mx-4 overflow-x-hidden py-8">
-            <h1 className="mb-8 text-2xl font-semibold text-neutral-200">{t('nav.documents')}</h1>
+          <div className="relative overflow-hidden py-8">
+            <h1 className="mb-8 mx-4 text-2xl font-semibold text-neutral-200">
+              {t('nav.documents')}
+            </h1>
 
             <Uploader
               onFilesUploaded={() => {
