@@ -17,6 +17,7 @@ import TreeElement from './treeElement'
 import MovingDocumentsFoldersContainer from './movingDocumentsFoldersContainer'
 import ContextMenu from './contextMenu'
 import RemoveDocDialog from './removeDocDialog'
+import Sticky from 'react-stickynode'
 
 export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
   const { t } = useTranslation()
@@ -397,42 +398,44 @@ export default function FileTreeView({ reloadCnt }: { reloadCnt?: number }) {
 
   return (
     <>
-      <Breadcrumbs
-        checkedDocCount={checkedDocs.length}
-        className={`sticky top-0 z-10 mx-4 mt-8 border-b border-slate-100/10 bg-slate-900 py-4 ${breadcrumbsAnimationClass}`}
-        isMovingDocuments={isMovingDocuments}
-        items={breadcrumbItems}
-        onClickBreadcrumb={(_item, index) => popd(index)}
-        onClickMoveDocuments={() => {
-          setIsMovingDocuments(true)
-          setSelected(null)
-        }}
-        onClickNewFolder={() => {
-          setDocs((prevDocs) => {
-            const newFolder: HashDoc = {
-              id: uuidv4(),
-              name: '',
-              type: 'CollectionType',
-              parent:
-                breadcrumbItems.length > 1
-                  ? breadcrumbItems[breadcrumbItems.length - 1].id
-                  : undefined,
-              size: 0,
-              LastModified: '',
-              mode: 'creating'
-            }
+      <Sticky>
+        <Breadcrumbs
+          checkedDocCount={checkedDocs.length}
+          className={`z-10 mx-4 border-b border-slate-100/10 bg-slate-900 py-4 ${breadcrumbsAnimationClass}`}
+          isMovingDocuments={isMovingDocuments}
+          items={breadcrumbItems}
+          onClickBreadcrumb={(_item, index) => popd(index)}
+          onClickMoveDocuments={() => {
+            setIsMovingDocuments(true)
+            setSelected(null)
+          }}
+          onClickNewFolder={() => {
+            setDocs((prevDocs) => {
+              const newFolder: HashDoc = {
+                id: uuidv4(),
+                name: '',
+                type: 'CollectionType',
+                parent:
+                  breadcrumbItems.length > 1
+                    ? breadcrumbItems[breadcrumbItems.length - 1].id
+                    : undefined,
+                size: 0,
+                LastModified: '',
+                mode: 'creating'
+              }
 
-            return [newFolder, ...prevDocs]
-          })
-        }}
-        onDiscardMovingDocuments={() => {
-          setCheckedDocs([])
-          setIsMovingDocuments(false)
-        }}
-        onMovingDocumentsSubmit={() => {
-          setIsShowMovingDocumentsFolders(true)
-        }}
-      />
+              return [newFolder, ...prevDocs]
+            })
+          }}
+          onDiscardMovingDocuments={() => {
+            setCheckedDocs([])
+            setIsMovingDocuments(false)
+          }}
+          onMovingDocumentsSubmit={() => {
+            setIsShowMovingDocumentsFolders(true)
+          }}
+        />
+      </Sticky>
       {isLoading ? (
         <div className="relative mt-24 text-center">
           <PulseLoader
