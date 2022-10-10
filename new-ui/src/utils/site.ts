@@ -1,4 +1,4 @@
-const SITE_TITLE = 'Remarkable Personal Cloud'
+const SITE_TITLE = 'rmfakecloud'
 
 export function fullSiteTitle(title?: string): string {
   title = title?.trim()
