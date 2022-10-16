@@ -11,9 +11,9 @@ import (
 	"net/mail"
 	"net/smtp"
 	"net/url"
+	"path/filepath"
 	"strings"
 
-	"github.com/ddvk/rmfakecloud/internal/common"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -67,7 +67,7 @@ func (b *Builder) AddFile(name string, data io.Reader, contentType string) {
 	}
 	attachment := emailAttachment{
 		contentType: contentType,
-		filename:    common.Sanitize(name),
+		filename:    filepath.Base(name),
 		data:        data,
 	}
 	b.attachments = append(b.attachments, attachment)

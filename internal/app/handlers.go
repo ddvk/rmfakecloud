@@ -300,14 +300,14 @@ func (app *App) uploadDocV2(c *gin.Context) {
 
 	metaJSON, err := base64.StdEncoding.DecodeString(meta)
 	if err != nil {
-		log.Warn(handlerLog, "meta not base64 encoded")
+		log.Warn(handlerLog, "meta not base64 encoded ", err)
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 	m := metapayload{}
 	err = json.Unmarshal(metaJSON, &m)
 	if err != nil {
-		log.Warn(handlerLog, "meta not json")
+		log.Warn(handlerLog, "meta not json ", err)
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
@@ -608,6 +608,23 @@ func (app *App) syncComplete(c *gin.Context) {
 	c.JSON(http.StatusOK, res)
 }
 
+func (app *App) syncCompleteV2(c *gin.Context) {
+	log.Info("Sync completeV2")
+	uid := c.GetString(userIDKey)
+	deviceID := c.GetString(deviceIDKey)
+
+	var req messages.SyncCompletedRequestV2
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Error(err)
+		badReq(c, err.Error())
+		return
+	}
+	log.Info("got sync completed, gen: ", req.Generation)
+	res := messages.SyncCompleted{
+		ID: app.hub.NotifySync(uid, deviceID),
+	}
+	c.JSON(http.StatusOK, res)
+}
 func formatExpires(t time.Time) string {
 	return t.UTC().Format(time.RFC3339Nano)
 }
@@ -662,10 +679,11 @@ func (app *App) blobStorageUpload(c *gin.Context) {
 		return
 	}
 	response := messages.BlobStorageResponse{
-		Method:       http.MethodPut,
-		RelativePath: req.RelativePath,
-		URL:          url,
-		Expires:      formatExpires(exp),
+		Method:         http.MethodPut,
+		RelativePath:   req.RelativePath,
+		URL:            url,
+		Expires:        formatExpires(exp),
+		MaxRequestSize: 7000000000,
 	}
 	c.JSON(http.StatusOK, response)
 }
@@ -838,7 +856,7 @@ func (app *App) connectWebSocket(c *gin.Context) {
 	go app.hub.ConnectWs(uid, deviceID, connection)
 }
 
-/// remove remarkable ads
+// / remove remarkable ads
 func stripAds(msg string) string {
 	br := "<br>--<br>"
 	i := strings.Index(msg, br)

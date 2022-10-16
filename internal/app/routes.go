@@ -109,6 +109,6 @@ func (app *App) registerRoutes(router *gin.Engine) {
 
 		authRoutes.POST("/sync/v2/signed-urls/downloads", app.blobStorageDownload)
 		authRoutes.POST("/sync/v2/signed-urls/uploads", app.blobStorageUpload)
-		authRoutes.POST("/sync/v2/sync-complete", app.syncComplete)
+		authRoutes.POST("/sync/v2/sync-complete", app.syncCompleteV2)
 	}
 }

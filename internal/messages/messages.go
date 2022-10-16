@@ -11,10 +11,11 @@ type BlobStorageRequest struct {
 
 // BlobStorageResponse  what else
 type BlobStorageResponse struct {
-	Expires      string `json:"expires"`
-	Method       string `json:"method"`
-	RelativePath string `json:"relative_path"`
-	URL          string `json:"url"`
+	Expires        string `json:"expires"`
+	Method         string `json:"method"`
+	RelativePath   string `json:"relative_path"`
+	URL            string `json:"url"`
+	MaxRequestSize int64  `json:"maxuploadsize_bytes,omitempty"`
 }
 
 // StatusResponse what else
@@ -109,7 +110,13 @@ type DeviceTokenRequest struct {
 
 // SyncCompleted sync ended
 type SyncCompleted struct {
-	ID string `json:"id"`
+	ID         string `json:"id"`
+	Generation int64  `json:"generation"`
+}
+
+// SyncCompleted sync ended
+type SyncCompletedRequestV2 struct {
+	Generation int64 `json:"generation"`
 }
 
 // IntegrationsResponse integrations

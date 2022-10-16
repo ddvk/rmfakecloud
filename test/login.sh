@@ -1,3 +1,4 @@
 #!/bin/sh
-URL="localhost:3000"
-curl -d '{"email":"fake@rmfake", "password":"foobar"}' $URL/ui/api/login
+. ./common.env
+
+curl -d '{"email":"'$USER'", "password":"'$PASS'"}' $URL/ui/api/login
