@@ -130,6 +130,7 @@ func NewUser(userID string, rawPassword string) (*User, error) {
 		Password:      password,
 		CreatedAt:     time.Now(),
 		UpdatedAt:     time.Now(),
+		Sync15:        true,
 	}, nil
 }
 
