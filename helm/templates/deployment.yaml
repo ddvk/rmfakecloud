@@ -74,6 +74,13 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}
+          volumeMounts:
+            - name: config
+              mountPath: /data/
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName:  {{ include "rmfakecloud.fullname" . }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}

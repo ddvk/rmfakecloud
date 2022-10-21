@@ -24,6 +24,11 @@ rmfakecloud:
   # Your domaine name (ex: https://local.appspot.com ) 
   storage_url: "http://127.0.0.1:3000"
 
+
+persistence:
+  storageClassName: "longhorn"
+  enabled: true 
+
 # Don't touch these settings if you don't know what you're doing.
 imagePullSecrets: []
 nameOverride: ""
