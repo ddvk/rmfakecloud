@@ -59,6 +59,8 @@ spec:
               value: "{{ .Values.rmfakecloud.rm_trust_proxy }}"
             - name: STORAGE_URL
               value: "{{ .Values.rmfakecloud.storage_url }}"
+            - name: RM_HTTPS_COOKIE
+              value: "{{ .Values.rmfakecloud.rm_https_cookie }}"
           ports:
             - name: http
               containerPort: 3000
@@ -73,14 +75,14 @@ spec:
               port: http
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-      {{- with .Values.nodeSelector }}
           volumeMounts:
             - name: config
               mountPath: /data/
       volumes:
         - name: config
           persistentVolumeClaim:
-            claimName:  {{ include "rmfakecloud.fullname" . }}
+            claimName: {{ include "rmfakecloud.fullname" . }}
+            {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}

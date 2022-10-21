@@ -15,7 +15,9 @@ You can get the application URL by running these commands:
   http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ .path }}
   {{- end }}
 {{- end }}
-
+{{- end }}
 Create your user using these commands: 
   export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "rmfakecloud.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
   kubectl exec $POD_NAME -- /rmfakecloud-docker setuser -u ddvk -a
+  kubectl delete pods $POD_NAME # Restart the pod
+
