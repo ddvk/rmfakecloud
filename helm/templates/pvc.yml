@@ -1,0 +1,14 @@
+{{- if .Values.persistence.enabled -}}
+{{- $fullName := include "rmfakecloud.fullname" . -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $fullName }}
+spec:
+  accessModes:
+      - ReadWriteOnce
+  storageClassName: {{ .Values.persistence.storageClassName }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.size }}
+{{- end }}
