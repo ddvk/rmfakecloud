@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "rmfakecloud.fullname" . }}
+  labels:
+    {{- include "rmfakecloud.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "rmfakecloud.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "rmfakecloud.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env: 
+            - name: JWT_SECRET_KEY
+              value: "{{ .Values.rmfakecloud.jwt_secret_key }}"
+            - name: RMAPI_HWR_APPLICATIONKEY
+              value: "{{ .Values.rmfakecloud.rmapi_hwr_applicationkey }}"
+            - name: RMAPI_HWR_HMAC
+              value: "{{ .Values.rmfakecloud.rmapi_hwr_hmac }}"
+            - name: RM_SMTP_FROM
+              value: "{{ .Values.rmfakecloud.rm_smtp_from }}"
+            - name: RM_SMTP_INSECURE_TLS
+              value: "{{ .Values.rmfakecloud.rm_smtp_insecure_tls }}"
+            - name: RM_SMTP_PASSWORD
+              value: "{{ .Values.rmfakecloud.rm_smtp_password }}"
+            - name: RM_SMTP_SERVER
+              value: "{{ .Values.rmfakecloud.rm_smtp_server }}"
+            - name: RM_SMTP_USERNAME
+              value: "{{ .Values.rmfakecloud.rm_smtp_username }}"
+            - name: RM_SMTP_HELO
+              value: "{{ .Values.rmfakecloud.rm_smtp_helo }}"
+            - name: RM_SMTP_NOTLS
+              value: "{{ .Values.rmfakecloud.rm_smtp_notls }}"
+            - name: RM_SMTP_STARTTLS
+              value: "{{ .Values.rmfakecloud.rm_smtp_starttls }}"
+            - name: RM_TRUST_PROXY
+              value: "{{ .Values.rmfakecloud.rm_trust_proxy }}"
+            - name: STORAGE_URL
+              value: "{{ .Values.rmfakecloud.storage_url }}"
+            - name: RM_HTTPS_COOKIE
+              value: "{{ .Values.rmfakecloud.rm_https_cookie }}"
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /data/
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: {{ include "rmfakecloud.fullname" . }}
+            {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

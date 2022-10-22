@@ -1,0 +1,6 @@
+apiVersion: v2
+name: rmfakecloud
+description: rmfakecloud is a clone of the cloud sync the remarkable tablet is using, in case you want to sync/backup your files and have full control of the hosting/storage environment.
+type: application
+version: 0.2.0
+appVersion: "0.0.9"

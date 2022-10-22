@@ -1,0 +1,67 @@
+replicaCount: 1
+
+image:
+  repository: ddvk/rmfakecloud
+  pullPolicy: Always
+  tag: "latest"
+
+rmfakecloud:
+  # The secret key used to sign the authentication token. Generate with : openssl rand -base64 48
+  jwt_secret_key: "WF1yQRu9blh4nPBzejnl8sgWCaVHvivyaOMcjmjxHSOka/Bd7dxPP6vObv81ThYI" 
+  # To use the handwriting recognition feature, you need first to create a free account on https://developer.myscript.com/ (up to 2000 free recognitions per month).
+  rmapi_hwr_applicationkey: 
+  rmapi_hwr_hmac: 
+  # See more here: https://ddvk.github.io/rmfakecloud/install/configuration/
+  rm_smtp_from: 
+  rm_smtp_insecure_tls: 
+  rm_smtp_password:
+  rm_smtp_server: 
+  rm_smtp_username: 
+  rm_trust_proxy: 
+  rm_smtp_helo: 
+  rm_smtp_notls: 
+  rm_smtp_starttls:
+  rm_https_cookie: false
+  # Your domaine name (ex: https://local.appspot.com ) 
+  storage_url: "http://localhost:3000"
+
+persistence:
+  storageClassName: "longhorn"
+  enabled: true 
+  size: "5Gi"
+
+# Don't touch these settings if you don't know what you're doing.
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+podAnnotations: {}
+podSecurityContext: {}
+securityContext: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+service:
+  type: ClusterIP
+  port: 3000
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations: {}
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+resources: 
+   limits:
+     cpu: 100m
+     memory: 256Mi
+   requests:
+     cpu: 100m
+     memory: 128Mi
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
