@@ -1,6 +1,10 @@
 package messages
 
-import "time"
+import (
+	"time"
+
+	"github.com/ddvk/rmfakecloud/internal/common"
+)
 
 // BlobStorageRequest else
 type BlobStorageRequest struct {
@@ -44,32 +48,32 @@ type NotificationMessage struct {
 
 // Attributes child object
 type Attributes struct {
-	Auth0UserID      string `json:"auth0UserID"`
-	Bookmarked       bool   `json:"bookmarked,omitempty"`
-	Event            string `json:"event"`
-	ID               string `json:"id,omitempty"`
-	Parent           string `json:"parent,omitempty"`
-	SourceDeviceDesc string `json:"sourceDeviceDesc"`
-	SourceDeviceID   string `json:"sourceDeviceID"`
-	Type             string `json:"type,omitempty"`
-	Version          string `json:"version,omitempty"`
-	VissibleName     string `json:"vissibleName,omitempty"`
+	Auth0UserID      string           `json:"auth0UserID"`
+	Bookmarked       bool             `json:"bookmarked,omitempty"`
+	Event            string           `json:"event"`
+	ID               string           `json:"id,omitempty"`
+	Parent           string           `json:"parent,omitempty"`
+	SourceDeviceDesc string           `json:"sourceDeviceDesc"`
+	SourceDeviceID   string           `json:"sourceDeviceID"`
+	Type             common.EntryType `json:"type,omitempty"`
+	Version          string           `json:"version,omitempty"`
+	VissibleName     string           `json:"vissibleName,omitempty"`
 }
 
-// RawMetadata just a raw document
+// RawMetadata just a raw document, used by the legacy api
 type RawMetadata struct {
-	ID                string `json:"ID"`
-	Version           int    `json:"Version"`
-	Message           string `json:"Message"`
-	Success           bool   `json:"Success"`
-	BlobURLGet        string `json:"BlobURLGet"`
-	BlobURLGetExpires string `json:"BlobURLGetExpires"`
-	ModifiedClient    string `json:"ModifiedClient"`
-	Type              string `json:"Type"`
-	VissibleName      string `json:"VissibleName"`
-	CurrentPage       int    `json:"CurrentPage"`
-	Bookmarked        bool   `json:"Bookmarked"`
-	Parent            string `json:"Parent"`
+	ID                string           `json:"ID"`
+	Version           int              `json:"Version"`
+	Message           string           `json:"Message"`
+	Success           bool             `json:"Success"`
+	BlobURLGet        string           `json:"BlobURLGet"`
+	BlobURLGetExpires string           `json:"BlobURLGetExpires"`
+	ModifiedClient    string           `json:"ModifiedClient"`
+	Type              common.EntryType `json:"Type"`
+	VissibleName      string           `json:"VissibleName"`
+	CurrentPage       int              `json:"CurrentPage"`
+	Bookmarked        bool             `json:"Bookmarked"`
+	Parent            string           `json:"Parent"`
 }
 
 // IDRequest request with only an id

@@ -22,8 +22,6 @@ const (
 	userIDKey      = "UserID"
 	deviceIDKey    = "DeviceID"
 	syncVersionKey = "SyncVersion"
-	Version10      = 10
-	Version15      = 15
 )
 
 // App web app
@@ -43,7 +41,7 @@ type App struct {
 // Start starts the app
 func (app *App) Start() {
 	// configs
-	log.Info("The device should use this storage URL: ", app.cfg.StorageURL, " Override with: ", config.EnvStorageURL)
+	log.Info("The device should use this Cloud URL: ", app.cfg.StorageURL, " Override with: ", config.EnvStorageURL)
 	log.Info("Documents will be saved in: ", app.cfg.DataDir)
 	log.Info("Listening on port: ", app.cfg.Port)
 
@@ -142,13 +140,14 @@ func NewApp(cfg *config.Config) App {
 			Cfg: cfg,
 		},
 	}
+	app.registerRoutes(router)
+
 	uiApp := ui.New(cfg, fsStorage, codeConnector, ntfHub, fsStorage, fsStorage)
+	uiApp.RegisterRoutes(router)
 
 	storageapp := fs.NewApp(cfg, fsStorage)
-
-	app.registerRoutes(router)
 	storageapp.RegisterRoutes(router)
-	uiApp.RegisterRoutes(router)
+
 	return app
 }
 

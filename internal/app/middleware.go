@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 )
@@ -40,9 +41,9 @@ func (app *App) authMiddleware() gin.HandlerFunc {
 			}
 		}
 		if isSync15 {
-			c.Set(syncVersionKey, Version15)
+			c.Set(syncVersionKey, common.Sync15)
 		} else {
-			c.Set(syncVersionKey, Version10)
+			c.Set(syncVersionKey, common.Sync10)
 		}
 
 		uid := strings.TrimPrefix(claims.Profile.UserID, "auth0|")

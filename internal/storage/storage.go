@@ -4,6 +4,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/model"
 )
@@ -14,6 +15,7 @@ type ExportOption int
 const (
 	ExportWithAnnotations ExportOption = iota
 	ExportOnlyAnnotations
+	ExportPayload
 )
 
 // DocumentStorer stores documents
@@ -55,7 +57,7 @@ type UserStorer interface {
 // Document represents a document in storage
 type Document struct {
 	ID      string
-	Type    string
+	Type    common.EntryType
 	Parent  string
 	Name    string
 	Version int

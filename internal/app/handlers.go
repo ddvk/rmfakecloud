@@ -206,8 +206,9 @@ func extFromContentType(contentType string) (string, error) {
 
 func (app *App) uploadDoc(c *gin.Context) {
 	uid := c.GetString(userIDKey)
-	syncVer := c.GetInt(syncVersionKey)
 	deviceID := c.GetString(deviceIDKey)
+	syncVer := getSyncVersion(c)
+
 	log.Info("uploading file for: ", uid)
 
 	form, err := c.MultipartForm()
@@ -277,12 +278,20 @@ func (app *App) uploadDoc(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+func getSyncVersion(c *gin.Context) common.SyncVersion {
+	syncVer, ok := c.Get(syncVersionKey)
+	if !ok {
+		panic("should have a sync version")
+	}
+	return syncVer.(common.SyncVersion)
+}
+
 // new read on rm api
 func (app *App) uploadDocV2(c *gin.Context) {
 	uid := c.GetString(userIDKey)
-	syncVer := c.GetInt(syncVersionKey)
 	deviceID := c.GetString(deviceIDKey)
 	log.Info("uploading file for: ", uid)
+	syncVer := getSyncVersion(c)
 
 	metaHeader := c.Request.Header["Rm-Meta"]
 	if len(metaHeader) < 1 {
@@ -340,9 +349,9 @@ func (app *App) uploadDocV2(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func saveUpload(app *App, syncVer int, uid, deviceID, fileName string, f io.ReadCloser) error {
+func saveUpload(app *App, syncVer common.SyncVersion, uid, deviceID, fileName string, f io.ReadCloser) error {
 	//HACK:
-	if syncVer == Version15 {
+	if syncVer == common.Sync15 {
 		log.Info("sync 15 upload")
 		_, err := app.blobStorer.CreateBlobDocument(uid, fileName, "", f)
 		if err != nil {

@@ -229,10 +229,10 @@ func (t *HashTree) Mirror(r RemoteStorage) (changed bool, err error) {
 	if err != nil {
 		return
 	}
-	if rootHash == "" && gen == 0 {
+	if rootHash == "" {
 		log.Println("Empty cloud")
 		t.Docs = nil
-		t.Generation = 0
+		t.Generation = gen
 		return
 	}
 

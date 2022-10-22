@@ -9,6 +9,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	BackendVersion string = "BackendVersion"
+)
+
+// IsAdmin checks if admin
 func IsAdmin(c *gin.Context) bool {
 	return c.GetBool(AdminRole)
 }
@@ -50,25 +55,19 @@ func (app *ReactAppWrapper) authMiddleware() gin.HandlerFunc {
 		}
 
 		scopes := strings.Fields(claims.Scopes)
-		newsync := false
+		c.Set(BackendVersion, common.Sync10)
 		for _, s := range scopes {
 			switch s {
 			case isSync15Key:
-				newsync = true
+				c.Set(BackendVersion, common.Sync15)
+				break
 			}
 		}
 
-		if newsync {
-			c.Set("backend", app.backend15)
-		} else {
-			c.Set("backend", app.backend10)
-
-		}
 		uid := claims.UserID
 		brid := claims.BrowserID
 		c.Set(userIDContextKey, uid)
 		c.Set(browserIDContextKey, brid)
-		c.Set(isSync15Key, newsync)
 		for _, r := range claims.Roles {
 			if r == AdminRole {
 				c.Set(AdminRole, true)

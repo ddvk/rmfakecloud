@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/gorilla/websocket"
 )
@@ -62,7 +63,7 @@ func (h *Hub) NotifySync(uid, deviceID string) string {
 // DocumentNotification notification of something
 type DocumentNotification struct {
 	ID      string
-	Type    string
+	Type    common.EntryType
 	Version int
 	Parent  string
 	Name    string

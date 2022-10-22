@@ -7,7 +7,6 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 )
 
 type backend15 struct {
@@ -16,7 +15,7 @@ type backend15 struct {
 }
 
 func (b *backend15) GetDocumentTree(uid string) (tree *viewmodel.DocumentTree, err error) {
-	hashTree, err := b.blobHandler.GetTree(uid)
+	hashTree, err := b.blobHandler.GetCachedTree(uid)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +32,17 @@ func (b *backend15) CreateDocument(uid, filename, parent string, stream io.Reade
 	return
 }
 
+func (b *backend15) UpdateDocument(uid, docID, name, parent string) (err error) {
+	return b.blobHandler.UpdateBlobDocument(uid, docID, name, parent)
+}
+func (b *backend15) CreateFolder(uid, name, parent string) (doc *storage.Document, err error) {
+	return b.blobHandler.CreateBlobFolder(uid, name, parent)
+}
+
+func (b *backend15) DeleteDocument(uid, docID string) (err error) {
+	return b.blobHandler.DeleteBlobDocument(uid, docID)
+}
+
 func (b *backend15) Sync(uid string) {
-	logrus.Info("notifying")
 	b.h.NotifySync(uid, uuid.NewString())
 }

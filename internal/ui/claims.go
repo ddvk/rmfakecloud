@@ -14,4 +14,6 @@ type WebUserClaims struct {
 
 // WebUsage used for the uid
 const WebUsage = "web"
+
+// AdminRole is admin
 const AdminRole = "Admin"

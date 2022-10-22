@@ -70,5 +70,4 @@ func (fs *FileSystemStorage) UpdateMetadata(uid string, r *messages.RawMetadata)
 	}
 	err = ioutil.WriteFile(filepath, js, 0600)
 	return err
-
 }

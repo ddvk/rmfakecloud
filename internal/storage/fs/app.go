@@ -210,11 +210,12 @@ func (app *App) uploadBlob(c *gin.Context) {
 
 	newgen, err := app.fs.StoreBlob(uid, blobID, body, generation)
 
+	if err == ErrorWrongGeneration {
+		c.AbortWithStatus(http.StatusPreconditionFailed)
+		return
+	}
+
 	if err != nil {
-		if err == ErrorWrongGeneration {
-			c.AbortWithStatus(http.StatusPreconditionFailed)
-			return
-		}
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return

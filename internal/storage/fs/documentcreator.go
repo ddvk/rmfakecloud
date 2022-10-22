@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/storage/models"
@@ -58,6 +59,32 @@ func createContent(fileType string) string {
 
 func extractID(r io.Reader) (string, error) {
 	return "", nil
+}
+
+func (fs *FileSystemStorage) CreateFolder(uid, name, parent string) (*storage.Document, error) {
+	//create metadata
+	docID := uuid.New().String()
+	metaData := createRawMedatadata(docID, name, parent, common.CollectionType)
+
+	jsn, err := json.Marshal(metaData)
+	if err != nil {
+		return nil, err
+	}
+
+	metafilePath := fs.getPathFromUser(uid, docID+models.MetadataFileExt)
+	err = ioutil.WriteFile(metafilePath, jsn, 0600)
+
+	if err != nil {
+		return nil, err
+	}
+	doc := &storage.Document{
+		ID:      docID,
+		Type:    metaData.Type,
+		Name:    name,
+		Version: 1,
+	}
+	//save metadata
+	return doc, nil
 }
 
 // CreateDocument creates a new document
@@ -127,7 +154,7 @@ func (fs *FileSystemStorage) CreateDocument(uid, filename, parent string, stream
 
 	//create metadata
 	name := strings.TrimSuffix(filename, ext)
-	doc1 := createRawMedatadata(docid, name, parent)
+	doc1 := createRawMedatadata(docid, name, parent, common.CollectionType)
 
 	jsn, err := json.Marshal(doc1)
 	if err != nil {
@@ -146,14 +173,14 @@ func (fs *FileSystemStorage) CreateDocument(uid, filename, parent string, stream
 	return
 }
 
-func createRawMedatadata(id, name, parent string) *messages.RawMetadata {
+func createRawMedatadata(id, name, parent string, doctype common.EntryType) *messages.RawMetadata {
 	doc := messages.RawMetadata{
 		ID:             id,
 		VissibleName:   name,
 		Version:        1,
 		ModifiedClient: time.Now().UTC().Format(time.RFC3339Nano),
 		CurrentPage:    0,
-		Type:           models.DocumentType,
+		Type:           doctype,
 		Parent:         parent,
 	}
 	return &doc
