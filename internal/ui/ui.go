@@ -21,9 +21,8 @@ type backend interface {
 	GetDocumentTree(uid string) (tree *viewmodel.DocumentTree, err error)
 	Export(uid, doc, exporttype string, opt storage.ExportOption) (stream io.ReadCloser, err error)
 	CreateDocument(uid, name, parent string, stream io.Reader) (doc *storage.Document, err error)
-	CreateFolder(uid, name, parent string) (doc *storage.Document, err error)
-	UpdateDocument(uid, docID, name, parent string) (err error)
-	DeleteDocument(uid, docID string) (err error)
+	DeleteDocument(uid, docid string) error
+	CreateFolder(uid, name, parent string) (*storage.Document, error)
 	Sync(uid string)
 }
 type codeGenerator interface {
@@ -44,9 +43,7 @@ type documentHandler interface {
 type blobHandler interface {
 	GetCachedTree(uid string) (tree *models.HashTree, err error)
 	CreateBlobDocument(uid, name, parent string, reader io.Reader) (doc *storage.Document, err error)
-	UpdateBlobDocument(uid, docID, name, parent string) (err error)
-	DeleteBlobDocument(uid, docID string) (err error)
-	CreateBlobFolder(uid, name, parent string) (doc *storage.Document, err error)
+	CreateBlobFolder(uid, name, parent string) (*storage.Document, error)
 	Export(uid, docid string) (io.ReadCloser, error)
 }
 

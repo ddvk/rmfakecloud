@@ -43,6 +43,10 @@ func (b *backend15) DeleteDocument(uid, docID string) (err error) {
 	return b.blobHandler.DeleteBlobDocument(uid, docID)
 }
 
+func (d *backend15) CreateFolder(uid, name, parent string) (*storage.Document, error) {
+	return d.blobHandler.CreateBlobFolder(uid, name, parent)
+}
+
 func (b *backend15) Sync(uid string) {
 	b.h.NotifySync(uid, uuid.NewString())
 }

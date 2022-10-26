@@ -174,3 +174,17 @@ func (d *backend10) DeleteDocument(uid, docID string) (err error) {
 	d.hub.Notify(uid, webDevice, ntf, messages.DocDeletedEvent)
 	return nil
 }
+
+func (d *backend10) CreateFolder(uid, name, parent string) (*storage.Document, error) {
+	if len(parent) > 0 {
+		md, err := d.metadataStore.GetMetadata(uid, parent)
+		if err != nil {
+			return nil, err
+		}
+		if md.Type != models.CollectionType {
+			return nil, errors.New("Parent is not a folder")
+		}
+	}
+
+	return d.documentHandler.CreateFolder(uid, name, parent)
+}
