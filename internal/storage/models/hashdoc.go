@@ -21,8 +21,11 @@ import (
 type HashDoc struct {
 	Files []*HashEntry
 	HashEntry
+
+	//extra fields that are serialized
 	MetadataFile
-	FileType string
+	PayloadType string
+	PayloadSize int64
 }
 
 func NewHashDocWithMeta(documentID string, meta MetadataFile) *HashDoc {
@@ -145,22 +148,23 @@ func (d *HashDoc) readMetadata(fileEntry string, r RemoteStorage) error {
 func (d *HashDoc) readContent(hash string, r RemoteStorage) error {
 	log.Println("Reading content: " + d.EntryName)
 
-	metadata := ContentFile{}
+	contentFile := ContentFile{}
 
 	meta, err := r.GetReader(hash)
 	if err != nil {
 		return err
 	}
 	defer meta.Close()
-	content, err := ioutil.ReadAll(meta)
+	contentBytes, err := ioutil.ReadAll(meta)
 	if err != nil {
 		return err
 	}
-	err = json.Unmarshal(content, &metadata)
+	err = json.Unmarshal(contentBytes, &contentFile)
 	if err != nil {
 		log.Printf("cannot read content %s %v", hash, err)
 	}
-	d.FileType = metadata.FileType
+	d.PayloadType = contentFile.FileType
+	d.Size = int64(contentFile.SizeInBytes)
 
 	return nil
 }

@@ -1,9 +1,12 @@
+#!/usr/bin/env ansible-playbook
 ---
 - hosts: rmfakecloud
   become: true
   name: install as service
   vars:
     service_name: rmfakecloud
+    user: rmfakecloud
+    group: rmfakecloud
   tasks:
     - name: stop service
       service:
@@ -12,15 +15,16 @@
 
     - name: user exists
       ansible.builtin.user:
-        name: rmfakecloud
-        group: rmfakecloud
+        name: '{{ user }}'
+        group: '{{ group }}'
 
     - name: copy binary
       ansible.builtin.copy:
           src: ../dist/rmfakecloud-arm64
           dest: /usr/bin/
-          owner: root
-          group: root
+          owner: '{{ user }}'
+          group: '{{ group }}'
+
 
     - name: copy service file
       ansible.builtin.copy:

@@ -63,10 +63,13 @@ func (d *backend10) GetDocumentTree(uid string) (tree *viewmodel.DocumentTree, e
 	if err != nil {
 		return nil, err
 	}
-	docs := make([]*viewmodel.Doc, 0)
+	docs := make([]*viewmodel.InternalDoc, 0)
 	for _, d := range documents {
-		lastMod, _ := time.Parse(time.RFC3339Nano, d.ModifiedClient)
-		docs = append(docs, &viewmodel.Doc{
+		lastMod, err := time.Parse(time.RFC3339Nano, d.ModifiedClient)
+		if err != nil {
+			log.Warn("incorrect time for: ", d.VissibleName, " value: ", lastMod)
+		}
+		docs = append(docs, &viewmodel.InternalDoc{
 			ID:           d.ID,
 			Parent:       d.Parent,
 			Name:         d.VissibleName,

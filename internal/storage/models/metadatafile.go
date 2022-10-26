@@ -1,6 +1,12 @@
 package models
 
-import "github.com/ddvk/rmfakecloud/internal/common"
+import (
+	"errors"
+	"strconv"
+	"time"
+
+	"github.com/ddvk/rmfakecloud/internal/common"
+)
 
 // MetadataFile content
 type MetadataFile struct {
@@ -16,6 +22,28 @@ type MetadataFile struct {
 	Deleted          bool             `json:"deleted"`
 	MetadataModified bool             `json:"metadatamodified"`
 }
+
+func ToTime(timeStamp string) (t time.Time, err error) {
+	t = time.Time{}
+	lastMod, err := strconv.ParseInt(timeStamp, 10, 64)
+	if err != nil {
+		return t, err
+	}
+	fromUnix := time.UnixMilli(lastMod)
+	if fromUnix.Year() > 9999 {
+		//json panics
+		return t, errors.New("incorrect time > 9999")
+	}
+	return fromUnix, nil
+}
+
+func FromTime(t time.Time) string {
+	if t.Year() > 9999 {
+		return "0"
+	}
+	return strconv.FormatInt(t.UnixMilli(), 10)
+}
+
 type ContentFile struct {
 	DummyDocument  bool          `json:"dummyDocument"`
 	ExtraMetadata  ExtraMetadata `json:"extraMetadata"`
@@ -29,6 +57,7 @@ type ContentFile struct {
 	Pages          []interface{} `json:"pages"`
 	TextScale      int           `json:"textScale"`
 	Transform      Transform     `json:"transform"`
+	SizeInBytes    int64         `json:"sizeInBytes"`
 }
 type ExtraMetadata struct {
 	LastPen             string `json:"LastPen"`

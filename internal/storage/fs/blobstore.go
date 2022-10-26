@@ -184,7 +184,7 @@ func (fs *FileSystemStorage) CreateBlobFolder(uid, foldername, parent string) (d
 		CollectionType:   common.CollectionType,
 		Parent:           parent,
 		Version:          1,
-		LastModified:     strconv.FormatInt(time.Now().UnixMilli(), 10),
+		LastModified:     models.FromTime(time.Now()),
 		Synced:           true,
 		MetadataModified: true,
 	}
@@ -301,7 +301,7 @@ func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, st
 		CollectionType:   common.DocumentType,
 		Parent:           parent,
 		Version:          1,
-		LastModified:     strconv.FormatInt(time.Now().UnixMilli(), 10),
+		LastModified:     models.FromTime(time.Now()),
 		Synced:           true,
 		MetadataModified: true,
 	}
@@ -319,6 +319,7 @@ func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, st
 	}
 
 	hashDoc := models.NewHashDocWithMeta(docid, metadata)
+	hashDoc.PayloadType = docName
 
 	err = hashDoc.AddFile(payloadEntry)
 	if err != nil {
@@ -370,6 +371,8 @@ func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, st
 	}
 	payloadEntry = models.NewHashEntry(payloadHash, docid+ext, size)
 	err = hashDoc.AddFile(payloadEntry)
+
+	hashDoc.PayloadSize = size
 
 	if err != nil {
 		return nil, err

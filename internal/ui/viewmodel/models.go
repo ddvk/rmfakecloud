@@ -2,7 +2,6 @@ package viewmodel
 
 import (
 	"sort"
-	"strconv"
 	"time"
 
 	"github.com/ddvk/rmfakecloud/internal/common"
@@ -38,19 +37,19 @@ type DocumentTree struct {
 	Trash   []Entry
 }
 
-type Doc struct {
-	ID           string           `json:"documentId"`
-	Version      int              `json:"version"`
-	LastModified time.Time        `json:"lastModified"`
-	Type         common.EntryType `json:"Type"`
-	FileType     string           `json:"fileType"`
-	Name         string           `json:"Name"`
-	CurrentPage  int              `json:"CurrentPage"`
-	Parent       string           `json:"Parent"`
-	Size         int
+type InternalDoc struct {
+	ID           string
+	Version      int
+	LastModified time.Time
+	Type         common.EntryType
+	FileType     string
+	Name         string
+	CurrentPage  int
+	Parent       string
+	Size         int64
 }
 
-func makeFolder(d *Doc) (entry *Directory) {
+func makeFolder(d *InternalDoc) (entry *Directory) {
 	entry = &Directory{
 		ID:           d.ID,
 		Name:         d.Name,
@@ -60,7 +59,7 @@ func makeFolder(d *Doc) (entry *Directory) {
 	}
 	return
 }
-func makeDocument(d *Doc) (entry Entry) {
+func makeDocument(d *InternalDoc) (entry Entry) {
 	entry = &Document{
 		ID:           d.ID,
 		Name:         d.Name,
@@ -73,16 +72,21 @@ func makeDocument(d *Doc) (entry Entry) {
 
 // DocTreeFromHashTree from hash tree
 func DocTreeFromHashTree(tree *models.HashTree) *DocumentTree {
-	docs := make([]*Doc, 0)
+	docs := make([]*InternalDoc, 0)
 	for _, d := range tree.Docs {
-		lastMod, _ := strconv.ParseInt(d.LastModified, 10, 64)
-		unixTime := time.UnixMilli(lastMod)
-		docs = append(docs, &Doc{
+
+		lastModified, err := models.ToTime(d.LastModified)
+		if err != nil {
+			log.Warn("incorrect lastmodified for: ", d.DocumentName, " value: ", d.LastModified, " ", err)
+		}
+		docs = append(docs, &InternalDoc{
 			ID:           d.EntryName,
 			Parent:       d.MetadataFile.Parent,
 			Name:         d.MetadataFile.DocumentName,
 			Type:         d.MetadataFile.CollectionType,
-			LastModified: unixTime,
+			LastModified: lastModified,
+			FileType:     d.PayloadType,
+			Size:         d.PayloadSize,
 		})
 	}
 
@@ -90,7 +94,7 @@ func DocTreeFromHashTree(tree *models.HashTree) *DocumentTree {
 }
 
 // DocTreeFromRawMetadata from raw metadata
-func DocTreeFromRawMetadata(documents []*Doc) *DocumentTree {
+func DocTreeFromRawMetadata(documents []*InternalDoc) *DocumentTree {
 	childParent := map[string]string{}
 	folders := map[string]*Directory{}
 	rootEntries := make([]Entry, 0)
@@ -185,7 +189,7 @@ type Document struct {
 	Name         string    `json:"name"`
 	DocumentType string    `json:"type"` //notebook, pdf, epub
 	LastModified time.Time `json:"lastModified"`
-	Size         int       `json:"size"`
+	Size         int64     `json:"size"`
 }
 
 // DocumentList is a list of documents
