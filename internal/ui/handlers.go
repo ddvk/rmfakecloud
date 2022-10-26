@@ -21,6 +21,7 @@ const (
 	isSync15Key         = "sync15"
 	docIDParam          = "docid"
 	uiLogger            = "[ui] "
+	ui10                = " [10] "
 	useridParam         = "userid"
 	cookieName          = ".Authrmfakecloud"
 )
@@ -223,7 +224,7 @@ func (app *ReactAppWrapper) newCode(c *gin.Context) {
 }
 
 func (app *ReactAppWrapper) getBackend(c *gin.Context) backend {
-	s, ok := c.Get(BackendVersion)
+	s, ok := c.Get(backendVersionKey)
 	if !ok {
 		panic("key not set")
 	}

@@ -31,7 +31,7 @@ type DocumentStorer interface {
 
 // BlobStorage stuff for sync15
 type BlobStorage interface {
-	GetBlobURL(uid, docid, scope string) (string, time.Time, error)
+	GetBlobURL(uid, docid string, write bool) (string, time.Time, error)
 
 	StoreBlob(uid, blobID string, s io.Reader, matchGeneration int64) (int64, error)
 	LoadBlob(uid, blobID string) (reader io.ReadCloser, gen int64, size int64, err error)

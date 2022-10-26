@@ -141,7 +141,7 @@ func (app *App) downloadBlob(c *gin.Context) {
 		return
 	}
 
-	if scope != "read" {
+	if scope != ReadScope {
 		c.AbortWithStatus(http.StatusForbidden)
 	}
 
@@ -163,10 +163,10 @@ func (app *App) downloadBlob(c *gin.Context) {
 	}
 	defer reader.Close()
 
-	if blobID == "root" {
-		log.Debug("Sending gen: ", generation)
+	if blobID == rootBlob {
+		log.Debug("Sending gen for root: ", generation)
+		c.Header(generationHeader, strconv.FormatInt(generation, 10))
 	}
-	c.Header(generationHeader, strconv.FormatInt(generation, 10))
 	c.DataFromReader(http.StatusOK, size, "application/octet-stream", reader, nil)
 }
 
@@ -189,7 +189,7 @@ func (app *App) uploadBlob(c *gin.Context) {
 		c.AbortWithStatus(http.StatusBadRequest)
 	}
 
-	if scope != "write" {
+	if scope != WriteScope {
 		log.Warn("wrong scope: " + scope)
 		c.AbortWithStatus(http.StatusForbidden)
 	}

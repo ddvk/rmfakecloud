@@ -49,6 +49,13 @@ type blobHandler interface {
 	Export(uid, docid string) (io.ReadCloser, error)
 }
 
+type notificationHub interface {
+	Deleted(uid, docID string) error
+	Added(uid, docID string) error
+	Updated(uid, docID string) error
+	Sync(uid string) error
+}
+
 // ReactAppWrapper encapsulates an app
 type ReactAppWrapper struct {
 	fs            http.FileSystem
@@ -81,7 +88,7 @@ func New(cfg *config.Config,
 	}
 	backend10 := &backend10{
 		documentHandler: docHandler,
-		h:               h,
+		hub:             h,
 	}
 	staticWrapper := ReactAppWrapper{
 		fs:            http.FS(sub),

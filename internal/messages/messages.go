@@ -6,6 +6,19 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/common"
 )
 
+// NotificationType type of the notifiction
+type NotificationType string
+
+const (
+	//DocAddedEvent addded
+	DocAddedEvent NotificationType = "DocAdded"
+	//DocDeletedEvent deleted
+	DocDeletedEvent NotificationType = "DocDeleted"
+
+	//SyncCompletedEvent sync completed sync15
+	SyncCompletedEvent NotificationType = "SyncComplete"
+)
+
 // BlobStorageRequest else
 type BlobStorageRequest struct {
 	Method       string `json:"http_method"`
@@ -50,7 +63,7 @@ type NotificationMessage struct {
 type Attributes struct {
 	Auth0UserID      string           `json:"auth0UserID"`
 	Bookmarked       bool             `json:"bookmarked,omitempty"`
-	Event            string           `json:"event"`
+	Event            NotificationType `json:"event"`
 	ID               string           `json:"id,omitempty"`
 	Parent           string           `json:"parent,omitempty"`
 	SourceDeviceDesc string           `json:"sourceDeviceDesc"`
@@ -127,6 +140,8 @@ type SyncCompletedRequestV2 struct {
 type IntegrationsResponse struct {
 	Integrations []Integration `json:"integrations"`
 }
+
+// Integration integrations (google,dropbox)
 type Integration struct {
 	Added    time.Time `json:"added"`
 	ID       string    `json:"id"`

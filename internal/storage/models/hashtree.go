@@ -226,6 +226,7 @@ func (t *HashTree) Rehash() error {
 // Mirror makes the tree look like the storage
 func (t *HashTree) Mirror(r RemoteStorage) (changed bool, err error) {
 	rootHash, gen, err := r.GetRootIndex()
+	log.Info("got root ", rootHash, gen, err)
 	if err != nil {
 		return
 	}

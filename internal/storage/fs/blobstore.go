@@ -27,7 +27,7 @@ const cachedTreeName = ".tree"
 
 // serves as root modification log and generation number source
 const historyFile = ".root.history"
-const rootFile = "root"
+const rootBlob = "root"
 
 // GetCachedTree returns the cached blob tree for the user
 func (fs *FileSystemStorage) GetCachedTree(uid string) (t *models.HashTree, err error) {
@@ -196,7 +196,7 @@ func (fs *FileSystemStorage) CreateBlobFolder(uid, foldername, parent string) (d
 		return nil, err
 	}
 
-	metadataEntry := models.NewHashEntry(metahash, docID+models.MetadataFileExt, size)
+	metadataEntry := models.NewHashEntry(metahash, docID+storage.MetadataFileExt, size)
 	if err != nil {
 		return
 	}
@@ -277,9 +277,9 @@ func updateTree(tree *models.HashTree, storage *LocalBlobStorage, treeMutation f
 func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, stream io.Reader) (doc *storage.Document, err error) {
 	ext := path.Ext(filename)
 	switch ext {
-	case models.PdfFileExt:
+	case storage.PdfFileExt:
 		fallthrough
-	case models.EpubFileExt:
+	case storage.EpubFileExt:
 	default:
 		return nil, errors.New("unsupported extension: " + ext)
 	}
@@ -313,7 +313,7 @@ func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, st
 		return nil, err
 	}
 
-	payloadEntry := models.NewHashEntry(metahash, docid+models.MetadataFileExt, size)
+	payloadEntry := models.NewHashEntry(metahash, docid+storage.MetadataFileExt, size)
 	if err != nil {
 		return
 	}
@@ -340,7 +340,7 @@ func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, st
 	if err != nil {
 		return
 	}
-	payloadEntry = models.NewHashEntry(contentHash, docid+models.ContentFileExt, size)
+	payloadEntry = models.NewHashEntry(contentHash, docid+storage.ContentFileExt, size)
 
 	err = hashDoc.AddFile(payloadEntry)
 	if err != nil {
@@ -417,10 +417,15 @@ func createMetadataFile(metadata models.MetadataFile) (r io.Reader, filehash str
 }
 
 // GetBlobURL return a url for a file to store
-func (fs *FileSystemStorage) GetBlobURL(uid, blobid, scope string) (docurl string, exp time.Time, err error) {
+func (fs *FileSystemStorage) GetBlobURL(uid, blobid string, write bool) (docurl string, exp time.Time, err error) {
 	uploadRL := fs.Cfg.StorageURL
 	exp = time.Now().Add(time.Minute * config.ReadStorageExpirationInMinutes)
 	strExp := strconv.FormatInt(exp.Unix(), 10)
+
+	scope := ReadScope
+	if write {
+		scope = WriteScope
+	}
 
 	signature, err := SignURLParams([]string{uid, blobid, strExp, scope}, fs.Cfg.JWTSecretKey)
 	if err != nil {
@@ -445,7 +450,7 @@ func (fs *FileSystemStorage) LoadBlob(uid, blobid string) (reader io.ReadCloser,
 	generation := int64(0)
 	blobPath := path.Join(fs.getUserBlobPath(uid), common.Sanitize(blobid))
 	log.Debugln("Fullpath:", blobPath)
-	if blobid == rootFile {
+	if blobid == rootBlob {
 		historyPath := path.Join(fs.getUserBlobPath(uid), historyFile)
 		lock := fslock.New(historyPath)
 		err := lock.LockWithTimeout(time.Duration(time.Second * 5))
@@ -475,7 +480,7 @@ func (fs *FileSystemStorage) StoreBlob(uid, id string, stream io.Reader, lastGen
 	generation = 1
 
 	reader := stream
-	if id == rootFile {
+	if id == rootBlob {
 		historyPath := path.Join(fs.getUserBlobPath(uid), historyFile)
 		lock := fslock.New(historyPath)
 		err = lock.LockWithTimeout(time.Duration(time.Second * 5))

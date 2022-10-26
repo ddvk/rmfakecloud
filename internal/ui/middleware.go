@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	BackendVersion string = "BackendVersion"
+	backendVersionKey string = "BackendVersion"
 )
 
 // IsAdmin checks if admin
@@ -55,11 +55,11 @@ func (app *ReactAppWrapper) authMiddleware() gin.HandlerFunc {
 		}
 
 		scopes := strings.Fields(claims.Scopes)
-		c.Set(BackendVersion, common.Sync10)
+		c.Set(backendVersionKey, common.Sync10)
 		for _, s := range scopes {
 			switch s {
 			case isSync15Key:
-				c.Set(BackendVersion, common.Sync15)
+				c.Set(backendVersionKey, common.Sync15)
 				break
 			}
 		}

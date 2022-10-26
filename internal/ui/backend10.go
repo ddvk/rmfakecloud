@@ -6,18 +6,21 @@ import (
 
 	"github.com/ddvk/rmfakecloud/internal/app/hub"
 	"github.com/ddvk/rmfakecloud/internal/common"
+	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
 	log "github.com/sirupsen/logrus"
 )
 
+const webDevice = "web"
+
 type backend10 struct {
 	documentHandler documentHandler
-	h               *hub.Hub
+	hub             *hub.Hub
 }
 
 func (d *backend10) Sync(uid string) {
-
+	//nop
 }
 
 func (d *backend10) CreateFolder(uid, filename, parent string) (doc *storage.Document, err error) {
@@ -34,7 +37,7 @@ func (d *backend10) CreateFolder(uid, filename, parent string) (doc *storage.Doc
 		Name:    doc.Name,
 	}
 	log.Info(uiLogger, "created folder", doc.ID)
-	d.h.Notify(uid, "web", ntf, hub.DocAddedEvent)
+	d.hub.Notify(uid, webDevice, ntf, messages.DocAddedEvent)
 	return
 }
 func (d *backend10) CreateDocument(uid, filename, parent string, stream io.Reader) (doc *storage.Document, err error) {
@@ -50,8 +53,8 @@ func (d *backend10) CreateDocument(uid, filename, parent string, stream io.Reade
 		Parent:  parent,
 		Name:    doc.Name,
 	}
-	log.Info(uiLogger, "Uploaded document id", doc.ID)
-	d.h.Notify(uid, "web", ntf, hub.DocAddedEvent)
+	log.Info(uiLogger, ui10, "Uploaded document id", doc.ID)
+	d.hub.Notify(uid, webDevice, ntf, messages.DocAddedEvent)
 	return
 }
 
@@ -75,8 +78,13 @@ func (d *backend10) GetDocumentTree(uid string) (tree *viewmodel.DocumentTree, e
 	}
 	return viewmodel.DocTreeFromRawMetadata(docs), nil
 }
-func (d *backend10) Export(uid, doc, exporttype string, opt storage.ExportOption) (stream io.ReadCloser, err error) {
-	return d.documentHandler.ExportDocument(uid, doc, exporttype, opt)
+func (d *backend10) Export(uid, docID, exporttype string, opt storage.ExportOption) (stream io.ReadCloser, err error) {
+	r, err := d.documentHandler.ExportDocument(uid, docID, exporttype, opt)
+	if err != nil {
+		return nil, err
+	}
+	log.Info(uiLogger, ui10, "Exported document id: ", docID)
+	return r, nil
 }
 
 func (d *backend10) UpdateDocument(uid, docID, name, parent string) (err error) {
@@ -86,8 +94,36 @@ func (d *backend10) UpdateDocument(uid, docID, name, parent string) (err error) 
 	}
 	metadata.VissibleName = parent
 	metadata.Parent = parent
-	return d.documentHandler.UpdateMetadata(uid, metadata)
+	metadata.Version++
+
+	err = d.documentHandler.UpdateMetadata(uid, metadata)
+	if err != nil {
+		return err
+	}
+	ntf := hub.DocumentNotification{
+		ID:      docID,
+		Type:    common.DocumentType,
+		Version: metadata.Version,
+		Parent:  parent,
+		Name:    metadata.VissibleName,
+	}
+
+	log.Info(uiLogger, "Updated document id: ", docID)
+	d.hub.Notify(uid, webDevice, ntf, messages.DocAddedEvent)
+	return nil
+
 }
 func (d *backend10) DeleteDocument(uid, docID string) (err error) {
-	return d.documentHandler.RemoveDocument(uid, docID)
+	err = d.documentHandler.RemoveDocument(uid, docID)
+	if err != nil {
+		return err
+	}
+
+	ntf := hub.DocumentNotification{
+		ID: docID,
+		//TODO: test if ok with missing fields
+	}
+	log.Info(uiLogger, "Deleted document id: ", docID)
+	d.hub.Notify(uid, webDevice, ntf, messages.DocDeletedEvent)
+	return nil
 }

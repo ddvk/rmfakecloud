@@ -4,6 +4,8 @@ import (
 	"io"
 	"io/ioutil"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // LocalBlobStorage local file system storage
@@ -14,8 +16,9 @@ type LocalBlobStorage struct {
 
 // GetRootIndex the hash of the root index
 func (p *LocalBlobStorage) GetRootIndex() (hash string, gen int64, err error) {
-	r, gen, _, err := p.fs.LoadBlob(p.uid, rootFile)
+	r, gen, _, err := p.fs.LoadBlob(p.uid, rootBlob)
 	if err == ErrorNotFound {
+		log.Info("root not found")
 		return "", gen, nil
 	}
 	if err != nil {
@@ -33,7 +36,7 @@ func (p *LocalBlobStorage) GetRootIndex() (hash string, gen int64, err error) {
 // WriteRootIndex writes the root index
 func (p *LocalBlobStorage) WriteRootIndex(generation int64, roothash string) (int64, error) {
 	r := strings.NewReader(roothash)
-	return p.fs.StoreBlob(p.uid, rootFile, r, generation)
+	return p.fs.StoreBlob(p.uid, rootBlob, r, generation)
 }
 
 // GetReader reader for a given hash

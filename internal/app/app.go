@@ -41,8 +41,8 @@ type App struct {
 // Start starts the app
 func (app *App) Start() {
 	// configs
-	log.Info("The device should use this Cloud URL: ", app.cfg.StorageURL, " Override with: ", config.EnvStorageURL)
-	log.Info("Documents will be saved in: ", app.cfg.DataDir)
+	log.Info(config.EnvStorageURL, " (Cloud URL): ", app.cfg.StorageURL)
+	log.Info("Data: ", app.cfg.DataDir)
 	log.Info("Listening on port: ", app.cfg.Port)
 
 	var tlsConfig *tls.Config
