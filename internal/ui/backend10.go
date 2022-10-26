@@ -93,3 +93,17 @@ func (d *backend10) GetDocumentTree(uid string) (tree *viewmodel.DocumentTree, e
 func (d *backend10) Export(uid, doc, exporttype string, opt storage.ExportOption) (stream io.ReadCloser, err error) {
 	return d.documentHandler.ExportDocument(uid, doc, exporttype, opt)
 }
+
+func (d *backend10) CreateFolder(uid, name, parent string) (*storage.Document, error) {
+	if len(parent) > 0 {
+		md, err := d.metadataStore.GetMetadata(uid, parent)
+		if err != nil {
+			return nil, err
+		}
+		if md.Type != models.CollectionType {
+			return nil, errors.New("Parent is not a folder")
+		}
+	}
+
+	return d.documentHandler.CreateFolder(uid, name, parent)
+}

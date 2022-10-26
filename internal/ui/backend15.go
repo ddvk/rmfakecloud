@@ -37,6 +37,10 @@ func (d *backend15) DeleteDocument(uid, docid string) error {
 	return nil
 }
 
+func (d *backend15) CreateFolder(uid, name, parent string) (*storage.Document, error) {
+	return d.blobHandler.CreateBlobFolder(uid, name, parent)
+}
+
 func (b *backend15) Sync(uid string) {
 	logrus.Info("notifying")
 	b.h.NotifySync(uid, uuid.NewString())
