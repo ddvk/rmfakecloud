@@ -184,7 +184,7 @@ func (t *HashTree) FindDoc(documentID string) (*HashDoc, error) {
 			return d, nil
 		}
 	}
-	return nil, fmt.Errorf("doc %s not found", documentID)
+	return nil, fmt.Errorf("treedoc '%s' not found", documentID)
 }
 
 // Remove removes

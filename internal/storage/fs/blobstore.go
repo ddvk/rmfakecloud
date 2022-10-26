@@ -365,6 +365,7 @@ func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, st
 	}
 	tmpdoc.Close()
 	payloadFilename := path.Join(blobPath, payloadHash)
+	log.Debug("new payload name: ", payloadFilename)
 	err = os.Rename(tmpdoc.Name(), payloadFilename)
 	if err != nil {
 		return nil, err

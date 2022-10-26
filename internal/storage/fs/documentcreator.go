@@ -185,7 +185,7 @@ func (fs *FileSystemStorage) CreateDocument(uid, filename, parent string, stream
 
 	//create metadata
 	name := strings.TrimSuffix(filename, ext)
-	rawMetadata := createRawMedatadata(docid, name, parent, common.CollectionType)
+	rawMetadata := createRawMedatadata(docid, name, parent, common.DocumentType)
 
 	jsn, err := json.Marshal(rawMetadata)
 	if err != nil {

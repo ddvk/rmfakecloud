@@ -95,7 +95,7 @@ func (d *backend10) UpdateDocument(uid, docID, name, parent string) (err error) 
 	if err != nil {
 		return err
 	}
-	metadata.VissibleName = parent
+	metadata.VissibleName = name
 	metadata.Parent = parent
 	metadata.Version++
 

@@ -4,6 +4,7 @@ set -e
 
 rm -fr ../data/users/test/sync/*
 rm -fr ../data/users/test/sync/.root.history
+rm -fr ../data/users/test/*
 
 echo "create folder1..."
 ID1=`./ui_createfolder.sh folder1 | jq -r .ID`

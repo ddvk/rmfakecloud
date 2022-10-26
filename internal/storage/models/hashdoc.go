@@ -55,7 +55,7 @@ func (d *HashDoc) Rehash() error {
 	if err != nil {
 		return err
 	}
-	log.Debug(d.DocumentName, " new doc hash: ", hash)
+	log.Debug("rehash: ", d.DocumentName, " new doc hash: ", hash)
 	d.Hash = hash
 	return nil
 }

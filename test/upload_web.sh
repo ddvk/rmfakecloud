@@ -9,7 +9,7 @@ meta='{"file_name":"test-upload-extension"}'
 b64meta=$(echo $meta | base64)
 echo $b64meta
 
-curl -d @test.pdf \
+curl --data-binary @test.pdf \
     -H 'Rm-Meta: '$b64meta'' \
     -H 'Content-Type: application/pdf' \
     -H "Authorization: Bearer $TOKEN" \

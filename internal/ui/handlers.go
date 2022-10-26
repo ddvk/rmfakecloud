@@ -292,7 +292,7 @@ func (app *ReactAppWrapper) updateDocument(c *gin.Context) {
 	}
 	backend := app.getBackend(c)
 	uid := c.GetString(userIDContextKey)
-	log.Info(uiLogger, "updatedoc")
+	log.Info(uiLogger, ui10, "updatedoc")
 	err := backend.UpdateDocument(uid, upd.DocumentID, upd.Name, upd.ParentID)
 	if err != nil {
 		badReq(c, err.Error())
