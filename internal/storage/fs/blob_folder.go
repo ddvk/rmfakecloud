@@ -74,7 +74,7 @@ func (fs *FileSystemStorage) CreateBlobFolder(uid, name, parent string) (*storag
 	if err = saveTo(strings.NewReader(content), contentHash, blobPath); err != nil {
 		return nil, err
 	}
-	contentHashEntry := models.NewFileHashEntry(mdHash, docId+models.ContentFileExt)
+	contentHashEntry := models.NewFileHashEntry(contentHash, docId+models.ContentFileExt)
 	contentHashEntry.Size = contentSize
 	if err = hashDoc.AddFile(contentHashEntry); err != nil {
 		return nil, err
