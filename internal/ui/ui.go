@@ -23,6 +23,8 @@ type backend interface {
 	CreateDocument(uid, name, parent string, stream io.Reader) (doc *storage.Document, err error)
 	DeleteDocument(uid, docid string) error
 	CreateFolder(uid, name, parent string) (*storage.Document, error)
+	RenameDocument(uid, docId, newName string) (bool, error)
+	MoveDocument(uid, docId, newParent string) (bool, error)
 	Sync(uid string)
 }
 type codeGenerator interface {
@@ -42,6 +44,8 @@ type blobHandler interface {
 	CreateBlobDocument(uid, name, parent string, reader io.Reader) (doc *storage.Document, err error)
 	CreateBlobFolder(uid, name, parent string) (*storage.Document, error)
 	Export(uid, docid string) (io.ReadCloser, error)
+	GetBlobMetadata(uid, docId string) (*models.MetadataFile, error)
+	UpdateBlobMetadata(uid, docId string, md *models.MetadataFile) error
 }
 
 // ReactAppWrapper encapsulates an app

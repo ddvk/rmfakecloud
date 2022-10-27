@@ -316,56 +316,45 @@ func (app *ReactAppWrapper) updateDocument(c *gin.Context) {
 	}
 	uid := c.GetString(userIDContextKey)
 	docid := common.ParamS(docIDParam, c)
-
-	metadata, err := app.metadataStore.GetMetadata(uid, docid)
-
-	if err != nil {
-		badReq(c, err.Error())
-		return
-	}
+	backend := getBackend(c)
 
 	dirty := false
 
 	// Rename
-	if len(upd.Name) > 0 && upd.Name != metadata.VissibleName {
-		metadata.VissibleName = upd.Name
-		dirty = true
-	}
-
-	// Move
-	if len(upd.ParentID) > 0 && upd.ParentID != metadata.Parent {
-		parent, err := app.metadataStore.GetMetadata(uid, upd.ParentID)
+	if len(upd.Name) > 0 {
+		updated, err := backend.RenameDocument(uid, docid, upd.Name)
 
 		if err != nil {
 			badReq(c, err.Error())
 			return
 		}
 
-		metadata.Parent = parent.ID
-		dirty = true
+		if updated {
+			dirty = true
+		}
 	}
 
-	if upd.SetParentToRoot && metadata.Parent != "" {
-		metadata.Parent = ""
-		dirty = true
-	}
+	// Move
+	if len(upd.ParentID) > 0 || upd.SetParentToRoot {
+		if upd.SetParentToRoot {
+			upd.ParentID = ""
+		}
 
-	if dirty {
-		metadata.Version += 1
-		if err = app.metadataStore.UpdateMetadata(uid, metadata); err != nil {
+		updated, err := backend.MoveDocument(uid, docid, upd.ParentID)
+
+		if err != nil {
 			badReq(c, err.Error())
 			return
 		}
 
-		app.h.Notify(uid, "web", hub.DocumentNotification{
-			ID:      metadata.ID,
-			Type:    metadata.Type,
-			Version: metadata.Version,
-			Parent:  metadata.Parent,
-			Name:    metadata.VissibleName,
-		}, hub.DocAddedEvent)
+		if updated {
+			dirty = true
+		}
+	}
 
-		log.Info(uiLogger, "document updated: id=", metadata.ID)
+	if dirty {
+		backend.Sync(uid)
+		log.Info(uiLogger, "document updated: id=", docid)
 	}
 
 	c.Status(http.StatusOK)

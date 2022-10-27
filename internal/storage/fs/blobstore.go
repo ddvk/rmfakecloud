@@ -374,6 +374,111 @@ func (fs *FileSystemStorage) StoreBlob(uid, id string, stream io.Reader, lastGen
 	return
 }
 
+// GetBlobMetadata get metadata for a blob document
+func (fs *FileSystemStorage) GetBlobMetadata(uid, docId string) (*models.MetadataFile, error) {
+	tree, err := fs.GetTree(uid)
+
+	if err != nil {
+		return nil, err
+	}
+
+	hashDoc, err := tree.FindDoc(docId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &hashDoc.MetadataFile, nil
+}
+
+func (fs *FileSystemStorage) UpdateBlobMetadata(uid, docId string, md *models.MetadataFile) error {
+	tree, err := fs.GetTree(uid)
+
+	if err != nil {
+		return err
+	}
+
+	hashDoc, err := tree.FindDoc(docId)
+
+	if err != nil {
+		return err
+	}
+
+	md.MetadataModified = true
+	md.Synced = false
+	md.Version += 1
+
+	blobPath := fs.getUserBlobPath(uid)
+
+	// Recreate metadata file
+	mdHash, mdSize, err := createMetadataFile(*md, blobPath)
+
+	if err != nil {
+		return err
+	}
+
+	mdHashEntry := models.NewFileHashEntry(mdHash, docId+models.MetadataFileExt)
+	mdHashEntry.Size = mdSize
+
+	// New hash doc
+	newHashDoc := models.NewHashDocMeta(docId, *md)
+
+	if err = newHashDoc.AddFile(mdHashEntry); err != nil {
+		return err
+	}
+
+	// Copy entries from old hash doc except metadata
+	for _, entry := range hashDoc.Files {
+		if strings.HasSuffix(entry.EntryName, models.MetadataFileExt) {
+			continue
+		}
+		if err = newHashDoc.AddFile(entry); err != nil {
+			return err
+		}
+	}
+
+	if err = tree.Remove(docId); err != nil {
+		return err
+	}
+
+	if err = tree.Add(newHashDoc); err != nil {
+		return err
+	}
+
+	hashDocIndexReader, err := newHashDoc.IndexReader()
+	if err != nil {
+		return err
+	}
+	if err = saveTo(hashDocIndexReader, newHashDoc.Hash, blobPath); err != nil {
+		return err
+	}
+
+	rootIndexReader, err := tree.RootIndex()
+	if err != nil {
+		return err
+	}
+	if err = saveTo(rootIndexReader, tree.Hash, blobPath); err != nil {
+		return err
+	}
+
+	blobStorage := &LocalBlobStorage{
+		fs:  fs,
+		uid: uid,
+	}
+
+	gen, err := blobStorage.WriteRootIndex(tree.Generation, tree.Hash)
+	if err != nil {
+		return err
+	}
+	tree.Generation = gen
+
+	if err = fs.SaveTree(uid, tree); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 //use file size as generation
 func generationFromFileSize(size int64) int64 {
 	//time + 1 space + 64 hash + 1 newline

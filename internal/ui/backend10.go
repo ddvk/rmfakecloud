@@ -107,3 +107,59 @@ func (d *backend10) CreateFolder(uid, name, parent string) (*storage.Document, e
 
 	return d.documentHandler.CreateFolder(uid, name, parent)
 }
+
+// RenameDocument rename file and folder, the bool type returns value indicates
+// whether updated or not
+func (d *backend10) RenameDocument(uid, docId, newName string) (bool, error) {
+	metadata, err := d.metadataStore.GetMetadata(uid, docId)
+
+	if err != nil {
+		return false, err
+	}
+
+	if newName == metadata.VissibleName {
+		return false, nil
+	}
+
+	metadata.VissibleName = newName
+	metadata.Version += 1
+
+	if err = d.metadataStore.UpdateMetadata(uid, metadata); err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+// MoveDocument move document to a new parent
+func (d *backend10) MoveDocument(uid, docId, newParent string) (bool, error) {
+	// Check parent
+	parentMD, err := d.metadataStore.GetMetadata(uid, newParent)
+
+	if err != nil {
+		return false, err
+	}
+
+	if parentMD.Type != models.CollectionType {
+		return false, errors.New("Parent is not a folder")
+	}
+
+	metadata, err := d.metadataStore.GetMetadata(uid, docId)
+
+	if err != nil {
+		return false, err
+	}
+
+	if metadata.Parent == newParent {
+		return false, nil
+	}
+
+	metadata.Parent = newParent
+	metadata.Version += 1
+
+	if err = d.metadataStore.UpdateMetadata(uid, metadata); err != nil {
+		return false, err
+	}
+
+	return true, nil
+}

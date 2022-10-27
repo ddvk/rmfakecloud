@@ -1,10 +1,12 @@
 package ui
 
 import (
+	"errors"
 	"io"
 
 	"github.com/ddvk/rmfakecloud/internal/app/hub"
 	"github.com/ddvk/rmfakecloud/internal/storage"
+	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -44,4 +46,58 @@ func (d *backend15) CreateFolder(uid, name, parent string) (*storage.Document, e
 func (b *backend15) Sync(uid string) {
 	logrus.Info("notifying")
 	b.h.NotifySync(uid, uuid.NewString())
+}
+
+// RenameDocument rename file and folder, the bool type returns value indicates
+// whether updated or not
+func (d *backend15) RenameDocument(uid, docId, newName string) (bool, error) {
+	metadata, err := d.blobHandler.GetBlobMetadata(uid, docId)
+
+	if err != nil {
+		return false, err
+	}
+
+	if newName == metadata.DocumentName {
+		return false, nil
+	}
+
+	metadata.DocumentName = newName
+
+	if err = d.blobHandler.UpdateBlobMetadata(uid, docId, metadata); err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+// MoveDocument move document to a new parent
+func (d *backend15) MoveDocument(uid, docId, newParent string) (bool, error) {
+	// Check parent
+	parentMD, err := d.blobHandler.GetBlobMetadata(uid, newParent)
+
+	if err != nil {
+		return false, err
+	}
+
+	if parentMD.CollectionType != models.CollectionType {
+		return false, errors.New("Parent is not a folder")
+	}
+
+	metadata, err := d.blobHandler.GetBlobMetadata(uid, docId)
+
+	if err != nil {
+		return false, err
+	}
+
+	if metadata.Parent == newParent {
+		return false, nil
+	}
+
+	metadata.Parent = newParent
+
+	if err = d.blobHandler.UpdateBlobMetadata(uid, docId, metadata); err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
