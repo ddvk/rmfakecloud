@@ -50,34 +50,12 @@ type InternalDoc struct {
 	Size         int64
 }
 
-func makeFolder(d *InternalDoc) (entry *Directory) {
-	entry = &Directory{
-		ID:           d.ID,
-		Name:         d.Name,
-		LastModified: d.LastModified,
-		Entries:      make([]Entry, 0),
-		IsFolder:     true,
-	}
-	return
-}
-func makeDocument(d *InternalDoc) (entry Entry) {
-	entry = &Document{
-		ID:           d.ID,
-		Name:         d.Name,
-		LastModified: d.LastModified,
-		DocumentType: d.FileType,
-		Size:         d.Size,
-	}
-	return
-}
+const TrashID = "trash"
 
 // DocTreeFromHashTree from hash tree
 func DocTreeFromHashTree(tree *models.HashTree) *DocumentTree {
 	docs := make([]*InternalDoc, 0)
 	for _, d := range tree.Docs {
-		if d.Deleted {
-			continue
-		}
 		docs = append(docs, &messages.RawMetadata{
 			ID:           d.EntryName,
 			Parent:       d.MetadataFile.Parent,
@@ -128,7 +106,7 @@ func DocTreeFromRawMetadata(documents []*InternalDoc) *DocumentTree {
 
 		parent := d.Parent
 
-		if parent == trashID {
+		if parent == TrashID {
 			trashEntries = append(trashEntries, entry)
 			continue
 		}
