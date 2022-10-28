@@ -112,8 +112,7 @@ func main() {
 		tokens, err := loadToken(*rmapiConf)
 		if err != nil {
 			return err
-        }
-		
+		}
 
 		if *host == "origin" {
 			*host = origin
@@ -133,7 +132,7 @@ func main() {
 		}
 
 		//TODO:
-		if url == "local.appspot.com" {
+		if url == "rmfakecloud.localhost" {
 			url = *host
 		}
 

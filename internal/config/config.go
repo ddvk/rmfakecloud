@@ -26,8 +26,8 @@ const (
 	// WriteStorageExpirationInMinutes time the token is valid
 	WriteStorageExpirationInMinutes = 5
 
-	// DefaultHost fake url
-	DefaultHost = "local.appspot.com"
+	// DefaultHost host to use if none set (sent to the tablet)
+	DefaultHost = "rmfakecloud.localhost"
 
 	// EnvLogLevel environment variable for the log level
 	EnvLogLevel = "LOGLEVEL"
@@ -109,10 +109,10 @@ func (cfg *Config) Verify() {
 	}
 
 	if cfg.HWRApplicationKey == "" {
-		log.Info("if you want HWR, provide the myScript applicationKey in: " + envHwrApplicationKey)
+		log.Info("if you want HWR, provide the myScript applicationKey in: ", envHwrApplicationKey)
 	}
 	if cfg.HWRHmac == "" {
-		log.Info("provide the myScript hmac in: " + envHwrHmac)
+		log.Info("provide the myScript hmac in: ", envHwrHmac)
 	}
 }
 
@@ -163,6 +163,7 @@ func FromEnv() *Config {
 	uploadURL := os.Getenv(EnvStorageURL)
 	if uploadURL == "" {
 		//it will go through the local proxy
+		log.Warn(EnvStorageURL, " not set, using the default")
 		uploadURL = "https://" + DefaultHost
 	}
 
@@ -220,9 +221,9 @@ Environment Variables:
 
 General:
 	%s	Secret for signing JWT tokens
-	%s	Url the tablet can resolve (default: https://local.apphost.com)
+	%s	External Storage Address (default: https://rmfakecloud.localhost)
 			needs to be set to the hostname or proxy if behind a proxy
-			especially if you want other tools to work (eg rmapi)
+			especially if you want other tools to work correctly (eg rmapi)
 
 	%s	Log verbosity level (debug, info, warn) (default: info)
 	%s	Log format: json (default: text)

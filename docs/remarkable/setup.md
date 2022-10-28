@@ -50,7 +50,6 @@ Steps (done by the automagic scripts):
     ```
     127.0.0.1 hwr-production-dot-remarkable-production.appspot.com
     127.0.0.1 service-manager-production-dot-remarkable-production.appspot.com
-    127.0.0.1 local.appspot.com
     127.0.0.1 my.remarkable.com
     127.0.0.1 ping.remarkable.com
     127.0.0.1 internal.cloud.remarkable.com
@@ -85,7 +84,6 @@ Steps:
     ```
     TLS_KEY=proxy.key
     TLS_CERT=proxy.crt
-    STORAGE_URL=https://local.apphost.com
     ```
 
 - modify `/etc/hosts` but use the rmfakecloud's ip instead of 127.0.0.1
