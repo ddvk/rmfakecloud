@@ -34,6 +34,6 @@ To be able to send email from your reMarkable, fill the following variables:
 | `RM_SMTP_PASSWORD`     | Plaintext password (application password should work) |
 | `RM_SMTP_FROM`         | Custom `From:` header for the mails (eg. 'ReMarkable self-hosted <remarkable@my.example.net>') |
 | `RM_SMTP_HELO`         | Custom HELO, if your email provider needs it |
-| `RM_SMTP_NOTLS=1` | don't use tls |
-| `RM_SMTP_STARTTLS=1` | use starttls command (in most cases port 587 should be used), should be combined with NOTLS |
-| `RM_SMTP_INSECURE_TLS=1` | If set, don't check the server certificate (not recommended) |
+| `RM_SMTP_NOTLS` | don't use tls |
+| `RM_SMTP_STARTTLS` | use starttls command, should be combined with NOTLS. in most cases port 587 should be used |
+| `RM_SMTP_INSECURE_TLS` | If set, don't check the server certificate (not recommended) |
