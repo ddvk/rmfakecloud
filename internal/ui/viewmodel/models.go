@@ -38,16 +38,24 @@ type DocumentTree struct {
 	Trash   []Entry
 }
 
-type InternalDoc struct {
-	ID           string
-	Version      int
-	LastModified time.Time
-	Type         common.EntryType
-	FileType     string
-	Name         string
-	CurrentPage  int
-	Parent       string
-	Size         int64
+func makeFolder(d *messages.RawMetadata) (entry *Directory) {
+	entry = &Directory{
+		ID:   d.ID,
+		Name: d.VissibleName,
+		// LastModified: d.ModifiedClient,
+		Entries: make([]Entry, 0),
+	}
+	return
+}
+func makeDocument(d *messages.RawMetadata) (entry Entry) {
+	entry = &Document{
+		ID:   d.ID,
+		Name: d.VissibleName,
+		// LastModified: d.ModifiedClient,
+		DocumentType: d.Type,
+		Extension:    d.Extension,
+	}
+	return
 }
 
 const TrashID = "trash"
@@ -56,15 +64,43 @@ const TrashID = "trash"
 func DocTreeFromHashTree(tree *models.HashTree) *DocumentTree {
 	docs := make([]*InternalDoc, 0)
 	for _, d := range tree.Docs {
-		docs = append(docs, &messages.RawMetadata{
-			ID:           d.EntryName,
-			Parent:       d.MetadataFile.Parent,
-			Name:         d.MetadataFile.DocumentName,
-			Type:         d.MetadataFile.CollectionType,
-			LastModified: lastModified,
-			FileType:     d.PayloadType,
-			Size:         d.PayloadSize,
-		})
+		md := &messages.RawMetadata{
+			ID:     d.EntryName,
+			Parent: d.MetadataFile.Parent,
+			Name:   d.MetadataFile.DocumentName,
+			Type:   d.MetadataFile.CollectionType,
+		}
+
+		isEpub := false
+		isPDF := false
+
+		for _, entry := range d.Files {
+			if entry.EntryName == md.ID+models.EpubFileExt {
+				isEpub = true
+				break
+			}
+		}
+
+		for _, entry := range d.Files {
+			if !isEpub {
+				if entry.EntryName == md.ID+models.PdfFileExt {
+					isPDF = true
+					break
+				}
+			}
+
+		}
+
+		if isEpub {
+			md.Extension = models.EpubFileExt
+		}
+
+		if isPDF {
+			md.Extension = models.PdfFileExt
+		}
+
+		docs = append(docs, md)
+
 	}
 
 	return DocTreeFromRawMetadata(docs)
@@ -162,11 +198,12 @@ type Directory struct {
 
 // Document is a single document
 type Document struct {
-	ID           string    `json:"id"`
-	Name         string    `json:"name"`
-	DocumentType string    `json:"type"` //notebook, pdf, epub
-	LastModified time.Time `json:"lastModified"`
-	Size         int64     `json:"size"`
+	ID           string `json:"id"`
+	Name         string `json:"name"`
+	DocumentType string `json:"type"` //notebook, pdf, epub
+	Extension    string `json:"extension"`
+	LastModified time.Time
+	Size         int
 }
 
 // DocumentList is a list of documents
