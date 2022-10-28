@@ -42,14 +42,19 @@ jobs:
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
       - name: Set Version
-        run: echo "version=$(git describe --tags)" >> $GITHUB_ENV
+        run: |
+            version="$(git describe --tags)" 
+            echo "version=$version" >> $GITHUB_ENV
+            echo "image_version=${version:1}" >> $GITHUB_ENV
 
       - name: Build and push
         id: docker_build
         uses: docker/build-push-action@v2
         with:
           push: true
-          tags: ddvk/rmfakecloud:latest
+          tags: |
+            ddvk/rmfakecloud:latest
+            ddvk/rmfakecloud:${{ env.image_version }}
           platforms: linux/amd64,linux/arm/v7,linux/arm64
           build-args: |
             VERSION=${{ env.version }}
