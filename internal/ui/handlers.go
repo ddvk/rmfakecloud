@@ -381,10 +381,8 @@ func (app *ReactAppWrapper) deleteDocument(c *gin.Context) {
 		return
 	}
 
-	err := backend.DeleteDocument(uid, docid)
-	if err != nil {
-		badReq(c, err.Error())
-	}
+	backend.Sync(uid)
+
 	c.Status(http.StatusOK)
 }
 

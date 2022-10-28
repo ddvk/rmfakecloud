@@ -34,15 +34,46 @@ func (b *backend15) CreateDocument(uid, filename, parent string, stream io.Reade
 	return
 }
 
-func (b *backend15) UpdateDocument(uid, docID, name, parent string) (err error) {
-	return b.blobHandler.UpdateBlobDocument(uid, docID, name, parent)
-}
-func (b *backend15) CreateFolder(uid, name, parent string) (doc *storage.Document, err error) {
-	return b.blobHandler.CreateBlobFolder(uid, name, parent)
-}
+func (d *backend15) DeleteDocument(uid, docid string) error {
+	tree, err := d.blobHandler.GetTree(uid)
 
-func (b *backend15) DeleteDocument(uid, docID string) (err error) {
-	return b.blobHandler.DeleteBlobDocument(uid, docID)
+	if err != nil {
+		return err
+	}
+
+	hashDoc, err := tree.FindDoc(docid)
+
+	if err != nil {
+		return err
+	}
+
+	md := hashDoc.MetadataFile
+
+	// Confirm no child before remove a folder
+	if md.CollectionType == models.CollectionType {
+		docTree := viewmodel.DocTreeFromHashTree(tree)
+
+		// O(n)
+		for _, entry := range docTree.Entries {
+			dir, ok := entry.(*viewmodel.Directory)
+			if !ok {
+				continue
+			}
+			if dir.ID == docid {
+				if len(dir.Entries) > 0 {
+					return errors.New("Can't remove non-empty folder")
+				}
+			}
+		}
+	}
+
+	md.Deleted = true
+
+	if err := d.blobHandler.UpdateBlobMetadata(uid, docid, &md); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (d *backend15) CreateFolder(uid, name, parent string) (*storage.Document, error) {

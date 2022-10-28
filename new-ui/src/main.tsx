@@ -15,6 +15,7 @@ import App from './components/App'
 import Login from './components/Login'
 import Logout from './components/Logout'
 import NotFound from './components/404'
+import Oops from './components/Oops'
 import ResetPassword from './components/ResetPassword'
 import Devices from './components/Devices'
 import DocumentViewer from './components/DocumentViewer'
@@ -68,6 +69,10 @@ createRoot(document.getElementById('root') as Element).render(
             <Route
               element={<Logout />}
               path="/logout"
+            />
+            <Route
+              element={<Oops />}
+              path="/oops"
             />
             <Route
               element={<NotFound />}

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ddvk/rmfakecloud/internal/common"
+	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	log "github.com/sirupsen/logrus"
 )
@@ -77,12 +78,7 @@ func DocTreeFromHashTree(tree *models.HashTree) *DocumentTree {
 		if d.Deleted {
 			continue
 		}
-
-		lastModified, err := models.ToTime(d.LastModified)
-		if err != nil {
-			log.Warn("incorrect lastmodified for: ", d.DocumentName, " value: ", d.LastModified, " ", err)
-		}
-		docs = append(docs, &InternalDoc{
+		docs = append(docs, &messages.RawMetadata{
 			ID:           d.EntryName,
 			Parent:       d.MetadataFile.Parent,
 			Name:         d.MetadataFile.DocumentName,

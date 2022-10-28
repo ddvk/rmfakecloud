@@ -6,6 +6,7 @@
     "titles": {
       "login": "Login",
       "404": "Page Not Found",
+      "oops": "Server Outage",
       "reset_password": "Reset Password",
       "users": "Users",
       "new_user": "New User",
@@ -194,5 +195,8 @@
         "equals": "password confirmation doesn't match"
       }
     }
+  },
+  "oops": {
+    "message": "The server go for a trip."
   }
 }

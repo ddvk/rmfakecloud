@@ -27,6 +27,10 @@ axiosInstance.interceptors.response.use(
       }
     }
 
+    if (!response || response.status === StatusCodes.INTERNAL_SERVER_ERROR) {
+      window.location.href = '/oops'
+    }
+
     return Promise.reject(error)
   }
 )
