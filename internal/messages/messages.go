@@ -69,6 +69,9 @@ type RawMetadata struct {
 	CurrentPage       int    `json:"CurrentPage"`
 	Bookmarked        bool   `json:"Bookmarked"`
 	Parent            string `json:"Parent"`
+
+	// For distinguish file type at file tree, don't dump to disk
+	Extension string `json:"-"`
 }
 
 // IDRequest request with only an id
