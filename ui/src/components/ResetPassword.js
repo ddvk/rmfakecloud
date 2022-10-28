@@ -8,17 +8,18 @@ import { logout } from "../common/actions";
 
 export default function OwnUserProfile() {
   const { state:{ user }, dispatch } = useAuthState();
+  const userId = user.UserID
 
   const [formErrors, setFormErrors] = useState({});
   const [resetPasswordForm, setResetPasswordForm] = useState({
-    userid: user.userid,
-    email: user.email,
+    userid: userId,
     currentPassword: null,
     newPassword: null,
     confirmNewPassword: null,
   });
 
   function handleChange({ target }) {
+    console.log(resetPasswordForm)
     setResetPasswordForm({ ...resetPasswordForm, [target.name]: target.value });
   }
 
@@ -50,6 +51,7 @@ export default function OwnUserProfile() {
     .then(r => {
       if (r.ok) {
         logout(dispatch)
+
         return
       }
       if (r.status === 400) {
@@ -76,20 +78,6 @@ export default function OwnUserProfile() {
 
   return (
     <Form onSubmit={handleSubmit} autoComplete="off">
-      <Form.Group controlId="email">
-        <Form.Label>email</Form.Label>
-        <Form.Control
-          name="email"
-          type="email"
-          placeholder="email"
-          value={resetPasswordForm.currentEmail}
-          onChange={handleChange}
-          autoCaplete="off"
-        />
-        {formErrors.email && (
-          <div className="alert alert-danger">{formErrors.email}</div>
-        )}
-      </Form.Group>
       <Form.Group controlId="formPassword">
         <Form.Label>Old Password</Form.Label>
         <Form.Control
