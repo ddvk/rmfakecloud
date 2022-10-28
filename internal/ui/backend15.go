@@ -68,7 +68,7 @@ func (d *backend15) DeleteDocument(uid, docid string) error {
 		}
 	}
 
-	md.Deleted = true
+	md.Parent = viewmodel.TrashID
 
 	if err := d.blobHandler.UpdateBlobMetadata(uid, docid, &md); err != nil {
 		return err

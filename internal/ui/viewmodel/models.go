@@ -54,15 +54,12 @@ func makeDocument(d *messages.RawMetadata) (entry Entry) {
 	return
 }
 
-const trashID = "trash"
+const TrashID = "trash"
 
 // DocTreeFromHashTree from hash tree
 func DocTreeFromHashTree(tree *models.HashTree) *DocumentTree {
 	docs := make([]*messages.RawMetadata, 0)
 	for _, d := range tree.Docs {
-		if d.Deleted {
-			continue
-		}
 		docs = append(docs, &messages.RawMetadata{
 			ID:           d.EntryName,
 			Parent:       d.MetadataFile.Parent,
@@ -111,7 +108,7 @@ func DocTreeFromRawMetadata(documents []*messages.RawMetadata) *DocumentTree {
 
 		parent := d.Parent
 
-		if parent == trashID {
+		if parent == TrashID {
 			trashEntries = append(trashEntries, entry)
 			continue
 		}
