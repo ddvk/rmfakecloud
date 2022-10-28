@@ -8,11 +8,12 @@ const Home = () => {
         <h3>Welcome to your own rm cloud</h3>
         <h3>About</h3>
         <p>This is still a work in progress</p>
-        <h3>TODO</h3>
+        <h3>TIPS</h3>
         <ul>
           <li>
             you can use rmapi (https://github.com/juruen/rmapi) for managing
-            files
+            files, just specify the URL of your instance with the RMAPI_HOST
+            variable (RMAPI_HOST=https//rmfakeclud.example.com rmapi)
           </li>
         </ul>
       </div>
