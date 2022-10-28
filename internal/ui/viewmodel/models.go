@@ -60,6 +60,9 @@ const trashID = "trash"
 func DocTreeFromHashTree(tree *models.HashTree) *DocumentTree {
 	docs := make([]*messages.RawMetadata, 0)
 	for _, d := range tree.Docs {
+		if d.Deleted {
+			continue
+		}
 		docs = append(docs, &messages.RawMetadata{
 			ID:           d.EntryName,
 			Parent:       d.MetadataFile.Parent,

@@ -407,6 +407,7 @@ func (fs *FileSystemStorage) UpdateBlobMetadata(uid, docId string, md *models.Me
 	md.MetadataModified = true
 	md.Synced = false
 	md.Version += 1
+	md.LastModified = strconv.FormatInt(time.Now().UnixMilli(), 10)
 
 	blobPath := fs.getUserBlobPath(uid)
 

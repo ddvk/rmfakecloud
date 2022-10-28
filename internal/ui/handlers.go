@@ -372,6 +372,8 @@ func (app *ReactAppWrapper) deleteDocument(c *gin.Context) {
 		return
 	}
 
+	backend.Sync(uid)
+
 	c.Status(http.StatusOK)
 }
 func (app *ReactAppWrapper) createDocument(c *gin.Context) {
