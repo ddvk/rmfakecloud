@@ -11,18 +11,10 @@ import (
 // RegisterRoutes the apps routes
 func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	router.StaticFS(app.prefix, app)
+	router.StaticFS("/images", app.imagesFS)
+	router.StaticFS("/lib", app.libFS)
 
-	router.GET("/favicon.ico", func(c *gin.Context) {
-		c.FileFromFS("/favicon.ico", app.fs)
-	})
-	router.GET("/robots.txt", func(c *gin.Context) {
-		c.FileFromFS("/robots.txt", app.fs)
-	})
-	router.GET("/pdf.worker.js", func(c *gin.Context) {
-		c.FileFromFS("/pdf.worker.js", app.fs)
-	})
-
-	//hack for index.html
+	// hack for index.html
 	router.NoRoute(func(c *gin.Context) {
 		uri := c.Request.RequestURI
 		log.Info(uri)
@@ -58,7 +50,7 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	})
 
 	auth.GET("newcode", app.newCode)
-	auth.GET("profile", app.newCode)
+	auth.GET("profile", app.profile)
 	auth.POST("changePassword", app.changePassword)
 	auth.POST("changeEmail", app.changePassword)
 
@@ -67,7 +59,11 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	auth.POST("documents/upload", app.createDocument)
 	auth.DELETE("documents/:docid", app.deleteDocument)
 	//move, rename
-	auth.PUT("documents", app.updateDocument)
+	auth.PUT("documents/:docid", app.updateDocument)
+	auth.GET("documents/:docid/metadata", app.getDocumentMetadata)
+
+	// folders
+	auth.POST("folders", app.createFolder)
 
 	//admin
 	admin := auth.Group("")

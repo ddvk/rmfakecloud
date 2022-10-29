@@ -1,0 +1,202 @@
+{
+  "greeting": {
+    "message": "开始使用前端脚手架 VRTTV 🎉"
+  },
+  "site": {
+    "titles": {
+      "login": "登录",
+      "404": "没有此页面",
+      "oops": "服务器无响应",
+      "reset_password": "修改密码",
+      "users": "用户",
+      "new_user": "创建新用户",
+      "edit_user": "编辑用户"
+    },
+    "unknown_error": "发生未知错误",
+    "dialog": {
+      "confirm-btn": "确认",
+      "cancel-btn": "取消",
+      "CollectionType": {
+        "delete_title": "删除文件夹",
+        "doc_delete_content": "删除操作不可撤销，确定删除文件夹 {{name}} 吗?"
+      },
+      "DocumentType": {
+        "delete_title": "删除文档",
+        "doc_delete_content": "删除操作不可撤销，确定删除《{{name}}》吗?"
+      }
+    }
+  },
+  "notifications": {
+    "forbidden": "权限不足",
+    "CollectionType": {
+      "document_deleted": "文件夹已删除",
+      "nonempty": "文件夹非空，无法删除"
+    },
+    "DocumentType": {
+      "document_deleted": "文档已删除"
+    },
+    "document_renamed": "文档已重命名",
+    "folder_renamed": "文件夹已重命名",
+    "folder_created": "文件夹已创建",
+    "documents_moved": "已移动{{total}}份文档: 成功: {{succeeded}}份, 失败: {{failed}}份",
+    "user_removed": "用户已删除",
+    "failed_user_remove": "用户删除失败",
+    "user_created": "新用户已创建",
+    "user_updated": "用户已更新"
+  },
+  "nav": {
+    "documents": "文档",
+    "users": "用户",
+    "devices": "设备",
+    "profile": "我的",
+    "change_password": "修改密码",
+    "logout": "登出"
+  },
+  "login": {
+    "title": "欢迎回来!",
+    "subtitle": "请输入账号密码登录",
+    "form": {
+      "username": {
+        "label": "用户名",
+        "placeholder": "请输入用户名",
+        "required": "缺少用户名"
+      },
+      "password": {
+        "label": "密码",
+        "placeholder": "请输入密码",
+        "required": "缺少密码"
+      },
+      "login-btn": "登录"
+    },
+    "username_or_password_error": "用户名或者密码错误，请重新登录"
+  },
+  "logout": {
+    "loading": "登出中..."
+  },
+  "reset_password": {
+    "form": {
+      "current_password": {
+        "label": "当前密码",
+        "required": "缺少当前密码"
+      },
+      "new_password": {
+        "label": "新密码",
+        "required": "缺少新密码",
+        "min": "密码长度太短"
+      },
+      "new_password_confirmation": {
+        "label": "新密码确认",
+        "equals": "两次输入的密码不相同"
+      },
+      "submit-btn": "提交",
+      "success": "密码修改成功"
+    }
+  },
+  "documents": {
+    "empty": "没有文档",
+    "uploader": {
+      "title": "拖拽或点击上传文件",
+      "subtitle": "(只支持上传 epub 或者 PDF 格式)",
+      "duplicated_document": "重复进入上传队列",
+      "progress_bar": {
+        "title": "个文件正在上传",
+        "current_file": "当前: "
+      },
+      "upload_success": "{{count}}个文件已上传"
+    },
+    "file_tree_view": {
+      "menu": {
+        "download": "下载",
+        "view": "查看",
+        "rename": "重命名",
+        "remove": "删除"
+      }
+    },
+    "rename_form": {
+      "name": {
+        "label": "新文件名",
+        "required": "缺少新文件名"
+      },
+      "submit-btn": "保存",
+      "cancel-btn": "取消"
+    },
+    "new_folder_form": {
+      "name": {
+        "label": "文件夹名称",
+        "required": "缺少文件夹名称"
+      },
+      "submit-btn": "保存",
+      "cancel-btn": "取消"
+    },
+    "breadcrumbs": {
+      "new_folder": "创建新文件夹",
+      "move_documents": "移动文档",
+      "move_documents_selected_tip": "已选择 {{count}} 项",
+      "move_documents_submit": "移动",
+      "move_documents_container": {
+        "submit": "移动到此处",
+        "title": "移动到 {{folder}}",
+        "root_folder": "根目录",
+        "moving": "正在移动"
+      }
+    }
+  },
+  "devices": {
+    "code-btn": "生成注册码"
+  },
+  "document_viewer": {
+    "pdf": {
+      "load_error": "PDF 文件加载失败"
+    }
+  },
+  "users": {
+    "list_table": {
+      "columns": {
+        "user_id": {
+          "title": "用户 ID"
+        },
+        "email": {
+          "title": "邮箱"
+        },
+        "name": {
+          "title": "姓名"
+        },
+        "created_at": {
+          "title": "创建时间"
+        },
+        "actions": {
+          "title": "操作",
+          "new_user": "创建新用户",
+          "edit": "编辑",
+          "remove": "删除",
+          "remove_confirmation": "确认要删除用户 {{user}} 吗?"
+        }
+      }
+    }
+  },
+  "new_user": {
+    "form": {
+      "user_id": {
+        "label": "用户 ID",
+        "required": "缺少用户 ID"
+      },
+      "email": {
+        "label": "邮箱",
+        "required": "缺少邮箱",
+        "invalid": "邮箱格式错误"
+      },
+      "password": {
+        "label": "密码",
+        "required": "缺少密码",
+        "min": "密码长度太短"
+      },
+      "password_confirmation": {
+        "label": "密码确认",
+        "equals": "两次输入的密码不相同"
+      }
+    }
+  },
+  "oops": {
+    "message": "服务器无响应"
+  }
+}

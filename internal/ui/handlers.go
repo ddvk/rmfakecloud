@@ -2,9 +2,13 @@ package ui
 
 import (
 	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
+	"github.com/ddvk/rmfakecloud/internal/app/hub"
 	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/model"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
@@ -247,6 +251,14 @@ func (app *ReactAppWrapper) getDocument(c *gin.Context) {
 	uid := c.GetString(userIDContextKey)
 	docid := common.ParamS(docIDParam, c)
 	log.Info("exporting ", docid)
+
+	metadata, err := app.metadataStore.GetMetadata(uid, docid)
+
+	if err != nil {
+		badReq(c, err.Error())
+		return
+	}
+
 	backend := getBackend(c)
 	reader, err := backend.Export(uid, docid, "pdf", 0)
 	if err != nil {
@@ -256,7 +268,43 @@ func (app *ReactAppWrapper) getDocument(c *gin.Context) {
 	}
 
 	defer reader.Close()
-	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
+
+	// Create temp file and returns, this will fix content length missing bug
+	tmpFile, err := os.CreateTemp(os.TempDir(), "")
+	if err != nil {
+		log.Error(err)
+		c.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+	defer func() {
+		tmpFile.Close()
+		os.Remove(tmpFile.Name())
+	}()
+
+	if _, err = io.Copy(tmpFile, reader); err != nil {
+		log.Error(err)
+		c.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+
+	c.FileAttachment(tmpFile.Name(), metadata.VissibleName+".pdf")
+}
+
+func (app *ReactAppWrapper) getDocumentMetadata(c *gin.Context) {
+	uid := c.GetString(userIDContextKey)
+	docid := common.ParamS(docIDParam, c)
+	metadata, err := app.metadataStore.GetMetadata(uid, docid)
+
+	if err != nil {
+		if os.IsNotExist(err) {
+			c.AbortWithStatus(http.StatusNotFound)
+			return
+		}
+		badReq(c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, metadata)
 }
 
 func (app *ReactAppWrapper) updateDocument(c *gin.Context) {
@@ -266,14 +314,65 @@ func (app *ReactAppWrapper) updateDocument(c *gin.Context) {
 		badReq(c, err.Error())
 		return
 	}
-	// uid := c.GetString(userID)
-	// docid := c.Param("docid")
+	uid := c.GetString(userIDContextKey)
+	docid := common.ParamS(docIDParam, c)
+	backend := getBackend(c)
+
+	dirty := false
+
+	// Rename
+	if len(upd.Name) > 0 {
+		updated, err := backend.RenameDocument(uid, docid, upd.Name)
+
+		if err != nil {
+			badReq(c, err.Error())
+			return
+		}
+
+		if updated {
+			dirty = true
+		}
+	}
+
+	// Move
+	if len(upd.ParentID) > 0 || upd.SetParentToRoot {
+		if upd.SetParentToRoot {
+			upd.ParentID = ""
+		}
+
+		updated, err := backend.MoveDocument(uid, docid, upd.ParentID)
+
+		if err != nil {
+			badReq(c, err.Error())
+			return
+		}
+
+		if updated {
+			dirty = true
+		}
+	}
+
+	if dirty {
+		backend.Sync(uid)
+		log.Info(uiLogger, "document updated: id=", docid)
+	}
 
 	c.Status(http.StatusOK)
 }
+
 func (app *ReactAppWrapper) deleteDocument(c *gin.Context) {
-	// uid := c.GetString(userID)
-	// docid := c.Param("docid")
+	uid := c.GetString(userIDContextKey)
+	docId := common.ParamS(docIDParam, c)
+	backend := getBackend(c)
+	err := backend.DeleteDocument(uid, docId)
+
+	if err != nil {
+		log.Error("Delete document error: ", err)
+		badReq(c, err.Error())
+		return
+	}
+
+	backend.Sync(uid)
 
 	c.Status(http.StatusOK)
 }
@@ -450,4 +549,83 @@ func (app *ReactAppWrapper) createUser(c *gin.Context) {
 		return
 	}
 	c.Status(http.StatusCreated)
+}
+
+func (app *ReactAppWrapper) profile(c *gin.Context) {
+	uid := c.GetString(userIDContextKey)
+
+	// Try to find the user
+	user, err := app.userStorer.GetUser(uid)
+	if err != nil {
+		log.Error(err)
+		badReq(c, err.Error())
+		return
+	}
+
+	if user == nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, "Invalid user")
+		return
+	}
+
+	if uid != user.ID && !IsAdmin(c) {
+		log.Warn("Only admins can query other users")
+		c.AbortWithStatusJSON(http.StatusUnauthorized, "")
+		return
+	}
+
+	vmUser := &viewmodel.User{
+		ID:        user.ID,
+		Email:     user.Email,
+		Name:      user.Name,
+		CreatedAt: user.CreatedAt,
+	}
+
+	for _, i := range user.Integrations {
+		vmUser.Integrations = append(vmUser.Integrations, i.Name)
+	}
+
+	c.JSON(http.StatusOK, vmUser)
+}
+
+func (app *ReactAppWrapper) createFolder(c *gin.Context) {
+	var req viewmodel.NewFolder
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Error(err)
+		badReq(c, err.Error())
+		return
+	}
+	req.Name = strings.TrimSpace(req.Name)
+
+	if len(req.Name) == 0 {
+		log.Error("folder name required")
+		badReq(c, "folder name required")
+		return
+	}
+
+	uid := c.GetString(userIDContextKey)
+
+	backend := getBackend(c)
+
+	doc, err := backend.CreateFolder(uid, req.Name, req.ParentID)
+
+	if err != nil {
+		log.Error(err)
+		c.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+
+	app.h.Notify(uid, "web", hub.DocumentNotification{
+		ID:      doc.ID,
+		Type:    doc.Type,
+		Version: doc.Version,
+		Parent:  doc.Parent,
+		Name:    doc.Name,
+	}, hub.DocAddedEvent)
+
+	c.JSON(http.StatusOK, gin.H{
+		"id":      doc.ID,
+		"name":    doc.Name,
+		"type":    doc.Type,
+		"version": doc.Version,
+	})
 }

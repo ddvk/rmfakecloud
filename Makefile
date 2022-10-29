@@ -4,14 +4,15 @@ OUT_DIR := dist
 CMD := ./cmd/rmfakecloud
 BINARY := rmfakecloud
 BUILD = go build -ldflags $(LDFLAGS) -o $(@) $(CMD) 
-ASSETS = ui/build
+ASSETS = new-ui/dist
 GOFILES := $(shell find . -iname '*.go' ! -iname "*_test.go")
 GOFILES += $(ASSETS)
-UIFILES := $(shell find ui/src)
-UIFILES += $(shell find ui/public)
-UIFILES += ui/package.json
+UIFILES := $(shell find new-ui/src)
+UIFILES += $(shell find new-ui/public)
+UIFILES += $(shell find new-ui/types)
+UIFILES += new-ui/package.json
 TARGETS := $(addprefix $(OUT_DIR)/$(BINARY)-, x64 armv6 armv7 arm64 win64 docker)
-YARN	= yarn --cwd ui  
+YARN	= yarn --cwd new-ui  
 
 .PHONY: all run runui clean test testgo testui
 
@@ -43,21 +44,18 @@ container: $(OUT_DIR)/$(BINARY)-docker
 run: $(ASSETS)
 	go run $(CMD) $(ARG)
 
-$(ASSETS): $(UIFILES) ui/yarn.lock
-	@cp ui/node_modules/pdfjs-dist/build/pdf.worker.js ui/public/
+$(ASSETS): $(UIFILES) new-ui/yarn.lock
 	$(YARN) build
-	@#remove unneeded stuff, todo: eject
-	@rm ui/build/service-worker.js ui/build/precache-manifest* ui/build/asset-manifest.json 2> /dev/null || true
 
-ui/yarn.lock: ui/node_modules ui/package.json
+new-ui/yarn.lock: new-ui/node_modules new-ui/package.json
 	$(YARN)
 	@touch -mr $(shell ls -Atd $? | head -1) $@
 
-ui/node_modules:
+new-ui/node_modules:
 	mkdir -p $@
 
-runui: ui/yarn.lock
-	$(YARN) start
+runui: new-ui/yarn.lock
+	$(YARN) dev
 
 clean:
 	rm -f $(OUT_DIR)/*

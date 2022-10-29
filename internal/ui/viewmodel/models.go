@@ -50,22 +50,53 @@ func makeDocument(d *messages.RawMetadata) (entry Entry) {
 		Name: d.VissibleName,
 		// LastModified: d.ModifiedClient,
 		DocumentType: d.Type,
+		Extension:    d.Extension,
 	}
 	return
 }
 
-const trashID = "trash"
+const TrashID = "trash"
 
 // DocTreeFromHashTree from hash tree
 func DocTreeFromHashTree(tree *models.HashTree) *DocumentTree {
 	docs := make([]*messages.RawMetadata, 0)
 	for _, d := range tree.Docs {
-		docs = append(docs, &messages.RawMetadata{
+		md := &messages.RawMetadata{
 			ID:           d.EntryName,
 			Parent:       d.MetadataFile.Parent,
 			VissibleName: d.MetadataFile.DocumentName,
 			Type:         d.MetadataFile.CollectionType,
-		})
+		}
+
+		isEpub := false
+		isPDF := false
+
+		for _, entry := range d.Files {
+			if entry.EntryName == md.ID+models.EpubFileExt {
+				isEpub = true
+				break
+			}
+		}
+
+		for _, entry := range d.Files {
+			if !isEpub {
+				if entry.EntryName == md.ID+models.PdfFileExt {
+					isPDF = true
+					break
+				}
+			}
+
+		}
+
+		if isEpub {
+			md.Extension = models.EpubFileExt
+		}
+
+		if isPDF {
+			md.Extension = models.PdfFileExt
+		}
+
+		docs = append(docs, md)
 
 	}
 
@@ -108,7 +139,7 @@ func DocTreeFromRawMetadata(documents []*messages.RawMetadata) *DocumentTree {
 
 		parent := d.Parent
 
-		if parent == trashID {
+		if parent == TrashID {
 			trashEntries = append(trashEntries, entry)
 			continue
 		}
@@ -166,6 +197,7 @@ type Document struct {
 	ID           string `json:"id"`
 	Name         string `json:"name"`
 	DocumentType string `json:"type"` //notebook, pdf, epub
+	Extension    string `json:"extension"`
 	LastModified time.Time
 	Size         int
 }
@@ -194,7 +226,13 @@ type NewUser struct {
 
 // UpdateDoc with somethin
 type UpdateDoc struct {
-	DocumentID string `json:"documentId" binding:"required"`
-	ParentID   string `json:"parentId"`
-	Name       string `json:"name"`
+	SetParentToRoot bool   `json:"setParentToRoot"`
+	ParentID        string `json:"parentId"`
+	Name            string `json:"name"`
+}
+
+// NewFolder new folder creation
+type NewFolder struct {
+	Name     string `json:"name" binding:"required"`
+	ParentID string `json:"parentId"`
 }

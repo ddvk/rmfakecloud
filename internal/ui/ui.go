@@ -3,6 +3,7 @@ package ui
 import (
 	"io"
 	"io/fs"
+	"log"
 	"net/http"
 	"path"
 
@@ -12,7 +13,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
-	webui "github.com/ddvk/rmfakecloud/ui"
+	webui "github.com/ddvk/rmfakecloud/new-ui"
 	"github.com/gin-gonic/gin"
 )
 
@@ -20,6 +21,10 @@ type backend interface {
 	GetDocumentTree(uid string) (tree *viewmodel.DocumentTree, err error)
 	Export(uid, doc, exporttype string, opt storage.ExportOption) (stream io.ReadCloser, err error)
 	CreateDocument(uid, name, parent string, stream io.Reader) (doc *storage.Document, err error)
+	DeleteDocument(uid, docid string) error
+	CreateFolder(uid, name, parent string) (*storage.Document, error)
+	RenameDocument(uid, docId, newName string) (bool, error)
+	MoveDocument(uid, docId, newParent string) (bool, error)
 	Sync(uid string)
 }
 type codeGenerator interface {
@@ -28,6 +33,8 @@ type codeGenerator interface {
 
 type documentHandler interface {
 	CreateDocument(uid, name, parent string, stream io.Reader) (doc *storage.Document, err error)
+	CreateFolder(uid, name, parent string) (doc *storage.Document, err error)
+	RemoveDocument(uid, docid string) error
 	GetAllMetadata(uid string) (do []*messages.RawMetadata, err error)
 	ExportDocument(uid, id, format string, exportOption storage.ExportOption) (stream io.ReadCloser, err error)
 }
@@ -35,15 +42,21 @@ type documentHandler interface {
 type blobHandler interface {
 	GetTree(uid string) (tree *models.HashTree, err error)
 	CreateBlobDocument(uid, name, parent string, reader io.Reader) (doc *storage.Document, err error)
+	CreateBlobFolder(uid, name, parent string) (*storage.Document, error)
 	Export(uid, docid string) (io.ReadCloser, error)
+	GetBlobMetadata(uid, docId string) (*models.MetadataFile, error)
+	UpdateBlobMetadata(uid, docId string, md *models.MetadataFile) error
 }
 
 // ReactAppWrapper encapsulates an app
 type ReactAppWrapper struct {
 	fs              http.FileSystem
+	imagesFS        http.FileSystem
+	libFS           http.FileSystem
 	prefix          string
 	cfg             *config.Config
 	userStorer      storage.UserStorer
+	metadataStore   storage.MetadataStorer
 	codeConnector   codeGenerator
 	h               *hub.Hub
 	documentHandler documentHandler
@@ -60,17 +73,30 @@ func New(cfg *config.Config,
 	codeConnector codeGenerator,
 	h *hub.Hub,
 	docHandler documentHandler,
-	blobHandler blobHandler) *ReactAppWrapper {
+	blobHandler blobHandler,
+	metadataStore storage.MetadataStorer,
+) *ReactAppWrapper {
 
-	sub, err := fs.Sub(webui.Assets, "build")
+	sub, err := fs.Sub(webui.Assets, "dist")
 	if err != nil {
 		panic("not embedded?")
 	}
+	imagesSub, err := fs.Sub(webui.Assets, "dist/images")
+	if err != nil {
+		panic("not embedded images?")
+	}
+	libSub, err := fs.Sub(webui.Assets, "dist/lib")
+	if err != nil {
+		panic("not embedded lib?")
+	}
 	staticWrapper := ReactAppWrapper{
 		fs:              http.FS(sub),
-		prefix:          "/static",
+		imagesFS:        http.FS(imagesSub),
+		libFS:           http.FS(libSub),
+		prefix:          "/assets",
 		cfg:             cfg,
 		userStorer:      userStorer,
+		metadataStore:   metadataStore,
 		codeConnector:   codeConnector,
 		h:               h,
 		documentHandler: docHandler,
@@ -80,6 +106,7 @@ func New(cfg *config.Config,
 		},
 		backend10: &backend10{
 			documentHandler: docHandler,
+			metadataStore:   metadataStore,
 			h:               h,
 		},
 	}
@@ -88,6 +115,7 @@ func New(cfg *config.Config,
 
 // Open opens a file from the fs (virtual)
 func (w ReactAppWrapper) Open(filepath string) (http.File, error) {
+	log.Println("Open: ", filepath)
 	fullpath := filepath
 	//index.html hack
 	if filepath != indexReplacement {
@@ -95,6 +123,7 @@ func (w ReactAppWrapper) Open(filepath string) (http.File, error) {
 	} else {
 		fullpath = "/index.html"
 	}
+
 	f, err := w.fs.Open(fullpath)
 	return f, err
 }
