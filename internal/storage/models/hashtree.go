@@ -184,7 +184,7 @@ func (t *HashTree) FindDoc(documentID string) (*HashDoc, error) {
 			return d, nil
 		}
 	}
-	return nil, fmt.Errorf("doc %s not found", documentID)
+	return nil, fmt.Errorf("treedoc '%s' not found", documentID)
 }
 
 // Remove removes
@@ -226,13 +226,14 @@ func (t *HashTree) Rehash() error {
 // Mirror makes the tree look like the storage
 func (t *HashTree) Mirror(r RemoteStorage) (changed bool, err error) {
 	rootHash, gen, err := r.GetRootIndex()
+	log.Info("got root ", rootHash, gen, err)
 	if err != nil {
 		return
 	}
-	if rootHash == "" && gen == 0 {
+	if rootHash == "" {
 		log.Println("Empty cloud")
 		t.Docs = nil
-		t.Generation = 0
+		t.Generation = gen
 		return
 	}
 

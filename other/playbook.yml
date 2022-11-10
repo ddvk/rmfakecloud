@@ -1,0 +1,45 @@
+#!/usr/bin/env ansible-playbook
+---
+- hosts: rmfakecloud
+  become: true
+  name: install as service
+  vars:
+    service_name: rmfakecloud
+    user: rmfakecloud
+    group: rmfakecloud
+  tasks:
+    - name: stop service
+      service:
+        name: '{{ service_name }}'
+        state: stopped
+
+    - name: user exists
+      ansible.builtin.user:
+        name: '{{ user }}'
+        group: '{{ group }}'
+
+    - name: copy binary
+      ansible.builtin.copy:
+          src: ../dist/rmfakecloud-arm64
+          dest: /usr/bin/
+          owner: '{{ user }}'
+          group: '{{ group }}'
+
+
+    - name: copy service file
+      ansible.builtin.copy:
+          src: ./rmfakecloud.service
+          dest: /etc/systemd/system/
+          owner: root
+          group: root
+
+    - name: reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: yes
+
+    - name: start service
+      service:
+        name: '{{ service_name }}'
+        state: started
+
+

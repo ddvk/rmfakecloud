@@ -25,9 +25,13 @@ import (
 
 const cachedTreeName = ".tree"
 
-// GetTree returns the cached blob tree for the user
-func (fs *FileSystemStorage) GetTree(uid string) (t *models.HashTree, err error) {
-	ls := &LocalBlobStorage{
+// serves as root modification log and generation number source
+const historyFile = ".root.history"
+const rootBlob = "root"
+
+// GetCachedTree returns the cached blob tree for the user
+func (fs *FileSystemStorage) GetCachedTree(uid string) (t *models.HashTree, err error) {
+	blobStorage := &LocalBlobStorage{
 		uid: uid,
 		fs:  fs,
 	}
@@ -38,7 +42,7 @@ func (fs *FileSystemStorage) GetTree(uid string) (t *models.HashTree, err error)
 	if err != nil {
 		return nil, err
 	}
-	changed, err := tree.Mirror(ls)
+	changed, err := tree.Mirror(blobStorage)
 	if err != nil {
 		return nil, err
 	}
@@ -51,15 +55,22 @@ func (fs *FileSystemStorage) GetTree(uid string) (t *models.HashTree, err error)
 	return tree, nil
 }
 
-// SaveTree saves the cached tree
-func (fs *FileSystemStorage) SaveTree(uid string, t *models.HashTree) error {
+// SaveCachedTree saves the cached tree
+func (fs *FileSystemStorage) SaveCachedTree(uid string, t *models.HashTree) error {
 	cachePath := path.Join(fs.getUserPath(uid), cachedTreeName)
 	return t.Save(cachePath)
 }
 
+func (fs *FileSystemStorage) blobStorage(uid string) *LocalBlobStorage {
+	return &LocalBlobStorage{
+		fs:  fs,
+		uid: uid,
+	}
+}
+
 // Export exports a document
 func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err error) {
-	tree, err := fs.GetTree(uid)
+	tree, err := fs.GetCachedTree(uid)
 	if err != nil {
 		return nil, err
 	}
@@ -67,10 +78,7 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 	if err != nil {
 		return nil, err
 	}
-	ls := &LocalBlobStorage{
-		fs:  fs,
-		uid: uid,
-	}
+	ls := fs.blobStorage(uid)
 
 	archive, err := models.ArchiveFromHashDoc(doc, ls)
 	if err != nil {
@@ -89,24 +97,199 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 	return reader, err
 }
 
+// UpdateBlobDocument updates metadata
+func (fs *FileSystemStorage) UpdateBlobDocument(uid, docID, name, parent string) (err error) {
+	tree, err := fs.GetCachedTree(uid)
+	if err != nil {
+		return nil
+	}
+
+	log.Info("updateBlobDocument: ", docID, "new name:", name)
+	blobStorage := fs.blobStorage(uid)
+
+	err = updateTree(tree, blobStorage, func(t *models.HashTree) error {
+		hashDoc, err := tree.FindDoc(docID)
+		if err != nil {
+			return err
+		}
+		log.Info("updateBlobDocument: ", hashDoc.DocumentName)
+
+		hashDoc.DocumentName = name
+		hashDoc.Parent = parent
+		hashDoc.Version++
+
+		metadataHash, metadataReader, err := hashDoc.MetadataReader()
+		if err != nil {
+			return err
+		}
+
+		err = blobStorage.Write(metadataHash, metadataReader)
+		if err != nil {
+			return err
+		}
+
+		//update the metadata hash
+		for _, hashEntry := range hashDoc.Files {
+			if hashEntry.IsMetadata() {
+				hashEntry.Hash = metadataHash
+				break
+			}
+		}
+		hashDoc.Rehash()
+		hashDocReader, err := hashDoc.IndexReader()
+		if err != nil {
+			return err
+		}
+
+		err = blobStorage.Write(hashDoc.Hash, hashDocReader)
+		if err != nil {
+			return err
+		}
+
+		t.Rehash()
+		return nil
+	})
+
+	return err
+}
+
+// DeleteBlobDocument deletes blob document
+func (fs *FileSystemStorage) DeleteBlobDocument(uid, docID string) (err error) {
+	tree, err := fs.GetCachedTree(uid)
+	if err != nil {
+		return nil
+	}
+
+	blobStorage := fs.blobStorage(uid)
+
+	return updateTree(tree, blobStorage, func(t *models.HashTree) error {
+		return tree.Remove(docID)
+	})
+}
+
+// CreateBlobFolder creates a new folder
+func (fs *FileSystemStorage) CreateBlobFolder(uid, foldername, parent string) (doc *storage.Document, err error) {
+	docID := uuid.New().String()
+	tree, err := fs.GetCachedTree(uid)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Info("Creating blob folder ", foldername, " parent: ", parent)
+
+	blobStorage := fs.blobStorage(uid)
+
+	metadata := models.MetadataFile{
+		DocumentName:     foldername,
+		CollectionType:   common.CollectionType,
+		Parent:           parent,
+		Version:          1,
+		LastModified:     models.FromTime(time.Now()),
+		Synced:           true,
+		MetadataModified: true,
+	}
+
+	metadataReader, metahash, size, err := createMetadataFile(metadata)
+	log.Info("meta hash: ", metahash)
+	err = blobStorage.Write(metahash, metadataReader)
+	if err != nil {
+		return nil, err
+	}
+
+	metadataEntry := models.NewHashEntry(metahash, docID+storage.MetadataFileExt, size)
+	if err != nil {
+		return
+	}
+
+	hashDoc := models.NewHashDocWithMeta(docID, metadata)
+	err = hashDoc.AddFile(metadataEntry)
+	if err != nil {
+		return nil, err
+	}
+	hashDocReader, err := hashDoc.IndexReader()
+	if err != nil {
+		return nil, err
+	}
+
+	err = blobStorage.Write(hashDoc.Hash, hashDocReader)
+	if err != nil {
+		return nil, err
+	}
+
+	err = updateTree(tree, blobStorage, func(t *models.HashTree) error {
+		return t.Add(hashDoc)
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	doc = &storage.Document{
+		ID:     docID,
+		Type:   common.CollectionType,
+		Parent: parent,
+		Name:   foldername,
+	}
+	return doc, nil
+}
+
+// updates the tree and saves the new root
+func updateTree(tree *models.HashTree, storage *LocalBlobStorage, treeMutation func(t *models.HashTree) error) error {
+	for i := 0; i < 3; i++ {
+		err := treeMutation(tree)
+		if err != nil {
+			return err
+		}
+
+		rootIndexReader, err := tree.RootIndex()
+		if err != nil {
+			return err
+		}
+		err = storage.Write(tree.Hash, rootIndexReader)
+		if err != nil {
+			return err
+		}
+
+		gen, err := storage.WriteRootIndex(tree.Generation, tree.Hash)
+		//the tree has been updated
+		if err == ErrorWrongGeneration {
+			tree.Mirror(storage)
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		log.Info("got new root gen ", gen)
+		tree.Generation = gen
+		//TODO: concurrency
+		err = storage.fs.SaveCachedTree(storage.uid, tree)
+
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+	return errors.New("could not update")
+}
+
 // CreateBlobDocument creates a new document
 func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, stream io.Reader) (doc *storage.Document, err error) {
 	ext := path.Ext(filename)
 	switch ext {
-	case models.PdfFileExt:
+	case storage.PdfFileExt:
 		fallthrough
-	case models.EpubFileExt:
+	case storage.EpubFileExt:
 	default:
 		return nil, errors.New("unsupported extension: " + ext)
 	}
 	//TODO: zips and rm
-
+	blobPath := fs.getUserBlobPath(uid)
 	docid := uuid.New().String()
 	//create metadata
 	docName := strings.TrimSuffix(filename, ext)
-	blobPath := fs.getUserBlobPath(uid)
 
-	tree, err := fs.GetTree(uid)
+	tree, err := fs.GetCachedTree(uid)
 	if err != nil {
 		return nil, err
 	}
@@ -115,41 +298,59 @@ func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, st
 
 	metadata := models.MetadataFile{
 		DocumentName:     docName,
-		CollectionType:   models.DocumentType,
+		CollectionType:   common.DocumentType,
 		Parent:           parent,
 		Version:          1,
-		LastModified:     strconv.FormatInt(time.Now().UnixMilli(), 10),
+		LastModified:     models.FromTime(time.Now()),
 		Synced:           true,
 		MetadataModified: true,
 	}
-	metahash, size, err := createMetadataFile(metadata, blobPath)
-	fi := models.NewFileHashEntry(metahash, docid+models.MetadataFileExt)
-	fi.Size = size
+
+	blobStorage := fs.blobStorage(uid)
+	r, metahash, size, err := createMetadataFile(metadata)
+	blobStorage.Write(metahash, r)
+	if err != nil {
+		return nil, err
+	}
+
+	payloadEntry := models.NewHashEntry(metahash, docid+storage.MetadataFileExt, size)
 	if err != nil {
 		return
 	}
 
-	hashDoc := models.NewHashDocMeta(docid, metadata)
+	hashDoc := models.NewHashDocWithMeta(docid, metadata)
+	hashDoc.PayloadType = docName
 
-	err = hashDoc.AddFile(fi)
+	err = hashDoc.AddFile(payloadEntry)
 	if err != nil {
 		return
 	}
 
 	content := createContent(ext)
-	contentHash, size, err := models.Hash(strings.NewReader(content))
+
+	contentReader := strings.NewReader(content)
+	contentHash, size, err := models.Hash(contentReader)
 	if err != nil {
 		return
 	}
-	err = saveTo(strings.NewReader(content), contentHash, blobPath)
+	_, err = contentReader.Seek(0, io.SeekStart)
 	if err != nil {
 		return
 	}
-	fi = models.NewFileHashEntry(contentHash, docid+models.ContentFileExt)
-	fi.Size = size
+	err = blobStorage.Write(contentHash, contentReader)
+	if err != nil {
+		return
+	}
+	payloadEntry = models.NewHashEntry(contentHash, docid+storage.ContentFileExt, size)
 
-	hashDoc.AddFile(fi)
+	err = hashDoc.AddFile(payloadEntry)
+	if err != nil {
+		return
+	}
 
+	// given that the payload can be huge
+	// calculate the hash while streaming the payload to the storage
+	// then rename it
 	tmpdoc, err := ioutil.TempFile(blobPath, ".tmp")
 	if err != nil {
 		return
@@ -164,48 +365,32 @@ func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, st
 	}
 	tmpdoc.Close()
 	payloadFilename := path.Join(blobPath, payloadHash)
+	log.Debug("new payload name: ", payloadFilename)
 	err = os.Rename(tmpdoc.Name(), payloadFilename)
 	if err != nil {
 		return nil, err
 	}
-	fi = models.NewFileHashEntry(payloadHash, docid+ext)
-	fi.Size = size
-	err = hashDoc.AddFile(fi)
+	payloadEntry = models.NewHashEntry(payloadHash, docid+ext, size)
+	err = hashDoc.AddFile(payloadEntry)
+
+	hashDoc.PayloadSize = size
 
 	if err != nil {
 		return nil, err
 	}
 
-	//TODO: loop
-	err = tree.Add(hashDoc)
+	indexReader, err := hashDoc.IndexReader()
 	if err != nil {
-		return
+		return nil, err
+	}
+	err = blobStorage.Write(hashDoc.Hash, indexReader)
+	if err != nil {
+		return nil, err
 	}
 
-	docIndexReader, err := hashDoc.IndexReader()
-	err = saveTo(docIndexReader, hashDoc.Hash, blobPath)
-	if err != nil {
-		return
-	}
-
-	rootIndexReader, err := tree.RootIndex()
-	err = saveTo(rootIndexReader, tree.Hash, blobPath)
-	if err != nil {
-		return
-	}
-	blobStorage := &LocalBlobStorage{
-		fs:  fs,
-		uid: uid,
-	}
-
-	//todo:check gen + locking
-	gen, err := blobStorage.WriteRootIndex(tree.Generation, tree.Hash)
-	if err != nil {
-		return
-	}
-	log.Info("got gen ", gen)
-	tree.Generation = gen
-	err = fs.SaveTree(uid, tree)
+	err = updateTree(tree, blobStorage, func(t *models.HashTree) error {
+		return tree.Add(hashDoc)
+	})
 
 	if err != nil {
 		return
@@ -213,53 +398,38 @@ func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, st
 
 	doc = &storage.Document{
 		ID:     docid,
-		Type:   models.DocumentType,
+		Type:   common.DocumentType,
 		Parent: "",
 		Name:   docName,
 	}
 	return
 }
 
-func saveTo(r io.Reader, hash, blobPath string) (err error) {
-	rootIndexFilePath := path.Join(blobPath, hash)
-	rootIndex, err := os.Create(rootIndexFilePath)
-	if err != nil {
-		return
-	}
-	_, err = io.Copy(rootIndex, r)
-	if err != nil {
-		return
-	}
-	return nil
-}
-
-func createMetadataFile(metadata models.MetadataFile, spath string) (filehash string, size int64, err error) {
-
+func createMetadataFile(metadata models.MetadataFile) (r io.Reader, filehash string, size int64, err error) {
 	jsn, err := json.Marshal(metadata)
 	if err != nil {
 		return
 	}
-	filehash, size, err = models.Hash(bytes.NewReader(jsn))
+	reader := bytes.NewReader(jsn)
+	filehash, size, err = models.Hash(reader)
 	if err != nil {
 		return
 	}
-	filePath := path.Join(spath, filehash)
-	err = ioutil.WriteFile(filePath, jsn, 0600)
-	if err != nil {
-		return
-	}
+	reader.Seek(0, io.SeekStart)
+	r = reader
 	return
 }
 
-//serves as root modification log and generation number source
-const historyFile = ".root.history"
-const rootFile = "root"
-
 // GetBlobURL return a url for a file to store
-func (fs *FileSystemStorage) GetBlobURL(uid, blobid, scope string) (docurl string, exp time.Time, err error) {
+func (fs *FileSystemStorage) GetBlobURL(uid, blobid string, write bool) (docurl string, exp time.Time, err error) {
 	uploadRL := fs.Cfg.StorageURL
 	exp = time.Now().Add(time.Minute * config.ReadStorageExpirationInMinutes)
 	strExp := strconv.FormatInt(exp.Unix(), 10)
+
+	scope := ReadScope
+	if write {
+		scope = WriteScope
+	}
 
 	signature, err := SignURLParams([]string{uid, blobid, strExp, scope}, fs.Cfg.JWTSecretKey)
 	if err != nil {
@@ -284,7 +454,7 @@ func (fs *FileSystemStorage) LoadBlob(uid, blobid string) (reader io.ReadCloser,
 	generation := int64(0)
 	blobPath := path.Join(fs.getUserBlobPath(uid), common.Sanitize(blobid))
 	log.Debugln("Fullpath:", blobPath)
-	if blobid == rootFile {
+	if blobid == rootBlob {
 		historyPath := path.Join(fs.getUserBlobPath(uid), historyFile)
 		lock := fslock.New(historyPath)
 		err := lock.LockWithTimeout(time.Duration(time.Second * 5))
@@ -302,7 +472,7 @@ func (fs *FileSystemStorage) LoadBlob(uid, blobid string) (reader io.ReadCloser,
 
 	fi, err := os.Stat(blobPath)
 	if err != nil || fi.IsDir() {
-		return nil, 0, 0, ErrorNotFound
+		return nil, generation, 0, ErrorNotFound
 	}
 
 	reader, err = os.Open(blobPath)
@@ -314,7 +484,7 @@ func (fs *FileSystemStorage) StoreBlob(uid, id string, stream io.Reader, lastGen
 	generation = 1
 
 	reader := stream
-	if id == rootFile {
+	if id == rootBlob {
 		historyPath := path.Join(fs.getUserBlobPath(uid), historyFile)
 		lock := fslock.New(historyPath)
 		err = lock.LockWithTimeout(time.Duration(time.Second * 5))
@@ -330,7 +500,7 @@ func (fs *FileSystemStorage) StoreBlob(uid, id string, stream io.Reader, lastGen
 		}
 
 		if currentGen != lastGen && currentGen > 0 {
-			log.Warnf("wrong generation, server %d, client %d", currentGen, lastGen)
+			log.Warnf("wrong generation, currentGen %d, lastGen %d", currentGen, lastGen)
 			return currentGen, ErrorWrongGeneration
 		}
 
@@ -361,6 +531,7 @@ func (fs *FileSystemStorage) StoreBlob(uid, id string, stream io.Reader, lastGen
 	}
 
 	blobPath := path.Join(fs.getUserBlobPath(uid), common.Sanitize(id))
+	log.Info("Write: ", blobPath)
 	file, err := os.Create(blobPath)
 	if err != nil {
 		return
@@ -374,7 +545,7 @@ func (fs *FileSystemStorage) StoreBlob(uid, id string, stream io.Reader, lastGen
 	return
 }
 
-//use file size as generation
+// use file size as generation
 func generationFromFileSize(size int64) int64 {
 	//time + 1 space + 64 hash + 1 newline
 	return size / 86

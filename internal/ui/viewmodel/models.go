@@ -4,10 +4,12 @@ import (
 	"sort"
 	"time"
 
-	"github.com/ddvk/rmfakecloud/internal/messages"
+	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	log "github.com/sirupsen/logrus"
 )
+
+const trashID = "trash"
 
 // LoginForm the login form
 type LoginForm struct {
@@ -35,63 +37,82 @@ type DocumentTree struct {
 	Trash   []Entry
 }
 
-func makeFolder(d *messages.RawMetadata) (entry *Directory) {
-	entry = &Directory{
-		ID:   d.ID,
-		Name: d.VissibleName,
-		// LastModified: d.ModifiedClient,
-		Entries: make([]Entry, 0),
-	}
-	return
-}
-func makeDocument(d *messages.RawMetadata) (entry Entry) {
-	entry = &Document{
-		ID:   d.ID,
-		Name: d.VissibleName,
-		// LastModified: d.ModifiedClient,
-		DocumentType: d.Type,
-	}
-	return
+type InternalDoc struct {
+	ID           string
+	Version      int
+	LastModified time.Time
+	Type         common.EntryType
+	FileType     string
+	Name         string
+	CurrentPage  int
+	Parent       string
+	Size         int64
 }
 
-const trashID = "trash"
+func makeFolder(d *InternalDoc) (entry *Directory) {
+	entry = &Directory{
+		ID:           d.ID,
+		Name:         d.Name,
+		LastModified: d.LastModified,
+		Entries:      make([]Entry, 0),
+		IsFolder:     true,
+	}
+	return
+}
+func makeDocument(d *InternalDoc) (entry Entry) {
+	entry = &Document{
+		ID:           d.ID,
+		Name:         d.Name,
+		LastModified: d.LastModified,
+		DocumentType: d.FileType,
+		Size:         d.Size,
+	}
+	return
+}
 
 // DocTreeFromHashTree from hash tree
 func DocTreeFromHashTree(tree *models.HashTree) *DocumentTree {
-	docs := make([]*messages.RawMetadata, 0)
+	docs := make([]*InternalDoc, 0)
 	for _, d := range tree.Docs {
-		docs = append(docs, &messages.RawMetadata{
+
+		lastModified, err := models.ToTime(d.LastModified)
+		if err != nil {
+			log.Warn("incorrect lastmodified for: ", d.DocumentName, " value: ", d.LastModified, " ", err)
+		}
+		docs = append(docs, &InternalDoc{
 			ID:           d.EntryName,
 			Parent:       d.MetadataFile.Parent,
-			VissibleName: d.MetadataFile.DocumentName,
+			Name:         d.MetadataFile.DocumentName,
 			Type:         d.MetadataFile.CollectionType,
+			LastModified: lastModified,
+			FileType:     d.PayloadType,
+			Size:         d.PayloadSize,
 		})
-
 	}
 
 	return DocTreeFromRawMetadata(docs)
 }
 
 // DocTreeFromRawMetadata from raw metadata
-func DocTreeFromRawMetadata(documents []*messages.RawMetadata) *DocumentTree {
-	childParent := make(map[string]string)
-	folders := make(map[string]*Directory)
+func DocTreeFromRawMetadata(documents []*InternalDoc) *DocumentTree {
+	childParent := map[string]string{}
+	folders := map[string]*Directory{}
 	rootEntries := make([]Entry, 0)
 	trashEntries := make([]Entry, 0)
 
 	sort.Slice(documents, func(i, j int) bool {
 		a, b := documents[i], documents[j]
 		if a.Type != b.Type {
-			return a.Type == models.CollectionType
+			return a.Type == common.CollectionType
 		}
 
-		return a.VissibleName < b.VissibleName
+		return a.Name < b.Name
 	})
 
 	// add all folders
 	for _, d := range documents {
 		switch d.Type {
-		case models.CollectionType:
+		case common.CollectionType:
 			folders[d.ID] = makeFolder(d)
 		}
 	}
@@ -137,7 +158,7 @@ func DocTreeFromRawMetadata(documents []*messages.RawMetadata) *DocumentTree {
 			continue
 		}
 
-		log.Warn(d.VissibleName, " parent not found: ", parent)
+		log.Warn(d.Name, " parent not found: ", parent)
 		rootEntries = append(rootEntries, entry)
 	}
 
@@ -155,19 +176,20 @@ type Entry interface {
 
 // Directory entry
 type Directory struct {
-	ID           string  `json:"id"`
-	Name         string  `json:"name"`
-	Entries      []Entry `json:"children"`
-	LastModified time.Time
+	ID           string    `json:"id"`
+	Name         string    `json:"name"`
+	Entries      []Entry   `json:"children"`
+	LastModified time.Time `json:"lastModified"`
+	IsFolder     bool      `json:"isFolder"`
 }
 
 // Document is a single document
 type Document struct {
-	ID           string `json:"id"`
-	Name         string `json:"name"`
-	DocumentType string `json:"type"` //notebook, pdf, epub
-	LastModified time.Time
-	Size         int
+	ID           string    `json:"id"`
+	Name         string    `json:"name"`
+	DocumentType string    `json:"type"` //notebook, pdf, epub
+	LastModified time.Time `json:"lastModified"`
+	Size         int64     `json:"size"`
 }
 
 // DocumentList is a list of documents
@@ -197,4 +219,9 @@ type UpdateDoc struct {
 	DocumentID string `json:"documentId" binding:"required"`
 	ParentID   string `json:"parentId"`
 	Name       string `json:"name"`
+}
+
+type NewFolder struct {
+	ParentID string `json:"parentId"`
+	Name     string `json:"name"`
 }

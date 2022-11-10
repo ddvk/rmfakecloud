@@ -7,20 +7,12 @@ import (
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/gorilla/websocket"
 )
 
-const (
-	//DocAddedEvent addded
-	DocAddedEvent = "DocAdded"
-	//DocDeletedEvent deleted
-	DocDeletedEvent = "DocDeleted"
-	//SyncCompleted somplete
-	SyncCompleted = "SyncComplete"
-)
-
-type ntf struct {
+type notification struct {
 	msg  *messages.WsMessage
 	uid  string
 	from string
@@ -32,7 +24,16 @@ type Hub struct {
 	userClients   map[string]map[*wsClient]bool
 	additions     chan *wsClient
 	removals      chan *wsClient
-	notifications chan ntf
+	notifications chan notification
+}
+
+// DocumentNotification notification of something
+type DocumentNotification struct {
+	ID      string
+	Type    common.EntryType
+	Version int
+	Parent  string
+	Name    string
 }
 
 // NotifySync sends a message to all connected clients 1.5
@@ -45,13 +46,13 @@ func (h *Hub) NotifySync(uid, deviceID string) string {
 			MessageID3: msgid,
 			Attributes: messages.Attributes{
 				Auth0UserID:    uid,
-				Event:          SyncCompleted,
+				Event:          messages.SyncCompletedEvent,
 				SourceDeviceID: deviceID,
 			},
 		},
 	}
 
-	h.notifications <- ntf{
+	h.notifications <- notification{
 		uid:  uid,
 		from: deviceID,
 		msg:  &msg,
@@ -59,17 +60,8 @@ func (h *Hub) NotifySync(uid, deviceID string) string {
 	return msgid
 }
 
-// DocumentNotification notification of something
-type DocumentNotification struct {
-	ID      string
-	Type    string
-	Version int
-	Parent  string
-	Name    string
-}
-
 // Notify sends a message to all connected clients
-func (h *Hub) Notify(uid, deviceID string, doc DocumentNotification, eventType string) {
+func (h *Hub) Notify(uid, deviceID string, doc DocumentNotification, eventType messages.NotificationType) {
 	timeStamp := time.Now().UTC().Format(time.RFC3339Nano)
 	messageID := uuid.New().String()
 
@@ -95,13 +87,13 @@ func (h *Hub) Notify(uid, deviceID string, doc DocumentNotification, eventType s
 	msg.Message.Attributes.VissibleName = doc.Name
 	msg.Message.Attributes.Parent = doc.Parent
 
-	h.notifications <- ntf{
+	h.notifications <- notification{
 		uid:  uid,
 		from: deviceID,
 		msg:  &msg,
 	}
 }
-func (h *Hub) send(n ntf) {
+func (h *Hub) send(n notification) {
 	uid := n.uid
 	msg := n.msg
 	log.Info("Broadcast notification, for all devices of  uid:", uid, " id ", n.msg.Message.MessageID3)
@@ -137,7 +129,7 @@ func NewHub() *Hub {
 
 		additions:     make(chan *wsClient),
 		removals:      make(chan *wsClient),
-		notifications: make(chan ntf, 5),
+		notifications: make(chan notification, 5),
 	}
 	go h.start()
 	return &h

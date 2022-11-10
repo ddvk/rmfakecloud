@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ddvk/rmfakecloud/internal/common"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -20,10 +21,14 @@ import (
 type HashDoc struct {
 	Files []*HashEntry
 	HashEntry
+
+	//extra fields that are serialized
 	MetadataFile
+	PayloadType string
+	PayloadSize int64
 }
 
-func NewHashDocMeta(documentID string, meta MetadataFile) *HashDoc {
+func NewHashDocWithMeta(documentID string, meta MetadataFile) *HashDoc {
 	return &HashDoc{
 		MetadataFile: meta,
 		HashEntry: HashEntry{
@@ -32,26 +37,25 @@ func NewHashDocMeta(documentID string, meta MetadataFile) *HashDoc {
 	}
 
 }
-func NewHashDoc(name, documentID, colType string) *HashDoc {
+func NewHashDoc(name, documentID string, docType common.EntryType) *HashDoc {
 	return &HashDoc{
 		MetadataFile: MetadataFile{
 			DocumentName:   name,
-			CollectionType: colType,
+			CollectionType: docType,
 		},
 		HashEntry: HashEntry{
 			EntryName: documentID,
 		},
 	}
-
 }
 
+// Rehash re-calculates the hash
 func (d *HashDoc) Rehash() error {
-
 	hash, err := HashEntries(d.Files)
 	if err != nil {
 		return err
 	}
-	log.Debug(d.DocumentName, " new doc hash: ", hash)
+	log.Debug("rehash: ", d.DocumentName, " new doc hash: ", hash)
 	d.Hash = hash
 	return nil
 }
@@ -68,7 +72,7 @@ func (d *HashDoc) MetadataReader() (hash string, reader io.Reader, err error) {
 	reader = bytes.NewReader(jsn)
 	found := false
 	for _, f := range d.Files {
-		if strings.HasSuffix(f.EntryName, MetadataFileExt) {
+		if f.IsMetadata() {
 			f.Hash = hash
 			found = true
 			break
@@ -81,11 +85,13 @@ func (d *HashDoc) MetadataReader() (hash string, reader io.Reader, err error) {
 	return
 }
 
+// AddFile adds an entry
 func (d *HashDoc) AddFile(e *HashEntry) error {
 	d.Files = append(d.Files, e)
 	return d.Rehash()
 }
 
+// Add  adds a doc to the tree
 func (t *HashTree) Add(d *HashDoc) error {
 	if len(d.Files) == 0 {
 		return errors.New("no files")
@@ -115,31 +121,64 @@ func (d *HashDoc) IndexReader() (io.ReadCloser, error) {
 	return pipeReader, nil
 }
 
-// ReadMetadata the documentname from metadata blob
-func (d *HashDoc) ReadMetadata(fileEntry *HashEntry, r RemoteStorage) error {
-	if strings.HasSuffix(fileEntry.EntryName, ".metadata") {
-		log.Println("Reading metadata: " + d.EntryName)
+func (d *HashDoc) readMetadata(fileEntry string, r RemoteStorage) error {
+	log.Println("Reading metadata: " + d.EntryName)
 
-		metadata := MetadataFile{}
+	metadata := MetadataFile{}
 
-		meta, err := r.GetReader(fileEntry.Hash)
-		if err != nil {
-			return err
-		}
-		defer meta.Close()
-		content, err := ioutil.ReadAll(meta)
-		if err != nil {
-			return err
-		}
-		err = json.Unmarshal(content, &metadata)
-		if err != nil {
-			log.Printf("cannot read metadata %s %v", fileEntry.EntryName, err)
-		}
-		log.Println("name from metadata: ", metadata.DocumentName)
-		d.MetadataFile = metadata
+	meta, err := r.GetReader(fileEntry)
+	if err != nil {
+		return err
 	}
+	defer meta.Close()
+	content, err := ioutil.ReadAll(meta)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(content, &metadata)
+	if err != nil {
+		log.Printf("cannot read metadata %s %v", fileEntry, err)
+	}
+	log.Println("name from metadata: ", metadata.DocumentName)
+	d.MetadataFile = metadata
 
 	return nil
+}
+
+func (d *HashDoc) readContent(hash string, r RemoteStorage) error {
+	log.Println("Reading content: " + d.EntryName)
+
+	contentFile := ContentFile{}
+
+	meta, err := r.GetReader(hash)
+	if err != nil {
+		return err
+	}
+	defer meta.Close()
+	contentBytes, err := ioutil.ReadAll(meta)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(contentBytes, &contentFile)
+	if err != nil {
+		log.Printf("cannot read content %s %v", hash, err)
+	}
+	d.PayloadType = contentFile.FileType
+	d.Size = int64(contentFile.SizeInBytes)
+
+	return nil
+}
+
+// ReadMetadata tries to read the metadata blob if this entry is metadata
+func (d *HashDoc) ReadMetadata(fileEntry *HashEntry, r RemoteStorage) error {
+	if fileEntry.IsMetadata() {
+		return d.readMetadata(fileEntry.Hash, r)
+	}
+	if fileEntry.IsContent() {
+		return d.readContent(fileEntry.Hash, r)
+	}
+	return nil
+
 }
 
 // Line index line

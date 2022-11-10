@@ -20,7 +20,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/hwr"
 	"github.com/ddvk/rmfakecloud/internal/integrations"
 	"github.com/ddvk/rmfakecloud/internal/messages"
-	"github.com/ddvk/rmfakecloud/internal/storage/models"
+	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/gorilla/websocket"
@@ -31,7 +31,8 @@ const (
 	internalErrorMessage = "Internal Error"
 	handlerLog           = "[handler] "
 	// a way to invalidate the user token
-	tokenVersion = 10
+	tokenVersion   = 10
+	maxRequestSize = 7000000000
 )
 
 func (app *App) getDeviceClaims(c *gin.Context) (*DeviceClaims, error) {
@@ -197,17 +198,18 @@ func extFromContentType(contentType string) (string, error) {
 	switch contentType {
 
 	case "application/epub+zip":
-		return models.EpubFileExt, nil
+		return storage.EpubFileExt, nil
 	case "application/pdf":
-		return models.PdfFileExt, nil
+		return storage.PdfFileExt, nil
 	}
 	return "", fmt.Errorf("unsupported content type %s", contentType)
 }
 
 func (app *App) uploadDoc(c *gin.Context) {
 	uid := c.GetString(userIDKey)
-	syncVer := c.GetInt(syncVersionKey)
 	deviceID := c.GetString(deviceIDKey)
+	syncVer := getSyncVersion(c)
+
 	log.Info("uploading file for: ", uid)
 
 	form, err := c.MultipartForm()
@@ -277,12 +279,20 @@ func (app *App) uploadDoc(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+func getSyncVersion(c *gin.Context) common.SyncVersion {
+	syncVer, ok := c.Get(syncVersionKey)
+	if !ok {
+		panic("should have a sync version")
+	}
+	return syncVer.(common.SyncVersion)
+}
+
 // new read on rm api
 func (app *App) uploadDocV2(c *gin.Context) {
 	uid := c.GetString(userIDKey)
-	syncVer := c.GetInt(syncVersionKey)
 	deviceID := c.GetString(deviceIDKey)
 	log.Info("uploading file for: ", uid)
+	syncVer := getSyncVersion(c)
 
 	metaHeader := c.Request.Header["Rm-Meta"]
 	if len(metaHeader) < 1 {
@@ -340,9 +350,9 @@ func (app *App) uploadDocV2(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func saveUpload(app *App, syncVer int, uid, deviceID, fileName string, f io.ReadCloser) error {
+func saveUpload(app *App, syncVer common.SyncVersion, uid, deviceID, fileName string, f io.ReadCloser) error {
 	//HACK:
-	if syncVer == Version15 {
+	if syncVer == common.Sync15 {
 		log.Info("sync 15 upload")
 		_, err := app.blobStorer.CreateBlobDocument(uid, fileName, "", f)
 		if err != nil {
@@ -362,7 +372,7 @@ func saveUpload(app *App, syncVer int, uid, deviceID, fileName string, f io.Read
 			Name:    d.Name,
 			Version: 1,
 		}
-		app.hub.Notify(uid, deviceID, ntf, hub.DocAddedEvent)
+		app.hub.Notify(uid, deviceID, ntf, messages.DocAddedEvent)
 	}
 	return nil
 }
@@ -540,7 +550,7 @@ func (app *App) deleteDocument(c *gin.Context) {
 					Parent:  doc.Parent,
 					Name:    doc.VissibleName,
 				}
-				app.hub.Notify(uid, deviceID, ntf, hub.DocDeletedEvent)
+				app.hub.Notify(uid, deviceID, ntf, messages.DocDeletedEvent)
 			}
 		}
 		result = append(result, messages.StatusResponse{ID: r.ID, Success: ok})
@@ -580,7 +590,7 @@ func (app *App) updateStatus(c *gin.Context) {
 				Name:    doc.VissibleName,
 			}
 
-			app.hub.Notify(uid, deviceID, ntf, hub.DocAddedEvent)
+			app.hub.Notify(uid, deviceID, ntf, messages.DocAddedEvent)
 		}
 		result = append(result, messages.StatusResponse{ID: doc.ID, Success: ok, Message: message, Version: doc.Version})
 	}
@@ -620,8 +630,11 @@ func (app *App) syncCompleteV2(c *gin.Context) {
 		return
 	}
 	log.Info("got sync completed, gen: ", req.Generation)
+
+	notificationID := app.hub.NotifySync(uid, deviceID)
+
 	res := messages.SyncCompleted{
-		ID: app.hub.NotifySync(uid, deviceID),
+		ID: notificationID,
 	}
 	c.JSON(http.StatusOK, res)
 }
@@ -642,7 +655,7 @@ func (app *App) blobStorageDownload(c *gin.Context) {
 		return
 	}
 
-	url, exp, err := app.blobStorer.GetBlobURL(uid, req.RelativePath, "read")
+	url, exp, err := app.blobStorer.GetBlobURL(uid, req.RelativePath, false)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -672,7 +685,7 @@ func (app *App) blobStorageUpload(c *gin.Context) {
 		log.Info("--- Initial Sync ---")
 	}
 	uid := c.GetString(userIDKey)
-	url, exp, err := app.blobStorer.GetBlobURL(uid, req.RelativePath, "write")
+	url, exp, err := app.blobStorer.GetBlobURL(uid, req.RelativePath, true)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -683,8 +696,9 @@ func (app *App) blobStorageUpload(c *gin.Context) {
 		RelativePath:   req.RelativePath,
 		URL:            url,
 		Expires:        formatExpires(exp),
-		MaxRequestSize: 7000000000,
+		MaxRequestSize: maxRequestSize,
 	}
+
 	c.JSON(http.StatusOK, response)
 }
 

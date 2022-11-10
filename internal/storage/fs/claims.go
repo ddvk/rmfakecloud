@@ -8,3 +8,8 @@ type StorageClaim struct {
 	UserID     string `json:"userId"`
 	jwt.StandardClaims
 }
+
+const (
+	WriteScope = "write"
+	ReadScope  = "read"
+)

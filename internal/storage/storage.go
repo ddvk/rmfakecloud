@@ -4,6 +4,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/model"
 )
@@ -14,6 +15,7 @@ type ExportOption int
 const (
 	ExportWithAnnotations ExportOption = iota
 	ExportOnlyAnnotations
+	ExportPayload
 )
 
 // DocumentStorer stores documents
@@ -29,7 +31,7 @@ type DocumentStorer interface {
 
 // BlobStorage stuff for sync15
 type BlobStorage interface {
-	GetBlobURL(uid, docid, scope string) (string, time.Time, error)
+	GetBlobURL(uid, docid string, write bool) (string, time.Time, error)
 
 	StoreBlob(uid, blobID string, s io.Reader, matchGeneration int64) (int64, error)
 	LoadBlob(uid, blobID string) (reader io.ReadCloser, gen int64, size int64, err error)
@@ -55,7 +57,7 @@ type UserStorer interface {
 // Document represents a document in storage
 type Document struct {
 	ID      string
-	Type    string
+	Type    common.EntryType
 	Parent  string
 	Name    string
 	Version int

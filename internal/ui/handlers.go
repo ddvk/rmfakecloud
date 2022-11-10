@@ -7,6 +7,7 @@ import (
 
 	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/model"
+	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
@@ -20,6 +21,7 @@ const (
 	isSync15Key         = "sync15"
 	docIDParam          = "docid"
 	uiLogger            = "[ui] "
+	ui10                = " [10] "
 	useridParam         = "userid"
 	cookieName          = ".Authrmfakecloud"
 )
@@ -221,20 +223,23 @@ func (app *ReactAppWrapper) newCode(c *gin.Context) {
 	c.JSON(http.StatusOK, code)
 }
 
-func getBackend(c *gin.Context) backend {
-	blah, ok := c.Get("backend")
+func (app *ReactAppWrapper) getBackend(c *gin.Context) backend {
+	s, ok := c.Get(backendVersionKey)
 	if !ok {
-		panic("not there")
+		panic("key not set")
 	}
-	return blah.(backend)
-
+	backend, ok := app.backends[s.(common.SyncVersion)]
+	if !ok {
+		panic("backend not found")
+	}
+	return backend
 }
 func (app *ReactAppWrapper) listDocuments(c *gin.Context) {
 	uid := c.GetString(userIDContextKey)
 
 	var tree *viewmodel.DocumentTree
 
-	backend := getBackend(c)
+	backend := app.getBackend(c)
 	tree, err := backend.GetDocumentTree(uid)
 	if err != nil {
 		log.Error(err)
@@ -246,9 +251,14 @@ func (app *ReactAppWrapper) listDocuments(c *gin.Context) {
 func (app *ReactAppWrapper) getDocument(c *gin.Context) {
 	uid := c.GetString(userIDContextKey)
 	docid := common.ParamS(docIDParam, c)
+
+	exportType := "pdf"
+	var exportOption storage.ExportOption = 0
+
 	log.Info("exporting ", docid)
-	backend := getBackend(c)
-	reader, err := backend.Export(uid, docid, "pdf", 0)
+	backend := app.getBackend(c)
+
+	reader, err := backend.Export(uid, docid, exportType, exportOption)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -259,6 +269,20 @@ func (app *ReactAppWrapper) getDocument(c *gin.Context) {
 	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
 }
 
+func (app *ReactAppWrapper) getDocumentMetadata(c *gin.Context) {
+	uid := c.GetString(userIDContextKey)
+	docid := common.ParamS(docIDParam, c)
+	// if err != nil {
+	// 	log.Error(err)
+	// 	c.AbortWithStatus(http.StatusInternalServerError)
+	// 	return
+	// }
+	log.Info(uid, docid)
+	c.JSON(http.StatusOK, "TODO")
+
+}
+
+// move rename
 func (app *ReactAppWrapper) updateDocument(c *gin.Context) {
 	upd := viewmodel.UpdateDoc{}
 	if err := c.ShouldBindJSON(&upd); err != nil {
@@ -266,23 +290,54 @@ func (app *ReactAppWrapper) updateDocument(c *gin.Context) {
 		badReq(c, err.Error())
 		return
 	}
-	// uid := c.GetString(userID)
-	// docid := c.Param("docid")
+	backend := app.getBackend(c)
+	uid := c.GetString(userIDContextKey)
+	log.Info(uiLogger, ui10, "updatedoc")
+	err := backend.UpdateDocument(uid, upd.DocumentID, upd.Name, upd.ParentID)
+	if err != nil {
+		badReq(c, err.Error())
+		return
+	}
 
 	c.Status(http.StatusOK)
 }
 func (app *ReactAppWrapper) deleteDocument(c *gin.Context) {
-	// uid := c.GetString(userID)
-	// docid := c.Param("docid")
+	uid := c.GetString(userIDContextKey)
+	docid := c.Param("docid")
+	backend := app.getBackend(c)
 
+	err := backend.DeleteDocument(uid, docid)
+	if err != nil {
+		badReq(c, err.Error())
+	}
 	c.Status(http.StatusOK)
 }
+
+func (app *ReactAppWrapper) createFolder(c *gin.Context) {
+	upd := viewmodel.NewFolder{}
+	if err := c.ShouldBindJSON(&upd); err != nil {
+		log.Error(err)
+		badReq(c, err.Error())
+		return
+	}
+	uid := c.GetString(userIDContextKey)
+
+	backend := app.getBackend(c)
+
+	doc, err := backend.CreateFolder(uid, upd.Name, upd.ParentID)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.JSON(http.StatusOK, doc)
+}
+
 func (app *ReactAppWrapper) createDocument(c *gin.Context) {
 	uid := c.GetString(userIDContextKey)
-	_ = c.GetBool(isSync15Key)
 	log.Info("uploading documents from: ", uid)
 
-	backend := getBackend(c)
+	backend := app.getBackend(c)
 
 	form, err := c.MultipartForm()
 	if err != nil {
@@ -296,6 +351,7 @@ func (app *ReactAppWrapper) createDocument(c *gin.Context) {
 	}
 	log.Info("Parent: " + parentID)
 
+	docs := []*storage.Document{}
 	for _, file := range form.File["file"] {
 		f, err := file.Open()
 		if err != nil {
@@ -308,15 +364,16 @@ func (app *ReactAppWrapper) createDocument(c *gin.Context) {
 		//do the stuff
 		log.Info(uiLogger, fmt.Sprintf("Uploading %s , size: %d", file.Filename, file.Size))
 
-		_, err = backend.CreateDocument(uid, file.Filename, parentID, f)
+		doc, err := backend.CreateDocument(uid, file.Filename, parentID, f)
 		if err != nil {
 			log.Error(err)
 			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
+		docs = append(docs, doc)
 	}
 	backend.Sync(uid)
-	c.Status(http.StatusOK)
+	c.JSON(http.StatusOK, docs)
 }
 
 func (app *ReactAppWrapper) getAppUsers(c *gin.Context) {

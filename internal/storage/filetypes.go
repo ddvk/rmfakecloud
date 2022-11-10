@@ -1,9 +1,6 @@
-package models
+package storage
 
 const (
-	DocumentType   = "DocumentType"
-	CollectionType = "CollectionType"
-
 	MetadataFileExt = ".metadata"
 	PageFileExt     = ".pagedata"
 	ContentFileExt  = ".content"

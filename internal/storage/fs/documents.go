@@ -17,7 +17,6 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/storage/exporter"
-	"github.com/ddvk/rmfakecloud/internal/storage/models"
 )
 
 // DefaultTrashDir name of the trash dir
@@ -63,7 +62,7 @@ func (fs *FileSystemStorage) ExportDocument(uid, id, outputType string, exportOp
 	}
 	sanitizedID := common.Sanitize(id)
 
-	zipFilePath := fs.getPathFromUser(uid, sanitizedID+models.ZipFileExt)
+	zipFilePath := fs.getPathFromUser(uid, sanitizedID+storage.ZipFileExt)
 	log.Debugln("Fullpath:", zipFilePath)
 	rawStat, err := os.Stat(zipFilePath)
 	if err != nil {
@@ -115,7 +114,7 @@ func (fs *FileSystemStorage) ExportDocument(uid, id, outputType string, exportOp
 
 // GetDocument Opens a document by id
 func (fs *FileSystemStorage) GetDocument(uid, id string) (io.ReadCloser, error) {
-	fullPath := fs.getPathFromUser(uid, id+models.ZipFileExt)
+	fullPath := fs.getPathFromUser(uid, id+storage.ZipFileExt)
 	log.Debugln("Fullpath:", fullPath)
 	reader, err := os.Open(fullPath)
 	return reader, err
@@ -131,14 +130,14 @@ func (fs *FileSystemStorage) RemoveDocument(uid, id string) error {
 	}
 	//do not delete, move to trash
 	log.Info(trashDir)
-	meta := filepath.Base(id + models.MetadataFileExt)
+	meta := filepath.Base(id + storage.MetadataFileExt)
 	fullPath := fs.getPathFromUser(uid, meta)
 	err = os.Rename(fullPath, path.Join(trashDir, meta))
 	if err != nil {
 		return err
 	}
 
-	zipfile := filepath.Base(id + models.ZipFileExt)
+	zipfile := filepath.Base(id + storage.ZipFileExt)
 	fullPath = fs.getPathFromUser(uid, zipfile)
 	err = os.Rename(fullPath, path.Join(trashDir, zipfile))
 	if err != nil {
@@ -149,7 +148,7 @@ func (fs *FileSystemStorage) RemoveDocument(uid, id string) error {
 
 // StoreDocument stores a document
 func (fs *FileSystemStorage) StoreDocument(uid, id string, stream io.ReadCloser) error {
-	fullPath := fs.getPathFromUser(uid, id+models.ZipFileExt)
+	fullPath := fs.getPathFromUser(uid, id+storage.ZipFileExt)
 	file, err := os.Create(fullPath)
 	if err != nil {
 		return err

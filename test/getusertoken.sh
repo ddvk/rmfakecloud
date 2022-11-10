@@ -5,7 +5,7 @@ cd `dirname $0`
 . ./common.env
 
 if [ ! -f ./device.token ]; then
-    CODE=`./getcode.sh | ./connect.sh`
+    CODE=`./ui_getcode.sh | ./connect.sh`
     echo $CODE > ./device.token
 fi
 
