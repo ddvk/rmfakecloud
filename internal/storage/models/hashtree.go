@@ -130,9 +130,9 @@ func parseEntry(line string) (*HashEntry, error) {
 	return &entry, nil
 }
 
-func parseIndex(f io.Reader) ([]*HashEntry, error) {
+func parseIndex(r io.Reader) ([]*HashEntry, error) {
 	var entries []*HashEntry
-	scanner := bufio.NewScanner(f)
+	scanner := bufio.NewScanner(r)
 	scanner.Scan()
 	schema := scanner.Text()
 
@@ -271,10 +271,12 @@ func (t *HashTree) Mirror(r RemoteStorage) (changed bool, err error) {
 				log.Println("doc updated: " + doc.EntryName)
 				doc.Mirror(entry, r)
 			}
+			if doc.Deleted {
+				continue
+			}
 			head = append(head, doc)
 			current[doc.EntryName] = doc
 		}
-
 	}
 
 	//find new entries
@@ -283,6 +285,10 @@ func (t *HashTree) Mirror(r RemoteStorage) (changed bool, err error) {
 			doc := &HashDoc{}
 			log.Println("doc new: " + k)
 			doc.Mirror(newEntry, r)
+
+			if doc.Deleted {
+				continue
+			}
 			head = append(head, doc)
 		}
 	}
@@ -314,18 +320,23 @@ func BuildTree(provider RemoteStorage) (*HashTree, error) {
 	entries, _ := parseIndex(rootIndex)
 
 	for _, e := range entries {
-		f, _ := provider.GetReader(e.Hash)
-		defer f.Close()
+		r, _ := provider.GetReader(e.Hash)
+		defer r.Close()
 
 		doc := &HashDoc{}
 		doc.HashEntry = *e
-		tree.Docs = append(tree.Docs, doc)
 
-		items, _ := parseIndex(f)
+		items, _ := parseIndex(r)
 		doc.Files = items
 		for _, i := range items {
 			doc.ReadMetadata(i, provider)
 		}
+
+		if doc.Deleted {
+			continue
+		}
+		tree.Docs = append(tree.Docs, doc)
+
 	}
 
 	return &tree, nil

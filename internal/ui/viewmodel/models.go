@@ -74,6 +74,9 @@ func makeDocument(d *InternalDoc) (entry Entry) {
 func DocTreeFromHashTree(tree *models.HashTree) *DocumentTree {
 	docs := make([]*InternalDoc, 0)
 	for _, d := range tree.Docs {
+		if d.Deleted {
+			continue
+		}
 
 		lastModified, err := models.ToTime(d.LastModified)
 		if err != nil {
