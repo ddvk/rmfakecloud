@@ -83,6 +83,7 @@ func (app *App) registerRoutes(router *gin.Engine) {
 
 		// send email
 		authRoutes.POST("/api/v2/document", app.sendEmail)
+		authRoutes.POST("/share/v1/email", app.sendEmail)
 		// hwr
 		authRoutes.POST("/api/v1/page", app.handleHwr)
 		authRoutes.POST("/convert/v1/handwriting", app.handleHwr)
