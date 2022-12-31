@@ -1,4 +1,4 @@
-name: Release
+name: Push Container Image
 
 on:
   push:
