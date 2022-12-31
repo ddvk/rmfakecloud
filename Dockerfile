@@ -14,7 +14,7 @@ RUN go generate ./... && CGO_ENABLED=0 go build -ldflags "-s -w -X main.version=
 
 FROM scratch
 EXPOSE 3000
-RUN --mount=from=alpine:latest,src=/bin/,dst=/bin/ mkdir -m 1755 /tmp
+RUN --mount=from=busybox:latest,src=/bin/,dst=/bin/ mkdir -m 1755 /tmp
 COPY --from=gobuilder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=gobuilder /src/rmfakecloud-docker /
 ENTRYPOINT ["/rmfakecloud-docker"]
