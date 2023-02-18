@@ -233,6 +233,10 @@ func (fs *FileSystemStorage) CreateBlobFolder(uid, foldername, parent string) (d
 	return doc, nil
 }
 
+func UpdateTree(tree *models.HashTree, storage *LocalBlobStorage, treeMutation func(t *models.HashTree) error) error {
+	return updateTree(tree, storage, treeMutation)
+}
+
 // updates the tree and saves the new root
 func updateTree(tree *models.HashTree, storage *LocalBlobStorage, treeMutation func(t *models.HashTree) error) error {
 	for i := 0; i < 3; i++ {
