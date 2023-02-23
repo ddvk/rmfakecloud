@@ -57,7 +57,7 @@ type ContentFile struct {
 	Pages          []interface{} `json:"pages"`
 	TextScale      int           `json:"textScale"`
 	Transform      Transform     `json:"transform"`
-	SizeInBytes    int64         `json:"sizeInBytes"`
+	SizeInBytes    string        `json:"sizeInBytes"`
 }
 type ExtraMetadata struct {
 	LastPen             string `json:"LastPen"`
