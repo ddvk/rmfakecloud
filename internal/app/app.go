@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"net/http"
+	"net/url"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -84,6 +85,15 @@ func (app *App) Stop() {
 	if err := app.srv.Shutdown(ctx); err != nil {
 		log.Fatal("Server Shutdown:", err)
 	}
+}
+
+func (app *App) MyEndpoint() (string, error) {
+	u, err := url.Parse(app.cfg.StorageURL)
+	if err != nil {
+		return "", err
+	}
+
+	return u.Host, nil
 }
 
 // NewApp constructs an app
