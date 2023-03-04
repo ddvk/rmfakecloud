@@ -20,6 +20,21 @@ const (
 
 func (app *App) registerRoutes(router *gin.Engine) {
 
+	//endpoints discovery
+	router.GET("/discovery/v1/endpoints", func(c *gin.Context) {
+		endpoint, err := app.MyEndpoint()
+		if err != nil {
+			log.Warn("endpoint error:", err.Error())
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"notifications": endpoint,
+			"webapp":        endpoint,
+		})
+	})
+
 	router.GET("/health", func(c *gin.Context) {
 		count := app.hub.ClientCount()
 		gnum := runtime.NumGoroutine()
