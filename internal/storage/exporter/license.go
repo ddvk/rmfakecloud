@@ -8,7 +8,7 @@ import (
 	"github.com/unidoc/unipdf/v3/common/license"
 )
 
-//go:linkname licenseKey github.com/unidoc/unipdf/v3/internal/license._ecb
+//go:linkname licenseKey github.com/unidoc/unipdf/v3/internal/license._bag
 var licenseKey *license.LicenseKey
 
 func init() {

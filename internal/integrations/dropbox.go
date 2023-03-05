@@ -70,17 +70,17 @@ func (d *DropBox) Download(fileID string) (io.ReadCloser, error) {
 
 }
 func (d *DropBox) Upload(folderID, name, fileType string, reader io.ReadCloser) (string, error) {
-	commit := files.CommitInfo{
-		Path: "/" + name + "." + fileType,
-		Mode: &files.WriteMode{
-			Tagged: dropbox.Tagged{
-				Tag: "overwrite",
-			},
-		},
-	}
-	r, err := d.client.Upload(&commit, reader)
-	if err != nil {
-		return "", err
-	}
-	return r.Id, nil
+	// commit := files.CommitInfo{
+	// 	Path: "/" + name + "." + fileType,
+	// 	Mode: &files.WriteMode{
+	// 		Tagged: dropbox.Tagged{
+	// 			Tag: "overwrite",
+	// 		},
+	// 	},
+	// }
+	// r, err := d.client.Upload()
+	// if err != nil {
+	// 	return "", err
+	// }
+	return "", nil
 }
