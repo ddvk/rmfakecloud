@@ -61,7 +61,7 @@ func (fs *FileSystemStorage) SaveCachedTree(uid string, t *models.HashTree) erro
 	return t.Save(cachePath)
 }
 
-func (fs *FileSystemStorage) blobStorage(uid string) *LocalBlobStorage {
+func (fs *FileSystemStorage) BlobStorage(uid string) *LocalBlobStorage {
 	return &LocalBlobStorage{
 		fs:  fs,
 		uid: uid,
@@ -78,7 +78,7 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 	if err != nil {
 		return nil, err
 	}
-	ls := fs.blobStorage(uid)
+	ls := fs.BlobStorage(uid)
 
 	archive, err := models.ArchiveFromHashDoc(doc, ls)
 	if err != nil {
@@ -105,7 +105,7 @@ func (fs *FileSystemStorage) UpdateBlobDocument(uid, docID, name, parent string)
 	}
 
 	log.Info("updateBlobDocument: ", docID, "new name:", name)
-	blobStorage := fs.blobStorage(uid)
+	blobStorage := fs.BlobStorage(uid)
 
 	err = updateTree(tree, blobStorage, func(t *models.HashTree) error {
 		hashDoc, err := tree.FindDoc(docID)
@@ -160,7 +160,7 @@ func (fs *FileSystemStorage) DeleteBlobDocument(uid, docID string) (err error) {
 		return nil
 	}
 
-	blobStorage := fs.blobStorage(uid)
+	blobStorage := fs.BlobStorage(uid)
 
 	return updateTree(tree, blobStorage, func(t *models.HashTree) error {
 		return tree.Remove(docID)
@@ -177,7 +177,7 @@ func (fs *FileSystemStorage) CreateBlobFolder(uid, foldername, parent string) (d
 
 	log.Info("Creating blob folder ", foldername, " parent: ", parent)
 
-	blobStorage := fs.blobStorage(uid)
+	blobStorage := fs.BlobStorage(uid)
 
 	metadata := models.MetadataFile{
 		DocumentName:     foldername,
@@ -231,6 +231,10 @@ func (fs *FileSystemStorage) CreateBlobFolder(uid, foldername, parent string) (d
 		Name:   foldername,
 	}
 	return doc, nil
+}
+
+func UpdateTree(tree *models.HashTree, storage *LocalBlobStorage, treeMutation func(t *models.HashTree) error) error {
+	return updateTree(tree, storage, treeMutation)
 }
 
 // updates the tree and saves the new root
@@ -306,7 +310,7 @@ func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, st
 		MetadataModified: true,
 	}
 
-	blobStorage := fs.blobStorage(uid)
+	blobStorage := fs.BlobStorage(uid)
 	r, metahash, size, err := createMetadataFile(metadata)
 	blobStorage.Write(metahash, r)
 	if err != nil {

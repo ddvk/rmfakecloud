@@ -300,23 +300,28 @@ func (t *HashTree) Mirror(r RemoteStorage) (changed bool, err error) {
 
 // BuildTree from remote storage
 func BuildTree(provider RemoteStorage) (*HashTree, error) {
-	tree := HashTree{}
-
 	rootHash, gen, err := provider.GetRootIndex()
 
 	if err != nil {
 		return nil, err
 	}
-	tree.Hash = rootHash
-	tree.Generation = gen
 
 	rootIndex, err := provider.GetReader(rootHash)
 	if err != nil {
 		return nil, err
 	}
-
 	defer rootIndex.Close()
-	entries, _ := parseIndex(rootIndex)
+
+	return buildTreeFromFile(provider, rootIndex, rootHash, gen)
+}
+
+func buildTreeFromFile(provider RemoteStorage, rootFile io.Reader, rootHash string, gen int64) (*HashTree, error) {
+	entries, _ := parseIndex(rootFile)
+
+	tree := HashTree{}
+
+	tree.Hash = rootHash
+	tree.Generation = gen
 
 	for _, e := range entries {
 		r, _ := provider.GetReader(e.Hash)
