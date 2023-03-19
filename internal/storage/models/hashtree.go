@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -61,7 +60,7 @@ func FileHashAndSize(file string) ([]byte, int64, error) {
 	return h, size, err
 }
 
-// LoadTree loads
+// LoadTree loads a cached tree to avoid parsing all the blobs
 func LoadTree(cacheFile string) (*HashTree, error) {
 	tree := HashTree{}
 	if _, err := os.Stat(cacheFile); err == nil {
@@ -71,10 +70,10 @@ func LoadTree(cacheFile string) (*HashTree, error) {
 		}
 		err = json.Unmarshal(b, &tree)
 		if err != nil {
-			log.Println("cache corrupt")
-			return nil, err
+			log.Warn("cached tree corrupt, returning empty tree")
+			return &HashTree{}, err
 		}
-		log.Println("Cache loaded: ", cacheFile)
+		log.Info("cached tree loaded: ", cacheFile)
 	}
 
 	return &tree, nil
@@ -96,7 +95,7 @@ func parseEntry(line string) (*HashEntry, error) {
 	rdr := NewFieldReader(line)
 	numFields := len(rdr.fields)
 	if numFields != 5 {
-		return nil, fmt.Errorf("wrong number of fields %d", numFields)
+		return nil, fmt.Errorf("parseEntry: wrong number of fields %d", numFields)
 	}
 	var err error
 	entry.Hash, err = rdr.Next()
@@ -137,7 +136,7 @@ func parseIndex(r io.Reader) ([]*HashEntry, error) {
 	schema := scanner.Text()
 
 	if schema != schemaVersion {
-		return nil, errors.New("wrong schema")
+		return nil, fmt.Errorf("parseInde unknown schema: %s", schema)
 	}
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -218,7 +217,7 @@ func (t *HashTree) Rehash() error {
 	if err != nil {
 		return err
 	}
-	log.Println("New root hash: ", hash)
+	log.Debug("New root hash: ", hash)
 	t.Hash = hash
 	return nil
 }
@@ -226,12 +225,12 @@ func (t *HashTree) Rehash() error {
 // Mirror makes the tree look like the storage
 func (t *HashTree) Mirror(r RemoteStorage) (changed bool, err error) {
 	rootHash, gen, err := r.GetRootIndex()
-	log.Info("got root ", rootHash, gen, err)
+	log.Debug("got root ", rootHash, gen, err)
 	if err != nil {
 		return
 	}
 	if rootHash == "" {
-		log.Println("Empty cloud")
+		log.Warn("empty root hash, empty cloud?")
 		t.Docs = nil
 		t.Generation = gen
 		return
@@ -244,7 +243,7 @@ func (t *HashTree) Mirror(r RemoteStorage) (changed bool, err error) {
 		}
 		return
 	}
-	log.Printf("remote root hash different")
+	log.Debug("remote root hash different is different")
 
 	rdr, err := r.GetReader(rootHash)
 	if err != nil {
@@ -268,7 +267,7 @@ func (t *HashTree) Mirror(r RemoteStorage) (changed bool, err error) {
 		if entry, ok := new[doc.HashEntry.EntryName]; ok {
 			//hash different update
 			if entry.Hash != doc.Hash {
-				log.Println("doc updated: " + doc.EntryName)
+				log.Info("doc updated: ", doc.EntryName)
 				doc.Mirror(entry, r)
 			}
 			if doc.Deleted {
@@ -283,7 +282,7 @@ func (t *HashTree) Mirror(r RemoteStorage) (changed bool, err error) {
 	for k, newEntry := range new {
 		if _, ok := current[k]; !ok {
 			doc := &HashDoc{}
-			log.Println("doc new: " + k)
+			log.Info("doc new: ", k)
 			doc.Mirror(newEntry, r)
 
 			if doc.Deleted {

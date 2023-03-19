@@ -97,3 +97,42 @@ given by `history2git15` in `doctree` (or as `visibleName` in `tree`). This does
 handle directories hierarchy at the time of writing: it only matches the
 filename. You need to make sure the parent directory still exists (as we said
 the hierarchy is handle by metadata, not by indexes).
+=======
+## How does it work?
+
+All files are saved with a sha256 name in the user `sync` directory. File can be
+raw pages, document metadata, directory metadata, indexes, ...
+
+Each file is saved along with a generation number. Each modification increment
+this generation number.
+
+
+### Root tree file
+
+All files in the tree are indexed in a root index. The index references all the
+index to others files and directories.
+
+The hierarchy is given by each file metadata. The root index file doesn't handle
+file hierarchy.
+
+#### Current root file in use
+
+It is possible to retrieve the current root index in use by consulting the
+content of the file `root`. It contains the name of the file containing the root
+index.
+
+#### History and generation
+
+Previous root indexes are kept in the directory and can be listed with the file
+`.root.history`. Each line corresponds to a given generation (line 1 = generation
+1, ...) and contains the date of the modification and the corresponding filename.
+
+
+### File indexes
+
+Each file, as seen on the tablet, is split in several parts (metadata, raw
+pages, cached transcripted text, content, ...). File indexes store the
+references of each sub-file.
+
+Files on the tablet are referenced by an UUID. On rmfakecloud files parts are
+also stores with sha256 names.

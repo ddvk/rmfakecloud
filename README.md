@@ -3,6 +3,9 @@ This is a replacement of the cloud, in case you want to sync/backup your files a
 
 ## [Docs](https://ddvk.github.io/rmfakecloud/)
 
+## NB
+For Tablet SW > 3.X, rendering of the notebooks is not yet supported.
+
 ## Breaking Changes
 - after v0.0.3 the files in `/data` will have to be manually moved to the user that will be created
 - with v0.0.5 the new diff sync15 is added as an option, in order to use it modify the user with `setuser -u user -s`  
