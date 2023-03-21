@@ -71,7 +71,7 @@ func LoadTree(cacheFile string) (*HashTree, error) {
 		err = json.Unmarshal(b, &tree)
 		if err != nil {
 			log.Warn("cached tree corrupt, returning empty tree")
-			return &HashTree{}, err
+			return &HashTree{}, nil
 		}
 		log.Info("cached tree loaded: ", cacheFile)
 	}
