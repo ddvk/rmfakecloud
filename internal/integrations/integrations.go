@@ -37,12 +37,12 @@ func GetIntegrationProvider(storer storage.UserStorer, uid, integrationid string
 			continue
 		}
 		switch intg.Provider {
-		case webdavProvider:
-			return newWebDav(intg), nil
 		case dropboxProvider:
 			return newDropbox(intg), nil
 		case localfsProvider:
 			return newLocalFS(intg), nil
+		case webdavProvider:
+			return newWebDav(intg), nil
 		}
 	}
 	return nil, fmt.Errorf("integration not found or no implmentation (only webdav) %s", integrationid)
