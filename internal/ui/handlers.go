@@ -20,6 +20,7 @@ const (
 	browserIDContextKey = "browserID"
 	isSync15Key         = "sync15"
 	docIDParam          = "docid"
+	intIDParam          = "intid"
 	uiLogger            = "[ui] "
 	ui10                = " [10] "
 	useridParam         = "userid"
@@ -508,4 +509,142 @@ func (app *ReactAppWrapper) createUser(c *gin.Context) {
 		return
 	}
 	c.Status(http.StatusCreated)
+}
+
+func (app *ReactAppWrapper) listIntegrations(c *gin.Context) {
+	uid := c.GetString(userIDContextKey)
+
+	user, err := app.userStorer.GetUser(uid)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	c.JSON(http.StatusOK, user.Integrations)
+}
+
+func (app *ReactAppWrapper) createIntegration(c *gin.Context) {
+	int := model.IntegrationConfig{}
+	if err := c.ShouldBindJSON(&int); err != nil {
+		log.Error(err)
+		badReq(c, err.Error())
+		return
+	}
+
+	uid := c.GetString(userIDContextKey)
+
+	user, err := app.userStorer.GetUser(uid)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	int.ID = uuid.NewString()
+	user.Integrations = append(user.Integrations, int)
+
+	err = app.userStorer.UpdateUser(user)
+
+	if err != nil {
+		log.Error("error updating user", err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, int)
+}
+
+func (app *ReactAppWrapper) getIntegration(c *gin.Context) {
+	uid := c.GetString(userIDContextKey)
+
+	intid := common.ParamS(intIDParam, c)
+
+	user, err := app.userStorer.GetUser(uid)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	for _, integration := range user.Integrations {
+		if integration.ID == intid {
+			c.JSON(http.StatusOK, integration)
+			return
+		}
+	}
+
+	c.AbortWithStatus(http.StatusNotFound)
+}
+
+func (app *ReactAppWrapper) updateIntegration(c *gin.Context) {
+	int := model.IntegrationConfig{}
+	if err := c.ShouldBindJSON(&int); err != nil {
+		log.Error(err)
+		badReq(c, err.Error())
+		return
+	}
+
+	uid := c.GetString(userIDContextKey)
+
+	intid := common.ParamS(intIDParam, c)
+
+	user, err := app.userStorer.GetUser(uid)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	for idx, integration := range user.Integrations {
+		if integration.ID == intid {
+			int.ID = integration.ID
+			user.Integrations[idx] = int
+
+			err = app.userStorer.UpdateUser(user)
+
+			if err != nil {
+				log.Error("error updating user", err)
+				c.AbortWithStatus(http.StatusInternalServerError)
+				return
+			}
+
+			c.JSON(http.StatusOK, int)
+			return
+		}
+	}
+
+	c.AbortWithStatus(http.StatusNotFound)
+}
+
+func (app *ReactAppWrapper) deleteIntegration(c *gin.Context) {
+	uid := c.GetString(userIDContextKey)
+
+	intid := common.ParamS(intIDParam, c)
+
+	user, err := app.userStorer.GetUser(uid)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	for idx, integration := range user.Integrations {
+		if integration.ID == intid {
+			user.Integrations = append(user.Integrations[:idx], user.Integrations[idx+1:]...)
+
+			err = app.userStorer.UpdateUser(user)
+
+			if err != nil {
+				log.Error("error updating user", err)
+				c.AbortWithStatus(http.StatusInternalServerError)
+				return
+			}
+
+			c.Status(http.StatusAccepted)
+			return
+		}
+	}
+
+	c.AbortWithStatus(http.StatusNotFound)
 }
