@@ -30,6 +30,11 @@ const NavigationBar = () => {
                   Documents
                 </Nav.Link>
               </Nav.Item>
+              <Nav.Item>
+                <Nav.Link as={NavLink} to="/integrations">
+                  Integrations
+                </Nav.Link>
+              </Nav.Item>
               {isAdmin(user) && (
                 <Nav.Item>
                   <Nav.Link as={NavLink} to="/users">Users</Nav.Link>
