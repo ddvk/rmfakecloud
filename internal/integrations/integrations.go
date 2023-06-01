@@ -22,7 +22,7 @@ const (
 // IntegrationProvider abstracts 3rd party integrations
 type IntegrationProvider interface {
 	List(folderID string, depth int) (result *messages.IntegrationFolder, err error)
-	Download(fileID string) (io.ReadCloser, error)
+	Download(fileID string) (io.ReadCloser, int64, error)
 	Upload(folderID, name, fileType string, reader io.ReadCloser) (string, error)
 }
 
@@ -132,7 +132,7 @@ func visitDir(root, currentPath string, depth int, parentFolder *messages.Integr
 				ID:               encodedPath,
 				FileID:           encodedPath,
 				Name:             docName,
-				Size:             int(d.Size()),
+				Size:             d.Size(),
 				SourceFileType:   contentType,
 			}
 

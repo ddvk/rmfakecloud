@@ -794,7 +794,7 @@ func (app *App) integrationsGetFile(c *gin.Context) {
 		return
 	}
 
-	reader, err := integrationProvider.Download(fileID)
+	reader, _, err := integrationProvider.Download(fileID)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
