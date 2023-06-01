@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ddvk/rmfakecloud/internal/common"
+	"github.com/ddvk/rmfakecloud/internal/integrations"
 	"github.com/ddvk/rmfakecloud/internal/model"
 	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
@@ -646,4 +647,31 @@ func (app *ReactAppWrapper) deleteIntegration(c *gin.Context) {
 	}
 
 	c.AbortWithStatus(http.StatusNotFound)
+}
+
+func (app *ReactAppWrapper) exploreIntegration(c *gin.Context) {
+	uid := c.GetString(userIDContextKey)
+
+	integrationID := common.ParamS(intIDParam, c)
+
+	integrationProvider, err := integrations.GetIntegrationProvider(app.userStorer, uid, integrationID)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	folder := common.ParamS("path", c)
+	if folder == "" {
+		folder = "root"
+	}
+
+	response, err := integrationProvider.List(folder, 2)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
 }

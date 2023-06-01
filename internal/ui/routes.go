@@ -79,6 +79,8 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	auth.PUT("integrations/:intid", app.updateIntegration)
 	auth.DELETE("integrations/:intid", app.deleteIntegration)
 
+	auth.GET("integrations/:intid/explore/*path", app.exploreIntegration)
+
 	//admin
 	admin := auth.Group("")
 	admin.Use(app.adminMiddleware())
