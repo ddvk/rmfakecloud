@@ -156,6 +156,7 @@ function handleError(r) {
         }
         return Promise.reject(r.status)
     }
+    return r;
 }
 
 const apiServices = new ApiServices()
