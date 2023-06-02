@@ -16,6 +16,7 @@ export default function IntegrationModal(params) {
     username: integration?.Username,
     password: integration?.Password,
     address: integration?.Address,
+    activetransfers: integration?.ActiveTransfers,
     insecure: integration?.Insecure,
     accesstoken: integration?.Accesstoken,
     path: integration?.Path,
@@ -48,6 +49,7 @@ export default function IntegrationModal(params) {
         username: integrationForm.username,
         password: integrationForm.password,
         address: integrationForm.address,
+        activetransfers: integrationForm?.activetransfers,
         insecure: integrationForm.insecure,
         accesstoken: integrationForm.accesstoken,
         path: integrationForm.path,
@@ -89,6 +91,7 @@ export default function IntegrationModal(params) {
             >
               <option value="localfs">Directory in file system</option>
               <option value="webdav">WebDAV</option>
+              <option value="ftp">FTP</option>
               <option value="dropbox">Dropbox</option>
             </Form.Control>
 
@@ -100,7 +103,7 @@ export default function IntegrationModal(params) {
               onChange={handleChange}
             />
 
-            {integrationForm.provider === "webdav" && (
+            {(integrationForm.provider === "webdav" || integrationForm.provider === "ftp") && (
               <>
                 <Form.Label>Address</Form.Label>
                 <Form.Control
@@ -111,7 +114,7 @@ export default function IntegrationModal(params) {
                 />
               </>
             )}
-            {integrationForm.provider === "webdav" && (
+            {(integrationForm.provider === "webdav" || integrationForm.provider === "ftp") && (
               <>
                 <Form.Label>Username</Form.Label>
                 <Form.Control
@@ -122,7 +125,7 @@ export default function IntegrationModal(params) {
                 />
               </>
             )}
-            {integrationForm.provider === "webdav" && (
+            {(integrationForm.provider === "webdav" || integrationForm.provider === "ftp") && (
               <>
                 <Form.Label>Password</Form.Label>
                 <Form.Control
@@ -133,6 +136,15 @@ export default function IntegrationModal(params) {
                   onChange={handleChange}
                 />
               </>
+            )}
+
+            {integrationForm.provider === "ftp" && (
+              <Form.Check
+                name="activetransfers"
+                checked={integrationForm.activetransfers}
+                onChange={({ target }) => setIntegrationForm({ ...integrationForm, [target.name]: target.checked })}
+                label="Use actives transfers"
+              />
             )}
 
             {integrationForm.provider === "localfs" && (
