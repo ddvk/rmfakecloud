@@ -78,11 +78,12 @@ export default function IntegrationProfileModal(params) {
             className="mb-1"
           >
             <option value="localfs">Directory in file system</option>
+            <option value="ftp">FTP</option>
             <option value="webdav">WebDAV</option>
             <option value="dropbox">Dropbox</option>
           </Form.Select>
 
-          {integrationForm.provider === "webdav" && (
+          {(integrationForm.provider === "webdav" || integrationForm.provider === "ftp") && (
             <>
               <Form.Label>Address</Form.Label>
               <Form.Control
@@ -93,7 +94,7 @@ export default function IntegrationProfileModal(params) {
               />
             </>
           )}
-          {integrationForm.provider === "webdav" && (
+          {(integrationForm.provider === "webdav" || integrationForm.provider === "ftp") && (
             <>
               <Form.Label>Username</Form.Label>
               <Form.Control
@@ -104,7 +105,7 @@ export default function IntegrationProfileModal(params) {
               />
             </>
           )}
-          {integrationForm.provider === "webdav" && (
+          {(integrationForm.provider === "webdav" || integrationForm.provider === "ftp") && (
             <>
               <Form.Label>Password</Form.Label>
               <Form.Control
@@ -115,6 +116,15 @@ export default function IntegrationProfileModal(params) {
                 onChange={handleChange}
               />
             </>
+          )}
+
+          {integrationForm.provider === "ftp" && (
+            <Form.Check
+              name="activetransfers"
+              checked={integrationForm.activetransfers}
+              onChange={({ target }) => setIntegrationForm({ ...integrationForm, [target.name]: target.checked })}
+              label="Use actives transfers"
+            />
           )}
 
           {integrationForm.provider === "localfs" && (
