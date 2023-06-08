@@ -1,6 +1,7 @@
 package app
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -700,6 +701,52 @@ func (app *App) blobStorageUpload(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+func (app *App) syncUpdateRootV3(c *gin.Context) {
+	var rootv3 messages.SyncRootV3
+	err := json.NewDecoder(c.Request.Body).Decode(&rootv3)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	uid := c.GetString(userIDKey)
+	newgeneration, err := app.blobStorer.StoreBlob(uid, "root", bytes.NewBufferString(rootv3.Hash), rootv3.Generation)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, messages.SyncRootV3{
+		Generation: newgeneration,
+		Hash:       rootv3.Hash,
+	})
+}
+
+func (app *App) syncGetRootV3(c *gin.Context) {
+	uid := c.GetString(userIDKey)
+
+	reader, generation, _, err := app.blobStorer.LoadBlob(uid, "root")
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	roothash, err := io.ReadAll(reader)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, messages.SyncRootV3{
+		Generation: generation,
+		Hash:       string(roothash),
+	})
 }
 
 func (app *App) integrationsGetMetadata(c *gin.Context) {
