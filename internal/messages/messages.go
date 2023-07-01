@@ -136,6 +136,12 @@ type SyncCompletedRequestV2 struct {
 	Generation int64 `json:"generation"`
 }
 
+// SyncRootV3
+type SyncRootV3 struct {
+	Generation int64  `json:"generation"`
+	Hash       string `json:"hash"`
+}
+
 // IntegrationsResponse integrations
 type IntegrationsResponse struct {
 	Integrations []Integration `json:"integrations"`
