@@ -1,3 +1,7 @@
+[![rm1](https://img.shields.io/badge/rM1-supported-green)](https://remarkable.com/store/remarkable)
+[![rm2](https://img.shields.io/badge/rM2-supported-green)](https://remarkable.com/store/remarkable-2)
+[![opkg](https://img.shields.io/badge/OPKG-rmfakecloud--proxy-blue)](https://toltec-dev.org/)
+
 # rmfakecloud
 This is a replacement of the cloud, in case you want to sync/backup your files and have full control of the hosting environment.
 
