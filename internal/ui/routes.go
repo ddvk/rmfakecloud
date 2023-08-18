@@ -80,6 +80,7 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	auth.DELETE("integrations/:intid", app.deleteIntegration)
 
 	auth.GET("integrations/:intid/explore/*path", app.exploreIntegration)
+	auth.GET("integrations/:intid/metadata/*path", app.getMetadataIntegration)
 	auth.GET("integrations/:intid/download/*path", app.downloadThroughIntegration)
 
 	//admin

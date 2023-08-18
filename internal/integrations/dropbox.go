@@ -65,6 +65,10 @@ func (d *DropBox) List(folderID string, depth int) (*messages.IntegrationFolder,
 	return response, nil
 }
 
+func (d *DropBox) GetMetadata(fileID string) (*messages.IntegrationMetadata, error) {
+	return nil, nil
+}
+
 func (d *DropBox) Download(fileID string) (io.ReadCloser, int64, error) {
 	return nil, 0, nil
 

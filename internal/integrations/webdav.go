@@ -88,6 +88,25 @@ func (w *WebDavIntegration) Upload(folderID, name, fileType string, reader io.Re
 	return
 }
 
+func (w *WebDavIntegration) GetMetadata(fileID string) (*messages.IntegrationMetadata, error) {
+	decoded, err := decodeName(fileID)
+	if err != nil {
+		return nil, err
+	}
+
+	ext := path.Ext(decoded)
+	contentType := contentTypeFromExt(ext)
+
+	return &messages.IntegrationMetadata{
+		ID:               fileID,
+		Name:             path.Base(decoded),
+		Thumbnail:        []byte{},
+		SourceFileType:   contentType,
+		ProvidedFileType: contentType,
+		FileType:         ext,
+	}, nil
+}
+
 // Download downloads
 func (w *WebDavIntegration) Download(fileID string) (io.ReadCloser, int64, error) {
 	decoded, err := decodeName(fileID)

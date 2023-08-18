@@ -54,6 +54,25 @@ func (d *localFS) List(folder string, depth int) (*messages.IntegrationFolder, e
 	return response, nil
 }
 
+func (d *localFS) GetMetadata(fileID string) (*messages.IntegrationMetadata, error) {
+	decoded, err := decodeName(fileID)
+	if err != nil {
+		return nil, err
+	}
+
+	ext := path.Ext(decoded)
+	contentType := contentTypeFromExt(ext)
+
+	return &messages.IntegrationMetadata{
+		ID:               fileID,
+		Name:             path.Base(decoded),
+		Thumbnail:        []byte{},
+		SourceFileType:   contentType,
+		ProvidedFileType: contentType,
+		FileType:         ext,
+	}, nil
+}
+
 func (d *localFS) Download(fileID string) (io.ReadCloser, int64, error) {
 	decoded, err := decodeName(fileID)
 	if err != nil {
