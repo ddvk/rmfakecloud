@@ -74,13 +74,15 @@ export LOGLEVEL=info
 # Email
 export RM_SMTP_SERVER=smtp.gmail.com:465
 export RM_SMTP_USERNAME=MY_EMAIL_ADDRESS
-export RM_SMTP_PASSWORD=MY_PASSWORD
+export RM_SMTP_PASSWORD=MY_SMTP_OR_APP_PASSWORD
 # Handwriting recognition
 export RMAPI_HWR_APPLICATIONKEY=SOME_KEY
 export RMAPI_HWR_HMAC=SOME_KEY
 ```
 
 Make sure to replace `SOME_KEY` by the return of `openssl rand -base64 48`, see [configuration](configuration.md).
+
+If using GMail, ensure you enable 2FA on that Google account, generate a GMail app password (https://myaccount.google.com/u/0/apppasswords), and provide the app password instead of the account password above.
 
 systemd
 -------
@@ -119,10 +121,12 @@ LOGLEVEL=info
 # Email
 RM_SMTP_SERVER=smtp.gmail.com:465
 RM_SMTP_USERNAME=MY_EMAIL_ADDRESS
-RM_SMTP_PASSWORD=MY_PASSWORD
+RM_SMTP_PASSWORD=MY_SMTP_OR_APP_PASSWORD
 # Handwriting recognition
 RMAPI_HWR_APPLICATIONKEY=SOME_KEY
 RMAPI_HWR_HMAC=SOME_KEY
 ```
 
 Make sure to replace `SOME_KEY` with the output of `openssl rand -base64 48`, see [configuration](configuration.md).
+
+If using GMail, ensure you enable 2FA on that Google account, generate a GMail app password (https://myaccount.google.com/u/0/apppasswords), and provide the app password instead of the account password above.
