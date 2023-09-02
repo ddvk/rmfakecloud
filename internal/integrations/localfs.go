@@ -54,15 +54,40 @@ func (d *localFS) List(folder string, depth int) (*messages.IntegrationFolder, e
 	return response, nil
 }
 
-func (d *localFS) Download(fileID string) (io.ReadCloser, error) {
+func (d *localFS) GetMetadata(fileID string) (*messages.IntegrationMetadata, error) {
 	decoded, err := decodeName(fileID)
 	if err != nil {
 		return nil, err
 	}
 
-	localPath := path.Join(d.rootPath, path.Clean(decoded))
-	return os.Open(localPath)
+	ext := path.Ext(decoded)
+	contentType := contentTypeFromExt(ext)
 
+	return &messages.IntegrationMetadata{
+		ID:               fileID,
+		Name:             path.Base(decoded),
+		Thumbnail:        []byte{},
+		SourceFileType:   contentType,
+		ProvidedFileType: contentType,
+		FileType:         ext,
+	}, nil
+}
+
+func (d *localFS) Download(fileID string) (io.ReadCloser, int64, error) {
+	decoded, err := decodeName(fileID)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	localPath := path.Join(d.rootPath, path.Clean(decoded))
+
+	st, err := os.Stat(localPath)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	res, err := os.Open(localPath)
+	return res, st.Size(), err
 }
 func (d *localFS) Upload(folderID, name, fileType string, reader io.ReadCloser) (id string, err error) {
 	folder := "/"

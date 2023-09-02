@@ -750,9 +750,25 @@ func (app *App) syncGetRootV3(c *gin.Context) {
 }
 
 func (app *App) integrationsGetMetadata(c *gin.Context) {
-	var metadata messages.IntegrationMetadata
-	metadata.Thumbnail = ""
-	c.JSON(http.StatusOK, &metadata)
+	uid := c.GetString(userIDKey)
+	integrationID := common.ParamS(integrationKey, c)
+	fileID := common.ParamS(fileKey, c)
+
+	integrationProvider, err := integrations.GetIntegrationProvider(app.userStorer, uid, integrationID)
+	if err != nil {
+		log.Error(fmt.Errorf("can't get integration, %v", err))
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	metadata, err := integrationProvider.GetMetadata(fileID)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, metadata)
 }
 
 func (app *App) integrationsUpload(c *gin.Context) {
@@ -794,7 +810,7 @@ func (app *App) integrationsGetFile(c *gin.Context) {
 		return
 	}
 
-	reader, err := integrationProvider.Download(fileID)
+	reader, _, err := integrationProvider.Download(fileID)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)

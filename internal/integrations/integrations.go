@@ -13,6 +13,7 @@ import (
 )
 
 const (
+	ftpProvider     = "ftp"
 	webdavProvider  = "webdav"
 	dropboxProvider = "dropbox"
 	googleProvider  = "google"
@@ -21,8 +22,9 @@ const (
 
 // IntegrationProvider abstracts 3rd party integrations
 type IntegrationProvider interface {
+	GetMetadata(fileID string) (result *messages.IntegrationMetadata, err error)
 	List(folderID string, depth int) (result *messages.IntegrationFolder, err error)
-	Download(fileID string) (io.ReadCloser, error)
+	Download(fileID string) (io.ReadCloser, int64, error)
 	Upload(folderID, name, fileType string, reader io.ReadCloser) (string, error)
 }
 
@@ -37,12 +39,16 @@ func GetIntegrationProvider(storer storage.UserStorer, uid, integrationid string
 			continue
 		}
 		switch intg.Provider {
-		case webdavProvider:
-			return newWebDav(intg), nil
 		case dropboxProvider:
 			return newDropbox(intg), nil
+		case ftpProvider:
+			return newFTP(intg), nil
+		case googleProvider:
+			return newGDrive(intg), nil
 		case localfsProvider:
 			return newLocalFS(intg), nil
+		case webdavProvider:
+			return newWebDav(intg), nil
 		}
 	}
 	return nil, fmt.Errorf("integration not found or no implmentation (only webdav) %s", integrationid)
@@ -52,6 +58,8 @@ func GetIntegrationProvider(storer storage.UserStorer, uid, integrationid string
 // fix the name
 func fixProviderName(n string) string {
 	switch n {
+	case ftpProvider:
+		fallthrough
 	case dropboxProvider:
 		return "Dropbox"
 	case googleProvider:
@@ -132,7 +140,7 @@ func visitDir(root, currentPath string, depth int, parentFolder *messages.Integr
 				ID:               encodedPath,
 				FileID:           encodedPath,
 				Name:             docName,
-				Size:             int(d.Size()),
+				Size:             d.Size(),
 				SourceFileType:   contentType,
 			}
 

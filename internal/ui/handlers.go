@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ddvk/rmfakecloud/internal/common"
+	"github.com/ddvk/rmfakecloud/internal/integrations"
 	"github.com/ddvk/rmfakecloud/internal/model"
 	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
@@ -20,6 +21,7 @@ const (
 	browserIDContextKey = "browserID"
 	isSync15Key         = "sync15"
 	docIDParam          = "docid"
+	intIDParam          = "intid"
 	uiLogger            = "[ui] "
 	ui10                = " [10] "
 	useridParam         = "userid"
@@ -507,4 +509,230 @@ func (app *ReactAppWrapper) createUser(c *gin.Context) {
 		return
 	}
 	c.Status(http.StatusCreated)
+}
+
+func (app *ReactAppWrapper) listIntegrations(c *gin.Context) {
+	uid := c.GetString(userIDContextKey)
+
+	user, err := app.userStorer.GetUser(uid)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	c.JSON(http.StatusOK, user.Integrations)
+}
+
+func (app *ReactAppWrapper) createIntegration(c *gin.Context) {
+	int := model.IntegrationConfig{}
+	if err := c.ShouldBindJSON(&int); err != nil {
+		log.Error(err)
+		badReq(c, err.Error())
+		return
+	}
+
+	if int.Provider == "google" {
+		integrations.GDriveOAuthRedirect(c, &int)
+		return
+	}
+
+	uid := c.GetString(userIDContextKey)
+
+	user, err := app.userStorer.GetUser(uid)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	int.ID = uuid.NewString()
+	user.Integrations = append(user.Integrations, int)
+
+	err = app.userStorer.UpdateUser(user)
+
+	if err != nil {
+		log.Error("error updating user", err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, int)
+}
+
+func (app *ReactAppWrapper) completeGoogleIntegration(c *gin.Context) {
+	uid := c.GetString(userIDContextKey)
+
+	integrations.GDriveOAuthComplete(app.userStorer, uid, c)
+}
+
+func (app *ReactAppWrapper) getIntegration(c *gin.Context) {
+	uid := c.GetString(userIDContextKey)
+
+	intid := common.ParamS(intIDParam, c)
+
+	user, err := app.userStorer.GetUser(uid)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	for _, integration := range user.Integrations {
+		if integration.ID == intid {
+			c.JSON(http.StatusOK, integration)
+			return
+		}
+	}
+
+	c.AbortWithStatus(http.StatusNotFound)
+}
+
+func (app *ReactAppWrapper) updateIntegration(c *gin.Context) {
+	int := model.IntegrationConfig{}
+	if err := c.ShouldBindJSON(&int); err != nil {
+		log.Error(err)
+		badReq(c, err.Error())
+		return
+	}
+
+	uid := c.GetString(userIDContextKey)
+
+	intid := common.ParamS(intIDParam, c)
+
+	user, err := app.userStorer.GetUser(uid)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	for idx, integration := range user.Integrations {
+		if integration.ID == intid {
+			int.ID = integration.ID
+			user.Integrations[idx] = int
+
+			err = app.userStorer.UpdateUser(user)
+
+			if err != nil {
+				log.Error("error updating user", err)
+				c.AbortWithStatus(http.StatusInternalServerError)
+				return
+			}
+
+			c.JSON(http.StatusOK, int)
+			return
+		}
+	}
+
+	c.AbortWithStatus(http.StatusNotFound)
+}
+
+func (app *ReactAppWrapper) deleteIntegration(c *gin.Context) {
+	uid := c.GetString(userIDContextKey)
+
+	intid := common.ParamS(intIDParam, c)
+
+	user, err := app.userStorer.GetUser(uid)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	for idx, integration := range user.Integrations {
+		if integration.ID == intid {
+			user.Integrations = append(user.Integrations[:idx], user.Integrations[idx+1:]...)
+
+			err = app.userStorer.UpdateUser(user)
+
+			if err != nil {
+				log.Error("error updating user", err)
+				c.AbortWithStatus(http.StatusInternalServerError)
+				return
+			}
+
+			c.Status(http.StatusAccepted)
+			return
+		}
+	}
+
+	c.AbortWithStatus(http.StatusNotFound)
+}
+
+func (app *ReactAppWrapper) exploreIntegration(c *gin.Context) {
+	uid := c.GetString(userIDContextKey)
+
+	integrationID := common.ParamS(intIDParam, c)
+
+	integrationProvider, err := integrations.GetIntegrationProvider(app.userStorer, uid, integrationID)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	folder := common.ParamS("path", c)
+	if folder == "" {
+		folder = "root"
+	}
+
+	response, err := integrationProvider.List(folder, 2)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (app *ReactAppWrapper) getMetadataIntegration(c *gin.Context) {
+	uid := c.GetString(userIDContextKey)
+
+	integrationID := common.ParamS(intIDParam, c)
+
+	integrationProvider, err := integrations.GetIntegrationProvider(app.userStorer, uid, integrationID)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	fileid := common.ParamS("path", c)
+
+	response, err := integrationProvider.GetMetadata(fileid)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (app *ReactAppWrapper) downloadThroughIntegration(c *gin.Context) {
+	uid := c.GetString(userIDContextKey)
+
+	integrationID := common.ParamS(intIDParam, c)
+
+	integrationProvider, err := integrations.GetIntegrationProvider(app.userStorer, uid, integrationID)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	fileid := common.ParamS("path", c)
+
+	response, size, err := integrationProvider.Download(fileid)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	defer response.Close()
+
+	c.DataFromReader(http.StatusOK, size, "", response, nil)
 }
