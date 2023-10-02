@@ -9,13 +9,14 @@ ARG VERSION
 WORKDIR /src
 RUN apk add git
 COPY . .
+RUN go mod tidy
 COPY --from=uibuilder /src/dist ./new-ui/dist
 RUN go generate ./... && CGO_ENABLED=0 go build -ldflags "-s -w -X main.version=${VERSION}" -o rmfakecloud-docker ./cmd/rmfakecloud/
 
-FROM alpine
+FROM alpine:latest
 EXPOSE 3000
 ADD ./rootfs.tar /
-RUN --mount=from=busybox:latest,src=/bin/,dst=/bin/ mkdir -m 1755 /tmp
 COPY --from=gobuilder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=gobuilder /src/rmfakecloud-docker /
 CMD ["/rmfakecloud-docker"]
+

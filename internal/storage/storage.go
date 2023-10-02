@@ -4,10 +4,10 @@ import (
 	"io"
 	"time"
 
-	"github.com/ddvk/rmfakecloud/internal/common"
-	"github.com/ddvk/rmfakecloud/internal/messages"
-	"github.com/ddvk/rmfakecloud/internal/model"
-	"github.com/ddvk/rmfakecloud/internal/storage/models"
+	"github.com/feurer98/rmfakecloud/internal/common"
+	"github.com/feurer98/rmfakecloud/internal/messages"
+	"github.com/feurer98/rmfakecloud/internal/model"
+	"github.com/feurer98/rmfakecloud/internal/storage/models"
 )
 
 // ExportOption type of export
