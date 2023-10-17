@@ -759,6 +759,21 @@ func (app *App) syncGetRootV3(c *gin.Context) {
 	})
 }
 
+func (app *App) blobStorageRead(c *gin.Context) {
+	uid := c.GetString(userIDKey)
+	blobID := common.ParamS(fileKey, c)
+
+	reader, _, size, err := app.blobStorer.LoadBlob(uid, blobID)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	defer reader.Close()
+
+	c.DataFromReader(http.StatusOK, size, "application/octet-stream", reader, nil)
+}
+
 func (app *App) integrationsGetMetadata(c *gin.Context) {
 	var metadata messages.IntegrationMetadata
 	metadata.Thumbnail = ""
