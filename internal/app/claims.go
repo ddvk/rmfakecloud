@@ -30,7 +30,7 @@ type UserClaims struct {
 type Auth0profile struct {
 	UserID        string `json:"UserID"`
 	IsSocial      bool
-	ClientID      string `json:"ClientID"`
+	ClientID      string `json:"ClientID,omitempty"`
 	Connection    string
 	Name          string `json:"Name"`
 	Nickname      string `json:"NickName"`
@@ -38,7 +38,7 @@ type Auth0profile struct {
 	FamilyName    string
 	Email         string
 	EmailVerified bool
-	Picture       string
+	Picture       string `json:"Picture,omitempty"`
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 }

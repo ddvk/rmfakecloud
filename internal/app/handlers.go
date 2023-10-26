@@ -2,6 +2,7 @@ package app
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -152,20 +153,30 @@ func (app *App) newUserToken(c *gin.Context) {
 	}
 	scopesStr := strings.Join(scopes, " ")
 	log.Info("setting scopes: ", scopesStr)
+
+	jti := make([]byte, 3)
+	_, err = rand.Read(jti)
+	if err != nil {
+		badReq(c, err.Error())
+		return
+	}
+	jti = append([]byte{'r', 'M', '-'}, jti...)
+	jti = append(jti, '/', 'E')
+
 	now := time.Now()
-	expirationTime := now.Add(24 * time.Hour)
+	expirationTime := now.Add(3 * time.Hour)
 	claims := &UserClaims{
 		Profile: Auth0profile{
 			UserID:        deviceToken.UserID,
 			IsSocial:      false,
 			Connection:    "Username-Password-Authentication",
-			Name:          user.Name,
+			Name:          user.Email,
 			Nickname:      user.Nickname,
+			GivenName:     user.Name,
 			Email:         fmt.Sprintf("%s (via %s)", user.Email, app.cfg.StorageURL),
 			EmailVerified: true,
-			Picture:       "image.png",
-			CreatedAt:     time.Now(),
-			UpdatedAt:     time.Now(),
+			CreatedAt:     user.CreatedAt,
+			UpdatedAt:     user.UpdatedAt,
 		},
 		DeviceDesc: deviceToken.DeviceDesc,
 		DeviceID:   deviceToken.DeviceID,
@@ -175,10 +186,9 @@ func (app *App) newUserToken(c *gin.Context) {
 			ExpiresAt: expirationTime.Unix(),
 			NotBefore: now.Unix(),
 			IssuedAt:  now.Unix(),
-			Subject:   "rM User Token",
+			Subject:   deviceToken.UserID,
 			Issuer:    "rM WebApp",
-			Id:        user.ID,
-			Audience:  APIUsage,
+			Id:        base64.StdEncoding.EncodeToString(jti),
 		},
 		Version: tokenVersion,
 	}
