@@ -35,11 +35,9 @@ function PasswordField(props) {
         ref={inputEl}
         onBlur={saveCursorPosition}
       />
-      <InputGroup.Append>
-        <Button onClick={showHide}>
-          <FaEye />
-        </Button>
-      </InputGroup.Append>
+      <Button onClick={showHide}>
+        <FaEye />
+      </Button>
     </InputGroup>
   );
 }
