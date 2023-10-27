@@ -55,5 +55,5 @@
     "sass-loader": "^13.3.2",
     "webpack": "^5.89.0"
   },
-  "proxy": "https://rmf.doeberl.at"
+  "proxy": "http://localhost:3000"
 }
