@@ -88,6 +88,13 @@ class ApiServices {
       return r.blob();
     });
   }
+  createFolder(data) {
+    return fetch(`${constants.ROOT_URL}/folders`, {
+      method: "POST",
+      headers: this.header(),
+      body: JSON.stringify(data),
+    }).catch((r) => handleError(r));
+  }
   updateuser(usr) {
     return fetch(`${constants.ROOT_URL}/users`, {
       method: "PUT",

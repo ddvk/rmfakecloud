@@ -49,7 +49,7 @@ export default function UserProfileModal(params) {
 
   return (
     <Form onSubmit={handleSubmit} autoComplete="off">
-      <Card bg="dark" text="white">
+      <Card>
         <Card.Header>
           <span>New User</span>
         </Card.Header>

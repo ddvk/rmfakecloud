@@ -5,26 +5,31 @@ import constants from "../../common/constants";
 import File from "./File";
 import Folder from "./Folder";
 import './Documents.scss';
+import Navbar from 'react-bootstrap/Navbar';
 
 export default function DocumentList() {
   const [folder, setFolder] = useState(null);
   const [file, setFile] = useState(null);
 
   const onNodeSelected = (node) => {
-    if (node.isFolder) {
+    if (node && node.isFolder) {
       setFolder(node);
       setFile(null);
     } else {
-      node.downloadUrl = `${constants.ROOT_URL}/documents/${node.id}`;
+      if (node) {
+        node.downloadUrl = `${constants.ROOT_URL}/documents/${node.id}`;
+      }
       setFile(node);
     }
   };
 
   return (
     <Container>
-      <Row>
-        <Col md={4} className="mt-4">
-          <h6>My Documents</h6>
+      <Row className="mt-2">
+        <Col md={4}>
+          <Navbar>
+            <h6>My Documents</h6>
+          </Navbar>
           <Tree onFileSelected={onNodeSelected} />
         </Col>
         <Col md={8}>

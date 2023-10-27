@@ -51,7 +51,7 @@ export default function UserProfileModal(params) {
   if (!user) return null;
   return (
     <Form onSubmit={handleSubmit}>
-      <Card bg="dark" text="white">
+      <Card>
         <Card.Header>
           <span>{headerText}</span>
         </Card.Header>

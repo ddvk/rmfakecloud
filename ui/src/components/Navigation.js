@@ -12,7 +12,7 @@ const NavigationBar = () => {
   }
 
   return (
-    <Navbar variant="dark" className="sticky-top" style={{ backdropFilter: 'blur(12px)', backgroundColor: 'rgba(255, 255, 255, .1)' }}>
+    <Navbar className="sticky-top" style={{ backdropFilter: 'blur(12px)', backgroundColor: 'rgba(255, 255, 255, .1)' }}>
       <Container>
         <Navbar.Brand>
           <Nav.Link as={NavLink} to="/">
@@ -32,7 +32,7 @@ const NavigationBar = () => {
                 </Nav.Item>
               </Nav>
               <Nav className="ms-auto">
-                <NavDropdown id="userMenu" title={user.UserID} align="end" menuVariant="dark">
+                <NavDropdown id="userMenu" title={user.UserID} align="end">
                   <NavDropdown.Item as={NavLink} to="/connect">Connect Device</NavDropdown.Item>
                   <NavDropdown.Item as={NavLink} to="/admin">Admin</NavDropdown.Item>
                   <NavDropdown.Item as={NavLink} to="/about">About</NavDropdown.Item>

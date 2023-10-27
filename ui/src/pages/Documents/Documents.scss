@@ -5,6 +5,15 @@ canvas {
 .documents-tree {
   div[role=treeitem] {
     outline: none;
+
+    & > div {
+      display: flex;
+      align-items: center;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+    }
+
     &:hover {
       background-color: rgba(255, 255, 255, .1);
       cursor: pointer;

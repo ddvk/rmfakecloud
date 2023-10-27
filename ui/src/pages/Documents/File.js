@@ -4,6 +4,7 @@ import { Document, Page } from "react-pdf";
 import Navbar from 'react-bootstrap/Navbar';
 import { FaChevronRight, FaChevronLeft, } from "react-icons/fa6";
 import { AiOutlineDownload } from "react-icons/ai";
+import FileIcon from "./FileIcon";
 
 import apiservice from "../../services/api.service"
 
@@ -46,21 +47,26 @@ export default function FileViewer({ file, onClose }) {
 
   return (
     <>
-      <Navbar>
-        { file && (<h6>{file.name}</h6>) }
+      <Navbar style={{ borderBottom: '1px solid #eee' }}>
+        { file && (<>
+          <h6>
+            <FileIcon file={file} />
+            {file.name}
+          </h6>
+        </>) }
         <div style={{ flex: 1 }}></div>
       </Navbar>
       <Navbar>
         {pages > 1 && (
-        <div>
-          <ButtonGroup aria-label="Basic example">
-            <Button size="sm" variant="secondary" onClick={onPrev}><FaChevronLeft /></Button>
-            <Button size="sm" variant="secondary" onClick={onNext}><FaChevronRight /></Button>
-          </ButtonGroup>
-          <span style={{ margin: '0 10px' }}>
-            Page: {page} of {pages}
-          </span>
-        </div>
+          <div>
+            <ButtonGroup aria-label="Basic example">
+              <Button size="sm" variant="secondary" onClick={onPrev}><FaChevronLeft /></Button>
+              <Button size="sm" variant="secondary" onClick={onNext}><FaChevronRight /></Button>
+            </ButtonGroup>
+            <span style={{ margin: '0 10px' }}>
+              Page: {page} of {pages}
+            </span>
+          </div>
         )}
         <div style={{ flex: 1 }}></div>
 
@@ -72,9 +78,9 @@ export default function FileViewer({ file, onClose }) {
 
       {file && (
         <div style={{ height: '100vh' }}>
-        <Document file={file.downloadUrl} onLoadSuccess={onLoadSuccess}>
-          <Page pageNumber={page} />
-        </Document>
+          <Document file={file.downloadUrl} onLoadSuccess={onLoadSuccess}>
+            <Page pageNumber={page} />
+          </Document>
         </div>
       )}
     </>

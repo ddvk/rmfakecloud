@@ -100,7 +100,7 @@ export default function UserList() {
   return (
     <>
       <h3>Users</h3>
-      <Table striped bordered hover className="table-dark">
+      <Table striped bordered hover>
         <thead>
           <tr>
             <th>#</th>

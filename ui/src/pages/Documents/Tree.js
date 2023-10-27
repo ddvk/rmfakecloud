@@ -2,28 +2,44 @@ import { React, useEffect, useState } from 'react';
 import apiservice from "../../services/api.service"
 import { Tree } from 'react-arborist';
 import { MdArrowDropDown, MdArrowRight } from "react-icons/md";
+import { BsSearch } from "react-icons/bs";
+import Form from 'react-bootstrap/Form';
+import InputGroup from 'react-bootstrap/InputGroup';
+import Button from 'react-bootstrap/Button';
+import FileIcon from './FileIcon';
 
 const DocumentTree = ({ onFileSelected }) => {
   const [term, setTerm] = useState("");
+  const [name, setName] = useState("");
   const [selected, setSelected] = useState(null);
 
   const onSelect = (node) => {
-    onFileSelected(node.data);
     setSelected(node);
+    const file = node ? node.data : null
+    onFileSelected(file);
+  }
+
+  const createFolder = async () => {
+    let parentId = "";
+    if (selected && selected.data.isFolder) {
+      parentId = selected.id;
+    }
+    await apiservice.createFolder({ name, parentId});
+    await loadDocs();
   }
 
   function FolderArrow({ node }: { node: NodeApi }) {
-    if (node.isLeaf) return <span></span>;
-    return (
-      <span style={{ width: '20px', marginRight: '5px' }}>
+    if (node.isLeaf) {
+      return <FileIcon file={node.data} />
+    } else {
+      return (<>
         {node.isOpen ? <MdArrowDropDown /> : <MdArrowRight />}
-      </span>
-    );
+      </>);
+    }
   }
 
   function Node({ node, style, dragHandle }: NodeRendererProps) {
     const isSelected = selected && node.data.id === selected.id;
-    style = { ...style, paddingTop: '5px', paddingBottom: '5px' }
     const selectedStyle = { ...style, color: '#0d6efd' };
     return (
       <div
@@ -34,8 +50,10 @@ const DocumentTree = ({ onFileSelected }) => {
           onSelect(node);
         }}
       >
-        <FolderArrow node={node} />
-        <span>{node.data.name}</span>
+        <h6 style={{ padding: '0 5px', marginTop: '0.5rem' }}>
+          <FolderArrow node={node} />
+          {node.data.name}
+        </h6>
       </div>
     );
   }
@@ -111,11 +129,15 @@ const DocumentTree = ({ onFileSelected }) => {
 */
 
       return (
-        <div style={{"marginTop":"20px"}}>
-          <input
-            value={term}
-            onChange={(e) => setTerm(e.currentTarget.value)}
-          />
+        <div>
+
+          <InputGroup className="mb-3">
+            <InputGroup.Text>
+              <BsSearch />
+            </InputGroup.Text>
+
+            <Form.Control type="text" value={term} onChange={(e) => { setTerm(e.currentTarget.value); onSelect(null) }} />
+          </InputGroup>
           {/*
       { dwn && <button onClick={onDownloadClick}>Download {dwn.name}</button> }
       { downloadError && <div class="error">{downloadError}</div> }
@@ -123,8 +145,8 @@ const DocumentTree = ({ onFileSelected }) => {
       */}
           <Tree
             data={entries}
-            rowHeight={32}
-            indent={32}
+            rowHeight={36}
+            indent={36}
             width="100%"
             renderCursor={Cursor}
             searchTerm={term}
@@ -140,6 +162,11 @@ const DocumentTree = ({ onFileSelected }) => {
           >
             {Node}
           </Tree>
+            <InputGroup className="mb-3">
+            <Form.Control type="text" value={name} onChange={(e) => setName(e.currentTarget.value)} />
+
+              <Button onClick={createFolder}>Create</Button>
+          </InputGroup>
         </div>
       )
 }
