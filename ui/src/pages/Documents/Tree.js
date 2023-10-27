@@ -2,55 +2,47 @@ import { React, useEffect, useState } from 'react';
 import apiservice from "../../services/api.service"
 import { Tree } from 'react-arborist';
 import { MdArrowDropDown, MdArrowRight } from "react-icons/md";
-import { BsTree } from "react-icons/bs";
 
 const DocumentTree = ({ onFileSelected }) => {
+  const [term, setTerm] = useState("");
+  const [selected, setSelected] = useState(null);
 
-const onSelect = (node) => {
-  onFileSelected(node);
-}
+  const onSelect = (node) => {
+    onFileSelected(node.data);
+    setSelected(node);
+  }
 
-function Input({ node }: { node: NodeApi<GmailItem> }) {
-  return (
-    <input
-      autoFocus
-      type="text"
-      defaultValue={node.data.name}
-      onFocus={(e) => e.currentTarget.select()}
-      onBlur={() => node.reset()}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") node.reset();
-        if (e.key === "Enter") node.submit(e.currentTarget.value);
-      }}
-    />
-  );
-}
-
-function FolderArrow({ node }: { node: NodeApi<GmailItem> }) {
-  if (node.isLeaf) return <span></span>;
-  return (
-    <span>
-      {node.isOpen ? <MdArrowDropDown /> : <MdArrowRight />}
-    </span>
-  );
-}
-
-function Node({ node, style, dragHandle }: NodeRendererProps<GmailItem>) {
-  const Icon = node.data.icon || BsTree;
-  return (
-    <div
-      ref={dragHandle}
-      onClick={() => { onSelect(node); return node.isInternal && node.toggle(); }}
-    >
-      <FolderArrow node={node} />
-      <span>
-        <Icon />
+  function FolderArrow({ node }: { node: NodeApi }) {
+    if (node.isLeaf) return <span></span>;
+    return (
+      <span style={{ width: '20px', marginRight: '5px' }}>
+        {node.isOpen ? <MdArrowDropDown /> : <MdArrowRight />}
       </span>
-      <span>{node.isEditing ? <Input node={node} /> : node.data.name}</span>
-      <span>{node.data.unread === 0 ? null : node.data.unread}</span>
-    </div>
-  );
-}
+    );
+  }
+
+  function Node({ node, style, dragHandle }: NodeRendererProps) {
+    const isSelected = selected && node.data.id === selected.id;
+    style = { ...style, paddingTop: '5px', paddingBottom: '5px' }
+    const selectedStyle = { ...style, color: '#0d6efd' };
+    return (
+      <div
+        style={ isSelected ? selectedStyle : style}
+        ref={dragHandle}
+        onClick={() => {
+          node.toggle();
+          onSelect(node);
+        }}
+      >
+        <FolderArrow node={node} />
+        <span>{node.data.name}</span>
+      </div>
+    );
+  }
+
+  function Cursor({ top, left }: CursorProps) {
+    return <div style={{ top, left }}></div>;
+  }
 
   const [entries, setEntries] = useState([]);
   const [trash, setTrash] = useState([]);
@@ -116,10 +108,14 @@ function Node({ node, style, dragHandle }: NodeRendererProps<GmailItem>) {
     setData(Object.assign({}, data))
   }
 
-  */
+*/
 
       return (
         <div style={{"marginTop":"20px"}}>
+          <input
+            value={term}
+            onChange={(e) => setTerm(e.currentTarget.value)}
+          />
           {/*
       { dwn && <button onClick={onDownloadClick}>Download {dwn.name}</button> }
       { downloadError && <div class="error">{downloadError}</div> }
@@ -127,10 +123,20 @@ function Node({ node, style, dragHandle }: NodeRendererProps<GmailItem>) {
       */}
           <Tree
             data={entries}
+            rowHeight={32}
+            indent={32}
+            width="100%"
+            renderCursor={Cursor}
+            searchTerm={term}
             onCreate={onCreate}
             onRename={onRename}
             onMove={onMove}
             onDelete={onDelete}
+            className="documents-tree"
+            disableEdit={true}
+            disableDrag={true}
+            disableDrop={true}
+            openByDefault={false}
           >
             {Node}
           </Tree>

@@ -1,5 +1,5 @@
 .container {
-  min-height: 100vh;
+  min-height: 85vh;
   width: 100%;
   display: flex;
   justify-content: center;
@@ -12,7 +12,6 @@
   font-size: 0.8rem;
   color: #bb0000;
 }
-
 .loginForm {
   display: flex;
   flex-direction: column;

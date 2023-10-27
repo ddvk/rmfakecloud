@@ -1,0 +1,16 @@
+canvas {
+  margin: auto;
+}
+
+.documents-tree {
+  div[role=treeitem] {
+    outline: none;
+    &:hover {
+      background-color: rgba(255, 255, 255, .1);
+      cursor: pointer;
+    }
+    .treeitem-nodename {
+      overflow: ellipsis;
+    }
+  }
+}

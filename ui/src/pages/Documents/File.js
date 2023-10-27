@@ -7,7 +7,7 @@ import { AiOutlineDownload } from "react-icons/ai";
 
 import apiservice from "../../services/api.service"
 
-export default function FileViewer({ file }) {
+export default function FileViewer({ file, onClose }) {
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
 
@@ -34,7 +34,7 @@ export default function FileViewer({ file }) {
         var url = window.URL.createObjectURL(blob)
         var a = document.createElement('a')
         a.href = url
-        a.download = file.id + '.pdf'
+        a.download = file.name + '.pdf'
         document.body.appendChild(a)
         a.click()
         a.remove()
@@ -42,13 +42,15 @@ export default function FileViewer({ file }) {
       .catch(e => {
         //setDownloadError('cant download ' + e)
       })
-
   }
 
   return (
     <>
       <Navbar>
-        { file && (<span>{file.name}</span>) }
+        { file && (<h6>{file.name}</h6>) }
+        <div style={{ flex: 1 }}></div>
+      </Navbar>
+      <Navbar>
         {pages > 1 && (
         <div>
           <ButtonGroup aria-label="Basic example">
