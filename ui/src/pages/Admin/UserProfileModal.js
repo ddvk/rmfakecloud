@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import Form from "react-bootstrap/Form";
 import { Button, Card } from "react-bootstrap";
-import apiService from "../services/api.service";
+import apiService from "../../services/api.service";
 
 import { Alert } from "react-bootstrap";
 

@@ -32,7 +32,6 @@ class ApiServices {
         return user;
       });
   }
-
   logout() {
     removeUser();
     fetch(`${constants.ROOT_URL}/logout`);
@@ -112,20 +111,20 @@ class ApiServices {
 }
 
 function removeUser(){
-    localStorage.removeItem("currentUser");
+  localStorage.removeItem("currentUser");
 }
 function handleError(r) {
-    if (!r.ok) {
-        if (r.status === 401) {
-            removeUser();
-            window.location.reload(true);
-            return
-        }
-        if (r.status === 400) {
-          return r.text().then(text => {throw new Error(text)})
-        }
-        return Promise.reject(r.status)
+  if (!r.ok) {
+    if (r.status === 401) {
+      removeUser();
+      window.location.reload(true);
+      return
     }
+    if (r.status === 400) {
+      return r.text().then(text => {throw new Error(text)})
+    }
+    return Promise.reject(r.status)
+  }
 }
 
 const apiServices = new ApiServices()

@@ -10,9 +10,7 @@ function PasswordField(props) {
   function showHide(e) {
     e.preventDefault();
     e.stopPropagation();
-
     setInputType(inputType === "text" ? "password" : "text");
-
     inputEl.current.focus();
   }
 
@@ -34,6 +32,7 @@ function PasswordField(props) {
         {...props}
         ref={inputEl}
         onBlur={saveCursorPosition}
+        autoComplete="new-password"
       />
       <Button onClick={showHide}>
         <FaEye />

@@ -1,16 +1,19 @@
 import React, {useState} from "react";
-import useFetch from "../hooks/useFetch";
-import Spinner from "./Spinner";
-import {Alert, Button, Card, Modal, Table} from "react-bootstrap";
+import { toast } from "react-toastify";
+import { Alert, Button, Modal, Table } from "react-bootstrap";
+
+import useFetch from "../../hooks/useFetch";
+import Spinner from "../../components/Spinner";
 import UserProfileModal from "./UserProfileModal";
 import NewUserModal from "./NewUserModal";
-import apiService from "../services/api.service";
-import {formatDate} from "../common/date";
-import { toast } from "react-toastify";
+import apiService from "../../services/api.service";
+import { formatDate } from "../../common/date";
+
 const userListUrl = "users";
 
 const NewUser = 1;
 const UpdateUser = 2;
+
 export default function UserList() {
   const [index, setIndex] = useState(false);
   const { data: userList, error, loading } = useFetch(`${userListUrl}`, index);
@@ -40,10 +43,10 @@ export default function UserList() {
 
   if (error) {
     return (
-        <Alert variant="danger">
-            <Alert.Heading>An Error Occurred</Alert.Heading>
-            {`Error ${error.status}: ${error.statusText}`}
-        </Alert>
+      <Alert variant="danger">
+        <Alert.Heading>An Error Occurred</Alert.Heading>
+        {`Error ${error.status}: ${error.statusText}`}
+      </Alert>
     );
   }
 
@@ -71,7 +74,7 @@ export default function UserList() {
       await apiService.deleteuser(id)
       refresh()
     } catch(e){
-        toast.error('Error:'+ e)
+      toast.error('Error:'+ e)
     }
   }
   // const handleSave = async e => {
@@ -84,7 +87,7 @@ export default function UserList() {
   //     });
   //     hide()
   //     refresh()
-  //     
+  //
   //   } catch (e) {
   //     setFormErrors({ error: e.toString()});
   //   }
@@ -95,19 +98,18 @@ export default function UserList() {
   // }
 
   return (
-    <Card bg="dark"
-      text="white">
-      <Card.Header>User List</Card.Header>
+    <>
+      <h3>Users</h3>
       <Table striped bordered hover className="table-dark">
         <thead>
-        <tr>
-          <th>#</th>
+          <tr>
+            <th>#</th>
             <th>UserId</th>
-          <th>Email</th>
-          <th>Name</th>
-          <th>Created At</th>
+            <th>Email</th>
+            <th>Name</th>
+            <th>Created At</th>
             <th><Button onClick={newUser}>New User</Button></th>
-        </tr>
+          </tr>
         </thead>
         <tbody>
           {userList.map((x, index) => (
@@ -122,12 +124,13 @@ export default function UserList() {
           ))}
         </tbody>
       </Table>
+
       <Modal show={state.showModal === UpdateUser} onHide={closeModal} className="transparent-modal">
-            <UserProfileModal user={state.modalUser} onSave={onSave} onClose={closeModal} headerText={`Change User Email/Password: ${state.modalUser?.userid}`} />
+        <UserProfileModal user={state.modalUser} onSave={onSave} onClose={closeModal} headerText={`Change User Email/Password: ${state.modalUser?.userid}`} />
       </Modal>
       <Modal show={state.showModal === NewUser} onHide={closeModal} className="transparent-modal">
-            <NewUserModal onSave={onSave} onClose={closeModal} />
+        <NewUserModal onSave={onSave} onClose={closeModal} />
       </Modal>
-    </Card>
+    </>
   );
 }

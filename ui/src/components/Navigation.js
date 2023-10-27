@@ -7,18 +7,18 @@ import { NavLink } from "react-router-dom";
 const NavigationBar = () => {
   const { state:{user}, dispatch } = useAuthState();
 
-  function isAdmin(user) {
-    return user && user.Roles && user.Roles[0] === "Admin";
-  }
-
   function handleLogout(e) {
     logout(dispatch);
   }
 
   return (
-    <Navbar bg="dark" variant="dark">
-      <Container fluid={true}>
-        <Navbar.Brand href="/">rmfakecloud</Navbar.Brand>
+    <Navbar variant="dark" className="sticky-top" style={{ backdropFilter: 'blur(12px)', backgroundColor: 'rgba(255, 255, 255, .1)' }}>
+      <Container>
+        <Navbar.Brand>
+          <Nav.Link as={NavLink} to="/">
+            rmfakecloud
+          </Nav.Link>
+        </Navbar.Brand>
         <Navbar.Toggle />
         {user && (
           <>
@@ -30,21 +30,14 @@ const NavigationBar = () => {
                     Documents
                   </Nav.Link>
                 </Nav.Item>
-                <Nav.Item>
-                  <Nav.Link as={NavLink} to="/connect">Code</Nav.Link>
-                </Nav.Item>
               </Nav>
               <Nav className="ms-auto">
-                <NavDropdown id="userMenu" title={user.UserID} align="end" style={{'marginRight':50}}>
-                  {user.scopes === "sync15" && (<NavDropdown.Header>Using sync 15</NavDropdown.Header>)}
-                  <NavDropdown.Item as={NavLink} to="/resetPassword">Reset Password</NavDropdown.Item>
-                  {isAdmin(user) && (
-                    <NavDropdown.Item as={NavLink} to="/users">Users</NavDropdown.Item>
-                  )}
-                  <NavDropdown.Divider />
+                <NavDropdown id="userMenu" title={user.UserID} align="end" menuVariant="dark">
+                  <NavDropdown.Item as={NavLink} to="/connect">Connect Device</NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/admin">Admin</NavDropdown.Item>
                   <NavDropdown.Item as={NavLink} to="/about">About</NavDropdown.Item>
                   <NavDropdown.Divider />
-                  <NavDropdown.Item as={Button} onClick={handleLogout}>Log out </NavDropdown.Item>
+                  <NavDropdown.Item as={Button} onClick={handleLogout}>Log out</NavDropdown.Item>
                 </NavDropdown>
               </Nav>
             </Navbar.Collapse>

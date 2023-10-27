@@ -10,13 +10,14 @@ const baseStyle = {
   alignItems: 'center',
   padding: '20px',
   borderWidth: 2,
-  borderRadius: 2,
-  borderColor: '#eeeeee',
+  borderRadius: 5,
+  borderColor: '#fff',
   borderStyle: 'dashed',
-  backgroundColor: '#fafafa',
-  color: '#bdbdbd',
+  backgroundColor: '#000',
+  color: '#fff',
   outline: 'none',
-  transition: 'border .24s ease-in-out'
+  transition: 'border .24s ease-in-out',
+  margin: '50px 0'
 };
 
 const activeStyle = {

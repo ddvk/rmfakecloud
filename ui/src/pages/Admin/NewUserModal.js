@@ -1,9 +1,8 @@
 import React, { useState } from "react";
 import Form from "react-bootstrap/Form";
-import { Button, Card } from "react-bootstrap";
-import apiService from "../services/api.service";
+import { Button, Card, Alert } from "react-bootstrap";
 
-import { Alert } from "react-bootstrap";
+import apiService from "../../services/api.service";
 
 export default function UserProfileModal(params) {
   const { onSave, onClose } = params;

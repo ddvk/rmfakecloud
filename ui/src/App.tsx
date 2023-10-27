@@ -1,51 +1,48 @@
 import React, {useEffect} from "react";
-
-import Navigationbar from "./components/Navigation";
-import Login from "./components/Login";
-import UserList from "./components/UserList";
-import UserProfile from "./components/UserProfile";
-import About from "./components/About";
-import Documents from "./components/Documents";
-import NoMatch from "./components/NoMatch";
-
 import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
-import { AuthProvider } from "./common/useAuthContext";
-import { PrivateRoute } from "./components/PrivateRoute";
-import CodeGenerator from "./components/CodeGenerator";
-import ResetPassword from "./components/ResetPassword";
-import Role from "./common/Role";
-import apiService from "./services/api.service";
 import { ToastContainer } from 'react-toastify';
+
+import apiService from "./services/api.service";
+import { AuthProvider } from "./common/useAuthContext";
+import Role from "./common/Role";
+import { PrivateRoute } from "./components/PrivateRoute";
+import Navigationbar from "./components/Navigation";
+
+import Login from "./pages/Login";
+import Home from "./pages/Home";
+import About from "./pages/About";
+import Connect from "./pages/Connect";
+import Documents from "./pages/Documents";
+import Admin from "./pages/Admin";
+import NoMatch from "./pages/404";
+
 import 'react-toastify/dist/ReactToastify.css';
 import "bootstrap/dist/css/bootstrap.min.css";
 
 export default function App() {
+
   useEffect(() => {
     apiService.checkLogin()
   }, [])
+
   return (
     <>
-    <AuthProvider>
-      <Router>
-        <Navigationbar />
-        <div style={{ padding: "10px" }}>
-          <Switch>
-            <PrivateRoute exact path="/" component={Documents} />
-            <PrivateRoute path="/documents" component={Documents} />
-            <PrivateRoute path="/connect" component={CodeGenerator} />
+      <AuthProvider>
+        <Router>
+          <Navigationbar />
+            <Switch>
+              <PrivateRoute exact path="/" component={Home} />
+              <PrivateRoute path="/documents" component={Documents} />
+              <PrivateRoute path="/connect" component={Connect} />
+              <PrivateRoute path="/admin" roles={[Role.Admin]} component={Admin} />
+              <PrivateRoute path="/about" component={About} />
 
-            <PrivateRoute path="/about" component={About} />
-
-            <PrivateRoute path="/resetPassword" component={ResetPassword} />
-            <PrivateRoute path="/users/:userid" component={UserProfile} /> 
-            <PrivateRoute path="/users" roles={[Role.Admin]} component={UserList} />
-            <Route path="/login" component={Login} />
-            <Route component={NoMatch} />
-          </Switch>
-        </div>
-      </Router>
-    </AuthProvider>
-    <ToastContainer autoClose={2000} />
+              <Route path="/login" component={Login} />
+              <Route component={NoMatch} />
+            </Switch>
+        </Router>
+      </AuthProvider>
+      <ToastContainer autoClose={2000} />
     </>
   );
 }
