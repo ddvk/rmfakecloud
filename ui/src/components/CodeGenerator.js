@@ -1,31 +1,42 @@
-import React, {useState} from "react";
+import React, {useState, useLayoutEffect} from "react";
 import apiservice from "../services/api.service"
-
+import Stack from 'react-bootstrap/Stack';
+import Button from 'react-bootstrap/Button';
 
 export default function CodeGenerator() {
 
-    const [code, setCode] = useState("")
-    const [error, setError] = useState("")
+  const [code, setCode] = useState("")
+  const [error, setError] = useState("")
 
-    const newCode = () => {
-        setCode("")
-        apiservice.getCode()
-            .then(x => {
-                setCode(x)
-            }).catch(e => {
-                setError(e)
-            })
-    }
+  const newCode = async () => {
+    setCode("")
+    const code = await apiservice.getCode()
+      .catch(e => {
+        setError(e)
+      })
+    setCode(code)
+  }
 
-    if (error) {
-        return <div>{error.message}</div>;
-    }
+  useLayoutEffect(() => {
+    newCode()
+  }, [])
 
-    const style = {textAlign:"center", height:"5em"}
-    return (
-        <>
-            <div style={style}> <button onClick={newCode}>Generate Code</button> </div>
-            <div style={style}><h1 style={{letterSpacing:"10px"}}>{code}</h1></div>
-        </>
-    );
+  if (error) {
+    return <div>{error.message}</div>;
+  }
+
+  return (
+    <>
+      <Stack gap={5} style={{alignItems: 'center', marginTop: '15vh'}}>
+        <div className="p-2">
+          <Button onClick={newCode}>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="#FFF" height="1em" viewBox="0 0 512 512"><path d="M0 224c0 17.7 14.3 32 32 32s32-14.3 32-32c0-53 43-96 96-96H320v32c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l64-64c12.5-12.5 12.5-32.8 0-45.3l-64-64c-9.2-9.2-22.9-11.9-34.9-6.9S320 19.1 320 32V64H160C71.6 64 0 135.6 0 224zm512 64c0-17.7-14.3-32-32-32s-32 14.3-32 32c0 53-43 96-96 96H192V352c0-12.9-7.8-24.6-19.8-29.6s-25.7-2.2-34.9 6.9l-64 64c-12.5 12.5-12.5 32.8 0 45.3l64 64c9.2 9.2 22.9 11.9 34.9 6.9s19.8-16.6 19.8-29.6V448H352c88.4 0 160-71.6 160-160z"/></svg>
+          </Button>
+        </div>
+        <div className="p-2">
+          <h1 style={{ letterSpacing: "10px" }}>{code}</h1>
+        </div>
+      </Stack>
+    </>
+  );
 }

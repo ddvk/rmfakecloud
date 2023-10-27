@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { FormControl, InputGroup, Button } from "react-bootstrap";
+import { Form, InputGroup, Button } from "react-bootstrap";
 import { FaEye } from "react-icons/fa";
 
 function PasswordField(props) {
@@ -29,7 +29,7 @@ function PasswordField(props) {
 
   return (
     <InputGroup className="mb-3">
-      <FormControl
+      <Form.Control
         type={inputType}
         {...props}
         ref={inputEl}

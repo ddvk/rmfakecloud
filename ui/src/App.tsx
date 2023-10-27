@@ -4,7 +4,7 @@ import Navigationbar from "./components/Navigation";
 import Login from "./components/Login";
 import UserList from "./components/UserList";
 import UserProfile from "./components/UserProfile";
-import Home from "./components/Home";
+import About from "./components/About";
 import Documents from "./components/Documents";
 import NoMatch from "./components/NoMatch";
 
@@ -30,9 +30,12 @@ export default function App() {
         <Navigationbar />
         <div style={{ padding: "10px" }}>
           <Switch>
-            <PrivateRoute exact path="/" component={Home} />
+            <PrivateRoute exact path="/" component={Documents} />
             <PrivateRoute path="/documents" component={Documents} />
-            <PrivateRoute path="/generatecode" component={CodeGenerator} />
+            <PrivateRoute path="/connect" component={CodeGenerator} />
+
+            <PrivateRoute path="/about" component={About} />
+
             <PrivateRoute path="/resetPassword" component={ResetPassword} />
             <PrivateRoute path="/users/:userid" component={UserProfile} /> 
             <PrivateRoute path="/users" roles={[Role.Admin]} component={UserList} />

@@ -3,7 +3,7 @@ import apiservice from "../services/api.service";
 import Form from "react-bootstrap/Form";
 import Button from "react-bootstrap/Button";
 import { useAuthState } from "../common/useAuthContext";
-import PasswordField from "./PasswordField";
+//import PasswordField from "./PasswordField";
 import { logout } from "../common/actions";
 
 export default function OwnUserProfile() {
@@ -94,24 +94,28 @@ export default function OwnUserProfile() {
       </Form.Group>
       <Form.Group controlId="formNewPassword">
         <Form.Label>New Password</Form.Label>
+        {/*
         <PasswordField
           name="newPassword"
           placeholder="new password"
           value={resetPasswordForm.newPassword}
           onChange={handleChange}
         />
+        */}
         {formErrors.newPassword && (
           <div className="alert alert-danger">{formErrors.newPassword}</div>
         )}
       </Form.Group>
       <Form.Group controlId="formConfirmNewPassword">
         <Form.Label>Confirm Password</Form.Label>
+        {/*
         <PasswordField
           name="confirmNewPassword"
           placeholder="confirm new password"
           value={resetPasswordForm.confirmNewPassword}
           onChange={handleChange}
         />
+        */}
         {formErrors.confirmNewPassword && (
           <div className="alert alert-danger">
             {formErrors.confirmNewPassword}
