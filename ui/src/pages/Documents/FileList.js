@@ -1,25 +1,10 @@
-import { useState } from "react";
-import { Stack, ToggleButton, Button, ToggleButtonGroup } from "react-bootstrap";
-import Navbar from 'react-bootstrap/Navbar';
+import { Stack } from "react-bootstrap";
 import FileIcon from "./FileIcon";
-//import apiservice from "../../services/api.service"
-import { BsFillGridFill } from "react-icons/bs";
-import { FaList } from "react-icons/fa";
 
-export default function FileListViewer({ files, onSelect }) {
-
-  const [listStyle, setListStyle] = useState("grid");
+export default function FileListViewer({ listStyle, files, onSelect }) {
 
   const onClickItem = (file) => {
     onSelect(file.id);
-  }
-
-  const onCreateFolderClick = () => {
-    console.log('not yet implemented');
-  }
-
-  const onUploadFileClick = () => {
-    console.log('not yet implemented');
   }
 
   const itemClassName = (item) => {
@@ -58,20 +43,6 @@ export default function FileListViewer({ files, onSelect }) {
 
   return (
     <>
-      <Navbar style={{ borderBottom: '1px solid #eee' }}>
-        <Button size="sm" variant="outline" onClick={onCreateFolderClick}>create Folder</Button>
-        <Button size="sm" variant="outline" onClick={onUploadFileClick}>upload File</Button>
-        <div style={{flex:1}}></div>
-        <ToggleButtonGroup value={listStyle} onChange={(v) => setListStyle(v)} name="abc">
-          <ToggleButton id="grid" name="grid" size="sm" value="grid" variant="outline">
-            <BsFillGridFill />
-          </ToggleButton>
-          <ToggleButton id="list" name="list" size="sm" value="list" variant="outline">
-            <FaList />
-          </ToggleButton>
-        </ToggleButtonGroup>
-      </Navbar>
-
       {files && (listStyle === "list") && (
         <Stack className="filelist">{listItems}</Stack>
       )}

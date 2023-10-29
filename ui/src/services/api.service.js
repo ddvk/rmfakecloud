@@ -47,7 +47,7 @@ class ApiServices {
     return fetch(`${constants.ROOT_URL}/documents/upload`, {
       method: "POST",
       body: formData,
-    }).then(handleError);
+    }).then(r => r.json()); //.then(handleError);
   }
 
   resetPassword(resetPasswordForm) {
@@ -84,7 +84,6 @@ class ApiServices {
       // headers: this.header()
     }).then((r) => {
       handleError(r);
-
       return r.blob();
     });
   }
@@ -93,7 +92,10 @@ class ApiServices {
       method: "POST",
       headers: this.header(),
       body: JSON.stringify(data),
-    }).catch((r) => handleError(r));
+    }).then((r) => {
+      handleError(r);
+      return r.json();
+    });
   }
   updateuser(usr) {
     return fetch(`${constants.ROOT_URL}/users`, {
