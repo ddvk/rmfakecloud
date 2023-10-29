@@ -50,7 +50,6 @@ canvas {
   .filegrid-folder-item {
     display: inline-grid;
     padding: 0.5em;
-    overflow: hidden;
 
     &:hover {
       background-color: rgba(255, 255, 255, .1);
@@ -77,6 +76,9 @@ canvas {
   }
 
   .filegrid-folder-item {
+    font-weight: bold;
+    overflow: hidden;
+    white-space: nowrap;
     text-overflow: ellipsis;
   }
 }

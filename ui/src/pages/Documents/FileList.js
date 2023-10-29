@@ -40,22 +40,20 @@ export default function FileListViewer({ files }) {
 
   const gridFolderItems = files.filter(file => file.isFolder).map(file =>
     <div className="filegrid-folder-item" key={file.id} onClick={() => onClickItem(file.id)}>
-      <div className={itemClassName(file)}>
-        <FileIcon file={file} />
-        {file.name}
+      <div>
+      <FileIcon file={file} />
+      {file.name}
       </div>
     </div>
   );
 
   const gridFileItems = files.filter(file => !file.isFolder).map(file =>
     <div className="filegrid-file-item" key={file.id} onClick={() => onClickItem(file.id)}>
-      <div className={itemClassName(file)}>
-        <div class="fileicon">
-          <FileIcon file={file} />
-        </div>
-        <div className="filename">
-          {file.name}
-        </div>
+      <div className="fileicon">
+        <FileIcon file={file} />
+      </div>
+      <div className="filename">
+        {file.name}
       </div>
     </div>
   );
