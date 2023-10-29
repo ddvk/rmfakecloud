@@ -1,18 +1,18 @@
-import { React, useEffect, useState, useRef } from 'react';
+import { React, useEffect, useLayoutEffect, useState, useRef } from 'react';
 import apiservice from "../../services/api.service"
 import { Tree } from 'react-arborist';
 //import { AiOutlinePlusSquare, AiOutlineMinusSquare } from "react-icons/ai";
 //import Button from 'react-bootstrap/Button';
 import FileIcon from './FileIcon';
 
-const DocumentTree = ({ onNodeSelected, term }) => {
+const DocumentTree = ({ selectedId, onSelect, term }) => {
   //const [name, setName] = useState("");
   const treeRef = useRef();
 
-  const onSelect = (selection) => {
+  const onTreeSelect = (selection) => {
     if (selection.length > 0) {
       const node = selection[0];
-      onNodeSelected(node);
+      onSelect(node);
     }
   }
 
@@ -42,7 +42,7 @@ const DocumentTree = ({ onNodeSelected, term }) => {
         ref={dragHandle}
         onClick={() => node.isInternal && node.toggle()}
       >
-      <div className={itemClassName(node.data)}>
+        <div className={itemClassName(node.data)}>
           {/* TODO: decide on how to make this look not ugly
           <span onClick={() => node.isInternal && node.toggle()}>
             <FolderArrow node={node} />
@@ -94,16 +94,27 @@ const DocumentTree = ({ onNodeSelected, term }) => {
     }
     setEntries([root, trash]);
 
-    // autoselect root (=remarkable)
-    const tree = treeRef.current;
-    tree.open("root");
-    tree.get("root").select();
   }
 
   const onCreate = ({ parentId, index, type }) => {};
   const onRename = ({ id, name }) => {};
   const onMove = ({ dragIds, parentId, index }) => {};
   const onDelete = ({ ids }) => {};
+
+  useLayoutEffect(() => {
+    const tree = treeRef.current;
+
+    // TODO: this is buggy
+
+    // TODO: initial select on root does not work, as tree is undefined
+
+    if (tree) {
+      tree.open(selectedId);
+      const node = tree.get(selectedId);
+      if (node) node.select();
+    }
+
+  }, [selectedId, treeRef])
 
   useEffect(() => {
     loadDocs()
@@ -134,7 +145,7 @@ const DocumentTree = ({ onNodeSelected, term }) => {
         searchTerm={term}
         onCreate={onCreate}
         onRename={onRename}
-        onSelect={onSelect}
+        onSelect={onTreeSelect}
         onMove={onMove}
         onDelete={onDelete}
         className="documents-tree"

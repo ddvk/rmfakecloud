@@ -5,10 +5,16 @@ import Navbar from 'react-bootstrap/Navbar';
 import { FaChevronRight, FaChevronLeft, } from "react-icons/fa6";
 import { AiOutlineDownload } from "react-icons/ai";
 import FileIcon from "./FileIcon";
+import { MdClose } from "react-icons/md";
+import constants from "../../common/constants";
 
 import apiservice from "../../services/api.service"
 
-export default function FileViewer({ file }) {
+export default function FileViewer({ file, onClose }) {
+  const { data } = file;
+
+  const downloadUrl = `${constants.ROOT_URL}/documents/${file.id}`;
+
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
 
@@ -30,12 +36,12 @@ export default function FileViewer({ file }) {
   const onDownloadClick = () => {
     //setDownloadError(null)
     //const {id, name} = dwn
-    apiservice.download(file.id)
+    apiservice.download(data.id)
       .then(blob => {
         var url = window.URL.createObjectURL(blob)
         var a = document.createElement('a')
         a.href = url
-        a.download = file.name + '.pdf'
+        a.download = data.name + '.pdf'
         document.body.appendChild(a)
         a.click()
         a.remove()
@@ -50,18 +56,20 @@ export default function FileViewer({ file }) {
       <Navbar style={{ borderBottom: '1px solid #eee' }}>
         { file && (<>
           <h6>
-            <FileIcon file={file} />
-            {file.name}
+            <FileIcon file={data} />
+            {data.name}
           </h6>
         </>) }
         <div style={{ flex: 1 }}></div>
+
+        <Button size="sm" variant="outline" onClick={onClose}><MdClose/></Button>
       </Navbar>
       <Navbar>
         {pages > 1 && (
           <div>
             <ButtonGroup aria-label="Basic example">
-              <Button size="sm" variant="secondary" onClick={onPrev}><FaChevronLeft /></Button>
-              <Button size="sm" variant="secondary" onClick={onNext}><FaChevronRight /></Button>
+              <Button size="sm" variant="outline-secondary" onClick={onPrev}><FaChevronLeft /></Button>
+              <Button size="sm" variant="outline-secondary" onClick={onNext}><FaChevronRight /></Button>
             </ButtonGroup>
             <span style={{ margin: '0 10px' }}>
               Page: {page} of {pages}
@@ -78,7 +86,7 @@ export default function FileViewer({ file }) {
 
       {file && (
         <div style={{ height: '100vh' }}>
-          <Document file={file.downloadUrl} onLoadSuccess={onLoadSuccess}>
+          <Document file={downloadUrl} onLoadSuccess={onLoadSuccess}>
             <Page pageNumber={page} />
           </Document>
         </div>

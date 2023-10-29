@@ -2,18 +2,16 @@ import { useState } from "react";
 import { Stack, ToggleButton, Button, ToggleButtonGroup } from "react-bootstrap";
 import Navbar from 'react-bootstrap/Navbar';
 import FileIcon from "./FileIcon";
-
+//import apiservice from "../../services/api.service"
 import { BsFillGridFill } from "react-icons/bs";
 import { FaList } from "react-icons/fa";
 
-//import apiservice from "../../services/api.service"
+export default function FileListViewer({ files, onSelect }) {
 
-export default function FileListViewer({ files }) {
+  const [listStyle, setListStyle] = useState("grid");
 
-  const [listStyle, setListStyle] = useState("list");
-
-  const onClickItem = (id) => {
-    console.log(id);
+  const onClickItem = (file) => {
+    onSelect(file.id);
   }
 
   const onCreateFolderClick = () => {
@@ -30,7 +28,7 @@ export default function FileListViewer({ files }) {
   }
 
   const listItems = files.map(file =>
-    <div className="filelist-item p-2" key={file.id} onClick={() => onClickItem(file.id)}>
+    <div className="filelist-item p-2" key={file.id} onClick={() => onClickItem(file)}>
       <div className={itemClassName(file)}>
         <FileIcon file={file} />
         {file.name}
@@ -39,16 +37,16 @@ export default function FileListViewer({ files }) {
   );
 
   const gridFolderItems = files.filter(file => file.isFolder).map(file =>
-    <div className="filegrid-folder-item" key={file.id} onClick={() => onClickItem(file.id)}>
+    <div className="filegrid-folder-item" key={file.id} onClick={() => onClickItem(file)}>
       <div>
-      <FileIcon file={file} />
-      {file.name}
+        <FileIcon file={file} />
+        {file.name}
       </div>
     </div>
   );
 
   const gridFileItems = files.filter(file => !file.isFolder).map(file =>
-    <div className="filegrid-file-item" key={file.id} onClick={() => onClickItem(file.id)}>
+    <div className="filegrid-file-item" key={file.id} onClick={() => onClickItem(file)}>
       <div className="fileicon">
         <FileIcon file={file} />
       </div>
@@ -65,11 +63,11 @@ export default function FileListViewer({ files }) {
         <Button size="sm" variant="outline" onClick={onUploadFileClick}>upload File</Button>
         <div style={{flex:1}}></div>
         <ToggleButtonGroup value={listStyle} onChange={(v) => setListStyle(v)} name="abc">
-          <ToggleButton id="list" name="list" size="sm" value="list" variant="outline">
-            <FaList />
-          </ToggleButton>
           <ToggleButton id="grid" name="grid" size="sm" value="grid" variant="outline">
             <BsFillGridFill />
+          </ToggleButton>
+          <ToggleButton id="list" name="list" size="sm" value="list" variant="outline">
+            <FaList />
           </ToggleButton>
         </ToggleButtonGroup>
       </Navbar>

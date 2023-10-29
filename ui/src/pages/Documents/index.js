@@ -1,7 +1,6 @@
 import Tree from "./Tree";
 import { useState } from "react";
 import { Container, Row, Col } from "react-bootstrap";
-import constants from "../../common/constants";
 import File from "./File";
 import Folder from "./Folder";
 import './Documents.scss';
@@ -12,23 +11,24 @@ import Button from 'react-bootstrap/Button';
 import InputGroup from 'react-bootstrap/InputGroup';
 
 export default function DocumentList() {
-  const [folder, setFolder] = useState(null);
-  const [file, setFile] = useState(null);
-
+  const [selectedId, setSelectedId] = useState("root");
+  const [selected, setSelected] = useState(null);
   const [term, setTerm] = useState("");
   const [showSearch, setShowSearch] = useState(false);
 
-  const onNodeSelected = (node) => {
-    const file = node.data;
+  const isFolder = selected && selected.data && selected.data.isFolder;
 
-    if (file && file.isFolder) {
-      setFolder(file);
-      setFile(null);
-    } else if (file) {
-      file.downloadUrl = `${constants.ROOT_URL}/documents/${file.id}`;
-      setFile(file);
-    }
+  const onSelect = (node) => {
+    setSelected(node);
   };
+
+  const onSelectById = (id) => {
+    setSelectedId(id);
+  };
+
+  const onCloseFile = () => {
+    setSelectedId(selected.parent.id);
+  }
 
   return (
     <Container>
@@ -51,11 +51,11 @@ export default function DocumentList() {
             </InputGroup>
           </div>}
 
-          <Tree onNodeSelected={onNodeSelected} term={term} />
+          <Tree selectedId={selectedId} onSelect={onSelect} term={term} />
         </Col>
         <Col md={8}>
-          {file && (<File file={file} onClose={() => setFile(null)} />)}
-          {!file && folder && <Folder folder={folder} />}
+          {selected && !isFolder && <File file={selected} onClose={onCloseFile} />}
+          {selected && isFolder && <Folder folder={selected} onSelect={onSelectById} />}
         </Col>
       </Row>
     </Container>

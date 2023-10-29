@@ -43,7 +43,7 @@ canvas {
 
 .filegrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   grid-gap: 1em;
 
   .filegrid-file-item,
@@ -72,6 +72,7 @@ canvas {
       white-space: nowrap;
       text-overflow: ellipsis;
       width: 100%;
+      font-size: 0.8rem;
     }
   }
 
