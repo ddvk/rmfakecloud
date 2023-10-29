@@ -8,7 +8,7 @@ import FileIcon from "./FileIcon";
 
 import apiservice from "../../services/api.service"
 
-export default function FileViewer({ file, onClose }) {
+export default function FileViewer({ file }) {
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
 

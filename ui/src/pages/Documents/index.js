@@ -6,20 +6,27 @@ import File from "./File";
 import Folder from "./Folder";
 import './Documents.scss';
 import Navbar from 'react-bootstrap/Navbar';
+import { BsSearch } from "react-icons/bs";
+import Form from 'react-bootstrap/Form';
+import Button from 'react-bootstrap/Button';
+import InputGroup from 'react-bootstrap/InputGroup';
 
 export default function DocumentList() {
   const [folder, setFolder] = useState(null);
   const [file, setFile] = useState(null);
 
+  const [term, setTerm] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
+
   const onNodeSelected = (node) => {
-    if (node && node.isFolder) {
-      setFolder(node);
+    const file = node.data;
+
+    if (file && file.isFolder) {
+      setFolder(file);
       setFile(null);
-    } else {
-      if (node) {
-        node.downloadUrl = `${constants.ROOT_URL}/documents/${node.id}`;
-      }
-      setFile(node);
+    } else if (file) {
+      file.downloadUrl = `${constants.ROOT_URL}/documents/${file.id}`;
+      setFile(file);
     }
   };
 
@@ -28,9 +35,23 @@ export default function DocumentList() {
       <Row className="mt-2">
         <Col md={4}>
           <Navbar>
-            <h6>My Documents</h6>
+            <h6 style={{ flex: 1}}>My Documents</h6>
+            <h6>
+              <Button variant="link" style={{ color: '#FFF' }} onClick={() => { setShowSearch(!showSearch); setTerm("") }}><BsSearch/></Button>
+            </h6>
           </Navbar>
-          <Tree onFileSelected={onNodeSelected} />
+
+          {showSearch && <div>
+            <InputGroup className="mb-3">
+              <InputGroup.Text>
+                <BsSearch />
+              </InputGroup.Text>
+
+              <Form.Control autoFocus size="sm" type="text" value={term} onChange={(e) => { setTerm(e.currentTarget.value); }} />
+            </InputGroup>
+          </div>}
+
+          <Tree onNodeSelected={onNodeSelected} term={term} />
         </Col>
         <Col md={8}>
           {file && (<File file={file} onClose={() => setFile(null)} />)}
