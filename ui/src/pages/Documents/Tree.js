@@ -1,8 +1,6 @@
 import { React, useEffect, useState } from 'react';
 import apiservice from "../../services/api.service"
 import { Tree } from 'react-arborist';
-//import { AiOutlinePlusSquare, AiOutlineMinusSquare } from "react-icons/ai";
-//import Button from 'react-bootstrap/Button';
 import FileIcon from './FileIcon';
 
 const DocumentTree = ({ selection, onSelect, term }) => {
@@ -16,15 +14,6 @@ const DocumentTree = ({ selection, onSelect, term }) => {
   }
 
   /*
-  const createFolder = async () => {
-    let parentId = "";
-    if (selected && selected.data.isFolder) {
-      parentId = selected.id;
-    }
-    await apiservice.createFolder({ name, parentId});
-    await loadDocs();
-  }
-
   function FolderArrow({ node }: { node: NodeApi }) {
     if (node.isLeaf) return <></>;
     return (<>
@@ -139,13 +128,6 @@ const DocumentTree = ({ selection, onSelect, term }) => {
       >
         {Node}
       </Tree>
-      {/*
-      <InputGroup className="mb-3">
-        <Form.Control type="text" value={name} onChange={(e) => setName(e.currentTarget.value)} />
-
-        <Button onClick={createFolder}>Create</Button>
-      </InputGroup>
-      */}
     </div>
   )
 }

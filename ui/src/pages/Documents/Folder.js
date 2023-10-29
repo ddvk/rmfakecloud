@@ -1,9 +1,9 @@
 import { useCallback, useMemo, useState } from "react";
 import Navbar from 'react-bootstrap/Navbar';
-import { Button } from "react-bootstrap";
+import { Button, InputGroup, Form } from "react-bootstrap";
 import { BsChevronRight } from "react-icons/bs";
 import { useDropzone } from 'react-dropzone';
-
+import Modal from 'react-bootstrap/Modal';
 import { BsFillGridFill } from "react-icons/bs";
 import { FaList } from "react-icons/fa";
 
@@ -21,23 +21,29 @@ const acceptStyle = {
   backgroundColor: 'rgb(13, 110, 253, 0.3)'
 };
 const rejectStyle = {
-  backgroundColor: 'rgba(255, 255, 255, 0.2)'
+  backgroundColor: 'rgba(255, 255, 255, 0.3)'
 };
-
 
 export default function Folder({ folder, onSelect }) {
   const [listStyle, setListStyle] = useState("grid");
+  const [folderName, setFolderName] = useState("");
+  const [showCreateFileModal, setShowCreateFolder] = useState(false);
+
   const { data, id } = folder;
   const uploadFolder = id;
 
-  const onCreateFolderClick = () => {
-    console.log('not yet implemented');
+  const onCreateFolderClick = async () => {
+    const res = await apiservice.createFolder({ name: folderName, parentId: id});
+    console.log("created folder with id", res.ID);
+    setFolderName("");
+    setShowCreateFolder(false);
+
+    //TODO: update
   }
 
   const onUploadFileClick = () => {
     console.log('not yet implemented');
   }
-
 
   const NameTag = ({ node }) => {
     if (node.parent) {
@@ -56,9 +62,10 @@ export default function Folder({ folder, onSelect }) {
 
   const onUploadDone = useCallback((res) => {
     const upload = res.pop();
-    onSelect(upload.ID)
-    console.log(upload.ID);
-  }, [onSelect]);
+    console.log("finished uploading file", upload);
+
+    //TODO: update
+  }, []);
 
   const onDrop = useCallback(async (acceptedFiles) => {
     try {
@@ -107,7 +114,7 @@ export default function Folder({ folder, onSelect }) {
       </Navbar>
 
       <Navbar style={{ borderBottom: '1px solid #eee' }}>
-        <Button size="sm" variant="outline" onClick={onCreateFolderClick}>create Folder</Button>
+        <Button size="sm" variant="outline" onClick={() => setShowCreateFolder(true)}>create Folder</Button>
         <Button size="sm" variant="outline" onClick={onUploadFileClick}>upload File</Button>
         <div style={{flex:1}}></div>
         <ToggleButtonGroup value={listStyle} onChange={(v) => setListStyle(v)} name="abc">
@@ -120,10 +127,25 @@ export default function Folder({ folder, onSelect }) {
         </ToggleButtonGroup>
       </Navbar>
 
-    <div {...getRootProps({ style })}>
-      <input {...getInputProps()} />
-      <FileList listStyle={listStyle} files={data.children} onSelect={onSelect} />
-    </div>
+      <div {...getRootProps({ style })}>
+        <input {...getInputProps()} />
+        <FileList listStyle={listStyle} files={data.children} onSelect={onSelect} />
+      </div>
+
+      <Modal show={showCreateFileModal} onHide={() => setShowCreateFolder(false)}>
+        <Modal.Header closeButton>
+          Create a new folder
+        </Modal.Header>
+
+        <Modal.Body>
+          <InputGroup className="mb-3">
+            <Form.Control type="text" value={folderName} onChange={(e) => setFolderName(e.currentTarget.value)} />
+
+            <Button onClick={onCreateFolderClick}>Create</Button>
+          </InputGroup>
+        </Modal.Body>
+
+      </Modal>
     </>
   );
 }
