@@ -1,17 +1,15 @@
-import { React, useEffect, useLayoutEffect, useState, useRef } from 'react';
+import { React, useEffect, useState } from 'react';
 import apiservice from "../../services/api.service"
 import { Tree } from 'react-arborist';
 //import { AiOutlinePlusSquare, AiOutlineMinusSquare } from "react-icons/ai";
 //import Button from 'react-bootstrap/Button';
 import FileIcon from './FileIcon';
 
-const DocumentTree = ({ selectedId, onSelect, term }) => {
-  //const [name, setName] = useState("");
-  const treeRef = useRef();
-
-  const onTreeSelect = (selection) => {
-    if (selection.length > 0) {
-      const node = selection[0];
+const DocumentTree = ({ selection, onSelect, term }) => {
+  const onTreeSelect = (sel) => {
+    if (sel.length > 0) {
+      const node = sel[0];
+      node.open();
       onSelect(node);
     }
   }
@@ -40,7 +38,7 @@ const DocumentTree = ({ selectedId, onSelect, term }) => {
       <div
         style={ node.isSelected ? selectedStyle : style}
         ref={dragHandle}
-        onClick={() => node.isInternal && node.toggle()}
+        onClick={() => node.isInternal && node.open()}
       >
         <div className={itemClassName(node.data)}>
           {/* TODO: decide on how to make this look not ugly
@@ -65,8 +63,8 @@ const DocumentTree = ({ selectedId, onSelect, term }) => {
   const [error, setError] = useState();
 
   const itemClassName = (item) => {
-    if (item.isFolder) return "is-folder";
-    return "";
+    if (item.isFolder) return "treeitem-nodename is-folder";
+    return "treeitem-nodename";
   }
 
   const loadDocs = async () => {
@@ -93,7 +91,6 @@ const DocumentTree = ({ selectedId, onSelect, term }) => {
       children: Trash,
     }
     setEntries([root, trash]);
-
   }
 
   const onCreate = ({ parentId, index, type }) => {};
@@ -101,23 +98,8 @@ const DocumentTree = ({ selectedId, onSelect, term }) => {
   const onMove = ({ dragIds, parentId, index }) => {};
   const onDelete = ({ ids }) => {};
 
-  useLayoutEffect(() => {
-    const tree = treeRef.current;
-
-    // TODO: this is buggy
-
-    // TODO: initial select on root does not work, as tree is undefined
-
-    if (tree) {
-      tree.open(selectedId);
-      const node = tree.get(selectedId);
-      if (node) node.select();
-    }
-
-  }, [selectedId, treeRef])
-
   useEffect(() => {
-    loadDocs()
+    loadDocs();
 
     // eslint-disable-next-line
   },[])
@@ -135,8 +117,8 @@ const DocumentTree = ({ selectedId, onSelect, term }) => {
     <div>
 
       <Tree
-        ref={treeRef}
         data={entries}
+        selection={selection}
         rowHeight={36}
         indent={36}
         width="100%"

@@ -4,13 +4,12 @@ import { Document, Page } from "react-pdf";
 import Navbar from 'react-bootstrap/Navbar';
 import { FaChevronRight, FaChevronLeft, } from "react-icons/fa6";
 import { AiOutlineDownload } from "react-icons/ai";
-import FileIcon from "./FileIcon";
-import { MdClose } from "react-icons/md";
+import { BsChevronRight } from "react-icons/bs";
 import constants from "../../common/constants";
 
 import apiservice from "../../services/api.service"
 
-export default function FileViewer({ file, onClose }) {
+export default function FileViewer({ file, onSelect }) {
   const { data } = file;
 
   const downloadUrl = `${constants.ROOT_URL}/documents/${file.id}`;
@@ -33,6 +32,17 @@ export default function FileViewer({ file, onClose }) {
     });
   };
 
+  const NameTag = ({ node }) => {
+    if (node.parent) {
+      return (<>
+        <NameTag node={node.parent} />
+        { !node.parent.isRoot && <BsChevronRight /> }
+        <Button variant="outline" onClick={() => onSelect(node.id)}>{node.data.name}</Button>
+      </>)
+    }
+    return <></>
+  }
+
   const onDownloadClick = () => {
     //setDownloadError(null)
     //const {id, name} = dwn
@@ -53,17 +63,11 @@ export default function FileViewer({ file, onClose }) {
 
   return (
     <>
-      <Navbar style={{ borderBottom: '1px solid #eee' }}>
-        { file && (<>
-          <h6>
-            <FileIcon file={data} />
-            {data.name}
-          </h6>
-        </>) }
-        <div style={{ flex: 1 }}></div>
 
-        <Button size="sm" variant="outline" onClick={onClose}><MdClose/></Button>
+      <Navbar >
+        { file && (<div><NameTag node={file} /></div>) }
       </Navbar>
+
       <Navbar>
         {pages > 1 && (
           <div>

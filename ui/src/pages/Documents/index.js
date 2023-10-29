@@ -26,19 +26,13 @@ export default function DocumentList() {
     setSelectedId(id);
   };
 
-  const onCloseFile = () => {
-    setSelectedId(selected.parent.id);
-  }
-
   return (
     <Container>
       <Row className="mt-2">
         <Col md={4}>
           <Navbar>
-            <h6 style={{ flex: 1}}>My Documents</h6>
-            <h6>
-              <Button variant="outline" onClick={() => { setShowSearch(!showSearch); setTerm("") }}><BsSearch/></Button>
-            </h6>
+            <div style={{ flex: 1, fontWeight: 'bold' }}>My Documents</div>
+            <Button variant="outline" onClick={() => { setShowSearch(!showSearch); setTerm("") }}><BsSearch/></Button>
           </Navbar>
 
           {showSearch && <div>
@@ -51,10 +45,10 @@ export default function DocumentList() {
             </InputGroup>
           </div>}
 
-          <Tree selectedId={selectedId} onSelect={onSelect} term={term} />
+          <Tree selection={selectedId} onSelect={onSelect} term={term} />
         </Col>
         <Col md={8}>
-          {selected && !isFolder && <File file={selected} onClose={onCloseFile} />}
+          {selected && !isFolder && <File file={selected} onSelect={onSelectById} />}
           {selected && isFolder && <Folder folder={selected} onSelect={onSelectById} />}
         </Col>
       </Row>

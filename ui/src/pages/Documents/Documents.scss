@@ -18,13 +18,16 @@ canvas {
       background-color: rgba(255, 255, 255, .1);
       cursor: pointer;
     }
+
     .treeitem-nodename {
-      overflow: ellipsis;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      &.is-folder {
+        font-weight: bold;
+      }
     }
 
-    .is-folder {
-      font-weight: bold;
-    }
   }
 }
 

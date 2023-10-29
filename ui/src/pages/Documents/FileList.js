@@ -78,6 +78,7 @@ export default function FileListViewer({ files, onSelect }) {
 
       {files && (listStyle === "grid") && (
         <div>
+          <div style={{ height: '1em', width: '100%' }}></div>
           <div className="filegrid">
             {gridFolderItems}
           </div>
