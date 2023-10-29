@@ -63,8 +63,7 @@ export default function FileViewer({ file, onSelect }) {
 
   return (
     <>
-
-      <Navbar >
+      <Navbar style={{ marginLeft: '-12px' }}>
         { file && (<div><NameTag node={file} /></div>) }
       </Navbar>
 

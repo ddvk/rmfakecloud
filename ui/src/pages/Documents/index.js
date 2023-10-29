@@ -9,6 +9,7 @@ import { BsSearch } from "react-icons/bs";
 import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
 import InputGroup from 'react-bootstrap/InputGroup';
+import { useAuthState } from "../../common/useAuthContext";
 
 export default function DocumentList() {
   const [selectedId, setSelectedId] = useState("root");
@@ -16,10 +17,13 @@ export default function DocumentList() {
   const [term, setTerm] = useState("");
   const [showSearch, setShowSearch] = useState(false);
 
+  const { state: { user } } = useAuthState();
+
   const isFolder = selected && selected.data && selected.data.isFolder;
 
   const onSelect = (node) => {
     setSelected(node);
+    setSelectedId(node.id);
   };
 
   const onSelectById = (id) => {
@@ -31,7 +35,7 @@ export default function DocumentList() {
       <Row className="mt-2">
         <Col md={4}>
           <Navbar>
-            <div style={{ flex: 1, fontWeight: 'bold' }}>My Documents</div>
+            <div style={{ flex: 1, fontWeight: 'bold' }}>{user.UserID}</div>
             <Button variant="outline" onClick={() => { setShowSearch(!showSearch); setTerm("") }}><BsSearch/></Button>
           </Navbar>
 

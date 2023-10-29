@@ -6,6 +6,7 @@ import { Tree } from 'react-arborist';
 import FileIcon from './FileIcon';
 
 const DocumentTree = ({ selection, onSelect, term }) => {
+
   const onTreeSelect = (sel) => {
     if (sel.length > 0) {
       const node = sel[0];
@@ -78,7 +79,7 @@ const DocumentTree = ({ selection, onSelect, term }) => {
     // create virtual root node
     const root = {
       id: "root",
-      name: "reMarkable",
+      name: "My Files",
       isFolder: true,
       icon: "device",
       children: Entries,

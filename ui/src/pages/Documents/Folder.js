@@ -21,7 +21,7 @@ export default function Folder({ folder, onSelect }) {
 
   return (
     <>
-      <Navbar >
+      <Navbar style={{ marginLeft: '-12px' }}>
         { folder && (<div><NameTag node={folder} /></div>) }
       </Navbar>
       <FileList files={data.children} onSelect={onSelect} />
