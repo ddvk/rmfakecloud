@@ -21,5 +21,62 @@ canvas {
     .treeitem-nodename {
       overflow: ellipsis;
     }
+
+    .is-folder {
+      font-weight: bold;
+    }
+  }
+}
+
+.filelist {
+  .filelist-item {
+    &:hover {
+      background-color: rgba(255, 255, 255, .1);
+      cursor: pointer;
+    }
+
+    .is-folder {
+      font-weight: bold;
+    }
+  }
+}
+
+.filegrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-gap: 1em;
+
+  .filegrid-file-item,
+  .filegrid-folder-item {
+    display: inline-grid;
+    padding: 0.5em;
+    overflow: hidden;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, .1);
+      cursor: pointer;
+    }
+
+  }
+
+  .filegrid-file-item {
+    .fileicon {
+      padding: 0.5rem;
+      svg {
+        height: 60px;
+        width: 100%;
+      }
+    }
+    .filename {
+      display: block;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      width: 100%;
+    }
+  }
+
+  .filegrid-folder-item {
+    text-overflow: ellipsis;
   }
 }

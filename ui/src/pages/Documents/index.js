@@ -37,7 +37,7 @@ export default function DocumentList() {
           <Navbar>
             <h6 style={{ flex: 1}}>My Documents</h6>
             <h6>
-              <Button variant="link" style={{ color: '#FFF' }} onClick={() => { setShowSearch(!showSearch); setTerm("") }}><BsSearch/></Button>
+              <Button variant="outline" onClick={() => { setShowSearch(!showSearch); setTerm("") }}><BsSearch/></Button>
             </h6>
           </Navbar>
 

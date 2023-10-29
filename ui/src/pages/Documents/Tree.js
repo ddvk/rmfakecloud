@@ -42,7 +42,7 @@ const DocumentTree = ({ onNodeSelected, term }) => {
         ref={dragHandle}
         onClick={() => node.isInternal && node.toggle()}
       >
-        <h6 style={{ padding: '0 5px', marginTop: '0.5rem' }}>
+      <div className={itemClassName(node.data)}>
           {/* TODO: decide on how to make this look not ugly
           <span onClick={() => node.isInternal && node.toggle()}>
             <FolderArrow node={node} />
@@ -50,7 +50,7 @@ const DocumentTree = ({ onNodeSelected, term }) => {
           */}
           <FileIcon file={node.data} />
           {node.data.name}
-        </h6>
+        </div>
       </div>
     );
   }
@@ -63,6 +63,11 @@ const DocumentTree = ({ onNodeSelected, term }) => {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState();
+
+  const itemClassName = (item) => {
+    if (item.isFolder) return "is-folder";
+    return "";
+  }
 
   const loadDocs = async () => {
     setLoading(true)
@@ -87,11 +92,9 @@ const DocumentTree = ({ onNodeSelected, term }) => {
       icon: "trash",
       children: Trash,
     }
-    // pass data to tree lib
     setEntries([root, trash]);
-    // autoSelect root node
-    //onSelect({ data: root });
 
+    // autoselect root (=remarkable)
     const tree = treeRef.current;
     tree.open("root");
     tree.get("root").select();
