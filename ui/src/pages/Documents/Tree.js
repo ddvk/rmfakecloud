@@ -3,7 +3,7 @@ import apiservice from "../../services/api.service"
 import { Tree } from 'react-arborist';
 import FileIcon from './FileIcon';
 
-const DocumentTree = ({ selection, onSelect, term }) => {
+const DocumentTree = ({ selection, onSelect, term, counter }) => {
 
   const onTreeSelect = (sel) => {
     if (sel.length > 0) {
@@ -87,6 +87,10 @@ const DocumentTree = ({ selection, onSelect, term }) => {
   const onRename = ({ id, name }) => {};
   const onMove = ({ dragIds, parentId, index }) => {};
   const onDelete = ({ ids }) => {};
+
+  useEffect(() => {
+    loadDocs();
+  },[counter])
 
   useEffect(() => {
     loadDocs();

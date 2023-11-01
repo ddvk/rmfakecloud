@@ -19,7 +19,7 @@ const Login = () => {
     let payload = { email: username, password };
     try {
       await loginUser(dispatch, payload);
-      history.push("/"); //TODO: usenavigate or return redirect
+      history.push("/documents"); //TODO: usenavigate or return redirect
     } catch (error) {
       console.log(error);
     }

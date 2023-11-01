@@ -5,7 +5,6 @@ import moment from "moment";
 // optional: load user-specific locale from config
 // moment.locale(locale); // eg. 'de' or 'fr'
 
-
 function formatBytes(bytes) {
   if(bytes === 0) return '0 Bytes';
   let k = 1024,

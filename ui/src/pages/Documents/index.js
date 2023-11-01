@@ -16,6 +16,7 @@ export default function DocumentList() {
   const [selected, setSelected] = useState(null);
   const [term, setTerm] = useState("");
   const [showSearch, setShowSearch] = useState(false);
+  const [counter, setCounter] = useState(0);
 
   const { state: { user } } = useAuthState();
 
@@ -28,6 +29,10 @@ export default function DocumentList() {
 
   const onSelectById = (id) => {
     setSelectedId(id);
+  };
+
+  const onUpdate = () => {
+    setCounter(counter+1);
   };
 
   return (
@@ -49,11 +54,11 @@ export default function DocumentList() {
             </InputGroup>
           </div>}
 
-          <Tree selection={selectedId} onSelect={onSelect} term={term} />
+          <Tree selection={selectedId} onSelect={onSelect} term={term} counter={counter} />
         </Col>
         <Col md={8}>
           {selected && !isFolder && <File file={selected} onSelect={onSelectById} />}
-          {selected && isFolder && <Folder folder={selected} onSelect={onSelectById} />}
+          {selected && isFolder && <Folder folder={selected} onSelect={onSelectById} onUpdate={onUpdate} />}
         </Col>
       </Row>
     </Container>

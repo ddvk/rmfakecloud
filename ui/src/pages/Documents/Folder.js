@@ -24,7 +24,7 @@ const rejectStyle = {
   backgroundColor: 'rgba(255, 255, 255, 0.3)'
 };
 
-export default function Folder({ folder, onSelect }) {
+export default function Folder({ folder, onSelect, onUpdate }) {
   const [listStyle, setListStyle] = useState("grid");
   const [folderName, setFolderName] = useState("");
   const [showCreateFileModal, setShowCreateFolder] = useState(false);
@@ -38,11 +38,7 @@ export default function Folder({ folder, onSelect }) {
     setFolderName("");
     setShowCreateFolder(false);
 
-    //TODO: update
-  }
-
-  const onUploadFileClick = () => {
-    console.log('not yet implemented');
+    onUpdate();
   }
 
   const NameTag = ({ node }) => {
@@ -62,10 +58,12 @@ export default function Folder({ folder, onSelect }) {
 
   const onUploadDone = useCallback((res) => {
     const upload = res.pop();
-    console.log("finished uploading file", upload);
+    console.log("finished uploading file", upload.ID);
 
-    //TODO: update
-  }, []);
+    onUpdate()
+    //TODO: focus newloy uploaded file: onSelect(upload.ID);
+    //does not work, because tree.select() is only supported on 'visible' items
+  }, [onUpdate]);
 
   const onDrop = useCallback(async (acceptedFiles) => {
     try {
@@ -80,12 +78,12 @@ export default function Folder({ folder, onSelect }) {
     } finally{
       //setUploading(false);
     }
-    console.log('done')
   }, [uploadFolder, onUploadDone]);
 
   const {
     getRootProps,
     getInputProps,
+    open,
     isDragAccept,
     isDragReject
   } = useDropzone({
@@ -115,7 +113,7 @@ export default function Folder({ folder, onSelect }) {
 
       <Navbar style={{ borderBottom: '1px solid #eee' }}>
         <Button size="sm" variant="outline" onClick={() => setShowCreateFolder(true)}>create Folder</Button>
-        <Button size="sm" variant="outline" onClick={onUploadFileClick}>upload File</Button>
+        <Button size="sm" variant="outline" onClick={open}>upload File</Button>
         <div style={{flex:1}}></div>
         <ToggleButtonGroup value={listStyle} onChange={(v) => setListStyle(v)} name="abc">
           <ToggleButton id="grid" name="grid" size="sm" value="grid" variant="outline">
