@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import Form from "react-bootstrap/Form";
 import { Button, Card } from "react-bootstrap";
-import apiService from "../services/api.service";
+import apiService from "../../services/api.service";
 
 import { Alert } from "react-bootstrap";
 
@@ -51,7 +51,7 @@ export default function UserProfileModal(params) {
   if (!user) return null;
   return (
     <Form onSubmit={handleSubmit}>
-      <Card bg="dark" text="white">
+      <Card>
         <Card.Header>
           <span>{headerText}</span>
         </Card.Header>

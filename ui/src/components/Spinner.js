@@ -4,9 +4,6 @@ import { Card, Spinner as BSpinner } from "react-bootstrap";
 export default function Spinner() {
   return (
     <Card
-      bg="dark"
-      text="white"
-
       style={{
         padding: "8px",
         display: "flex",
