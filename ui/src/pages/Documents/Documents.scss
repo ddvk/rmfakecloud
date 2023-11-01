@@ -41,6 +41,12 @@ canvas {
     .is-folder {
       font-weight: bold;
     }
+
+    .filelist-metadata {
+      color: #999;
+      font-size: 0.8em;
+      padding:  0 0.5em;
+    }
   }
 }
 
@@ -59,13 +65,18 @@ canvas {
       cursor: pointer;
     }
 
+    .filegrid-metadata {
+      font-weight: normal;
+      color: #999;
+      font-size: 0.8em;
+    }
   }
 
   .filegrid-file-item {
     .fileicon {
       padding: 0.5rem;
       svg {
-        height: 60px;
+        height: 80px;
         width: 100%;
       }
     }
