@@ -53,7 +53,7 @@ require (
 	github.com/unidoc/unichart v0.1.0 // indirect
 	github.com/unidoc/unitype v0.4.0 // indirect
 	golang.org/x/arch v0.3.0 // indirect
-	golang.org/x/image v0.6.0 // indirect
+	golang.org/x/image v0.10.0 // indirect
 	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/oauth2 v0.6.0 // indirect
 	golang.org/x/sys v0.13.0 // indirect
