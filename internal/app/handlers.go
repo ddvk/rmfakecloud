@@ -143,7 +143,15 @@ func (app *App) newUserToken(c *gin.Context) {
 		return
 	}
 
-	scopes := []string{"intgr", "screenshare", "hwcmail:-1", "mail:-1"}
+	scopes := []string{"intgr", "screenshare"}
+
+	if app.cfg.HWRApplicationKey != "" && app.cfg.HWRHmac != "" {
+		scopes = append(scopes, "hwcmail:-1")
+	}
+
+	if app.cfg.SMTPConfig != nil {
+		scopes = append(scopes, "mail:-1")
+	}
 
 	if user.Sync15 {
 		log.Info("Using sync 1.5")
