@@ -159,6 +159,11 @@ func (app *App) newUserToken(c *gin.Context) {
 	} else {
 		scopes = append(scopes, syncDefault)
 	}
+
+	if len(user.AdditionalScopes) > 0 {
+		scopes = append(scopes, user.AdditionalScopes...)
+	}
+
 	scopesStr := strings.Join(scopes, " ")
 	log.Info("setting scopes: ", scopesStr)
 
