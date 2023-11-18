@@ -787,6 +787,23 @@ func (app *App) blobStorageRead(c *gin.Context) {
 	c.DataFromReader(http.StatusOK, size, "application/octet-stream", reader, nil)
 }
 
+func (app *App) blobStorageWrite(c *gin.Context) {
+	uid := c.GetString(userIDKey)
+	blobID := common.ParamS(fileKey, c)
+
+	newgeneration, err := app.blobStorer.StoreBlob(uid, blobID, c.Request.Body, 0)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, messages.SyncRootV3{
+		Generation: newgeneration,
+		Hash:       string(blobID),
+	})
+}
+
 func (app *App) integrationsGetMetadata(c *gin.Context) {
 	var metadata messages.IntegrationMetadata
 	metadata.Thumbnail = ""

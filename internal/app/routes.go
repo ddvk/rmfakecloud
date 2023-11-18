@@ -131,5 +131,6 @@ func (app *App) registerRoutes(router *gin.Engine) {
 		authRoutes.GET("/sync/v3/root", app.syncGetRootV3)
 		authRoutes.PUT("/sync/v3/root", app.syncUpdateRootV3)
 		authRoutes.GET("/sync/v3/files/:"+fileKey, app.blobStorageRead)
+		authRoutes.PUT("/sync/v3/files/:"+fileKey, app.blobStorageWrite)
 	}
 }
