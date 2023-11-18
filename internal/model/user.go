@@ -47,9 +47,13 @@ type User struct {
 	FamilyName    string
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
-	IsAdmin       bool
-	// Sync15 if the user should use this sync type (which uses a lot less bandwidth)
-	Sync15       bool
+	// IsAdmin indicates if the user can managed others users in this instance.
+	IsAdmin bool
+	// Sync15 if the user should use this sync type (which uses a lot less bandwidth).
+	Sync15 bool
+	// AdditionalScopes is a list of scopes to add to the user session.
+	AdditionalScopes []string
+	// Integrations stores the list of "Integrations" as shown on the tablet.
 	Integrations []IntegrationConfig
 }
 
