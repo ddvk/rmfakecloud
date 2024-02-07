@@ -28,8 +28,7 @@ services:
       - ./data:/data
 ```
 
-A `env` file is needed where all of the environmental variables are defined.
-Using the `environment:` option in the compose file is also valid and everything is in one file.
+In this example, an external file named `env` is provided that contains the environment variables. Any of the [ways to set environment variables](https://docs.docker.com/compose/environment-variables/set-environment-variables/) for docker compose will work.
 
 For the possible environment variables, please have a look in the [configuration](configuration.md) section.
 
