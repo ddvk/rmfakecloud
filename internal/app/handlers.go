@@ -23,6 +23,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/integrations"
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/storage"
+	"github.com/ddvk/rmfakecloud/internal/storage/fs"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/gorilla/websocket"
@@ -753,7 +754,13 @@ func (app *App) syncGetRootV3(c *gin.Context) {
 	uid := c.GetString(userIDKey)
 
 	reader, generation, _, err := app.blobStorer.LoadBlob(uid, "root")
-	if err != nil {
+	if err == fs.ErrorNotFound {
+		log.Warn("No root file found, assuming this is a new account")
+		c.JSON(http.StatusOK, messages.SyncRootV3{
+			Generation: 0,
+		})
+		return
+	} else if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return

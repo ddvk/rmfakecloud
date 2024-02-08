@@ -139,7 +139,7 @@ type SyncCompletedRequestV2 struct {
 // SyncRootV3
 type SyncRootV3 struct {
 	Generation int64  `json:"generation"`
-	Hash       string `json:"hash"`
+	Hash       string `json:"hash,omitempty"`
 }
 
 // IntegrationsResponse integrations
