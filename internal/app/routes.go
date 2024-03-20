@@ -91,6 +91,16 @@ func (app *App) registerRoutes(router *gin.Engine) {
 		}
 		c.Status(http.StatusOK)
 	})
+	router.POST("/v2/reports", func(c *gin.Context) {
+		_, err := ioutil.ReadAll(c.Request.Body)
+
+		if err != nil {
+			log.Warn("cant parse telemetry, ignored")
+			c.Status(http.StatusOK)
+			return
+		}
+		c.Status(http.StatusOK)
+	})
 
 	//routes needing api authentitcation
 	authRoutes := router.Group("/")
@@ -144,5 +154,8 @@ func (app *App) registerRoutes(router *gin.Engine) {
 		authRoutes.PUT("/sync/v3/root", app.syncUpdateRootV3)
 		authRoutes.GET("/sync/v3/files/:"+fileKey, app.blobStorageRead)
 		authRoutes.PUT("/sync/v3/files/:"+fileKey, app.blobStorageWrite)
+
+		authRoutes.POST("/sync/v3/check-files", app.checkFilesPresence)
+		authRoutes.GET("/sync/v3/missing", app.checkMissingBlob)
 	}
 }

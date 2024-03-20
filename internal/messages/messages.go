@@ -142,6 +142,20 @@ type SyncRootV3 struct {
 	Hash       string `json:"hash,omitempty"`
 }
 
+type CheckFiles struct {
+	Filename string   `json:"filename"`
+	Files    []string `json:"files"`
+	Reason   string   `json:"reason"`
+}
+
+type MissingFiles struct {
+	MissingFiles []string `json:"missingFiles"`
+}
+
+type MissingHashes struct {
+	Hashes []string `json:"hashes"`
+}
+
 // IntegrationsResponse integrations
 type IntegrationsResponse struct {
 	Integrations []Integration `json:"integrations"`
