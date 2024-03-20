@@ -756,9 +756,7 @@ func (app *App) syncGetRootV3(c *gin.Context) {
 	reader, generation, _, err := app.blobStorer.LoadBlob(uid, "root")
 	if err == fs.ErrorNotFound {
 		log.Warn("No root file found, assuming this is a new account")
-		c.JSON(http.StatusOK, messages.SyncRootV3{
-			Generation: 0,
-		})
+		c.JSON(http.StatusNotFound, gin.H{"message": "root not found"})
 		return
 	} else if err != nil {
 		log.Error(err)
