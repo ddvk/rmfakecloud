@@ -8,7 +8,7 @@ This is a replacement of the cloud, in case you want to sync/backup your files a
 ## [Docs](https://ddvk.github.io/rmfakecloud/)
 
 ## NB
-The current release of rmfakecloud support file synchronization for SW <= 3.9.3. Newer releases have not been tested yet.
+The current release of rmfakecloud support file synchronization for SW <= 3.10.2. Newer releases have not been tested yet.
 
 For Tablet SW > 3.X, rendering of the notebooks [is not yet supported](https://github.com/ddvk/rmfakecloud/issues/255).
 

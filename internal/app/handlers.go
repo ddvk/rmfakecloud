@@ -779,6 +779,35 @@ func (app *App) syncGetRootV3(c *gin.Context) {
 	})
 }
 
+func (app *App) checkFilesPresence(c *gin.Context) {
+	uid := c.GetString(userIDKey)
+	var req messages.CheckFiles
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Error(err)
+		badReq(c, err.Error())
+		return
+	}
+
+	mfs := messages.MissingFiles{}
+
+	for _, fileid := range req.Files {
+		_, _, err := app.blobStorer.GetBlobURL(uid, fileid, false)
+		if err != nil {
+			mfs.MissingFiles = append(mfs.MissingFiles, fileid)
+		}
+	}
+
+	c.JSON(http.StatusOK, mfs)
+}
+
+func (app *App) checkMissingBlob(c *gin.Context) {
+	mhs := messages.MissingHashes{}
+
+	// TODO
+
+	c.JSON(http.StatusOK, mhs)
+}
+
 func (app *App) blobStorageRead(c *gin.Context) {
 	uid := c.GetString(userIDKey)
 	blobID := common.ParamS(fileKey, c)
