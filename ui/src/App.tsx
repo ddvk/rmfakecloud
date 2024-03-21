@@ -12,6 +12,7 @@ import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
 import { AuthProvider } from "./common/useAuthContext";
 import { PrivateRoute } from "./components/PrivateRoute";
 import CodeGenerator from "./components/CodeGenerator";
+import Integrations from "./components/Integrations";
 import ResetPassword from "./components/ResetPassword";
 import Role from "./common/Role";
 import apiService from "./services/api.service";
@@ -33,6 +34,7 @@ export default function App() {
             <PrivateRoute exact path="/" component={Home} />
             <PrivateRoute path="/documents" component={Documents} />
             <PrivateRoute path="/generatecode" component={CodeGenerator} />
+            <PrivateRoute path="/integrations" component={Integrations} />
             <PrivateRoute path="/resetPassword" component={ResetPassword} />
             <PrivateRoute path="/users/:userid" component={UserProfile} /> 
             <PrivateRoute path="/users" roles={[Role.Admin]} component={UserList} />
