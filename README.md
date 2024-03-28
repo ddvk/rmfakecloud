@@ -16,7 +16,7 @@ For Tablet SW > 3.X, rendering of the notebooks [is not yet supported](https://g
 - after v0.0.3 the files in `/data` will have to be manually moved to the user that will be created
 - with v0.0.5 the new diff sync15 is added as an option, in order to use it modify the user with `setuser -u user -s`  
   or modify the profile and add `sync15:true`  
-  a full resync will be needed (the tablet will do it), the old files are kept as they were and everying is put in a new directory
+  a full resync will be needed (the tablet will do it), the old files are kept as they were and everything is put in a new directory
 
 ## Development
 run `./dev.sh` which should start the UI and backend
