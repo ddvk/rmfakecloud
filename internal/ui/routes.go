@@ -72,6 +72,13 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	auth.POST("folders", app.createFolder)
 	auth.GET("documents/:docid/metadata", app.getDocumentMetadata)
 
+	// integrations
+	auth.GET("integrations", app.listIntegrations)
+	auth.POST("integrations", app.createIntegration)
+	auth.GET("integrations/:intid", app.getIntegration)
+	auth.PUT("integrations/:intid", app.updateIntegration)
+	auth.DELETE("integrations/:intid", app.deleteIntegration)
+
 	//admin
 	admin := auth.Group("")
 	admin.Use(app.adminMiddleware())
