@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"net/mail"
@@ -970,7 +969,7 @@ func (app *App) uploadRequest(c *gin.Context) {
 }
 
 func (app *App) handleHwr(c *gin.Context) {
-	body, err := ioutil.ReadAll(c.Request.Body)
+	body, err := io.ReadAll(c.Request.Body)
 	if err != nil || len(body) < 1 {
 		log.Warn("no body")
 		badReq(c, "missing bbody")

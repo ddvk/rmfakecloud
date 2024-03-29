@@ -6,7 +6,7 @@ import (
 	"crypto/sha512"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/ddvk/rmfakecloud/internal/config"
@@ -50,7 +50,7 @@ func (hwr *HWRClient) SendRequest(data []byte) (body []byte, err error) {
 	if err != nil {
 		return
 	}
-	body, err = ioutil.ReadAll(res.Body)
+	body, err = io.ReadAll(res.Body)
 	if err != nil {
 		return
 	}
