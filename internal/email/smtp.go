@@ -40,7 +40,7 @@ type SMTPConfig struct {
 type Builder struct {
 	From    *mail.Address
 	To      []*mail.Address
-	ReplyTo string
+	ReplyTo *mail.Address
 	Body    string
 	Subject string
 
@@ -186,6 +186,9 @@ func (b *Builder) Send(cfg *SMTPConfig) (err error) {
 	//basic email headers
 	msgBuilder.WriteString(fmt.Sprintf("From: %s\r\n", utf8encode(b.From.String())))
 	msgBuilder.WriteString(fmt.Sprintf("To: %s\r\n", utf8encode(to)))
+	if b.ReplyTo != nil {
+		msgBuilder.WriteString(fmt.Sprintf("Reply-To: %s\r\n", utf8encode(b.ReplyTo.String())))
+	}
 	msgBuilder.WriteString(fmt.Sprintf("Subject: %s\r\n", utf8encode(b.Subject)))
 	msgBuilder.WriteString("MIME-Version: 1.0\r\n")
 	msgBuilder.WriteString(fmt.Sprintf("Content-Type: multipart/mixed; boundary=\"%s\"\r\n", delimeter))
