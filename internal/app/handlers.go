@@ -439,32 +439,38 @@ func (app *App) sendEmail(c *gin.Context) {
 		}
 	}
 
-	var from *mail.Address
-	if app.cfg.SMTPConfig.FromOverride != nil {
-		from = app.cfg.SMTPConfig.FromOverride
-	} else {
-		// try to use the user's email address if in the correct format
-		if user, err := app.userStorer.GetUser(uid); err == nil && user.Email != "" {
-			from, err = mail.ParseAddress(user.Email)
-			if err != nil {
-				log.Warn(handlerLog, "user: ", uid, " has invalid email address: ", user.Email)
-			} else {
-				log.Debug("using user's email address")
-			}
-		}
-
-		// fallback FROM the request from the tablet
-		if from == nil {
-			var err error
-			from, err = mail.ParseAddress(req.From)
-			if err != nil {
-				log.Warn(handlerLog, err)
-				c.AbortWithStatus(http.StatusBadRequest)
-				return
-			}
-			log.Debug("using from, from the request")
+	var userEmail *mail.Address
+	// try to use the user's email address if in the correct format
+	if user, err := app.userStorer.GetUser(uid); err == nil && user.Email != "" {
+		userEmail, err = mail.ParseAddress(user.Email)
+		if err != nil {
+			log.Warn(handlerLog, "user: ", uid, " has invalid email address: ", user.Email)
+		} else {
+			log.Debug("using user's email from their account")
 		}
 	}
+
+	// fallback FROM the request from the tablet
+	if userEmail == nil {
+		var err error
+		userEmail, err = mail.ParseAddress(req.From)
+		if err != nil {
+			log.Warn(handlerLog, err)
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+		log.Debug("using user's email from the request")
+	}
+
+	var from *mail.Address
+	var replyTo *mail.Address
+	if app.cfg.SMTPConfig.FromOverride != nil {
+		from = app.cfg.SMTPConfig.FromOverride
+		replyTo = userEmail
+	} else {
+		from = userEmail
+	}
+
 	//parse TO addresses
 	to, err := mail.ParseAddressList(email.TrimAddresses(req.To))
 	if err != nil {
@@ -477,6 +483,7 @@ func (app *App) sendEmail(c *gin.Context) {
 		Subject: req.Subject,
 		To:      to,
 		From:    from,
+		ReplyTo: replyTo,
 		Body:    stripAds(req.Body),
 	}
 
