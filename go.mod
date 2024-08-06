@@ -54,11 +54,11 @@ require (
 	github.com/unidoc/unichart v0.3.0 // indirect
 	github.com/unidoc/unitype v0.4.0 // indirect
 	golang.org/x/arch v0.7.0 // indirect
-	golang.org/x/image v0.15.0 // indirect
+	golang.org/x/image v0.18.0 // indirect
 	golang.org/x/net v0.23.0 // indirect
 	golang.org/x/oauth2 v0.18.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/text v0.16.0 // indirect
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
