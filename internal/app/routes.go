@@ -157,5 +157,7 @@ func (app *App) registerRoutes(router *gin.Engine) {
 
 		authRoutes.POST("/sync/v3/check-files", app.checkFilesPresence)
 		authRoutes.GET("/sync/v3/missing", app.checkMissingBlob)
+
+		authRoutes.GET("/sync/v4/root", app.syncGetRootV3)
 	}
 }
