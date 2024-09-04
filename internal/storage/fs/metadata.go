@@ -2,7 +2,7 @@ package fs
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,9 +16,9 @@ import (
 func (fs *FileSystemStorage) GetAllMetadata(uid string) (result []*messages.RawMetadata, err error) {
 	result = []*messages.RawMetadata{}
 
-	var files []os.FileInfo
+	// var files []os.FileInfo
 	folder := fs.getUserPath(uid)
-	files, err = ioutil.ReadDir(folder)
+	files, err := os.ReadDir(folder)
 
 	for _, f := range files {
 		ext := filepath.Ext(f.Name())
@@ -45,7 +45,7 @@ func (fs *FileSystemStorage) GetMetadata(uid, id string) (*messages.RawMetadata,
 		return nil, err
 	}
 	defer f.Close()
-	content, err := ioutil.ReadAll(f)
+	content, err := io.ReadAll(f)
 	if err != nil {
 		return nil, err
 	}
@@ -68,6 +68,6 @@ func (fs *FileSystemStorage) UpdateMetadata(uid string, r *messages.RawMetadata)
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(filepath, js, 0600)
+	err = os.WriteFile(filepath, js, 0600)
 	return err
 }

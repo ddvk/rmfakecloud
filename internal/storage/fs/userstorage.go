@@ -3,7 +3,7 @@ package fs
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 
 	"github.com/ddvk/rmfakecloud/internal/config"
@@ -51,7 +51,7 @@ func (fs *FileSystemStorage) GetUser(uid string) (user *model.User, err error) {
 	defer f.Close()
 
 	var content []byte
-	content, err = ioutil.ReadAll(f)
+	content, err = io.ReadAll(f)
 	if err != nil {
 		return nil, fmt.Errorf("cannot read profile: %s, %w", profilePath, err)
 	}
@@ -68,7 +68,7 @@ func (fs *FileSystemStorage) GetUser(uid string) (user *model.User, err error) {
 func (fs *FileSystemStorage) GetUsers() (users []*model.User, err error) {
 	usersDir := fs.getUserPath("")
 
-	entries, err := ioutil.ReadDir(usersDir)
+	entries, err := os.ReadDir(usersDir)
 	if err != nil {
 		return
 	}
@@ -137,7 +137,7 @@ func (fs *FileSystemStorage) UpdateUser(u *model.User) (err error) {
 	if err != nil {
 		return
 	}
-	err = ioutil.WriteFile(profilePath, js, 0600)
+	err = os.WriteFile(profilePath, js, 0600)
 
 	return
 }

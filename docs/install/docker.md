@@ -4,7 +4,7 @@ You can evaluate the program with:
 docker run -it --rm -p 3000:3000 ddvk/rmfakecloud
 ```
 
-To setup it for its exploitation, you'll use need to setup a volume (it will contain user configuration and synchronized documents):
+To setup it for normal ussage, you'll use need to setup a volume to store user configuration and documents:
 
 ```sh
 docker run -it --rm -p 3000:3000 -v ./data:/data -e JWT_SECRET_KEY='something' ddvk/rmfakecloud
@@ -28,8 +28,7 @@ services:
       - ./data:/data
 ```
 
-A `env` file is needed where all of the environmental variables are defined.
-Using the `environment:` option in the compose file is also valid and everything is in one file.
+In this example, an external file named `env` is provided that contains the environment variables. Any of the [ways to set environment variables](https://docs.docker.com/compose/environment-variables/set-environment-variables/) for docker compose will work.
 
 For the possible environment variables, please have a look in the [configuration](configuration.md) section.
 

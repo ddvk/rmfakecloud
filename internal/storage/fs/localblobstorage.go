@@ -2,7 +2,6 @@ package fs
 
 import (
 	"io"
-	"io/ioutil"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
@@ -25,7 +24,7 @@ func (p *LocalBlobStorage) GetRootIndex() (hash string, gen int64, err error) {
 		return "", 0, err
 	}
 	defer r.Close()
-	s, err := ioutil.ReadAll(r)
+	s, err := io.ReadAll(r)
 	if err != nil {
 		return "", 0, err
 	}

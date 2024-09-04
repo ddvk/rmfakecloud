@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -50,7 +50,7 @@ func getURL(host string, tokens Tokens) (string, error) {
 		return "", fmt.Errorf("got error %w", err)
 	}
 	defer response.Body.Close()
-	body, _ := ioutil.ReadAll(response.Body)
+	body, _ := io.ReadAll(response.Body)
 	fmt.Println("response Body:", string(body))
 	hostResponse := &HostResponse{}
 	json.Unmarshal(body, hostResponse)
@@ -72,7 +72,7 @@ func auth(host string, tokens Tokens, withHTTPS bool) (*websocket.Conn, error) {
 	conn, response, err := websocket.DefaultDialer.Dial(url, header)
 	if err != nil {
 		defer response.Body.Close()
-		body, _ := ioutil.ReadAll(response.Body)
+		body, _ := io.ReadAll(response.Body)
 		fmt.Println("response headers:", response.Header)
 		fmt.Println("response Body:", string(body))
 	}
@@ -83,7 +83,7 @@ func auth(host string, tokens Tokens, withHTTPS bool) (*websocket.Conn, error) {
 
 func loadToken(configFile string) (*Tokens, error) {
 	tokens := Tokens{}
-	content, err := ioutil.ReadFile(configFile)
+	content, err := os.ReadFile(configFile)
 	if err != nil {
 		return nil, err
 	}
@@ -112,8 +112,7 @@ func main() {
 		tokens, err := loadToken(*rmapiConf)
 		if err != nil {
 			return err
-        }
-		
+		}
 
 		if *host == "origin" {
 			*host = origin

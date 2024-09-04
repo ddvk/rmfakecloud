@@ -2,11 +2,11 @@ package app
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"net/mail"
@@ -22,6 +22,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/integrations"
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/storage"
+	"github.com/ddvk/rmfakecloud/internal/storage/fs"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/gorilla/websocket"
@@ -142,7 +143,15 @@ func (app *App) newUserToken(c *gin.Context) {
 		return
 	}
 
-	scopes := []string{"intgr", "screenshare", "hwcmail:-1", "mail:-1"}
+	scopes := []string{"intgr", "screenshare"}
+
+	if app.cfg.HWRApplicationKey != "" && app.cfg.HWRHmac != "" {
+		scopes = append(scopes, "hwcmail:-1")
+	}
+
+	if app.cfg.SMTPConfig != nil {
+		scopes = append(scopes, "mail:-1")
+	}
 
 	if user.Sync15 {
 		log.Info("Using sync 1.5")
@@ -150,22 +159,37 @@ func (app *App) newUserToken(c *gin.Context) {
 	} else {
 		scopes = append(scopes, syncDefault)
 	}
+
+	if len(user.AdditionalScopes) > 0 {
+		scopes = append(scopes, user.AdditionalScopes...)
+	}
+
 	scopesStr := strings.Join(scopes, " ")
 	log.Info("setting scopes: ", scopesStr)
+
+	jti := make([]byte, 3)
+	_, err = rand.Read(jti)
+	if err != nil {
+		badReq(c, err.Error())
+		return
+	}
+	jti = append([]byte{'r', 'M', '-'}, jti...)
+	jti = append(jti, '/', 'E')
+
 	now := time.Now()
-	expirationTime := now.Add(24 * time.Hour)
+	expirationTime := now.Add(3 * time.Hour)
 	claims := &UserClaims{
 		Profile: Auth0profile{
 			UserID:        deviceToken.UserID,
 			IsSocial:      false,
 			Connection:    "Username-Password-Authentication",
-			Name:          user.Name,
+			Name:          user.Email,
 			Nickname:      user.Nickname,
+			GivenName:     user.Name,
 			Email:         fmt.Sprintf("%s (via %s)", user.Email, app.cfg.StorageURL),
 			EmailVerified: true,
-			Picture:       "image.png",
-			CreatedAt:     time.Now(),
-			UpdatedAt:     time.Now(),
+			CreatedAt:     user.CreatedAt,
+			UpdatedAt:     user.UpdatedAt,
 		},
 		DeviceDesc: deviceToken.DeviceDesc,
 		DeviceID:   deviceToken.DeviceID,
@@ -175,10 +199,9 @@ func (app *App) newUserToken(c *gin.Context) {
 			ExpiresAt: expirationTime.Unix(),
 			NotBefore: now.Unix(),
 			IssuedAt:  now.Unix(),
-			Subject:   "rM User Token",
+			Subject:   deviceToken.UserID,
 			Issuer:    "rM WebApp",
-			Id:        user.ID,
-			Audience:  APIUsage,
+			Id:        base64.StdEncoding.EncodeToString(jti),
 		},
 		Version: tokenVersion,
 	}
@@ -416,32 +439,38 @@ func (app *App) sendEmail(c *gin.Context) {
 		}
 	}
 
-	var from *mail.Address
-	if app.cfg.SMTPConfig.FromOverride != nil {
-		from = app.cfg.SMTPConfig.FromOverride
-	} else {
-		// try to use the user's email address if in the correct format
-		if user, err := app.userStorer.GetUser(uid); err == nil && user.Email != "" {
-			from, err = mail.ParseAddress(user.Email)
-			if err != nil {
-				log.Warn(handlerLog, "user: ", uid, " has invalid email address: ", user.Email)
-			} else {
-				log.Debug("using user's email address")
-			}
-		}
-
-		// fallback FROM the request from the tablet
-		if from == nil {
-			var err error
-			from, err = mail.ParseAddress(req.From)
-			if err != nil {
-				log.Warn(handlerLog, err)
-				c.AbortWithStatus(http.StatusBadRequest)
-				return
-			}
-			log.Debug("using from, from the request")
+	var userEmail *mail.Address
+	// try to use the user's email address if in the correct format
+	if user, err := app.userStorer.GetUser(uid); err == nil && user.Email != "" {
+		userEmail, err = mail.ParseAddress(user.Email)
+		if err != nil {
+			log.Warn(handlerLog, "user: ", uid, " has invalid email address: ", user.Email)
+		} else {
+			log.Debug("using user's email from their account")
 		}
 	}
+
+	// fallback FROM the request from the tablet
+	if userEmail == nil {
+		var err error
+		userEmail, err = mail.ParseAddress(req.From)
+		if err != nil {
+			log.Warn(handlerLog, err)
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+		log.Debug("using user's email from the request")
+	}
+
+	var from *mail.Address
+	var replyTo *mail.Address
+	if app.cfg.SMTPConfig.FromOverride != nil {
+		from = app.cfg.SMTPConfig.FromOverride
+		replyTo = userEmail
+	} else {
+		from = userEmail
+	}
+
 	//parse TO addresses
 	to, err := mail.ParseAddressList(email.TrimAddresses(req.To))
 	if err != nil {
@@ -454,6 +483,7 @@ func (app *App) sendEmail(c *gin.Context) {
 		Subject: req.Subject,
 		To:      to,
 		From:    from,
+		ReplyTo: replyTo,
 		Body:    stripAds(req.Body),
 	}
 
@@ -730,7 +760,11 @@ func (app *App) syncGetRootV3(c *gin.Context) {
 	uid := c.GetString(userIDKey)
 
 	reader, generation, _, err := app.blobStorer.LoadBlob(uid, "root")
-	if err != nil {
+	if err == fs.ErrorNotFound {
+		log.Warn("No root file found, assuming this is a new account")
+		c.JSON(http.StatusNotFound, gin.H{"message": "root not found"})
+		return
+	} else if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
@@ -746,6 +780,67 @@ func (app *App) syncGetRootV3(c *gin.Context) {
 	c.JSON(http.StatusOK, messages.SyncRootV3{
 		Generation: generation,
 		Hash:       string(roothash),
+	})
+}
+
+func (app *App) checkFilesPresence(c *gin.Context) {
+	uid := c.GetString(userIDKey)
+	var req messages.CheckFiles
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Error(err)
+		badReq(c, err.Error())
+		return
+	}
+
+	mfs := messages.MissingFiles{}
+
+	for _, fileid := range req.Files {
+		_, _, err := app.blobStorer.GetBlobURL(uid, fileid, false)
+		if err != nil {
+			mfs.MissingFiles = append(mfs.MissingFiles, fileid)
+		}
+	}
+
+	c.JSON(http.StatusOK, mfs)
+}
+
+func (app *App) checkMissingBlob(c *gin.Context) {
+	mhs := messages.MissingHashes{}
+
+	// TODO
+
+	c.JSON(http.StatusOK, mhs)
+}
+
+func (app *App) blobStorageRead(c *gin.Context) {
+	uid := c.GetString(userIDKey)
+	blobID := common.ParamS(fileKey, c)
+
+	reader, _, size, err := app.blobStorer.LoadBlob(uid, blobID)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	defer reader.Close()
+
+	c.DataFromReader(http.StatusOK, size, "application/octet-stream", reader, nil)
+}
+
+func (app *App) blobStorageWrite(c *gin.Context) {
+	uid := c.GetString(userIDKey)
+	blobID := common.ParamS(fileKey, c)
+
+	newgeneration, err := app.blobStorer.StoreBlob(uid, blobID, c.Request.Body, 0)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, messages.SyncRootV3{
+		Generation: newgeneration,
+		Hash:       string(blobID),
 	})
 }
 
@@ -881,7 +976,7 @@ func (app *App) uploadRequest(c *gin.Context) {
 }
 
 func (app *App) handleHwr(c *gin.Context) {
-	body, err := ioutil.ReadAll(c.Request.Body)
+	body, err := io.ReadAll(c.Request.Body)
 	if err != nil || len(body) < 1 {
 		log.Warn("no body")
 		badReq(c, "missing bbody")

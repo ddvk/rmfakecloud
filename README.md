@@ -1,16 +1,22 @@
+[![rm1](https://img.shields.io/badge/rM1-supported-green)](https://remarkable.com/store/remarkable)
+[![rm2](https://img.shields.io/badge/rM2-supported-green)](https://remarkable.com/store/remarkable-2)
+[![opkg](https://img.shields.io/badge/OPKG-rmfakecloud--proxy-blue)](https://toltec-dev.org/)
+
 # rmfakecloud
 This is a replacement of the cloud, in case you want to sync/backup your files and have full control of the hosting environment.
 
 ## [Docs](https://ddvk.github.io/rmfakecloud/)
 
 ## NB
-For Tablet SW > 3.X, rendering of the notebooks is not yet supported.
+The current release of rmfakecloud support file synchronization for SW <= 3.13.1. Newer releases have not been tested yet.
+
+For Tablet SW > 3.X, rendering of the notebooks [is not yet supported](https://github.com/ddvk/rmfakecloud/issues/255).
 
 ## Breaking Changes
 - after v0.0.3 the files in `/data` will have to be manually moved to the user that will be created
 - with v0.0.5 the new diff sync15 is added as an option, in order to use it modify the user with `setuser -u user -s`  
   or modify the profile and add `sync15:true`  
-  a full resync will be needed (the tablet will do it), the old files are kept as they were and everying is put in a new directory
+  a full resync will be needed (the tablet will do it), the old files are kept as they were and everything is put in a new directory
 
 ## Development
 run `./dev.sh` which should start the UI and backend

@@ -2,7 +2,7 @@ package integrations
 
 import (
 	"io"
-	"io/ioutil"
+	"io/fs"
 	"os"
 	"path"
 
@@ -46,7 +46,22 @@ func (d *localFS) List(folder string, depth int) (*messages.IntegrationFolder, e
 
 	logrus.Info("[localfs] query for: ", startPath, " depth: ", depth)
 
-	err := visitDir(d.rootPath, startPath, depth, response, ioutil.ReadDir)
+	err := visitDir(d.rootPath, startPath, depth, response, func(s string) ([]fs.FileInfo, error) {
+		di, err := os.ReadDir(s)
+		if err != nil {
+			return nil, err
+		}
+		result := make([]fs.FileInfo, 0, len(di))
+		for _, d := range di {
+			fi, err := d.Info()
+			if err != nil {
+				logrus.Warnf("[localfs] cant get fileinfo %v", err)
+				continue
+			}
+			result = append(result, fi)
+		}
+		return result, nil
+	})
 	if err != nil {
 		return nil, err
 	}

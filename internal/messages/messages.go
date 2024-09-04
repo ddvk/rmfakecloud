@@ -139,7 +139,21 @@ type SyncCompletedRequestV2 struct {
 // SyncRootV3
 type SyncRootV3 struct {
 	Generation int64  `json:"generation"`
-	Hash       string `json:"hash"`
+	Hash       string `json:"hash,omitempty"`
+}
+
+type CheckFiles struct {
+	Filename string   `json:"filename"`
+	Files    []string `json:"files"`
+	Reason   string   `json:"reason"`
+}
+
+type MissingFiles struct {
+	MissingFiles []string `json:"missingFiles"`
+}
+
+type MissingHashes struct {
+	Hashes []string `json:"hashes"`
 }
 
 // IntegrationsResponse integrations

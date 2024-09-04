@@ -118,11 +118,13 @@ func visitDir(root, currentPath string, depth int, parentFolder *messages.Integr
 			ext := path.Ext(entryName)
 			contentType := contentTypeFromExt(ext)
 			if contentType == "" {
+				logrus.Tracef("[localfs] skipping unsupported content type for: %s", entryPath)
 				continue
 			}
 
 			docName := strings.TrimSuffix(entryName, ext)
 			extension := strings.TrimPrefix(ext, ".")
+
 
 			file := &messages.IntegrationFile{
 				ProvidedFileType: contentType,

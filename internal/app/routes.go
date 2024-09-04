@@ -1,7 +1,7 @@
 package app
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"runtime"
 
@@ -34,6 +34,18 @@ func (app *App) registerRoutes(router *gin.Engine) {
 			"webapp":        endpoint,
 		})
 	})
+  router.GET("/discovery/v1/webapp", func(c *gin.Context) {                                                                                                       
+                endpoint, err := app.MyEndpoint()                                                                                                                 
+                if err != nil {                                                                                                                                   
+                        log.Warn("endpoint error:", err.Error())                                                                                                  
+                        c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"err": err.Error()})                                                          
+                        return                                                                                                                                    
+                }                                                                                                                                                 
+          c.JSON(http.StatusOK, gin.H{                                                                                                                            
+                  "Status": "OK",                                                                                                                                 
+                  "Host": endpoint,                                                                                                                               
+          })                                                                                                                                                      
+  })                                                                                                                                                              
 
 	router.GET("/health", func(c *gin.Context) {
 		count := app.hub.ClientCount()
@@ -63,14 +75,24 @@ func (app *App) registerRoutes(router *gin.Engine) {
 	})
 
 	router.POST("/settings/v1/beta", func(c *gin.Context) {
-		body, _ := ioutil.ReadAll(c.Request.Body)
+		body, _ := io.ReadAll(c.Request.Body)
 		log.Info("enrolling in the beta:", string(body))
 		c.Status(http.StatusOK)
 	})
 
 	//some telemetry stuff from ping.
 	router.POST("/v1/reports", func(c *gin.Context) {
-		_, err := ioutil.ReadAll(c.Request.Body)
+		_, err := io.ReadAll(c.Request.Body)
+
+		if err != nil {
+			log.Warn("cant parse telemetry, ignored")
+			c.Status(http.StatusOK)
+			return
+		}
+		c.Status(http.StatusOK)
+	})
+	router.POST("/v2/reports", func(c *gin.Context) {
+		_, err := io.ReadAll(c.Request.Body)
 
 		if err != nil {
 			log.Warn("cant parse telemetry, ignored")
@@ -130,5 +152,12 @@ func (app *App) registerRoutes(router *gin.Engine) {
 
 		authRoutes.GET("/sync/v3/root", app.syncGetRootV3)
 		authRoutes.PUT("/sync/v3/root", app.syncUpdateRootV3)
+		authRoutes.GET("/sync/v3/files/:"+fileKey, app.blobStorageRead)
+		authRoutes.PUT("/sync/v3/files/:"+fileKey, app.blobStorageWrite)
+
+		authRoutes.POST("/sync/v3/check-files", app.checkFilesPresence)
+		authRoutes.GET("/sync/v3/missing", app.checkMissingBlob)
+
+		authRoutes.GET("/sync/v4/root", app.syncGetRootV3)
 	}
 }

@@ -64,7 +64,7 @@ func FileHashAndSize(file string) ([]byte, int64, error) {
 func LoadTree(cacheFile string) (*HashTree, error) {
 	tree := HashTree{}
 	if _, err := os.Stat(cacheFile); err == nil {
-		b, err := ioutil.ReadFile(cacheFile)
+		b, err := os.ReadFile(cacheFile)
 		if err != nil {
 			return nil, err
 		}

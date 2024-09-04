@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -14,10 +13,11 @@ import (
 )
 
 const (
-	authLog     = "[auth-middleware]"
-	requestLog  = "[requestlogging-middleware]"
-	syncDefault = "sync:default"
-	syncNew     = "sync:tortoise"
+	authLog        = "[auth-middleware]"
+	requestLog     = "[requestlogging-middleware]"
+	syncDefault    = "sync:default"
+	syncNew        = "sync:tortoise"
+	syncNewLimited = "sync:fox" // Display cloud limit messages
 )
 
 func (app *App) authMiddleware() gin.HandlerFunc {
@@ -35,7 +35,7 @@ func (app *App) authMiddleware() gin.HandlerFunc {
 
 		var isSync15 = false
 		for _, s := range scopes {
-			if s == syncNew {
+			if s == syncNew || s == syncNewLimited {
 				isSync15 = true
 				break
 			}
@@ -88,8 +88,8 @@ func requestLoggerMiddleware() gin.HandlerFunc {
 		if log.IsLevelEnabled(log.TraceLevel) {
 			var buf bytes.Buffer
 			tee := io.TeeReader(c.Request.Body, &buf)
-			body, _ := ioutil.ReadAll(tee)
-			c.Request.Body = ioutil.NopCloser(&buf)
+			body, _ := io.ReadAll(tee)
+			c.Request.Body = io.NopCloser(&buf)
 			log.Debugln(requestLog, "body: ", string(body))
 		}
 		c.Next()

@@ -3,7 +3,6 @@ package models
 import (
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"path"
 	"strings"
 
@@ -34,7 +33,7 @@ func ArchiveFromHashDoc(doc *HashDoc, rs RemoteStorage) (*exporter.MyArchive, er
 				return nil, err
 			}
 			defer blob.Close()
-			contentBytes, err := ioutil.ReadAll(blob)
+			contentBytes, err := io.ReadAll(blob)
 			if err != nil {
 				return nil, err
 			}
@@ -73,7 +72,7 @@ func ArchiveFromHashDoc(doc *HashDoc, rs RemoteStorage) (*exporter.MyArchive, er
 			if err != nil {
 				return nil, err
 			}
-			pageBin, err := ioutil.ReadAll(reader)
+			pageBin, err := io.ReadAll(reader)
 			if err != nil {
 				return nil, err
 			}

@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"io/ioutil"
 	"sort"
 	"strconv"
 	"strings"
@@ -131,7 +130,7 @@ func (d *HashDoc) readMetadata(fileEntry string, r RemoteStorage) error {
 		return err
 	}
 	defer meta.Close()
-	content, err := ioutil.ReadAll(meta)
+	content, err := io.ReadAll(meta)
 	if err != nil {
 		return err
 	}
@@ -155,7 +154,7 @@ func (d *HashDoc) readContent(hash string, r RemoteStorage) error {
 		return err
 	}
 	defer meta.Close()
-	contentBytes, err := ioutil.ReadAll(meta)
+	contentBytes, err := io.ReadAll(meta)
 	if err != nil {
 		return err
 	}
