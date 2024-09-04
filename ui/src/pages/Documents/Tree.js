@@ -22,7 +22,7 @@ const DocumentTree = ({ selection, onSelect, term, counter }) => {
   }
   */
 
-  function Node({ node, style, dragHandle }: NodeRendererProps) {
+  function Node({ node, style, dragHandle }) {
     const selectedStyle = { ...style, color: '#0d6efd' };
     return (
       <div
@@ -43,7 +43,7 @@ const DocumentTree = ({ selection, onSelect, term, counter }) => {
     );
   }
 
-  function Cursor({ top, left }: CursorProps) {
+  function Cursor({ top, left }) {
     return <div style={{ top, left }}></div>;
   }
 

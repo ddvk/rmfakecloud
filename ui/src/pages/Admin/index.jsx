@@ -11,7 +11,7 @@ const Home = () => {
 
   const style = { margin: '2em 0' }
 
-  function isAdmin(user: any) {
+  function isAdmin(user) {
     return user && user.Roles && user.Roles[0] === "Admin";
   }
 

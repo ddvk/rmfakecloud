@@ -16,7 +16,7 @@ import Documents from "./pages/Documents";
 import Admin from "./pages/Admin";
 import NoMatch from "./pages/404";
 
-import 'react-toastify/dist/ReactToastify.css';
+import "react-toastify/dist/ReactToastify.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 
 export default function App() {
