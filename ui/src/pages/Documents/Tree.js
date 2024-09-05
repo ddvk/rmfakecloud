@@ -3,6 +3,8 @@ import apiservice from "../../services/api.service"
 import { Tree } from 'react-arborist';
 import FileIcon from './FileIcon';
 
+import styles from "./Documents.module.scss"
+
 const DocumentTree = ({ selection, onSelect, term, counter }) => {
 
   const onTreeSelect = (sel) => {
@@ -23,11 +25,11 @@ const DocumentTree = ({ selection, onSelect, term, counter }) => {
   */
 
   function Node({ node, style, dragHandle }) {
-    const selectedStyle = { ...style, color: '#0d6efd' };
     return (
       <div
-        style={ node.isSelected ? selectedStyle : style}
+        style={style}
         ref={dragHandle}
+        className={ node.isSelected ? styles.selected : ""}
         onClick={() => node.isInternal && node.open()}
       >
         <div className={itemClassName(node.data)}>

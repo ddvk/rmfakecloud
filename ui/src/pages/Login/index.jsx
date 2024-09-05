@@ -1,9 +1,11 @@
 import React, { useState } from "react";
-import { useAuthState } from "../../common/useAuthContext";
-import { loginUser } from "../../common/actions";
-import styles from "./Login.module.css";
 import { useHistory } from "react-router";
 import { Button, Form } from "react-bootstrap";
+
+import { useAuthState } from "../../common/useAuthContext";
+import { loginUser } from "../../common/actions";
+
+import styles from "./Login.module.scss";
 
 const Login = () => {
   let history = useHistory();
@@ -27,7 +29,7 @@ const Login = () => {
 
   return (
     <div className={styles.container}>
-      <div style={{ width: 250 }}>
+      <div className={styles.formContainer}>
         {errorMessage ? <p className={styles.error}>{errorMessage}</p> : null}
 
         <Form>

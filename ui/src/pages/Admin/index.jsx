@@ -9,8 +9,6 @@ import ResetPassword from "./ResetPassword";
 const Home = () => {
   const { state: { user } } = useAuthState();
 
-  const style = { margin: '2em 0' }
-
   function isAdmin(user) {
     return user && user.Roles && user.Roles[0] === "Admin";
   }
@@ -18,13 +16,13 @@ const Home = () => {
   return (
     <Container>
       <Stack>
-        <div style={style}>
+        <div>
           {user.scopes === "sync15" && (<span>Using sync 15</span>)}
         </div>
-        <div style={style}>
+        <div>
           <ResetPassword />
         </div>
-        { isAdmin(user) && <div style={style}>
+        { isAdmin(user) && <div>
           <UserList />
         </div>}
       </Stack>

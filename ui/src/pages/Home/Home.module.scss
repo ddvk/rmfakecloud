@@ -1,0 +1,32 @@
+@import "../../theme.scss";
+
+.base {
+    display: flex;
+
+    flex: 1;
+    align-items: center;
+    flex-direction: column;
+
+    padding: 20px;
+    margin: 50px 0;
+    border: 2px dashed;
+    color: $foreground1;
+    background-color: $background1;
+
+    outline: none;
+    transition: border .24s ease-in-out;
+
+    border-color: $foreground1;
+
+    &.active {
+        border-color: $action;
+    }
+
+    &.accept {
+        border-color: $accept;
+    }
+
+    &.reject {
+        border-color: $reject;
+    }
+}

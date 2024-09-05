@@ -88,7 +88,7 @@ export default function FileViewer({ file, onSelect }) {
       </Navbar>
 
       {file && (
-        <div style={{ height: '100vh' }}>
+        <div>
           <Document file={downloadUrl} onLoadSuccess={onLoadSuccess}>
             <Page pageNumber={page} />
           </Document>

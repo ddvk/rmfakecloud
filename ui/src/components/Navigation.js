@@ -12,7 +12,7 @@ const NavigationBar = () => {
   }
 
   return (
-    <Navbar className="sticky-top" style={{ backdropFilter: 'blur(12px)', backgroundColor: 'rgba(255, 255, 255, .1)' }}>
+    <Navbar className="sticky-top">
       <Container>
         <Navbar.Brand>
           <Nav.Link as={NavLink} to="/">

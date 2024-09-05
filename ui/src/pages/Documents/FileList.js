@@ -25,7 +25,7 @@ export default function FileListViewer({ listStyle, files, onSelect }) {
   }
 
   const listItems = files.map(file =>
-    <div className="filelist-item p-2" key={file.id} onClick={() => onClickItem(file)} style={{ borderBottom: '1px solid #333' }}>
+    <div className="filelist-item p-2" key={file.id} onClick={() => onClickItem(file)}>
       <Stack direction="horizontal">
         <div>
           <FileIcon file={file} />
@@ -79,7 +79,6 @@ export default function FileListViewer({ listStyle, files, onSelect }) {
     <>
       {files && (listStyle === "list") && (
         <div>
-          <div style={{ height: '1em', width: '100%', borderBottom: '1px solid #333' }}></div>
           <Stack className="filelist">{listItems}</Stack>
         </div>
       )}

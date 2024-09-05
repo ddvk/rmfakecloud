@@ -12,17 +12,7 @@ import { ToggleButton, ToggleButtonGroup } from "react-bootstrap";
 import FileList from "./FileList";
 import apiservice from "../../services/api.service"
 
-
-const baseStyle = {
-  transition: 'background 0.3s ease',
-  backgroundColor: '#000'
-};
-const acceptStyle = {
-  backgroundColor: 'rgb(13, 110, 253, 0.3)'
-};
-const rejectStyle = {
-  backgroundColor: 'rgba(255, 255, 255, 0.3)'
-};
+import styles from "./Documents.module.scss"
 
 export default function Folder({ folder, onSelect, onUpdate }) {
   const [listStyle, setListStyle] = useState("grid");
@@ -96,14 +86,11 @@ export default function Folder({ folder, onSelect, onUpdate }) {
     noDragEventsBubbling: true,
   });
 
-  const style = useMemo(() => ({
-    ...baseStyle,
-    ...(isDragAccept ? acceptStyle : {}),
-    ...(isDragReject ? rejectStyle : {})
-  }), [
-    isDragReject,
-    isDragAccept
-  ]);
+  const className = useMemo(() => {
+    return `${styles.base} 
+            ${isDragAccept ? styles.accept : ''} 
+            ${isDragReject ? styles.reject : ''}`
+  }, [isDragReject, isDragAccept])
 
   return (
     <>
@@ -111,10 +98,10 @@ export default function Folder({ folder, onSelect, onUpdate }) {
         { folder && (<div><NameTag node={folder} /></div>) }
       </Navbar>
 
-      <Navbar style={{ borderBottom: '1px solid #eee' }}>
+      <Navbar className={styles.filedivider}>
         <Button size="sm" variant="outline" onClick={() => setShowCreateFolder(true)}>create Folder</Button>
         <Button size="sm" variant="outline" onClick={open}>upload File</Button>
-        <div style={{flex:1}}></div>
+        <div className={styles.stretch}></div>
         <ToggleButtonGroup value={listStyle} onChange={(v) => setListStyle(v)} name="abc">
           <ToggleButton id="grid" name="grid" size="sm" value="grid" variant="outline">
             <BsFillGridFill />
@@ -125,7 +112,7 @@ export default function Folder({ folder, onSelect, onUpdate }) {
         </ToggleButtonGroup>
       </Navbar>
 
-      <div {...getRootProps({ style })}>
+      <div {...getRootProps({ className })}>
         <input {...getInputProps()} />
         <FileList listStyle={listStyle} files={data.children} onSelect={onSelect} />
       </div>

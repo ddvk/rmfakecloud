@@ -3,13 +3,14 @@ import { useState } from "react";
 import { Container, Row, Col } from "react-bootstrap";
 import File from "./File";
 import Folder from "./Folder";
-import './Documents.scss';
 import Navbar from 'react-bootstrap/Navbar';
 import { BsSearch } from "react-icons/bs";
 import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
 import InputGroup from 'react-bootstrap/InputGroup';
 import { useAuthState } from "../../common/useAuthContext";
+
+import styles from "./Documents.module.scss";
 
 export default function DocumentList() {
   const [selectedId, setSelectedId] = useState("root");
@@ -40,7 +41,7 @@ export default function DocumentList() {
       <Row className="mt-2">
         <Col md={4}>
           <Navbar>
-            <div style={{ flex: 1, fontWeight: 'bold' }}>{user.UserID}</div>
+            <div className={`${styles.stretch} ${styles.userid}`}>{user.UserID}</div>
             <Button variant="outline" onClick={() => { setShowSearch(!showSearch); setTerm("") }}><BsSearch/></Button>
           </Navbar>
 

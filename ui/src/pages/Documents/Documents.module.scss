@@ -1,0 +1,32 @@
+@import "../../theme.scss";
+
+.base {
+    background-color: $background2;
+    transition: background 0.3s ease;
+
+    &.accept {
+        background-color: $accept;
+    }
+
+    &.reject {
+        background-color: $reject;
+    }
+}
+
+.selected {
+    color: $action;
+}
+
+.stretch {
+    display: flex;
+
+    flex: 1 1 0;
+
+    &.userid {
+        font-weight: bold;
+    }
+}
+
+.filedivider {
+    border-bottom: 2px solid $foreground1;
+}
