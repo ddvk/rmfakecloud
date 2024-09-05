@@ -106,11 +106,18 @@ code {
 
 div[role="tree"] {
     height: min-content !important;
-    max-height: 700px;
+    max-height: 700px !important;
+}
+
+@media (max-width: 768px) {
+  .documents-tree {
+    max-height: 25vh !important;
+  }
 }
 
 .documents-tree {
   height: min-content !important;
+  max-height: 700px;
 
   div[role=treeitem] {
     outline: none;
