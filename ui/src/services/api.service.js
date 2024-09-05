@@ -41,7 +41,17 @@ class ApiServices {
     const formData = new FormData();
     formData.append("parent", parent);
     files.forEach((f) => {
-      formData.append("file", f);
+      // file extensions which are not lowecase break the upload
+
+      // set the file extension to be lower case
+      let sub = f.name.split(".")
+      const ext = sub[sub.length - 1].toLowerCase()
+      sub.pop()
+      sub.push(ext)
+
+      // copy file data to new (lowecase) file
+      const newFile = new File([f], sub.join("."), {type: f.type});
+      formData.append("file", newFile);
     });
 
     return fetch(`${constants.ROOT_URL}/documents/upload`, {
