@@ -3,7 +3,7 @@ import { useDropzone } from 'react-dropzone';
 
 import apiservice from "../../services/api.service";
 
-import styles from "./Home.module.scss";
+import styles from "./Documents.module.scss";
 
 export default function StyledDropzone(props) {
   const [uploading, setUploading] = useState(false);
@@ -35,10 +35,10 @@ export default function StyledDropzone(props) {
   } = useDropzone({ accept: 'application/pdf, application/zip, application/epub+zip', onDropAccepted: onDrop });
 
   const className = useMemo(() => {
-    return `${styles.base} 
-            ${isDragActive ? styles.active : ''} 
-            ${isDragAccept ? styles.accept : ''} 
-            ${isDragReject ? styles.reject : ''}`
+    return `${styles.upload} 
+            ${isDragActive ? styles.uploadActive : ''} 
+            ${isDragAccept ? styles.uploadAccept : ''} 
+            ${isDragReject ? styles.uploadReject : ''}`
   }, [isDragActive, isDragReject, isDragAccept])
 
   const hint = "Drag 'n' drop some files here, or click to select files to upload"

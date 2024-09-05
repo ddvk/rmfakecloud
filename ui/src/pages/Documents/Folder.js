@@ -11,7 +11,7 @@ import { ToggleButton, ToggleButtonGroup } from "react-bootstrap";
 import FileList from "./FileList";
 import apiservice from "../../services/api.service"
 
-import Upload from "../Home/Upload"
+import Upload from "./Upload"
 import styles from "./Documents.module.scss"
 
 export default function Folder({ folder, onSelect, onUpdate }) {
