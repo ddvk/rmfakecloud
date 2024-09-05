@@ -35,7 +35,6 @@ const NavigationBar = () => {
                 <NavDropdown id="userMenu" title={user.UserID} align="end">
                   <NavDropdown.Item as={NavLink} to="/connect">Connect Device</NavDropdown.Item>
                   <NavDropdown.Item as={NavLink} to="/admin">Admin</NavDropdown.Item>
-                  <NavDropdown.Item as={NavLink} to="/about">About</NavDropdown.Item>
                   <NavDropdown.Divider />
                   <NavDropdown.Item as={Button} onClick={handleLogout}>Log out</NavDropdown.Item>
                 </NavDropdown>

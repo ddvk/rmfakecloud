@@ -10,7 +10,6 @@ import Navigationbar from "./components/Navigation";
 
 import Login from "./pages/Login";
 import Home from "./pages/Home";
-import About from "./pages/About";
 import Connect from "./pages/Connect";
 import Documents from "./pages/Documents";
 import Admin from "./pages/Admin";
@@ -36,7 +35,6 @@ export default function App() {
               <PrivateRoute path="/documents" component={Documents} />
               <PrivateRoute path="/connect" component={Connect} />
               <PrivateRoute path="/admin" roles={[Role.Admin]} component={Admin} />
-              <PrivateRoute path="/about" component={About} />
 
               <Route path="/login" component={Login} />
               <Route component={NoMatch} />
