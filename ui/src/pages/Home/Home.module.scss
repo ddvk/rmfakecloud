@@ -7,9 +7,10 @@
     align-items: center;
     flex-direction: column;
 
+    margin: 0;
     padding: 20px;
-    margin: 50px 0;
     border: 2px dashed;
+    border-top: none;
     color: $foreground1;
     background-color: $background1;
 

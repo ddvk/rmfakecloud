@@ -9,6 +9,7 @@ export default function StyledDropzone(props) {
   const [uploading, setUploading] = useState(false);
   const [lasterror, setLastError] = useState();
   const uploadFolder = props.uploadFolder;
+
   var onDrop = async (acceptedFiles) => {
     try {
       setUploading(true);
@@ -24,6 +25,7 @@ export default function StyledDropzone(props) {
     }
     console.log('done')
   }
+
   const {
     getRootProps,
     getInputProps,
@@ -40,7 +42,7 @@ export default function StyledDropzone(props) {
   }, [isDragActive, isDragReject, isDragAccept])
 
   const hint = "Drag 'n' drop some files here, or click to select files to upload"
-  const wasError = lasterror !== undefined && lasterror !== ""
+  const wasError = lasterror !== undefined && lasterror !== null && lasterror !== ""
 
   if (!uploading) {
     return (

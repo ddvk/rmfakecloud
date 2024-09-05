@@ -79,6 +79,7 @@ export default function FileListViewer({ listStyle, files, onSelect }) {
     <>
       {files && (listStyle === "list") && (
         <div>
+          <div style={{ height: '1em', width: '100%' }}></div>
           <Stack className="filelist">{listItems}</Stack>
         </div>
       )}

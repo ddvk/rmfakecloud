@@ -1,8 +1,7 @@
-import { useCallback, useMemo, useState } from "react";
+import { useState } from "react";
 import Navbar from 'react-bootstrap/Navbar';
 import { Button, InputGroup, Form } from "react-bootstrap";
 import { BsChevronRight } from "react-icons/bs";
-import { useDropzone } from 'react-dropzone';
 import Modal from 'react-bootstrap/Modal';
 import { BsFillGridFill } from "react-icons/bs";
 import { FaList } from "react-icons/fa";
@@ -12,6 +11,7 @@ import { ToggleButton, ToggleButtonGroup } from "react-bootstrap";
 import FileList from "./FileList";
 import apiservice from "../../services/api.service"
 
+import Upload from "../Home/Upload"
 import styles from "./Documents.module.scss"
 
 export default function Folder({ folder, onSelect, onUpdate }) {
@@ -20,7 +20,6 @@ export default function Folder({ folder, onSelect, onUpdate }) {
   const [showCreateFileModal, setShowCreateFolder] = useState(false);
 
   const { data, id } = folder;
-  const uploadFolder = id;
 
   const onCreateFolderClick = async () => {
     const res = await apiservice.createFolder({ name: folderName, parentId: id});
@@ -42,55 +41,7 @@ export default function Folder({ folder, onSelect, onUpdate }) {
     return <></>
   }
 
-  const onReject = () => {
-    console.log('drop rejected');
-  }
-
-  const onUploadDone = useCallback((res) => {
-    const upload = res.pop();
-    console.log("finished uploading file", upload.ID);
-
-    onUpdate()
-    //TODO: focus newloy uploaded file: onSelect(upload.ID);
-    //does not work, because tree.select() is only supported on 'visible' items
-  }, [onUpdate]);
-
-  const onDrop = useCallback(async (acceptedFiles) => {
-    try {
-      //setUploading(true);
-      const res = await apiservice.upload(uploadFolder, acceptedFiles)
-      onUploadDone(res);
-      //setLastError(null)
-      //props.filesUploaded()
-    } catch (e) {
-      //setLastError(e)
-      console.error(e)
-    } finally{
-      //setUploading(false);
-    }
-  }, [uploadFolder, onUploadDone]);
-
-  const {
-    getRootProps,
-    getInputProps,
-    open,
-    isDragAccept,
-    isDragReject
-  } = useDropzone({
-    accept: 'application/pdf, application/zip, application/epub+zip',
-    onDropAccepted: onDrop,
-    onDropRejected: onReject,
-    noClick: true,
-    noKeyboard: true,
-    multiple: true,
-    noDragEventsBubbling: true,
-  });
-
-  const className = useMemo(() => {
-    return `${styles.base} 
-            ${isDragAccept ? styles.accept : ''} 
-            ${isDragReject ? styles.reject : ''}`
-  }, [isDragReject, isDragAccept])
+  const fileUploaded = () => {}
 
   return (
     <>
@@ -99,8 +50,7 @@ export default function Folder({ folder, onSelect, onUpdate }) {
       </Navbar>
 
       <Navbar className={styles.filedivider}>
-        <Button size="sm" variant="outline" onClick={() => setShowCreateFolder(true)}>create Folder</Button>
-        <Button size="sm" variant="outline" onClick={open}>upload File</Button>
+        <Button size="sm" variant="outline" onClick={() => setShowCreateFolder(true)}>Create Folder</Button>
         <div className={styles.stretch}></div>
         <ToggleButtonGroup value={listStyle} onChange={(v) => setListStyle(v)} name="abc">
           <ToggleButton id="grid" name="grid" size="sm" value="grid" variant="outline">
@@ -112,10 +62,8 @@ export default function Folder({ folder, onSelect, onUpdate }) {
         </ToggleButtonGroup>
       </Navbar>
 
-      <div {...getRootProps({ className })}>
-        <input {...getInputProps()} />
-        <FileList listStyle={listStyle} files={data.children} onSelect={onSelect} />
-      </div>
+      <Upload filesUploaded={fileUploaded} uploadFolder={id}></Upload>
+      <FileList listStyle={listStyle} files={data.children} onSelect={onSelect} />
 
       <Modal show={showCreateFileModal} onHide={() => setShowCreateFolder(false)}>
         <Modal.Header closeButton>
@@ -129,7 +77,6 @@ export default function Folder({ folder, onSelect, onUpdate }) {
             <Button onClick={onCreateFolderClick}>Create</Button>
           </InputGroup>
         </Modal.Body>
-
       </Modal>
     </>
   );
