@@ -41,7 +41,9 @@ export default function Folder({ folder, onSelect, onUpdate }) {
     return <></>
   }
 
-  const fileUploaded = () => {}
+  const fileUploaded = () => {
+    onUpdate();
+  }
 
   return (
     <>

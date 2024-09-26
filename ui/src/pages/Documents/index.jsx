@@ -37,7 +37,7 @@ export default function DocumentList() {
   };
 
   return (
-    <Container fluid>
+    <Container fluid key={counter}>
       <Row className="mt-2">
         <Col md={4}>
           <Navbar>

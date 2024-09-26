@@ -42,11 +42,6 @@ const Home = () => {
               We support the Read on reMarkable Extension. Read more about it in the online documentation.
             </p>
           </li>
-          <li>
-            <p>
-              You need to refresh the page to see the files you just uploaded.
-            </p>
-          </li>
         </ul>
       </main>
     </Container>

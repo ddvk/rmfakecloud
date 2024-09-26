@@ -15,13 +15,13 @@ export default function StyledDropzone(props) {
       setUploading(true);
       await apiservice.upload(uploadFolder, acceptedFiles)
       setLastError(null)
-      props.filesUploaded()
     } catch (e) {
       setLastError(e)
       console.error(e)
     }
     finally{
       setUploading(false);
+      props.filesUploaded()
     }
     console.log('done')
   }
