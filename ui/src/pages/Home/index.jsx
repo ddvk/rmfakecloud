@@ -2,7 +2,7 @@ import Container from "react-bootstrap/Container";
 
 const Home = () => {
   return (
-    <Container>
+    <Container fluid>
       <main>
         <h1>Welcome to your own reMarkable Cloud!</h1>
         <h2>About</h2>

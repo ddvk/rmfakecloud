@@ -14,7 +14,7 @@ const Home = () => {
   }
 
   return (
-    <Container>
+    <Container fluid>
       <Stack>
         <div>
           {user.scopes === "sync15" && (<span>Using sync 15</span>)}

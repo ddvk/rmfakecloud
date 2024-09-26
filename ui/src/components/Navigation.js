@@ -13,7 +13,7 @@ const NavigationBar = () => {
 
   return (
     <Navbar className="sticky-top">
-      <Container>
+      <Container fluid>
         <Navbar.Brand>
           <Nav.Link as={NavLink} to="/">
             rmfakecloud

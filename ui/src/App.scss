@@ -66,8 +66,8 @@
     margin-bottom: 0.5em;
 }
 
-#root > .container {
-    margin-top: 50px;
+#root > .container-fluid {
+    margin-top: 25px;
 }
 
 #root > nav { 
@@ -97,6 +97,10 @@ div[role="button"] > p {
 
 canvas {
   margin: auto;
+  width: auto !important;
+  height: auto !important;
+  max-width: 100%;
+  max-height: calc(100vh - 230px);
 }
 
 code {
@@ -113,6 +117,13 @@ div[role="tree"] {
   .documents-tree {
     max-height: 25vh !important;
   }
+}
+
+.container-fluid {
+  box-sizing: border-box;
+  margin: 0 50px;
+  max-width: none;
+  width: calc(100vw - 100px) !important;
 }
 
 .documents-tree {
