@@ -734,8 +734,8 @@ func (app *App) blobStorageUpload(c *gin.Context) {
 }
 
 func (app *App) syncUpdateRootV3(c *gin.Context) {
-	var rootv3 messages.SyncRootV3
-	err := json.NewDecoder(c.Request.Body).Decode(&rootv3)
+	var rootv3 messages.SyncRootV3Request
+	err := c.BindJSON(&rootv3)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusBadRequest)
@@ -750,11 +750,22 @@ func (app *App) syncUpdateRootV3(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, messages.SyncRootV3{
-		Generation: newgeneration,
-		Hash:       rootv3.Hash,
+	if rootv3.Broadcast {
+		deviceID := c.GetString(deviceIDKey)
+
+		log.Info("got sync completed, gen: ", newgeneration)
+
+		app.hub.NotifySync(uid, deviceID)
+	}
+
+	c.JSON(http.StatusOK, messages.SyncRootV3Response{
+		Generation:    newgeneration,
+		Hash:          rootv3.Hash,
+		SchemaVersion: SchemaVersion,
 	})
 }
+
+const SchemaVersion = 3
 
 func (app *App) syncGetRootV3(c *gin.Context) {
 	uid := c.GetString(userIDKey)
@@ -777,9 +788,10 @@ func (app *App) syncGetRootV3(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, messages.SyncRootV3{
-		Generation: generation,
-		Hash:       string(roothash),
+	c.JSON(http.StatusOK, messages.SyncRootV3Response{
+		Generation:    generation,
+		Hash:          string(roothash),
+		SchemaVersion: SchemaVersion,
 	})
 }
 
@@ -838,9 +850,10 @@ func (app *App) blobStorageWrite(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, messages.SyncRootV3{
-		Generation: newgeneration,
-		Hash:       string(blobID),
+	c.JSON(http.StatusOK, messages.SyncRootV3Response{
+		Generation:    newgeneration,
+		Hash:          string(blobID),
+		SchemaVersion: SchemaVersion,
 	})
 }
 

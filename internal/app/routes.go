@@ -34,18 +34,18 @@ func (app *App) registerRoutes(router *gin.Engine) {
 			"webapp":        endpoint,
 		})
 	})
-  router.GET("/discovery/v1/webapp", func(c *gin.Context) {                                                                                                       
-                endpoint, err := app.MyEndpoint()                                                                                                                 
-                if err != nil {                                                                                                                                   
-                        log.Warn("endpoint error:", err.Error())                                                                                                  
-                        c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"err": err.Error()})                                                          
-                        return                                                                                                                                    
-                }                                                                                                                                                 
-          c.JSON(http.StatusOK, gin.H{                                                                                                                            
-                  "Status": "OK",                                                                                                                                 
-                  "Host": endpoint,                                                                                                                               
-          })                                                                                                                                                      
-  })                                                                                                                                                              
+	router.GET("/discovery/v1/webapp", func(c *gin.Context) {
+		endpoint, err := app.MyEndpoint()
+		if err != nil {
+			log.Warn("endpoint error:", err.Error())
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"Status": "OK",
+			"Host":   endpoint,
+		})
+	})
 
 	router.GET("/health", func(c *gin.Context) {
 		count := app.hub.ClientCount()

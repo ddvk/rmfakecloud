@@ -136,10 +136,18 @@ type SyncCompletedRequestV2 struct {
 	Generation int64 `json:"generation"`
 }
 
-// SyncRootV3
-type SyncRootV3 struct {
+// SyncRootV3Request
+type SyncRootV3Request struct {
 	Generation int64  `json:"generation"`
 	Hash       string `json:"hash,omitempty"`
+	Broadcast  bool   `json:"broadcast"`
+}
+
+// SyncRootV3Response
+type SyncRootV3Response struct {
+	Generation    int64  `json:"generation"`
+	Hash          string `json:"hash,omitempty"`
+	SchemaVersion int64  `json:"schemaVersion"`
 }
 
 type CheckFiles struct {
