@@ -24,6 +24,14 @@ const Home = () => {
               just specify the URL of your instance with the RMAPI_HOST variable like
               so: <code>RMAPI_HOST=https//rmfakeclud.example.com rmapi</code>
             </p>
+            <ul>
+              <li>
+                <p>
+                  Do note that the original project is now unmaintained. You should consider
+                  using <a href="https://github.com/ddvk/rmapi">this fork</a> instead.
+                </p>
+              </li>
+            </ul>
           </li>
           <li>
             <p>
@@ -41,6 +49,23 @@ const Home = () => {
             <p>
               We support the Read on reMarkable Extension. Read more about it in the online documentation.
             </p>
+          </li>
+          <li>
+            <p>
+              Documents will be uploaded to the selected (highlighted) directory.
+            </p>
+            <ul>
+              <li>
+                <p>
+                  Select directories by clicking on them.
+                </p>
+              </li>
+              <li>
+                <p>
+                  Clicking on selected directoires again will open or close them respectively.
+                </p>
+              </li>
+            </ul>
           </li>
         </ul>
       </main>
