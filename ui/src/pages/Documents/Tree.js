@@ -10,19 +10,9 @@ const DocumentTree = ({ selection, onSelect, term, counter }) => {
   const onTreeSelect = (sel) => {
     if (sel.length > 0) {
       const node = sel[0];
-      node.open();
       onSelect(node);
     }
   }
-
-  /*
-  function FolderArrow({ node }: { node: NodeApi }) {
-    if (node.isLeaf) return <></>;
-    return (<>
-      {node.isOpen ? <AiOutlineMinusSquare /> : <AiOutlinePlusSquare />}
-    </>);
-  }
-  */
 
   function Node({ node, style, dragHandle }) {
     return (
@@ -30,14 +20,8 @@ const DocumentTree = ({ selection, onSelect, term, counter }) => {
         style={style}
         ref={dragHandle}
         className={ node.isSelected ? styles.selected : ""}
-        onClick={() => node.isInternal && node.open()}
       >
         <div className={itemClassName(node.data)}>
-          {/* TODO: decide on how to make this look not ugly
-          <span onClick={() => node.isInternal && node.toggle()}>
-            <FolderArrow node={node} />
-          </span>
-          */}
           <FileIcon file={node.data} />
           {node.data.name}
         </div>
@@ -113,6 +97,9 @@ const DocumentTree = ({ selection, onSelect, term, counter }) => {
     <div>
 
       <Tree
+        ref={(tree) => {
+          global.tree = tree;
+        }}
         data={entries}
         selection={selection}
         rowHeight={36}

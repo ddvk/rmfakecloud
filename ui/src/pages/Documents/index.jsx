@@ -23,13 +23,26 @@ export default function DocumentList() {
 
   const isFolder = selected && selected.data && selected.data.isFolder;
 
+  const toggleNode = (node) => {
+    if (node != null) {
+      node.toggle()
+    }
+  }
+
+  const findNode = (id) => {
+    global.tree.openParents(id)
+    return global.tree.get(id)
+  }
+
   const onSelect = (node) => {
     setSelected(node);
     setSelectedId(node.id);
+    toggleNode(node)
   };
 
   const onSelectById = (id) => {
     setSelectedId(id);
+    toggleNode(findNode(id))
   };
 
   const onUpdate = () => {
