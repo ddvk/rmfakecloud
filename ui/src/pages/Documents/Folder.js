@@ -1,7 +1,6 @@
 import { useState } from "react";
 import Navbar from 'react-bootstrap/Navbar';
 import { Button, InputGroup, Form } from "react-bootstrap";
-import { BsChevronRight } from "react-icons/bs";
 import Modal from 'react-bootstrap/Modal';
 import { BsFillGridFill } from "react-icons/bs";
 import { FaList } from "react-icons/fa";
@@ -10,6 +9,8 @@ import { ToggleButton, ToggleButtonGroup } from "react-bootstrap";
 
 import FileList from "./FileList";
 import apiservice from "../../services/api.service"
+
+import NameTag from "../../components/NameTag"
 
 import Upload from "./Upload"
 import styles from "./Documents.module.scss"
@@ -30,17 +31,6 @@ export default function Folder({ folder, onSelect, onUpdate }) {
     onUpdate();
   }
 
-  const NameTag = ({ node }) => {
-    if (node.parent) {
-      return (<>
-        <NameTag node={node.parent} />
-        { !node.parent.isRoot && <BsChevronRight /> }
-        <Button variant="outline" onClick={() => onSelect(node.id)}>{node.data.name}</Button>
-      </>)
-    }
-    return <></>
-  }
-
   const fileUploaded = () => {
     onUpdate();
   }
@@ -48,7 +38,7 @@ export default function Folder({ folder, onSelect, onUpdate }) {
   return (
     <>
       <Navbar style={{ marginLeft: '-12px' }}>
-        { folder && (<div><NameTag node={folder} /></div>) }
+        { folder && (<div><NameTag node={folder} onSelect={onSelect} /></div>) }
       </Navbar>
 
       <Navbar className={styles.filedivider}>

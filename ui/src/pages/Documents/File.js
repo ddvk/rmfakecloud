@@ -4,10 +4,11 @@ import { Document, Page } from "react-pdf";
 import Navbar from 'react-bootstrap/Navbar';
 import { FaChevronRight, FaChevronLeft, } from "react-icons/fa6";
 import { AiOutlineDownload } from "react-icons/ai";
-import { BsChevronRight } from "react-icons/bs";
 import constants from "../../common/constants";
 
 import apiservice from "../../services/api.service"
+
+import NameTag from "../../components/NameTag"
 
 export default function FileViewer({ file, onSelect }) {
   const { data } = file;
@@ -32,17 +33,7 @@ export default function FileViewer({ file, onSelect }) {
     });
   };
 
-  const NameTag = ({ node }) => {
-    if (node.parent) {
-      return (<>
-        <NameTag node={node.parent} />
-        { !node.parent.isRoot && <BsChevronRight /> }
-        <Button variant="outline" onClick={() => onSelect(node.id)}>{node.data.name}</Button>
-      </>)
-    }
-    return <></>
-  }
-
+  // TODO: add loading and error handling
   const onDownloadClick = () => {
     //setDownloadError(null)
     //const {id, name} = dwn
@@ -64,7 +55,7 @@ export default function FileViewer({ file, onSelect }) {
   return (
     <>
       <Navbar style={{ marginLeft: '-12px' }}>
-        { file && (<div><NameTag node={file} /></div>) }
+        { file && (<div><NameTag node={file} onSelect={onSelect} /></div>) }
       </Navbar>
 
       <Navbar>
