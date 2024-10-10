@@ -62,3 +62,13 @@
         border-color: $reject;
     }
 }
+
+.uploadWaiting {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding-top: 1em;
+    border: none;
+    width: 100%;
+    background-color: transparent;
+}

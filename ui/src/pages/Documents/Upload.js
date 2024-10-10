@@ -52,6 +52,6 @@ export default function StyledDropzone(props) {
         </div>
     )
   } else {
-    return <div><p>Uploading...</p></div>
+    return <div><Spinner animation="grow" /></div>
   }
 }
