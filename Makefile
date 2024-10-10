@@ -1,4 +1,4 @@
-VERSION :=$(shell git describe --tags)
+VERSION :=$(shell git describe --tags --always)
 LDFLAGS := "-s -w -X main.version=$(VERSION)"
 OUT_DIR := dist
 CMD := ./cmd/rmfakecloud
