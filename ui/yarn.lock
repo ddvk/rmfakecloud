@@ -8284,7 +8284,7 @@ react-app-polyfill@^3.0.0:
     regenerator-runtime "^0.13.9"
     whatwg-fetch "^3.6.2"
 
-react-arborist@^3.2.0:
+react-arborist@^3.4.0:
   version "3.4.0"
   resolved "https://registry.yarnpkg.com/react-arborist/-/react-arborist-3.4.0.tgz#8ef3de2c81d3b8cea0f4f4575c1971bd80c556c5"
   integrity sha512-QI46oRGXJr0oaQfqqVobIiIoqPp5Y5gM69D2A2P7uHVif+X75XWnScR5drC7YDKgJ4CXVaDeFwnYKOWRRfncMg==
