@@ -4,26 +4,24 @@ import { Button, InputGroup, Form } from "react-bootstrap";
 import Modal from 'react-bootstrap/Modal';
 import { BsFillGridFill } from "react-icons/bs";
 import { FaList } from "react-icons/fa";
-
 import { ToggleButton, ToggleButtonGroup } from "react-bootstrap";
 
-import FileList from "./FileList";
 import apiservice from "../../services/api.service"
-
-import NameTag from "../../components/NameTag"
-
-import Upload from "./Upload"
 import styles from "./Documents.module.scss"
 
-export default function Folder({ folder, onSelect, onUpdate }) {
+import Upload from "./Upload"
+import FileList from "./FileList";
+import NameTag from "../../components/NameTag"
+
+export default function Folder({ selection, onSelect, onUpdate }) {
   const [listStyle, setListStyle] = useState("grid");
   const [folderName, setFolderName] = useState("");
   const [showCreateFileModal, setShowCreateFolder] = useState(false);
 
-  const { data, id } = folder;
+  const folder = selection
 
   const onCreateFolderClick = async () => {
-    const res = await apiservice.createFolder({ name: folderName, parentId: id});
+    const res = await apiservice.createFolder({ name: folderName, parentId: selection.id});
     console.log("created folder with id", res.ID);
     setFolderName("");
     setShowCreateFolder(false);
@@ -35,6 +33,10 @@ export default function Folder({ folder, onSelect, onUpdate }) {
     onUpdate();
   }
 
+  // this should generally not happen, but just in case
+  if (!folder) {
+    return "nothing selected"
+  }
   return (
     <>
       <Navbar style={{ marginLeft: '-12px' }}>
@@ -54,8 +56,8 @@ export default function Folder({ folder, onSelect, onUpdate }) {
         </ToggleButtonGroup>
       </Navbar>
 
-      <Upload filesUploaded={fileUploaded} uploadFolder={id}></Upload>
-      <FileList listStyle={listStyle} files={data.children} onSelect={onSelect} />
+      <Upload filesUploaded={fileUploaded} uploadFolder={selection.id}></Upload>
+      <FileList listStyle={listStyle} files={folder.children} onSelect={onSelect} />
 
       <Modal show={showCreateFileModal} onHide={() => setShowCreateFolder(false)}>
         <Modal.Header closeButton>

@@ -1,12 +1,9 @@
-import { React, useEffect, useState } from 'react';
-import apiservice from "../../services/api.service"
 import { Tree } from 'react-arborist';
 import FileIcon from './FileIcon';
 
 import styles from "./Documents.module.scss"
 
-const DocumentTree = ({ selection, onSelect, term, counter }) => {
-
+const DocumentTree = ({ selection, onSelect, treeRef, term, entries }) => {
   const onTreeSelect = (sel) => {
     if (sel.length > 0) {
       const node = sel[0];
@@ -33,86 +30,33 @@ const DocumentTree = ({ selection, onSelect, term, counter }) => {
     return <div style={{ top, left }}></div>;
   }
 
-  const [entries, setEntries] = useState([]);
-
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState();
-
   const itemClassName = (item) => {
     if (item.isFolder) return "treeitem-nodename is-folder";
     return "treeitem-nodename";
   }
 
-  const loadDocs = async () => {
-    setLoading(true)
-    const { Trash, Entries } = await apiservice.listDocument()
-      .catch(e => {
-        setLoading(false)
-        setError(e)
-      })
-    setLoading(false)
-    // create virtual root node
-    const root = {
-      id: "root",
-      name: "My Files",
-      isFolder: true,
-      icon: "device",
-      children: Entries,
-    }
-    const trash = {
-      id: "trash",
-      name: "Trash",
-      isFolder: true,
-      icon: "trash",
-      children: Trash,
-    }
-    setEntries([root, trash]);
-  }
-
-  const onCreate = ({ parentId, index, type }) => {};
-  const onRename = ({ id, name }) => {};
-  const onMove = ({ dragIds, parentId, index }) => {};
-  const onDelete = ({ ids }) => {};
-
-  useEffect(() => {
-    loadDocs();
-  },[counter])
-
-  useEffect(() => {
-    loadDocs();
-
-    // eslint-disable-next-line
-  },[])
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-  if (error) {
-    return <div>{error}</div>;
-  }
   if (entries && !entries.length) {
     return <div>No documents</div>;
   }
   return (
     <div>
-
       <Tree
-        ref={(tree) => {
-          global.tree = tree;
+        ref={(arg) => {
+          if (treeRef.current == null) {
+            if (arg) treeRef.current = arg
+          }
+
+          return treeRef.current
         }}
         data={entries}
-        selection={selection}
+        selection={selection?.id}
         rowHeight={36}
         indent={36}
         width="100%"
         height={700}
         renderCursor={Cursor}
         searchTerm={term}
-        onCreate={onCreate}
-        onRename={onRename}
         onSelect={onTreeSelect}
-        onMove={onMove}
-        onDelete={onDelete}
         className="documents-tree"
         disableEdit={true}
         disableDrag={true}

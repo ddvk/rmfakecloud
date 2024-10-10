@@ -13,10 +13,9 @@ function formatBytes(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-export default function FileListViewer({ listStyle, files, onSelect }) {
-
+export default function FileListViewer({ listStyle, files, onSelect, counter }) {
   const onClickItem = (file) => {
-    onSelect(file.id);
+    onSelect(file);
   }
 
   const isFolderClassName = (item) => {
@@ -28,49 +27,44 @@ export default function FileListViewer({ listStyle, files, onSelect }) {
     <div className="filelist-item p-2" key={file.id} onClick={() => onClickItem(file)}>
       <Stack direction="horizontal">
         <div>
-          <FileIcon file={file} />
+          <FileIcon file={file.data} />
         </div>
         <div className={isFolderClassName(file)}>
-          {file.name}
+          {file.data.name}
         </div>
         <div style={{ flex: 1 }}>
         </div>
         <div className="filelist-metadata">
-          {file.isFolder && <span>{file.children.length || "empty"}</span> }
-          {!file.isFolder && <span>{formatBytes(file.size)}</span> }
+          {!file.isLeaf && <span>{file.children.length || "empty"}</span> }
+          {file.isLeaf && <span>{formatBytes(file.data.size)}</span> }
         </div>
         <div className="filelist-metadata">
-          {moment(file.lastModified).format('L')}{" "}
-          {moment(file.lastModified).format('LT')}
+          {moment(file.data.lastModified).format('L')}{" "}
+          {moment(file.data.lastModified).format('LT')}
         </div>
       </Stack>
     </div>
   );
 
-  const gridFolderItems = files.filter(file => file.isFolder).map(file =>
+  const gridFolderItems = files.filter(file => !file.isLeaf).map(file =>
     <div className="filegrid-folder-item" key={file.id} onClick={() => onClickItem(file)}>
       <div>
-        <FileIcon file={file} />
-        {file.name}
+        <FileIcon file={file.data} />
+        {file.data.name}
       </div>
-      {/*
-      <div className="filegrid-metadata">
-        {file.children.length || "empty"}
-      </div>
-      */}
     </div>
   );
 
-  const gridFileItems = files.filter(file => !file.isFolder).map(file =>
+  const gridFileItems = files.filter(file => file.isLeaf).map(file =>
     <div className="filegrid-file-item" key={file.id} onClick={() => onClickItem(file)}>
       <div className="fileicon">
-        <FileIcon file={file} />
+        <FileIcon file={file.data} />
       </div>
       <div className="filename">
-        {file.name}
+        {file.data.name}
       </div>
       <div className="filegrid-metadata">
-        <span>{formatBytes(file.size)}</span>
+        <span>{formatBytes(file.data.size)}</span>
       </div>
     </div>
   );

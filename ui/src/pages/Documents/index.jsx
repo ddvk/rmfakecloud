@@ -1,5 +1,6 @@
-import Tree from "./Tree";
-import { useState } from "react";
+import DocumentTree from "./Tree";
+import apiservice from "../../services/api.service"
+import { useEffect, useRef, useState } from "react";
 import { Container, Row, Col } from "react-bootstrap";
 import File from "./File";
 import Folder from "./Folder";
@@ -13,68 +14,109 @@ import { useAuthState } from "../../common/useAuthContext";
 import styles from "./Documents.module.scss";
 
 export default function DocumentList() {
-  const [selectedId, setSelectedId] = useState("root");
   const [selected, setSelected] = useState(null);
   const [term, setTerm] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [counter, setCounter] = useState(0);
+  const [entries, setEntries] = useState([])
 
   const { state: { user } } = useAuthState();
 
-  const isFolder = selected && selected.data && selected.data.isFolder;
+  const treeRef = useRef(null);
 
   const toggleNode = (node) => {
-    if (node != null) {
-      node.toggle()
+    if (node == null) {
+      return
     }
+    if (typeof node.toggle !== 'function') {
+      return
+    }
+
+    node.toggle()
   }
 
-  const findNode = (id) => {
-    global.tree.openParents(id)
-    return global.tree.get(id)
+  const findInTree = (id) => {
+    treeRef.current.openParents(id)
+    return treeRef.current.get(id)
   }
 
+  // select from tree. node must extend NodeApi from react-arborist
   const onSelect = (node) => {
     setSelected(node);
-    setSelectedId(node.id);
     toggleNode(node)
-  };
-
-  const onSelectById = (id) => {
-    setSelectedId(id);
-    toggleNode(findNode(id))
   };
 
   const onUpdate = () => {
     setCounter(counter+1);
+    loadDocs()
   };
 
+  if (!selected) {
+    const tree = treeRef.current
+    if (tree) {
+      setSelected(tree.root.children[0])
+    }
+  }
+
+  // TODO: add loading and error handling
+  const loadDocs = async () => {
+    const { Trash, Entries } = await apiservice.listDocument()
+      .catch(e => { })
+    // create virtual root node
+    const root = {
+      id: "root",
+      name: "My Files",
+      isFolder: true,
+      icon: "device",
+      children: Entries,
+    }
+    const trash = {
+      id: "trash",
+      name: "Trash",
+      isFolder: true,
+      icon: "trash",
+      children: Trash,
+    }
+    setEntries([root, trash]);
+
+    // updates selected node to its new contents
+    if (selected) {
+      setSelected(findInTree(selected.id))
+    } else {
+      setSelected(entries[0])
+    }
+  }
+
+  useEffect(() => {
+    loadDocs()
+  }, [])
+
   return (
-    <Container fluid key={counter}>
-      <Row className="mt-2">
-        <Col md={4}>
-          <Navbar>
-            <div className={`${styles.stretch} ${styles.userid}`}>{user.UserID}</div>
-            <Button variant="outline" onClick={() => { setShowSearch(!showSearch); setTerm("") }}><BsSearch/></Button>
-          </Navbar>
+    <Container fluid>
+        <Row className="mt-2">
+          <Col md={4}>
+            <Navbar>
+              <div className={`${styles.stretch} ${styles.userid}`}>{user.UserID}</div>
+              <Button variant="outline" onClick={() => { setShowSearch(!showSearch); setTerm("") }}><BsSearch/></Button>
+            </Navbar>
 
-          {showSearch && <div>
-            <InputGroup className="mb-3">
-              <InputGroup.Text>
-                <BsSearch />
-              </InputGroup.Text>
+            {showSearch && <div>
+              <InputGroup className="mb-3">
+                <InputGroup.Text>
+                  <BsSearch />
+                </InputGroup.Text>
 
-              <Form.Control autoFocus size="sm" type="text" value={term} onChange={(e) => { setTerm(e.currentTarget.value); }} />
-            </InputGroup>
-          </div>}
+                <Form.Control autoFocus size="sm" type="text" value={term} onChange={(e) => { setTerm(e.currentTarget.value); }} />
+              </InputGroup>
+            </div>}
 
-          <Tree selection={selectedId} onSelect={onSelect} term={term} counter={counter} />
-        </Col>
-        <Col md={8}>
-          {selected && !isFolder && <File file={selected} onSelect={onSelectById} />}
-          {selected && isFolder && <Folder folder={selected} onSelect={onSelectById} onUpdate={onUpdate} />}
-        </Col>
-      </Row>
+            <DocumentTree selection={selected} onSelect={onSelect} treeRef={treeRef} term={term} entries={entries} />
+          </Col>
+          <Col md={8}>
+            {selected && selected.isLeaf && <File file={selected} onSelect={onSelect} />}
+            {selected && !selected.isLeaf && <Folder selection={selected} onSelect={onSelect} onUpdate={onUpdate} />}
+          </Col>
+        </Row>
     </Container>
   );
 }

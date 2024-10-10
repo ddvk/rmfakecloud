@@ -1,9 +1,14 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
+import Spinner from 'react-bootstrap/Spinner';
 
 import apiservice from "../../services/api.service";
 
 import styles from "./Documents.module.scss";
+
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 export default function StyledDropzone(props) {
   const [uploading, setUploading] = useState(false);
@@ -13,7 +18,9 @@ export default function StyledDropzone(props) {
   var onDrop = async (acceptedFiles) => {
     try {
       setUploading(true);
+      // TODO: add loading and error handling
       await apiservice.upload(uploadFolder, acceptedFiles)
+      // await delay(100)
       setLastError(null)
     } catch (e) {
       setLastError(e)
@@ -21,9 +28,8 @@ export default function StyledDropzone(props) {
     }
     finally{
       setUploading(false);
-      props.filesUploaded()
+      props.filesUploaded();
     }
-    console.log('done')
   }
 
   const {
