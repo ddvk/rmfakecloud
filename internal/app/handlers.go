@@ -767,12 +767,13 @@ func (app *App) syncUpdateRootV3(c *gin.Context) {
 
 const SchemaVersion = 3
 
-func (app *App) syncGetRootV3(c *gin.Context) {
+func (app *App) syncGetRoot(c *gin.Context, newAccount func(*gin.Context)) {
 	uid := c.GetString(userIDKey)
 
 	reader, generation, _, err := app.blobStorer.LoadBlob(uid, "root")
 	if err == fs.ErrorNotFound {
 		log.Warn("No root file found, assuming this is a new account")
+		newAccount(c)
 		c.JSON(http.StatusNotFound, gin.H{"message": "root not found"})
 		return
 	} else if err != nil {
@@ -792,6 +793,20 @@ func (app *App) syncGetRootV3(c *gin.Context) {
 		Generation:    generation,
 		Hash:          string(roothash),
 		SchemaVersion: SchemaVersion,
+	})
+}
+
+func (app *App) syncGetRootV3(c *gin.Context) {
+	app.syncGetRoot(c, func(c *gin.Context) {
+		c.JSON(http.StatusNotFound, gin.H{"message": "root not found"})
+	})
+}
+
+func (app *App) syncGetRootV4(c *gin.Context) {
+	app.syncGetRoot(c, func(c *gin.Context) {
+		c.JSON(http.StatusOK, messages.SyncRootV3Response{
+			Generation: 0,
+		})
 	})
 }
 
