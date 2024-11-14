@@ -47,14 +47,15 @@ Steps (done by the automagic scripts):
 - stop xochitl `systemctl stop xochitl`
 - add the followint entries to `/etc/hosts`
 
-    ```
-    127.0.0.1 hwr-production-dot-remarkable-production.appspot.com
-    127.0.0.1 service-manager-production-dot-remarkable-production.appspot.com
-    127.0.0.1 local.appspot.com
-    127.0.0.1 my.remarkable.com
-    127.0.0.1 ping.remarkable.com
-    127.0.0.1 internal.cloud.remarkable.com
-    ```
+```
+127.0.0.1 hwr-production-dot-remarkable-production.appspot.com
+127.0.0.1 service-manager-production-dot-remarkable-production.appspot.com
+127.0.0.1 local.appspot.com
+127.0.0.1 my.remarkable.com
+127.0.0.1 ping.remarkable.com
+127.0.0.1 internal.cloud.remarkable.com
+127.0.0.1 local.apphost.com
+```
 
 - set the address of your api host:port in the reverse proxy
     `secure -cert proxy.crt -key proxy.key http(s)://host_where_the_api_is_running:someport`
@@ -82,11 +83,11 @@ Steps:
 - generate the certs from Variant 1, you get them (proxy.crt, proxy.key, ca.crt) and trust the ca.crt
 - run rmfakecloud with:
 
-    ```
-    TLS_KEY=proxy.key
-    TLS_CERT=proxy.crt
-    STORAGE_URL=https://local.apphost.com
-    ```
+```
+TLS_KEY=proxy.key
+TLS_CERT=proxy.crt
+STORAGE_URL=https://local.apphost.com
+```
 
 - modify `/etc/hosts` but use the rmfakecloud's ip instead of 127.0.0.1
 
@@ -101,7 +102,7 @@ Windows/Mac Desktop Client:
 
 ### Edit router DNS entries
 
-Same as [the previous method](#modify-/etc/hosts), but instead of modifying any hosts file, make the changes on your DNS/router:
+Same as [the previous method](#modify-device-etchosts), but instead of modifying any hosts file, make the changes on your DNS/router:
 
 - add the host entries directly on your router (Hosts in OpenWRT)
 - trust the ca.crt
