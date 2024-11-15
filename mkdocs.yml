@@ -20,10 +20,13 @@ nav:
   - Cloud Setup:
       - From Source: install/source.md
       - With Docker: install/docker.md
+      - With Helm: install/helm.md
       - Configuration: install/configuration.md
       - Reverse Proxy:
+          - Apache: install/reverse-proxy/apache.md
           - Nginx: install/reverse-proxy/nginx.md
           - Traefik: install/reverse-proxy/traefik.md
+      - Fail2ban: install/fail2ban.md
   - Device Setup:
       - Device: remarkable/setup.md
       - HTTPS: remarkable/https.md
