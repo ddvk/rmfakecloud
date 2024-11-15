@@ -151,7 +151,7 @@ func (app *App) downloadBlob(c *gin.Context) {
 
 	log.Info("Requestng blob: ", blobID)
 
-	reader, generation, size, err := app.fs.LoadBlob(uid, blobID)
+	reader, generation, size, crc32c, err := app.fs.LoadBlob(uid, blobID)
 	if err != nil {
 		if err == ErrorNotFound {
 			c.AbortWithStatus(http.StatusNotFound)
@@ -162,6 +162,8 @@ func (app *App) downloadBlob(c *gin.Context) {
 		return
 	}
 	defer reader.Close()
+
+	common.AddCRCHeader(c, crc32c)
 
 	if blobID == rootBlob {
 		log.Debug("Sending gen for root: ", generation)

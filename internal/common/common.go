@@ -1,7 +1,11 @@
 package common
 
 import (
+	"encoding/base64"
+	"encoding/binary"
 	"errors"
+	"hash/crc32"
+	"io"
 	"regexp"
 	"strings"
 
@@ -61,4 +65,33 @@ func QueryS(param string, c *gin.Context) string {
 func ParamS(param string, c *gin.Context) string {
 	p := c.Param(param)
 	return Sanitize(p)
+}
+
+var table = crc32.MakeTable(crc32.Castagnoli)
+
+func CRC32FromReader(reader io.Reader) (string, error) {
+	// Create a table for CRC32C (Castagnoli polynomial)
+	// Create a CRC32C hasher
+	crc32c := crc32.New(table)
+
+	// Copy the reader data into the hasher
+	if _, err := io.Copy(crc32c, reader); err != nil {
+		return "", err
+	}
+
+	// Compute the CRC32C checksum
+	checksum := crc32c.Sum32()
+
+	// Convert the checksum to a byte array
+	crcBytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(crcBytes, checksum)
+	encodedChecksum := base64.StdEncoding.EncodeToString(crcBytes)
+
+	return encodedChecksum, nil
+}
+
+const CRC32CHashHeader = "x-goog-hash"
+
+func AddCRCHeader(c *gin.Context, crc string) {
+	c.Header(CRC32CHashHeader, "crc32c="+crc)
 }

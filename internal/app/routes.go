@@ -41,6 +41,7 @@ func (app *App) registerRoutes(router *gin.Engine) {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
 			return
 		}
+		log.Infof("endpoint %s", endpoint)
 		c.JSON(http.StatusOK, gin.H{
 			"Status": "OK",
 			"Host":   endpoint,
@@ -80,27 +81,11 @@ func (app *App) registerRoutes(router *gin.Engine) {
 		c.Status(http.StatusOK)
 	})
 
+	router.POST("/analytics/v2/events", app.nullReport)
 	//some telemetry stuff from ping.
-	router.POST("/v1/reports", func(c *gin.Context) {
-		_, err := io.ReadAll(c.Request.Body)
-
-		if err != nil {
-			log.Warn("cant parse telemetry, ignored")
-			c.Status(http.StatusOK)
-			return
-		}
-		c.Status(http.StatusOK)
-	})
-	router.POST("/v2/reports", func(c *gin.Context) {
-		_, err := io.ReadAll(c.Request.Body)
-
-		if err != nil {
-			log.Warn("cant parse telemetry, ignored")
-			c.Status(http.StatusOK)
-			return
-		}
-		c.Status(http.StatusOK)
-	})
+	router.POST("/v1/reports", app.nullReport)
+	router.POST("/v2/reports", app.nullReport)
+	router.POST("/report/v1", app.nullReport)
 
 	//routes needing api authentitcation
 	authRoutes := router.Group("/")
@@ -159,5 +144,8 @@ func (app *App) registerRoutes(router *gin.Engine) {
 		authRoutes.GET("/sync/v3/missing", app.checkMissingBlob)
 
 		authRoutes.GET("/sync/v4/root", app.syncGetRootV4)
+
+		// reports
+		authRoutes.POST("/sync/reports/v1", app.syncReports)
 	}
 }
