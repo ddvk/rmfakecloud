@@ -2,8 +2,15 @@ import Upload from "./Upload";
 import Tree from "./Tree";
 import { useState, useRef } from "react";
 import { Container, Row, Col, Button } from "react-bootstrap";
-import { Document, Page } from "react-pdf";
+import { pdfjs, Document, Page } from "react-pdf";
 import constants from "../../common/constants";
+
+import 'react-pdf/dist/Page/TextLayer.css';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url,
+).toString();
 
 export default function DocumentList() {
   const [counter, setCounter] = useState(0);

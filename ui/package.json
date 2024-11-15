@@ -13,7 +13,7 @@
     "react-dropzone": "^11.3.2",
     "react-dropzone-uploader": "^2.11.0",
     "react-icons": "^4.2.0",
-    "react-pdf": "^5.5.0",
+    "react-pdf": "^9.1.1",
     "react-router-dom": "^5.3.0",
     "react-toastify": "^8.1.1",
     "react-treebeard": "^3.2.4",
@@ -48,7 +48,7 @@
     "@types/react": "^17.0.31",
     "@types/react-dom": "^17.0.10",
     "@types/react-router-dom": "^5.3.1",
-    "react-scripts": "5.0.1"
+    "react-scripts": "^5.0.1"
   },
   "proxy": "http://localhost:3000"
 }
