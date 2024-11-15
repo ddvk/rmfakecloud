@@ -1,16 +1,20 @@
+@import "../../theme.scss";
+
 .container {
-  min-height: 100vh;
+  min-height: 85vh;
   width: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
 }
+
 .formContainer {
-  width: 200px;
+  width: 300px;
 }
+
 .error {
   font-size: 0.8rem;
-  color: #bb0000;
+  color: $reject;
 }
 
 .loginForm {

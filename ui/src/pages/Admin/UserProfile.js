@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { useHistory } from "react-router-dom";
-
-import NoMatch from "./NoMatch";
+import { toast } from "react-toastify";
+//import { useParams } from "react-router-dom";
 import Form from "react-bootstrap/Form";
 import Button from "react-bootstrap/Button";
-import Spinner from "./Spinner";
-import useFetch from "../hooks/useFetch";
-import apiService from "../services/api.service";
-import { toast } from "react-toastify";
-import { useParams } from "react-router-dom";
+
+import NoMatch from "../404";
+import Spinner from "../../components/Spinner";
+import useFetch from "../../hooks/useFetch";
+import apiService from "../../services/api.service";
 
 const userListUrl = "users";
 
-export default function UserProfile() {
-  const { userid } = useParams();
+export default function UserProfile(userid) {
+  //const { userid } = useParams();
 
   const { data: user, loading, error } = useFetch(`${userListUrl}/${userid}`);
   const history = useHistory();

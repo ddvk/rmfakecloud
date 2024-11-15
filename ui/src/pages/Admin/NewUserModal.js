@@ -1,9 +1,8 @@
 import React, { useState } from "react";
 import Form from "react-bootstrap/Form";
-import { Button, Card } from "react-bootstrap";
-import apiService from "../services/api.service";
+import { Button, Card, Alert } from "react-bootstrap";
 
-import { Alert } from "react-bootstrap";
+import apiService from "../../services/api.service";
 
 export default function UserProfileModal(params) {
   const { onSave, onClose } = params;
@@ -50,7 +49,7 @@ export default function UserProfileModal(params) {
 
   return (
     <Form onSubmit={handleSubmit} autoComplete="off">
-      <Card bg="dark" text="white">
+      <Card>
         <Card.Header>
           <span>New User</span>
         </Card.Header>
