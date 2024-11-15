@@ -34,7 +34,7 @@ type BlobStorage interface {
 	GetBlobURL(uid, docid string, write bool) (string, time.Time, error)
 
 	StoreBlob(uid, blobID string, s io.Reader, matchGeneration int64) (int64, error)
-	LoadBlob(uid, blobID string) (reader io.ReadCloser, gen int64, size int64, err error)
+	LoadBlob(uid, blobID string) (reader io.ReadCloser, gen int64, size int64, crc32c string, err error)
 	CreateBlobDocument(uid, name, parent string, stream io.Reader) (doc *Document, err error)
 }
 

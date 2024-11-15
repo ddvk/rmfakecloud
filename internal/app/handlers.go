@@ -743,7 +743,7 @@ func (app *App) syncUpdateRootV3(c *gin.Context) {
 	}
 
 	uid := c.GetString(userIDKey)
-	newgeneration, err := app.blobStorer.StoreBlob(uid, "root", bytes.NewBufferString(rootv3.Hash), rootv3.Generation)
+	newgeneration, err := app.blobStorer.StoreBlob(uid, RootHash, bytes.NewBufferString(rootv3.Hash), rootv3.Generation)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -759,23 +759,44 @@ func (app *App) syncUpdateRootV3(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, messages.SyncRootV3Response{
-		Generation:    newgeneration,
-		Hash:          rootv3.Hash,
-		SchemaVersion: SchemaVersion,
+		Generation: newgeneration,
+		Hash:       rootv3.Hash,
 	})
 }
 
 const SchemaVersion = 3
 
+const RmTokenTtlHeader = "Rm-Token-Ttl-Hint"
+const RmFileHeader = "rm-filename"
+
+const RootHash = "root"
+
+// crcJSON calculates and ands the crc32c header
+// TODO: fix it with a custom render or something
+func crcJSON(c *gin.Context, status int, msg any) {
+	b, err := json.Marshal(msg)
+	if err != nil {
+		panic(err)
+	}
+
+	crc, err := common.CRC32FromReader(bytes.NewBuffer(b))
+	if err != nil {
+		panic(err)
+	}
+	common.AddCRCHeader(c, crc)
+	c.Data(status, "application/json", b)
+}
+
 func (app *App) syncGetRootV3(c *gin.Context) {
 	uid := c.GetString(userIDKey)
-
-	reader, generation, _, err := app.blobStorer.LoadBlob(uid, "root")
+	reader, generation, _, _, err := app.blobStorer.LoadBlob(uid, RootHash)
 	if err == fs.ErrorNotFound {
 		log.Warn("No root file found, assuming this is a new account")
 		c.JSON(http.StatusNotFound, gin.H{"message": "root not found"})
 		return
-	} else if err != nil {
+	}
+
+	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
@@ -789,6 +810,35 @@ func (app *App) syncGetRootV3(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, messages.SyncRootV3Response{
+		Generation: generation,
+		Hash:       string(roothash),
+	})
+}
+
+func (app *App) syncGetRootV4(c *gin.Context) {
+	uid := c.GetString(userIDKey)
+	reader, generation, _, _, err := app.blobStorer.LoadBlob(uid, RootHash)
+	if err == fs.ErrorNotFound {
+		log.Warn("No root file found, assuming this is a new account")
+		crcJSON(c, http.StatusOK, messages.SyncRootV4Response{
+			SchemaVersion: SchemaVersion,
+		})
+		return
+	}
+
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	roothash, err := io.ReadAll(reader)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	crcJSON(c, http.StatusOK, messages.SyncRootV4Response{
 		Generation:    generation,
 		Hash:          string(roothash),
 		SchemaVersion: SchemaVersion,
@@ -828,13 +878,14 @@ func (app *App) blobStorageRead(c *gin.Context) {
 	uid := c.GetString(userIDKey)
 	blobID := common.ParamS(fileKey, c)
 
-	reader, _, size, err := app.blobStorer.LoadBlob(uid, blobID)
+	reader, _, size, crc32c, err := app.blobStorer.LoadBlob(uid, blobID)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 	defer reader.Close()
+	common.AddCRCHeader(c, crc32c)
 
 	c.DataFromReader(http.StatusOK, size, "application/octet-stream", reader, nil)
 }
@@ -843,6 +894,10 @@ func (app *App) blobStorageWrite(c *gin.Context) {
 	uid := c.GetString(userIDKey)
 	blobID := common.ParamS(fileKey, c)
 
+	fileName := c.GetHeader(RmFileHeader)
+	hash := c.GetHeader(common.CRC32CHashHeader)
+	log.Debugf("TODO: check/save etc. write file '%s', hash '%s'", fileName, hash)
+
 	newgeneration, err := app.blobStorer.StoreBlob(uid, blobID, c.Request.Body, 0)
 	if err != nil {
 		log.Error(err)
@@ -850,7 +905,8 @@ func (app *App) blobStorageWrite(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, messages.SyncRootV3Response{
+	//not checked by the client yet, but who knows
+	crcJSON(c, http.StatusOK, messages.SyncRootV4Response{
 		Generation:    newgeneration,
 		Hash:          string(blobID),
 		SchemaVersion: SchemaVersion,
@@ -1023,6 +1079,27 @@ func (app *App) connectWebSocket(c *gin.Context) {
 	}
 
 	go app.hub.ConnectWs(uid, deviceID, connection)
+}
+
+// syncReports reports sync errors back
+func (app *App) syncReports(c *gin.Context) {
+	body, err := io.ReadAll(c.Request.Body)
+
+	if err != nil {
+		log.Warn("cant parse sync report, ignored")
+		c.Status(http.StatusOK)
+		return
+	}
+	log.Infof("got sync report: %s", string(body))
+	c.Status(http.StatusOK)
+}
+
+func (app *App) nullReport(c *gin.Context) {
+	_, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		log.Warn("could not read report data")
+	}
+	c.Status(http.StatusOK)
 }
 
 // / remove remarkable ads

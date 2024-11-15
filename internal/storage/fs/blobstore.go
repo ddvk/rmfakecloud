@@ -454,7 +454,7 @@ func (fs *FileSystemStorage) GetBlobURL(uid, blobid string, write bool) (docurl 
 }
 
 // LoadBlob Opens a blob by id
-func (fs *FileSystemStorage) LoadBlob(uid, blobid string) (reader io.ReadCloser, gen int64, size int64, err error) {
+func (fs *FileSystemStorage) LoadBlob(uid, blobid string) (reader io.ReadCloser, gen int64, size int64, crc32 string, err error) {
 	generation := int64(0)
 	blobPath := path.Join(fs.getUserBlobPath(uid), common.Sanitize(blobid))
 	log.Debugln("Fullpath:", blobPath)
@@ -464,7 +464,7 @@ func (fs *FileSystemStorage) LoadBlob(uid, blobid string) (reader io.ReadCloser,
 		err := lock.LockWithTimeout(time.Duration(time.Second * 5))
 		if err != nil {
 			log.Error("cannot obtain lock")
-			return nil, 0, 0, err
+			return nil, 0, 0, "", err
 		}
 		defer lock.Unlock()
 
@@ -476,11 +476,23 @@ func (fs *FileSystemStorage) LoadBlob(uid, blobid string) (reader io.ReadCloser,
 
 	fi, err := os.Stat(blobPath)
 	if err != nil || fi.IsDir() {
-		return nil, generation, 0, ErrorNotFound
+		return nil, generation, 0, "", ErrorNotFound
 	}
 
-	reader, err = os.Open(blobPath)
-	return reader, generation, fi.Size(), err
+	osFile, err := os.Open(blobPath)
+	//TODO: cache the crc32
+	crc32, err = common.CRC32FromReader(osFile)
+	if err != nil {
+		log.Errorf("cannot get crc32 hash %v", err)
+		return
+	}
+	_, err = osFile.Seek(0, 0)
+	if err != nil {
+		log.Errorf("cannot rewind file %v", err)
+		return
+	}
+	reader = osFile
+	return reader, generation, fi.Size(), crc32, err
 }
 
 // StoreBlob stores a document

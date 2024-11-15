@@ -11,7 +11,8 @@ export RM_SMTP_NOTLS=1
 export RM_SMTP_NOAUTH=1
 export JWT_SECRET_KEY=dev
 export LOGLEVEL=${1:-DEBUG}
-export STORAGE_URL=http://$(hostname):3000
+#export STORAGE_URL=http://$(hostname):3000
+#export STORAGE_URL=http://pc.lan:3000
 make runui &
 PID=$!
 trap "kill $PID ||:" EXIT 

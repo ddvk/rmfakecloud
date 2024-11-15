@@ -145,6 +145,12 @@ type SyncRootV3Request struct {
 
 // SyncRootV3Response
 type SyncRootV3Response struct {
+	Generation int64  `json:"generation"`
+	Hash       string `json:"hash,omitempty"`
+}
+
+// SyncRootV4Response
+type SyncRootV4Response struct {
 	Generation    int64  `json:"generation"`
 	Hash          string `json:"hash,omitempty"`
 	SchemaVersion int64  `json:"schemaVersion"`
