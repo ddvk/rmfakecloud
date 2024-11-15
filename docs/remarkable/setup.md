@@ -85,7 +85,7 @@ Steps:
     ```
     TLS_KEY=proxy.key
     TLS_CERT=proxy.crt
-    STORAGE_URL=https://local.apphost.com
+    STORAGE_URL=https://local.appspot.com
     ```
 
 - modify `/etc/hosts` but use the rmfakecloud's ip instead of 127.0.0.1

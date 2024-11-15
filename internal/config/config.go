@@ -220,7 +220,7 @@ Environment Variables:
 
 General:
 	%s	Secret for signing JWT tokens
-	%s	Url the tablet can resolve (default: https://local.apphost.com)
+	%s	Url the tablet can resolve (default: %s)
 			needs to be set to the hostname or proxy if behind a proxy
 			especially if you want other tools to work (eg rmapi)
 
@@ -249,6 +249,7 @@ myScript hwr (needs a developer account):
 `,
 		envJWTSecretKey,
 		EnvStorageURL,
+		DefaultHost,
 		EnvLogLevel,
 		EnvLogFormat,
 		envPort,
