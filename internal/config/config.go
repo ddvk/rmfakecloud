@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/mail"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -164,6 +165,11 @@ func FromEnv() *Config {
 	if uploadURL == "" {
 		//it will go through the local proxy
 		uploadURL = "https://" + DefaultHost
+	}
+
+	u, err := url.Parse(uploadURL)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == ""  {
+		log.Fatalf("%s '%s' cannot be parsed, or missing scheme (http|https) %v", EnvStorageURL, uploadURL, err)
 	}
 
 	// smtp
