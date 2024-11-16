@@ -167,9 +167,9 @@ func (fs *FileSystemStorage) GetStorageURL(uid, id string) (docurl string, expir
 	claim := &StorageClaim{
 		DocumentID: id,
 		UserID:     uid,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: exp.Unix(),
-			Audience:  storageUsage,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(exp),
+			Audience:  []string{storageUsage},
 		},
 	}
 	signedToken, err := common.SignClaims(claim, fs.Cfg.JWTSecretKey)

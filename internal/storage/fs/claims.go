@@ -6,7 +6,7 @@ import "github.com/golang-jwt/jwt/v4"
 type StorageClaim struct {
 	DocumentID string `json:"documentId"`
 	UserID     string `json:"userId"`
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
 
 const (

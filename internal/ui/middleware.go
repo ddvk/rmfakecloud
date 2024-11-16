@@ -2,6 +2,7 @@ package ui
 
 import (
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/ddvk/rmfakecloud/internal/common"
@@ -48,7 +49,7 @@ func (app *ReactAppWrapper) authMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		if claims.Audience != WebUsage {
+		if !slices.Contains(claims.Audience, WebUsage) {
 			log.Warn("wrong token audience: ", claims.Audience)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing or incorrect token"})
 			return

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"time"
 
@@ -70,7 +71,7 @@ func (app *App) parseToken(token string) (*StorageClaim, error) {
 	if err != nil {
 		return nil, err
 	}
-	if claim.StandardClaims.Audience != storageUsage {
+	if !slices.Contains(claim.Audience, storageUsage) {
 		return nil, errors.New("not a storage token")
 	}
 	return claim, nil

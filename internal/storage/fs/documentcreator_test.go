@@ -1,7 +1,7 @@
 package fs
 
 import (
-	"io/ioutil"
+	"io"
 	"os"
 	"path"
 	"strings"
@@ -24,7 +24,7 @@ func TestCreateDocument(t *testing.T) {
 	cfg := &config.Config{
 		DataDir: dir,
 	}
-	content := ioutil.NopCloser(strings.NewReader("dummy"))
+	content := io.NopCloser(strings.NewReader("dummy"))
 	fs := NewStorage(cfg)
 
 	d, err := fs.CreateDocument(testuser, "blah.pdf", "", content)
