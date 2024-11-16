@@ -30,10 +30,14 @@ const NavigationBar = () => {
                     Documents
                   </Nav.Link>
                 </Nav.Item>
+                <Nav.Item>
+                  <Nav.Link as={NavLink} to="/connect">
+                    Connect
+                  </Nav.Link>
+                </Nav.Item>
               </Nav>
               <Nav className="ms-auto">
                 <NavDropdown id="userMenu" title={user.UserID} align="end">
-                  <NavDropdown.Item as={NavLink} to="/connect">Connect Device</NavDropdown.Item>
                   <NavDropdown.Item as={NavLink} to="/admin">Admin</NavDropdown.Item>
                   <NavDropdown.Divider />
                   <NavDropdown.Item as={Button} onClick={handleLogout}>Log out</NavDropdown.Item>

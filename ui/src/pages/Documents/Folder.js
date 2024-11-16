@@ -14,7 +14,7 @@ import FileList from "./FileList";
 import NameTag from "../../components/NameTag"
 
 export default function Folder({ selection, onSelect, onUpdate }) {
-  const [listStyle, setListStyle] = useState("grid");
+  const [listStyle, setListStyle] = useState("list");
   const [folderName, setFolderName] = useState("");
   const [showCreateFileModal, setShowCreateFolder] = useState(false);
 

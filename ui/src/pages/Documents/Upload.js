@@ -6,10 +6,6 @@ import apiservice from "../../services/api.service";
 
 import styles from "./Documents.module.scss";
 
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 export default function StyledDropzone(props) {
   const [uploading, setUploading] = useState(false);
   const [lasterror, setLastError] = useState();

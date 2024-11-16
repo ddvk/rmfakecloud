@@ -89,7 +89,7 @@ export default function DocumentList() {
 
   useEffect(() => {
     loadDocs()
-  }, [])
+  })
 
   return (
     <Container fluid>
