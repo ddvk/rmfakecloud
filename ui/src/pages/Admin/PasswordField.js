@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { FormControl, InputGroup, Button } from "react-bootstrap";
+import { Form, InputGroup, Button } from "react-bootstrap";
 import { FaEye } from "react-icons/fa";
 
 function PasswordField(props) {
@@ -10,9 +10,7 @@ function PasswordField(props) {
   function showHide(e) {
     e.preventDefault();
     e.stopPropagation();
-
     setInputType(inputType === "text" ? "password" : "text");
-
     inputEl.current.focus();
   }
 
@@ -29,17 +27,16 @@ function PasswordField(props) {
 
   return (
     <InputGroup className="mb-3">
-      <FormControl
+      <Form.Control
         type={inputType}
         {...props}
         ref={inputEl}
         onBlur={saveCursorPosition}
+        autoComplete="new-password"
       />
-      <InputGroup.Append>
-        <Button onClick={showHide}>
-          <FaEye />
-        </Button>
-      </InputGroup.Append>
+      <Button onClick={showHide}>
+        <FaEye />
+      </Button>
     </InputGroup>
   );
 }
