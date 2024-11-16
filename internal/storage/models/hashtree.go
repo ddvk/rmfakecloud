@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"sort"
 	"strconv"
@@ -86,7 +85,7 @@ func (t *HashTree) Save(cacheFile string) error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(cacheFile, b, 0644)
+	err = os.WriteFile(cacheFile, b, 0644)
 	return err
 }
 
@@ -168,7 +167,7 @@ func (t *HashTree) RootIndex() (io.ReadCloser, error) {
 	return pipeReader, nil
 }
 
-// HashTree a syncing concept for faster diffing
+// HashTree a tree of hashes
 type HashTree struct {
 	Hash       string
 	Generation int64
@@ -225,10 +224,10 @@ func (t *HashTree) Rehash() error {
 // Mirror makes the tree look like the storage
 func (t *HashTree) Mirror(r RemoteStorage) (changed bool, err error) {
 	rootHash, gen, err := r.GetRootIndex()
-	log.Debug("got root ", rootHash, gen, err)
 	if err != nil {
 		return
 	}
+	log.Debug("mirror: got root ", rootHash, gen)
 	if rootHash == "" {
 		log.Warn("empty root hash, empty cloud?")
 		t.Docs = nil
@@ -243,7 +242,7 @@ func (t *HashTree) Mirror(r RemoteStorage) (changed bool, err error) {
 		}
 		return
 	}
-	log.Debug("remote root hash different is different")
+	log.Debug("remote root hash is different")
 
 	rdr, err := r.GetReader(rootHash)
 	if err != nil {
@@ -267,7 +266,7 @@ func (t *HashTree) Mirror(r RemoteStorage) (changed bool, err error) {
 		if entry, ok := new[doc.HashEntry.EntryName]; ok {
 			//hash different update
 			if entry.Hash != doc.Hash {
-				log.Info("doc updated: ", doc.EntryName)
+				log.Debug("doc updated: ", doc.EntryName)
 				doc.Mirror(entry, r)
 			}
 			if doc.Deleted {

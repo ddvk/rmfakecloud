@@ -9,7 +9,7 @@ type WebUserClaims struct {
 	Email     string
 	Scopes    string `json:"scopes,omitempty"`
 	Roles     []string
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
 
 // WebUsage used for the uid

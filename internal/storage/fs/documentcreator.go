@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"strings"
@@ -56,7 +55,7 @@ func createContent(fileType string) string {
 	return fmt.Sprintf(str, fileType)
 }
 
-func extractID(r io.Reader) (string, error) {
+func extractID(_ io.Reader) (string, error) {
 	return "", nil
 }
 
@@ -71,7 +70,7 @@ func (fs *FileSystemStorage) CreateFolder(uid, name, parent string) (*storage.Do
 	}
 
 	metafilePath := fs.getPathFromUser(uid, docID+storage.MetadataFileExt)
-	err = ioutil.WriteFile(metafilePath, jsn, 0600)
+	err = os.WriteFile(metafilePath, jsn, 0600)
 
 	if err != nil {
 		return nil, err
@@ -200,7 +199,7 @@ func (fs *FileSystemStorage) CreateDocument(uid, filename, parent string, stream
 	}
 	//save metadata
 	metafilePath := fs.getPathFromUser(uid, docid+storage.MetadataFileExt)
-	err = ioutil.WriteFile(metafilePath, jsn, 0600)
+	err = os.WriteFile(metafilePath, jsn, 0600)
 	return
 }
 

@@ -5,18 +5,21 @@
   "private": true,
   "dependencies": {
     "autoprefixer": "10.4.5",
-    "bootstrap": "5.2.0-beta1",
+    "bootstrap": "^5.3.3",
     "jwt-decode": "^3.1.2",
-    "react": "^17.0.1",
-    "react-bootstrap": "^1.4.3",
-    "react-dom": "^17.0.1",
+    "moment": "^2.29.4",
+    "react": "^18.3.1",
+    "react-arborist": "^3.4.0",
+    "react-bootstrap": "^2.10.0",
+    "react-dom": "^18.3.1",
     "react-dropzone": "^11.3.2",
     "react-dropzone-uploader": "^2.11.0",
     "react-icons": "^4.2.0",
-    "react-pdf": "^5.5.0",
+    "react-pdf": "^9.1.1",
     "react-router-dom": "^5.3.0",
-    "react-toastify": "^8.1.1",
+    "react-toastify": "^10.0.6",
     "react-treebeard": "^3.2.4",
+    "sass": "^1.81.0",
     "typescript": "^4.4.4"
   },
   "scripts": {
@@ -41,6 +44,7 @@
     ]
   },
   "devDependencies": {
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "@testing-library/jest-dom": "^5.11.9",
     "@testing-library/react": "^12.1.2",
     "@testing-library/user-event": "^13.5.0",
@@ -48,7 +52,9 @@
     "@types/react": "^17.0.31",
     "@types/react-dom": "^17.0.10",
     "@types/react-router-dom": "^5.3.1",
-    "react-scripts": "5.0.1"
+    "react-scripts": "5.0.1",
+    "sass-loader": "^16.0.3",
+    "webpack": "^5.89.0"
   },
   "proxy": "http://localhost:3000"
 }

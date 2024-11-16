@@ -1,0 +1,235 @@
+@import "./theme.scss";
+
+// TODO: Remove styles which are not meant to be global into module files
+
+:root {
+    --bs-code-color: #{$action} !important;
+    --bs-body-bg: #{$background1} !important;
+    --bs-border-color: #{$foreground2} !important;
+    --bs-tertiary-bg: #{$background1} !important;
+
+    .dropdown-item {
+        --bs-dropdown-link-hover-bg: #{$background2};
+        --bs-dropdown-link-active-bg: #{$action};
+    }
+
+    .btn-outline-secondary {
+        --bs-btn-color: #{$foreground2};
+        --bs-btn-border-color: #{$foreground2};
+    }
+
+    .btn-primary {
+        --bs-btn-bg: #{$foreground2};
+        --bs-btn-color: #{$background1};
+        --bs-btn-border-color: #{$foreground2};
+
+        --bs-btn-hover-bg: #{$action};
+        --bs-btn-hover-color: #{$foreground2};
+        --bs-btn-hover-border-color: #{$action};
+
+        --bs-btn-active-bg: #{$action};
+        --bs-btn-active-color: #{$background2};
+        --bs-btn-active-border-color: #{$action};
+
+        --bs-btn-active-shadow: none;
+        --bs-btn-focus-shadow-rgb: none; // #{$action-rgb};
+    }
+
+    .btn-danger {
+        --bs-btn-bg: #{$reject};
+        --bs-btn-color: #{$foreground2};
+        --bs-btn-border-color: #{$reject};
+
+        --bs-btn-hover-bg: #{$reject};
+        --bs-btn-hover-color: #{$foreground2};
+        --bs-btn-hover-border-color: #{$reject};
+
+        --bs-btn-active-bg: #{$reject};
+        --bs-btn-active-color: #{$background2};
+        --bs-btn-active-border-color: #{$reject};
+
+        --bs-btn-active-shadow: none;
+        --bs-btn-focus-shadow-rgb: none; // #{$action-rgb};
+
+        &:hover, &:focus {
+            opacity: 0.7;
+        }
+    }
+}
+
+.form-control:focus {
+    border-color: $action !important;
+    box-shadow: none !important; // 0 0 0 0.25rem rgba(var(--bs-btn-focus-shadow-rgb), 10%) !important;
+}
+
+.card input {
+    margin-bottom: 0.5em;
+}
+
+#root > .container-fluid {
+    margin-top: 25px;
+}
+
+#root > nav { 
+    backdrop-filter: blur(12px);
+    background-color: $background1;
+}
+
+html > body {
+    overflow-y: scroll;
+    background-color: $background2;
+}
+
+*:disabled {
+    color: $foreground2 !important;
+    background-color: $background2 !important;
+
+    opacity: 0.7 !important;
+}
+
+div[role="button"] > p {
+    margin: 1em;
+}
+
+.vstack {
+    gap: 2em;
+}
+
+canvas {
+  margin: auto;
+  width: auto !important;
+  height: auto !important;
+  max-width: 100%;
+  max-height: calc(100vh - 230px);
+}
+
+code {
+    padding: 0.5em;
+    background-color: $background1;
+}
+
+div[role="tree"] {
+    height: min-content !important;
+    max-height: 700px !important;
+}
+
+@media (max-width: 768px) {
+  .documents-tree {
+    max-height: 25vh !important;
+  }
+}
+
+.container-fluid {
+  box-sizing: border-box;
+  margin: 0 50px;
+  max-width: none;
+  width: calc(100vw - 100px) !important;
+}
+
+.documents-tree {
+  height: min-content !important;
+  max-height: 700px;
+
+  div[role=treeitem] {
+    outline: none;
+
+    & > div {
+      display: flex;
+      align-items: center;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    &:hover {
+      background-color: rgba(255, 255, 255, .1);
+      cursor: pointer;
+    }
+
+    .treeitem-nodename {
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      &.is-folder {
+        font-weight: bold;
+      }
+    }
+
+  }
+}
+
+.filelist {
+  gap: 0 !important;
+
+  .filelist-item {
+    &:hover {
+      background-color: rgba(255, 255, 255, .1);
+      border-bottom: 1px solid $background2;
+      cursor: pointer;
+    }
+
+    .is-folder {
+      font-weight: bold;
+    }
+
+    .filelist-metadata {
+      color: $foreground2;
+      font-size: 0.8em;
+      padding:  0 0.5em;
+    }
+  }
+}
+
+.filegrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-gap: 1em;
+
+  .filegrid-file-item,
+  .filegrid-folder-item {
+    display: inline-grid;
+    padding: 0.5em;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, .1);
+      cursor: pointer;
+    }
+
+    .filegrid-metadata {
+      font-weight: normal;
+      color: $foreground2;
+      font-size: 0.8em;
+    }
+  }
+
+  .filegrid-file-item {
+    .fileicon {
+      padding: 0.5rem;
+      svg {
+        height: 80px;
+        width: 100%;
+      }
+    }
+    .filename {
+      display: block;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      width: 100%;
+      font-size: 0.8rem;
+    }
+  }
+
+  .filegrid-folder-item {
+    font-weight: bold;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+}
+
+main h2 {
+    padding: 0.5em 0;
+}
+
+@import "node_modules/bootstrap/scss/bootstrap";

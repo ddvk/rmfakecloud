@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path"
@@ -197,12 +196,9 @@ func (fs *FileSystemStorage) CreateBlobFolder(uid, foldername, parent string) (d
 	}
 
 	metadataEntry := models.NewHashEntry(metahash, docID+storage.MetadataFileExt, size)
-	if err != nil {
-		return
-	}
-
 	hashDoc := models.NewHashDocWithMeta(docID, metadata)
 	err = hashDoc.AddFile(metadataEntry)
+
 	if err != nil {
 		return nil, err
 	}
@@ -355,7 +351,7 @@ func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, st
 	// given that the payload can be huge
 	// calculate the hash while streaming the payload to the storage
 	// then rename it
-	tmpdoc, err := ioutil.TempFile(blobPath, ".tmp")
+	tmpdoc, err := os.CreateTemp(blobPath, "blob-upload")
 	if err != nil {
 		return
 	}
@@ -537,8 +533,8 @@ func (fs *FileSystemStorage) StoreBlob(uid, id string, stream io.Reader, lastGen
 		}
 		hist.WriteString("\n")
 
-		reader = ioutil.NopCloser(&buf)
-		size, err1 := hist.Seek(0, os.SEEK_CUR)
+		reader = io.NopCloser(&buf)
+		size, err1 := hist.Seek(0, io.SeekCurrent)
 		if err1 != nil {
 			err = err1
 			return

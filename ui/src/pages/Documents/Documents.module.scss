@@ -1,0 +1,74 @@
+@import "../../theme.scss";
+
+.base {
+    background-color: $background2;
+    transition: background 0.3s ease;
+
+    &.accept {
+        background-color: $accept;
+    }
+
+    &.reject {
+        background-color: $reject;
+    }
+}
+
+.selected {
+    color: $action;
+}
+
+.stretch {
+    display: flex;
+
+    flex: 1 1 0;
+
+    &.userid {
+        font-weight: bold;
+    }
+}
+
+.filedivider {
+    border-bottom: 2px solid $foreground1;
+}
+
+.upload {
+    display: flex;
+
+    flex: 1;
+    align-items: center;
+    flex-direction: column;
+
+    margin: 0;
+    padding: 20px;
+    border: 2px dashed;
+    border-top: none;
+    color: $foreground1;
+    background-color: $background1;
+
+    outline: none;
+    transition: border .24s ease-in-out;
+
+    border-color: $foreground1;
+
+    &.uploadActive {
+        border-color: $action;
+    }
+
+    &.uploadAccept {
+        border-color: $accept;
+    }
+
+    &.uploadReject {
+        border-color: $reject;
+    }
+}
+
+.uploadWaiting {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding-top: 1em;
+    border: none;
+    width: 100%;
+    background-color: transparent;
+}
