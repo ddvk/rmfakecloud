@@ -54,7 +54,6 @@ Steps (done by the automagic scripts):
 127.0.0.1 my.remarkable.com
 127.0.0.1 ping.remarkable.com
 127.0.0.1 internal.cloud.remarkable.com
-127.0.0.1 local.apphost.com
 ```
 
 - set the address of your api host:port in the reverse proxy
