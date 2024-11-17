@@ -24,6 +24,11 @@ func newDropbox(i model.IntegrationConfig) *DropBox {
 	}
 }
 
+func (d *DropBox) GetMetadata(fileID string) (*messages.IntegrationMetadata, error) {
+	// TODO
+	return nil, nil
+}
+
 func (d *DropBox) List(folderID string, depth int) (*messages.IntegrationFolder, error) {
 
 	args := files.ListFolderArg{

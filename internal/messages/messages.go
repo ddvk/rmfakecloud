@@ -225,8 +225,11 @@ type IntegrationFolder struct {
 }
 
 type IntegrationMetadata struct {
-	FileType  string `json:"fileType"`
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	Thumbnail string `json:"thumbnail"`
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	// Thumbnail is base64 encoded string of an image/png
+	Thumbnail        []byte `json:"thumbnail"`
+	SourceFileType   string `json:"sourceFileType"`
+	ProvidedFileType string `json:"providedFileType"`
+	FileType         string `json:"fileType"`
 }

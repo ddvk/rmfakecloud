@@ -21,6 +21,7 @@ const (
 
 // IntegrationProvider abstracts 3rd party integrations
 type IntegrationProvider interface {
+	GetMetadata(fileID string) (result *messages.IntegrationMetadata, err error)
 	List(folderID string, depth int) (result *messages.IntegrationFolder, err error)
 	Download(fileID string) (io.ReadCloser, error)
 	Upload(folderID, name, fileType string, reader io.ReadCloser) (string, error)

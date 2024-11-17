@@ -26,6 +26,25 @@ func newLocalFS(i model.IntegrationConfig) *localFS {
 	}
 }
 
+func (d *localFS) GetMetadata(fileID string) (*messages.IntegrationMetadata, error) {
+	decoded, err := decodeName(fileID)
+	if err != nil {
+		return nil, err
+	}
+
+	ext := path.Ext(decoded)
+	contentType := contentTypeFromExt(ext)
+
+	return &messages.IntegrationMetadata{
+		ID:               fileID,
+		Name:             path.Base(decoded),
+		Thumbnail:        []byte{},
+		SourceFileType:   contentType,
+		ProvidedFileType: contentType,
+		FileType:         ext,
+	}, nil
+}
+
 // List populates the response
 func (d *localFS) List(folder string, depth int) (*messages.IntegrationFolder, error) {
 	response := messages.NewIntegrationFolder(folder, "")
