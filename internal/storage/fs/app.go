@@ -144,10 +144,12 @@ func (app *App) downloadBlob(c *gin.Context) {
 
 	if scope != ReadScope {
 		c.AbortWithStatus(http.StatusForbidden)
+		return
 	}
 
 	if blobID == "" {
 		c.AbortWithStatus(http.StatusBadRequest)
+		return
 	}
 
 	log.Info("Requestng blob: ", blobID)
@@ -185,16 +187,19 @@ func (app *App) uploadBlob(c *gin.Context) {
 	err := VerifyURLParams([]string{uid, blobID, exp, scope}, exp, signature, app.cfg.JWTSecretKey)
 	if err != nil {
 		c.AbortWithStatus(http.StatusForbidden)
+		return
 	}
 	log.Info(exp, signature)
 
 	if blobID == "" {
 		c.AbortWithStatus(http.StatusBadRequest)
+		return
 	}
 
 	if scope != WriteScope {
 		log.Warn("wrong scope: " + scope)
 		c.AbortWithStatus(http.StatusForbidden)
+		return
 	}
 
 	body := c.Request.Body
