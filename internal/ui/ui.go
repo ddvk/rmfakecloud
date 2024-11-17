@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"net/http"
 	"path"
+	"time"
 
 	"github.com/ddvk/rmfakecloud/internal/app/hub"
 	"github.com/ddvk/rmfakecloud/internal/common"
@@ -70,6 +71,8 @@ type ReactAppWrapper struct {
 // hack for serving index.html on /
 const indexReplacement = "/default"
 
+
+
 // New Create a React app
 func New(cfg *config.Config,
 	userStorer storage.UserStorer,
@@ -91,7 +94,7 @@ func New(cfg *config.Config,
 		hub:             h,
 	}
 	staticWrapper := ReactAppWrapper{
-		fs:            http.FS(sub),
+		fs:            common.NewLastModifiedFS(http.FS(sub), time.Now()),
 		prefix:        "/static",
 		cfg:           cfg,
 		userStorer:    userStorer,

@@ -18,9 +18,6 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	router.GET("/robots.txt", func(c *gin.Context) {
 		c.FileFromFS("/robots.txt", app.fs)
 	})
-	router.GET("/pdf.worker.js", func(c *gin.Context) {
-		c.FileFromFS("/pdf.worker.js", app.fs)
-	})
 
 	//hack for index.html
 	router.NoRoute(func(c *gin.Context) {

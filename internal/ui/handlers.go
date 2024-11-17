@@ -149,6 +149,7 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 		return
 	}
 	log.Debug("cookie expires after: ", expiresAfter)
+	c.SetSameSite(http.SameSiteStrictMode)
 	c.SetCookie(cookieName, tokenString, int(expiresAfter.Seconds()), "/", "", app.cfg.HTTPSCookie, true)
 
 	c.String(http.StatusOK, tokenString)

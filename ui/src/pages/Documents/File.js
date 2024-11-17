@@ -8,13 +8,17 @@ import constants from "../../common/constants";
 import apiservice from "../../services/api.service"
 import NameTag from "../../components/NameTag"
 
-import { pdfjs,Document, Page } from "react-pdf";
+import { pdfjs, Document, Page } from "react-pdf";
 // import 'react-pdf/dist/Page/AnnotationLayer.css';
 // import 'react-pdf/dist/Page/TextLayer.css';
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
   import.meta.url,
 ).toString();
+
+const options = {
+	worker: new pdfjs.PDFWorker()
+}
 
 export default function FileViewer({ file, onSelect }) {
   const { data } = file;
@@ -98,7 +102,7 @@ export default function FileViewer({ file, onSelect }) {
 
       {file && (
         <div ref={parent} style={{height: "95%"}}>
-          <Document file={downloadUrl} onLoadSuccess={onLoadSuccess}>
+		  <Document file={downloadUrl} onLoadSuccess={onLoadSuccess} options={options}>
             <Page pageNumber={page} 
 							// width={ width } 
 							height={ height} 
