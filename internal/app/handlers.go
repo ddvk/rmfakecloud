@@ -968,7 +968,7 @@ func (app *App) integrationsGetFile(c *gin.Context) {
 		return
 	}
 
-	reader, err := integrationProvider.Download(fileID)
+	reader, size, err := integrationProvider.Download(fileID)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -977,8 +977,9 @@ func (app *App) integrationsGetFile(c *gin.Context) {
 
 	defer reader.Close()
 
-	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
+	c.DataFromReader(http.StatusOK, size, "application/octet-stream", reader, nil)
 }
+
 func (app *App) integrationsList(c *gin.Context) {
 	uid := c.GetString(userIDKey)
 	integrationID := common.ParamS(integrationKey, c)

@@ -70,8 +70,8 @@ func (d *DropBox) List(folderID string, depth int) (*messages.IntegrationFolder,
 	return response, nil
 }
 
-func (d *DropBox) Download(fileID string) (io.ReadCloser, error) {
-	return nil, nil
+func (d *DropBox) Download(fileID string) (io.ReadCloser, int64, error) {
+	return nil, 0, nil
 
 }
 func (d *DropBox) Upload(folderID, name, fileType string, reader io.ReadCloser) (string, error) {

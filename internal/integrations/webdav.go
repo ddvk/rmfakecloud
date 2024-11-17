@@ -89,12 +89,20 @@ func (w *WebDavIntegration) Upload(folderID, name, fileType string, reader io.Re
 }
 
 // Download downloads
-func (w *WebDavIntegration) Download(fileID string) (io.ReadCloser, error) {
+func (w *WebDavIntegration) Download(fileID string) (io.ReadCloser, int64, error) {
 	decoded, err := decodeName(fileID)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return w.c.ReadStream(decoded)
+
+	st, err := w.c.Stat(decoded)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	res, err := w.c.ReadStream(decoded)
+
+	return res, st.Size(), err
 }
 
 func (w *WebDavIntegration) GetMetadata(fileID string) (*messages.IntegrationMetadata, error) {
