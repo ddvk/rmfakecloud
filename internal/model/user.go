@@ -63,10 +63,13 @@ type IntegrationConfig struct {
 	Provider string
 	Name     string
 
-	// WebDav
+	// WebDav // FTP
 	Username string
 	Password string
 	Address  string
+
+	// FTP
+	ActiveTransfers bool
 
 	// Insecure ignore TLS cert errors
 	Insecure bool

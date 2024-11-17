@@ -13,6 +13,7 @@ import (
 )
 
 const (
+	ftpProvider     = "ftp"
 	webdavProvider  = "webdav"
 	dropboxProvider = "dropbox"
 	googleProvider  = "google"
@@ -40,6 +41,8 @@ func GetIntegrationProvider(storer storage.UserStorer, uid, integrationid string
 		switch intg.Provider {
 		case dropboxProvider:
 			return newDropbox(intg), nil
+		case ftpProvider:
+			return newFTP(intg), nil
 		case localfsProvider:
 			return newLocalFS(intg), nil
 		case webdavProvider:
@@ -53,6 +56,8 @@ func GetIntegrationProvider(storer storage.UserStorer, uid, integrationid string
 // fix the name
 func fixProviderName(n string) string {
 	switch n {
+	case ftpProvider:
+		fallthrough
 	case dropboxProvider:
 		return "Dropbox"
 	case googleProvider:

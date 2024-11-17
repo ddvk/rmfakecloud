@@ -12,6 +12,7 @@ require (
 	github.com/juruen/rmapi v0.0.25
 	github.com/poundifdef/go-remarkable2pdf v0.2.0
 	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5
+	github.com/secsy/goftp v0.0.0-20200609142545-aa2de14babf4
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.9.0
 	github.com/studio-b12/gowebdav v0.9.0
