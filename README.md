@@ -8,6 +8,8 @@ This is a replacement of the cloud, in case you want to sync/backup your files a
 ## [Docs](https://ddvk.github.io/rmfakecloud/)
 
 ## NB
+for SW 3.15 `STORAGE_URL` should not be set (only only https://some.host without a port can be used)
+
 The current release of rmfakecloud support file synchronization for SW <= 3.14.1. Newer releases have not been tested yet.
 
 For Tablet SW > 3.X, rendering of the notebooks [is not yet supported](https://github.com/ddvk/rmfakecloud/issues/255).
@@ -63,4 +65,7 @@ run `./dev.sh` which should start the UI and backend
 
     ```
     if you see *SSL Handshake failed* then something is wrong with the certs
-
+- check sync logs 
+   ```
+   journalctl -u rm-sync
+   ```

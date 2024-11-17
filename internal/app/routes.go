@@ -4,7 +4,6 @@ import (
 	"io"
 	"net/http"
 	"runtime"
-
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 )
@@ -19,32 +18,20 @@ const (
 )
 
 func (app *App) registerRoutes(router *gin.Engine) {
-
 	//endpoints discovery
 	router.GET("/discovery/v1/endpoints", func(c *gin.Context) {
-		endpoint, err := app.MyEndpoint()
-		if err != nil {
-			log.Warn("endpoint error:", err.Error())
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
-			return
-		}
-
 		c.JSON(http.StatusOK, gin.H{
-			"notifications": endpoint,
-			"webapp":        endpoint,
+			"notifications": app.cfg.CloudHost,
+			"webapp":        app.cfg.CloudHost,
 		})
 	})
+
+	// TODO: get client version from headers
+	// in 3.15 only https without a port is used by the client
 	router.GET("/discovery/v1/webapp", func(c *gin.Context) {
-		endpoint, err := app.MyEndpoint()
-		if err != nil {
-			log.Warn("endpoint error:", err.Error())
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
-			return
-		}
-		log.Infof("endpoint %s", endpoint)
 		c.JSON(http.StatusOK, gin.H{
 			"Status": "OK",
-			"Host":   endpoint,
+			"Host":   app.cfg.CloudHost,
 		})
 	})
 

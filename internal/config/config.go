@@ -79,6 +79,8 @@ const (
 type Config struct {
 	Port              string
 	StorageURL        string
+	//only https
+	CloudHost         string
 	DataDir           string
 	RegistrationOpen  bool
 	CreateFirstUser   bool
@@ -161,15 +163,23 @@ func FromEnv() *Config {
 	openRegistration, _ := strconv.ParseBool(os.Getenv(envRegistrationOpen))
 	httpsCookie, _ := strconv.ParseBool(os.Getenv(envHTTPSCookie))
 
+	cloudHost := DefaultHost
 	uploadURL := os.Getenv(EnvStorageURL)
 	if uploadURL == "" {
 		//it will go through the local proxy
 		uploadURL = "https://" + DefaultHost
-	}
-
-	u, err := url.Parse(uploadURL)
-	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == ""  {
-		log.Fatalf("%s '%s' cannot be parsed, or missing scheme (http|https) %v", EnvStorageURL, uploadURL, err)
+	} else {
+		u, err := url.Parse(uploadURL)
+		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == ""  {
+			log.Fatalf("%s '%s' cannot be parsed, or missing scheme (http|https) %v", EnvStorageURL, uploadURL, err)
+		}
+		if u.Port() != "" {
+			log.Warn(EnvStorageURL, " >= 3.15 doesnt support :port, only https, sync will fail!")
+		}
+		if u.Scheme != "https" {
+			log.Warn(EnvStorageURL, " >= 3.15 only https is supported, sync fill fail!")
+		}
+		cloudHost = u.Host
 	}
 
 	// smtp
@@ -205,6 +215,7 @@ func FromEnv() *Config {
 	cfg := Config{
 		Port:              port,
 		StorageURL:        uploadURL,
+		CloudHost: cloudHost,
 		DataDir:           dataDir,
 		JWTSecretKey:      dk,
 		JWTRandom:         jwtGenerated,

@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"net/http"
-	"net/url"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -42,7 +41,10 @@ type App struct {
 // Start starts the app
 func (app *App) Start() {
 	// configs
-	log.Info(config.EnvStorageURL, " (Cloud URL): ", app.cfg.StorageURL)
+	if app.cfg.CloudHost != config.DefaultHost {
+		log.Info(config.EnvStorageURL, " (Cloud URL): ", app.cfg.StorageURL)
+		log.Info("(Cloud HOST): ", app.cfg.CloudHost)
+	}
 	log.Info("Data: ", app.cfg.DataDir)
 	log.Info("Listening on port: ", app.cfg.Port)
 
@@ -87,14 +89,6 @@ func (app *App) Stop() {
 	}
 }
 
-func (app *App) MyEndpoint() (string, error) {
-	u, err := url.Parse(app.cfg.StorageURL)
-	if err != nil {
-		return "", err
-	}
-
-	return u.Host, nil
-}
 
 // NewApp constructs an app
 func NewApp(cfg *config.Config) App {
