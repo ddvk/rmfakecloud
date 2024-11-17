@@ -200,7 +200,7 @@ type IntegrationFile struct {
 	ID               string    `json:"id"`
 	Name             string    `json:"name"`
 	ProvidedFileType string    `json:"providedFileType"`
-	Size             int       `json:"size"`
+	Size             int64     `json:"size"`
 	SourceFileType   string    `json:"sourceFileType"`
 }
 
@@ -225,8 +225,11 @@ type IntegrationFolder struct {
 }
 
 type IntegrationMetadata struct {
-	FileType  string `json:"fileType"`
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	Thumbnail string `json:"thumbnail"`
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	// Thumbnail is base64 encoded string of an image/png
+	Thumbnail        []byte `json:"thumbnail"`
+	SourceFileType   string `json:"sourceFileType"`
+	ProvidedFileType string `json:"providedFileType"`
+	FileType         string `json:"fileType"`
 }
