@@ -127,6 +127,36 @@ class ApiServices {
       headers: this.header(),
     }).then((r) => handleError(r));
   }
+
+  listintegration() {
+    return fetch(`${constants.ROOT_URL}/integrations`, {
+      method: "GET",
+      headers: this.header(),
+    }).then((r) => {
+      handleError(r);
+      return r.json();
+    });
+  }
+  updateintegration(integration) {
+    return fetch(`${constants.ROOT_URL}/integrations/${integration.id}`, {
+      method: "PUT",
+      headers: this.header(),
+      body: JSON.stringify(integration),
+    }).then((r) => handleError(r));
+  }
+  createintegration(integration) {
+    return fetch(`${constants.ROOT_URL}/integrations`, {
+      method: "POST",
+      headers: this.header(),
+      body: JSON.stringify(integration),
+    }).then((r) => handleError(r));
+  }
+  deleteintegration(integrationid) {
+    return fetch(`${constants.ROOT_URL}/integrations/${integrationid}`, {
+      method: "DELETE",
+      headers: this.header(),
+    }).then((r) => handleError(r));
+  }
 }
 
 function removeUser(){
