@@ -12,6 +12,7 @@ import styles from "./Documents.module.scss"
 import Upload from "./Upload"
 import FileList from "./FileList";
 import NameTag from "../../components/NameTag"
+import { toast } from "react-toastify";
 
 export default function Folder({ selection, onSelect, onUpdate }) {
   const [listStyle, setListStyle] = useState("list");
@@ -27,6 +28,10 @@ export default function Folder({ selection, onSelect, onUpdate }) {
     setShowCreateFolder(false);
 
     onUpdate();
+  }
+
+  const onDeleteClick = async () => {
+	toast.info("Not implemented yet");
   }
 
   const fileUploaded = () => {
@@ -46,6 +51,7 @@ export default function Folder({ selection, onSelect, onUpdate }) {
       <Navbar className={styles.filedivider}>
         <Button size="sm" variant="outline" onClick={() => setShowCreateFolder(true)}>Create Folder</Button>
         <div className={styles.stretch}></div>
+		<Button size="sm" onClick={onDeleteClick}>Delete</Button>
         <ToggleButtonGroup value={listStyle} onChange={(v) => setListStyle(v)} name="abc">
           <ToggleButton id="grid" name="grid" size="sm" value="grid" variant="outline">
             <BsFillGridFill />
@@ -66,9 +72,10 @@ export default function Folder({ selection, onSelect, onUpdate }) {
 
         <Modal.Body>
           <InputGroup className="mb-3">
-            <Form.Control type="text" value={folderName} onChange={(e) => setFolderName(e.currentTarget.value)} />
+            <Form.Control autoFocus={true} type="text" value={folderName} onChange={(e) => setFolderName(e.currentTarget.value)} />
 
-            <Button onClick={onCreateFolderClick}>Create</Button>
+            <Button variant="primary" onClick={onCreateFolderClick}>Create</Button>
+
           </InputGroup>
         </Modal.Body>
       </Modal>

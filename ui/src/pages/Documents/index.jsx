@@ -9,6 +9,7 @@ import { BsSearch } from "react-icons/bs";
 import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
 import InputGroup from 'react-bootstrap/InputGroup';
+import { toast } from "react-toastify";
 import { useAuthState } from "../../common/useAuthContext";
 
 import styles from "./Documents.module.scss";
@@ -35,10 +36,10 @@ export default function DocumentList() {
     node.toggle()
   }
 
-  const findInTree = (id) => {
-    treeRef.current.openParents(id)
-    return treeRef.current.get(id)
-  }
+  // const findInTree = (id) => {
+  //   treeRef.current.openParents(id)
+  //   return treeRef.current.get(id)
+  // }
 
   // select from tree. node must extend NodeApi from react-arborist
   const onSelect = (node) => {
@@ -47,8 +48,7 @@ export default function DocumentList() {
   };
 
   const onUpdate = () => {
-    setCounter(counter+1);
-    loadDocs()
+    setCounter(prev => prev+1);
   };
 
   if (!selected) {
@@ -58,38 +58,29 @@ export default function DocumentList() {
     }
   }
 
-  // TODO: add loading and error handling
-  const loadDocs = async () => {
-    const { Trash, Entries } = await apiservice.listDocument()
-      .catch(e => { })
-    // create virtual root node
-    const root = {
-      id: "root",
-      name: "My Files",
-      isFolder: true,
-      icon: "device",
-      children: Entries,
-    }
-    const trash = {
-      id: "trash",
-      name: "Trash",
-      isFolder: true,
-      icon: "trash",
-      children: Trash,
-    }
-    setEntries([root, trash]);
+	useEffect(() => {
+		const loadDocs = async () => {
+			const { Trash, Entries } = await apiservice.listDocument()
 
-    // updates selected node to its new contents
-    if (selected) {
-      setSelected(findInTree(selected.id))
-    } else {
-      setSelected(entries[0])
-    }
-  }
+			const root = {
+				id: "root",
+				name: "My Files",
+				isFolder: true,
+				icon: "device",
+				children: Entries,
+			}
+			const trash = {
+				id: "trash",
+				name: "Trash",
+				isFolder: true,
+				icon: "trash",
+				children: Trash,
+			}
+			setEntries([root, trash]);
+		}
 
-  useEffect(() => {
-    loadDocs()
-  })
+		loadDocs().catch(e => toast.error(e));
+	},[counter])
 
   return (
     <Container fluid>
@@ -114,7 +105,7 @@ export default function DocumentList() {
           </Col>
           <Col md={8}>
             {selected && selected.isLeaf && <File file={selected} onSelect={onSelect} />}
-            {selected && !selected.isLeaf && <Folder selection={selected} onSelect={onSelect} onUpdate={onUpdate} />}
+            {selected && !selected.isLeaf && <Folder selection={selected} onSelect={onSelect} onUpdate={onUpdate} counter={counter} />}
           </Col>
         </Row>
     </Container>

@@ -39,17 +39,17 @@ export default function FileViewer({ file, onSelect }) {
       return Math.min(p + 1, pages);
     });
   };
-const parent = useRef(null);
+	const parent = useRef(null);
 	useEffect(() => {
-        const resizeObserver = new ResizeObserver((event) => {
-            // Depending on the layout, you may need to swap inlineSize with blockSize
-            // https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserverEntry/contentBoxSize
-            // setWidth(event[0].contentBoxSize[0].inlineSize);
-            setHeight(event[0].contentBoxSize[0].blockSize);
-        });
+		const resizeObserver = new ResizeObserver((event) => {
+			// Depending on the layout, you may need to swap inlineSize with blockSize
+			// https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserverEntry/contentBoxSize
+			// setWidth(event[0].contentBoxSize[0].inlineSize);
+			setHeight(event[0].contentBoxSize[0].blockSize);
+		});
 
-        resizeObserver.observe(parent.current);
-    });
+		resizeObserver.observe(parent.current);
+	});
 
   // TODO: add loading and error handling
   const onDownloadClick = () => {
@@ -100,11 +100,11 @@ const parent = useRef(null);
         <div ref={parent} style={{height: "95%"}}>
           <Document file={downloadUrl} onLoadSuccess={onLoadSuccess}>
             <Page pageNumber={page} 
-				// width={ width } 
-				height={ height} 
-				renderAnnotationLayer={false} 
-				renderTextLayer={false}
-			/>
+							// width={ width } 
+							height={ height} 
+							renderAnnotationLayer={false} 
+							renderTextLayer={false}
+						/>
           </Document>
         </div>
       )}
