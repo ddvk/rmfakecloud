@@ -1,14 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import Spinner from 'react-bootstrap/Spinner';
-
+import { toast } from "react-toastify";
 import apiservice from "../../services/api.service";
 
 import styles from "./Documents.module.scss";
 
 export default function StyledDropzone(props) {
   const [uploading, setUploading] = useState(false);
-  const [lasterror, setLastError] = useState();
   const uploadFolder = props.uploadFolder;
 
   var onDrop = async (acceptedFiles) => {
@@ -17,14 +16,12 @@ export default function StyledDropzone(props) {
       // TODO: add loading and error handling
       await apiservice.upload(uploadFolder, acceptedFiles)
       // await delay(100)
-      setLastError(null)
+      props.filesUploaded();
     } catch (e) {
-      setLastError(e)
-      console.error(e)
+	  toast.error('upload error' + e.toString())
     }
     finally{
       setUploading(false);
-      props.filesUploaded();
     }
   }
 
@@ -44,13 +41,11 @@ export default function StyledDropzone(props) {
   }, [isDragActive, isDragReject, isDragAccept])
 
   const hint = "Drag 'n' drop some files here, or click to select files to upload"
-  const wasError = lasterror !== undefined && lasterror !== null && lasterror !== ""
-
   if (!uploading) {
     return (
         <div {...getRootProps({ className })}>
           <input {...getInputProps()} />
-          <p>{wasError ? lasterror : hint}</p>
+          <p>{ hint}</p>
         </div>
     )
   } else {

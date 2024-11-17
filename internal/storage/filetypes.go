@@ -12,4 +12,6 @@ const (
 	EpubFileExt = ".epub"
 	//PdfFileExt pdf
 	PdfFileExt = ".pdf"
+	//RmDoc
+	RmDocFileExt = ".rmdoc"
 )

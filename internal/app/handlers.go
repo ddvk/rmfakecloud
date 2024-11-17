@@ -873,6 +873,11 @@ func (app *App) blobStorageRead(c *gin.Context) {
 	blobID := common.ParamS(fileKey, c)
 
 	reader, _, size, crc32c, err := app.blobStorer.LoadBlob(uid, blobID)
+	if err == fs.ErrorNotFound {
+		log.Warn(err)
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)

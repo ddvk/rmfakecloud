@@ -277,12 +277,15 @@ func updateTree(tree *models.HashTree, storage *LocalBlobStorage, treeMutation f
 func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, stream io.Reader) (doc *storage.Document, err error) {
 	ext := path.Ext(filename)
 	switch ext {
-	case storage.PdfFileExt:
-		fallthrough
-	case storage.EpubFileExt:
+	case storage.EpubFileExt, storage.PdfFileExt, storage.RmDocFileExt:
 	default:
 		return nil, errors.New("unsupported extension: " + ext)
 	}
+
+	if ext == storage.RmDocFileExt{
+		return nil, errors.New("TODO: not implemented yet")
+	}
+
 	//TODO: zips and rm
 	blobPath := fs.getUserBlobPath(uid)
 	docid := uuid.New().String()
@@ -476,6 +479,10 @@ func (fs *FileSystemStorage) LoadBlob(uid, blobid string) (reader io.ReadCloser,
 	}
 
 	osFile, err := os.Open(blobPath)
+	if err != nil {
+		log.Errorf("cannot open blob %v", err)
+		return 
+	}
 	//TODO: cache the crc32
 	crc32, err = common.CRC32FromReader(osFile)
 	if err != nil {

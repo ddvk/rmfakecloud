@@ -350,8 +350,11 @@ func (app *ReactAppWrapper) createDocument(c *gin.Context) {
 	}
 	parentID := ""
 	if parent, ok := form.Value["parent"]; ok {
-		parentID = parent[0]
+		if parent[0] != "root" {
+			parentID = parent[0]
+		}
 	}
+
 	log.Info("Parent: " + parentID)
 
 	docs := []*storage.Document{}
