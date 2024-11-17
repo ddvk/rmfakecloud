@@ -393,6 +393,7 @@ func (app *ReactAppWrapper) getAppUsers(c *gin.Context) {
 			Email:     u.Email,
 			Name:      u.Name,
 			CreatedAt: u.CreatedAt,
+			IsAdmin: u.IsAdmin,
 		}
 		uilist = append(uilist, usr)
 	}

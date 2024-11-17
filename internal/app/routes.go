@@ -4,6 +4,8 @@ import (
 	"io"
 	"net/http"
 	"runtime"
+
+	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 )
@@ -20,18 +22,19 @@ const (
 func (app *App) registerRoutes(router *gin.Engine) {
 	//endpoints discovery
 	router.GET("/discovery/v1/endpoints", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"notifications": app.cfg.CloudHost,
-			"webapp":        app.cfg.CloudHost,
+		c.JSON(http.StatusOK, messages.EndpointsResponse{
+			Notifications: app.cfg.CloudHost,
+			Webapp: app.cfg.CloudHost,
+			MQTT: app.cfg.CloudHost,
 		})
 	})
 
 	// TODO: get client version from headers
 	// in 3.15 only https without a port is used by the client
 	router.GET("/discovery/v1/webapp", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"Status": "OK",
-			"Host":   app.cfg.CloudHost,
+		c.JSON(http.StatusOK, messages.HostResponse{
+			Host: app.cfg.CloudHost,
+			Status: "OK",
 		})
 	})
 

@@ -206,6 +206,7 @@ type User struct {
 	Email        string `json:"email"`
 	Name         string `json:"name"`
 	NewPassword  string `json:"newpassword,omitempty"`
+	IsAdmin 	 bool `json:"isAdmin"`
 	CreatedAt    time.Time
 	Integrations []string `json:"integrations,omitempty"`
 }

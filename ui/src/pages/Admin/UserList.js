@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import {useState} from "react";
 import { toast } from "react-toastify";
 import { Alert, Button, Modal, Table } from "react-bootstrap";
 
@@ -107,6 +107,7 @@ export default function UserList() {
             <th>UserId</th>
             <th>Email</th>
             <th>Name</th>
+            <th>Role</th>
             <th>Created At</th>
             <th><Button onClick={newUser}>New User</Button></th>
           </tr>
@@ -118,6 +119,7 @@ export default function UserList() {
               <td>{x.userid}</td>
               <td>{x.email}</td>
               <td>{x.Name}</td>
+              <td>{x.isAdmin && "admin"}</td>
               <td>{formatDate(x.CreatedAt)}</td>
               <td><Button variant="danger" onClick={(e) => remove(e,x.userid)}>Delete</Button></td>
             </tr>

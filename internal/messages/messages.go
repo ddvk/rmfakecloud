@@ -112,6 +112,13 @@ type UploadResponse struct {
 	Version           int    `json:"Version"`
 }
 
+// EndpointReponse endpoint hosts
+type EndpointsResponse struct {
+	Notifications string `json:"notifications"`
+	Webapp string `json:"webapp"`
+	MQTT string `json:"mqttbroker,omitempty"`
+}
+
 // HostResponse what the host responded
 type HostResponse struct {
 	Host   string `json:"Host"`

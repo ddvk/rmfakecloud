@@ -12,6 +12,7 @@ import Login from "./pages/Login";
 import Home from "./pages/Home";
 import Connect from "./pages/Connect";
 import Documents from "./pages/Documents";
+import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
 import NoMatch from "./pages/404";
 
@@ -34,6 +35,7 @@ export default function App() {
               <PrivateRoute exact path="/" component={Home} />
               <PrivateRoute path="/documents" component={Documents} />
               <PrivateRoute path="/connect" component={Connect} />
+              <PrivateRoute path="/profile" component={Profile} />
               <PrivateRoute path="/admin" roles={[Role.Admin]} component={Admin} />
 
               <Route path="/login" component={Login} />

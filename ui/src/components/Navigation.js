@@ -11,6 +11,9 @@ const NavigationBar = () => {
     logout(dispatch);
   }
 
+  function isAdmin() {
+    return user && user.Roles && user.Roles[0] === "Admin";
+  }
   return (
     <Navbar className="sticky-top">
       <Container fluid>
@@ -35,10 +38,18 @@ const NavigationBar = () => {
                     Connect
                   </Nav.Link>
                 </Nav.Item>
+				{ isAdmin() &&
+
+					<Nav.Item>
+					  <Nav.Link as={NavLink} to="/admin">
+						Admin	
+					  </Nav.Link>
+					</Nav.Item>
+				}
               </Nav>
               <Nav className="ms-auto">
                 <NavDropdown id="userMenu" title={user.UserID} align="end">
-                  <NavDropdown.Item as={NavLink} to="/admin">Admin</NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/profile">Profile</NavDropdown.Item>
                   <NavDropdown.Divider />
                   <NavDropdown.Item as={Button} onClick={handleLogout}>Log out</NavDropdown.Item>
                 </NavDropdown>

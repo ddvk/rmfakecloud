@@ -61,7 +61,7 @@ class ApiServices {
   }
 
   resetPassword(resetPasswordForm) {
-    return fetch(`${constants.ROOT_URL}/changePassword`, {
+    return fetch(`${constants.ROOT_URL}/profile`, {
       method: "POST",
       headers: this.header(),
       body: JSON.stringify({
