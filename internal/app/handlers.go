@@ -898,19 +898,14 @@ func (app *App) blobStorageWrite(c *gin.Context) {
 	hash := c.GetHeader(common.CRC32CHashHeader)
 	log.Debugf("TODO: check/save etc. write file '%s', hash '%s'", fileName, hash)
 
-	newgeneration, err := app.blobStorer.StoreBlob(uid, blobID, c.Request.Body, 0)
+	_, err := app.blobStorer.StoreBlob(uid, blobID, c.Request.Body, 0)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
-	//not checked by the client yet, but who knows
-	crcJSON(c, http.StatusOK, messages.SyncRootV4Response{
-		Generation:    newgeneration,
-		Hash:          string(blobID),
-		SchemaVersion: SchemaVersion,
-	})
+	c.Status(http.StatusOK)
 }
 
 func (app *App) integrationsGetMetadata(c *gin.Context) {
