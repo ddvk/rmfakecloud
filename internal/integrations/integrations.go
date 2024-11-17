@@ -134,7 +134,7 @@ func visitDir(root, currentPath string, depth int, parentFolder *messages.Integr
 				ID:               encodedPath,
 				FileID:           encodedPath,
 				Name:             docName,
-				Size:             int(d.Size()),
+				Size:             d.Size(),
 				SourceFileType:   contentType,
 			}
 

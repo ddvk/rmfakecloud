@@ -200,7 +200,7 @@ type IntegrationFile struct {
 	ID               string    `json:"id"`
 	Name             string    `json:"name"`
 	ProvidedFileType string    `json:"providedFileType"`
-	Size             int       `json:"size"`
+	Size             int64     `json:"size"`
 	SourceFileType   string    `json:"sourceFileType"`
 }
 
