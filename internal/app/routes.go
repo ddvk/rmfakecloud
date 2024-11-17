@@ -25,7 +25,8 @@ func (app *App) registerRoutes(router *gin.Engine) {
 		c.JSON(http.StatusOK, messages.EndpointsResponse{
 			Notifications: app.cfg.CloudHost,
 			Webapp: app.cfg.CloudHost,
-			MQTT: app.cfg.CloudHost,
+			// TODO: investigage usage
+			// MQTT: app.cfg.CloudHost,
 		})
 	})
 
