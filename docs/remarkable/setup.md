@@ -24,7 +24,15 @@ The `<URL>` above has to be the same as in the `STORAGE_URL` server configuratio
 ### rmfakecloud-proxy script
 
 Get the installer from: [rmfakecloud-proxy](https://github.com/ddvk/rmfakecloud-proxy/releases)
-or run the automagic:
+scp to the device and run it
+```
+scp installer.sh root@10.11.99.1:
+ssh root@10.11.99.1
+chmod +x ./installer-xxxx.sh
+./installer-xxxx.sh
+```
+
+the automagic script doesn't work anymore, because of the busybox wget tls
 
 ```commandline
 sh -c "$(wget https://raw.githubusercontent.com/ddvk/rmfakecloud/master/scripts/device/automagic.sh -O-)"
