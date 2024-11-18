@@ -169,6 +169,9 @@ function handleError(r) {
       window.location.reload(true);
       return
     }
+    if (r.headers.get("Content-Type").startsWith("application/json")) {
+      return r.json().then(d => {throw new Error(d.error)});
+    }
     if (r.status === 400) {
       return r.text().then(text => {throw new Error(text)})
     }

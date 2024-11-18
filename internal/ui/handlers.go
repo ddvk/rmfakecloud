@@ -14,6 +14,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -529,11 +530,27 @@ func (app *ReactAppWrapper) listIntegrations(c *gin.Context) {
 	c.JSON(http.StatusOK, user.Integrations)
 }
 
+func warnLocalfsEdition(c *gin.Context, int *model.IntegrationConfig) {
+	s, err := yaml.Marshal(gin.H{"integrations": []*model.IntegrationConfig{int}})
+	if err != nil {
+		log.Error("error updating user", err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "To avoid security issues with local directory integration, you have to manually edit your .userprofile file:\n\n" + string(s)})
+}
+
 func (app *ReactAppWrapper) createIntegration(c *gin.Context) {
 	int := model.IntegrationConfig{}
 	if err := c.ShouldBindJSON(&int); err != nil {
 		log.Error(err)
 		badReq(c, err.Error())
+		return
+	}
+
+	if int.Provider == integrations.LocalfsProvider {
+		int.ID = uuid.NewString()
+		warnLocalfsEdition(c, &int)
 		return
 	}
 
@@ -587,6 +604,11 @@ func (app *ReactAppWrapper) updateIntegration(c *gin.Context) {
 	if err := c.ShouldBindJSON(&int); err != nil {
 		log.Error(err)
 		badReq(c, err.Error())
+		return
+	}
+
+	if int.Provider == integrations.LocalfsProvider {
+		warnLocalfsEdition(c, &int)
 		return
 	}
 
