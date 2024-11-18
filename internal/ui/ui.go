@@ -121,5 +121,5 @@ func (w ReactAppWrapper) Open(filepath string) (http.File, error) {
 	return f, err
 }
 func badReq(c *gin.Context, message string) {
-	c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": message})
+	c.AbortWithStatusJSON(http.StatusBadRequest, viewmodel.NewErrorResponse(message))
 }

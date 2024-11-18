@@ -42,7 +42,7 @@ func (app *ReactAppWrapper) register(c *gin.Context) {
 	if client != "localhost" &&
 		client != "::1" &&
 		client != "127.0.0.1" {
-		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Registrations are closed"})
+		c.AbortWithStatusJSON(http.StatusForbidden, viewmodel.NewErrorResponse("Registrations are closed"))
 		return
 	}
 
@@ -179,7 +179,7 @@ func (app *ReactAppWrapper) changePassword(c *gin.Context) {
 
 	if user.ID != uid {
 		log.Error("Trying to change password for a different user.")
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "cant do that"})
+		c.AbortWithStatusJSON(http.StatusBadRequest, viewmodel.NewErrorResponse("cant do that"))
 		return
 	}
 
@@ -188,7 +188,7 @@ func (app *ReactAppWrapper) changePassword(c *gin.Context) {
 		if err != nil {
 			log.Error(err)
 		}
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid email or password"})
+		c.AbortWithStatusJSON(http.StatusBadRequest, viewmodel.NewErrorResponse("Invalid email or password"))
 		return
 	}
 
@@ -213,14 +213,14 @@ func (app *ReactAppWrapper) newCode(c *gin.Context) {
 	user, err := app.userStorer.GetUser(uid)
 	if err != nil {
 		log.Error("Unable to find user: ", err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.AbortWithStatusJSON(http.StatusInternalServerError, viewmodel.NewErrorResponse(err.Error()))
 		return
 	}
 
 	code, err := app.codeConnector.NewCode(user.ID)
 	if err != nil {
 		log.Error("Unable to generate new device code: ", err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Unable to generate new code"})
+		c.AbortWithStatusJSON(http.StatusInternalServerError, viewmodel.NewErrorResponse("Unable to generate new code"))
 		return
 	}
 
@@ -389,7 +389,7 @@ func (app *ReactAppWrapper) getAppUsers(c *gin.Context) {
 
 	if err != nil {
 		log.Error(err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Unable to get users."})
+		c.AbortWithStatusJSON(http.StatusInternalServerError, viewmodel.NewErrorResponse("Unable to get users."))
 		return
 	}
 
@@ -537,7 +537,8 @@ func warnLocalfsEdition(c *gin.Context, int *model.IntegrationConfig) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "To avoid security issues with local directory integration, you have to manually edit your .userprofile file:\n\n" + string(s)})
+	c.AbortWithStatusJSON(http.StatusForbidden, 
+		viewmodel.NewErrorResponse("To avoid security issues with local directory integration, you have to manually edit your .userprofile file:\n\n" + string(s)))
 }
 
 func (app *ReactAppWrapper) createIntegration(c *gin.Context) {

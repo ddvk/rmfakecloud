@@ -31,6 +31,16 @@ type ChangeEmailForm struct {
 	CurrentPassword string `json:"currentPassword"`
 }
 
+// ErrorResponse
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
+func NewErrorResponse(errormsg string) ErrorResponse {
+	return ErrorResponse {
+		Error: errormsg,
+	}
+}
+
 // DocumentTree a tree of documents
 type DocumentTree struct {
 	Entries []Entry

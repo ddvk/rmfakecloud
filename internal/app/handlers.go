@@ -970,7 +970,7 @@ func (app *App) integrationsGetFile(c *gin.Context) {
 
 	reader, size, err := integrationProvider.Download(fileID)
 	if err != nil {
-		log.Error(err)
+		log.Errorf("cannot download file %s, %v", fileID, err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
