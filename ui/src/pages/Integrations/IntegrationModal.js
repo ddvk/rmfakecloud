@@ -71,7 +71,9 @@ export default function IntegrationModal(params) {
           <div>
             <Alert variant="danger" hidden={!formErrors.error}>
               <Alert.Heading>An Error Occurred</Alert.Heading>
-              {formErrors.error}
+              <div style={{'white-space': 'pre-wrap'}}>
+                {formErrors.error}
+              </div>
             </Alert>
 
             <Form.Label>IntegrationID</Form.Label>
