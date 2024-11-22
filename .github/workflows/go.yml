@@ -26,8 +26,8 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '21'
-        cache: 'yarn'
-        cache-dependency-path: ui/yarn.lock
+        cache: 'pnpm'
+        cache-dependency-path: ui/pnpm-lock.yaml
 
 
     - name: Build

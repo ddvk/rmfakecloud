@@ -1,5 +1,5 @@
 import constants from "../common/constants";
-import jwt_decode from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 
 class ApiServices {
   header() {
@@ -27,7 +27,7 @@ class ApiServices {
         return r.text();
       })
       .then((text) => {
-        let user = jwt_decode(text);
+        let user = jwtDecode(text);
         localStorage.setItem("currentUser", JSON.stringify(user));
         return user;
       });

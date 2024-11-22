@@ -70,8 +70,7 @@ type ReactAppWrapper struct {
 
 // hack for serving index.html on /
 const indexReplacement = "/default"
-
-
+const jsBuildFolder = "dist"
 
 // New Create a React app
 func New(cfg *config.Config,
@@ -81,7 +80,7 @@ func New(cfg *config.Config,
 	docHandler documentHandler,
 	blobHandler blobHandler) *ReactAppWrapper {
 
-	sub, err := fs.Sub(webui.Assets, "build")
+	sub, err := fs.Sub(webui.Assets, jsBuildFolder)
 	if err != nil {
 		panic("not embedded?")
 	}
@@ -95,7 +94,7 @@ func New(cfg *config.Config,
 	}
 	staticWrapper := ReactAppWrapper{
 		fs:            common.NewLastModifiedFS(http.FS(sub), time.Now()),
-		prefix:        "/static",
+		prefix:        "/assets",
 		cfg:           cfg,
 		userStorer:    userStorer,
 		codeConnector: codeConnector,
