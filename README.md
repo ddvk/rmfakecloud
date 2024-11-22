@@ -8,7 +8,7 @@ This is a replacement of the cloud, in case you want to sync/backup your files a
 ## [Docs](https://ddvk.github.io/rmfakecloud/)
 
 ## NB
-for SW 3.15 `STORAGE_URL` should not be set (only only https://some.host without a port can be used)
+for SW 3.15 `STORAGE_URL` should not be set (or only https://some.ho.st without a port should be used)
 
 The current release of rmfakecloud support file synchronization for SW <= 3.14.1. Newer releases have not been tested yet.
 
