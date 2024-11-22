@@ -22,9 +22,8 @@ async function uploadFilesInBatches(files, uploadFolder, batchSize = 100) {
   }
 }
 
-export default function StyledDropzone(props) {
+export default function StyledDropzone({filesUploaded, uploadFolder}) {
   const [uploading, setUploading] = useState(false);
-  const uploadFolder = props.uploadFolder;
 
   var onDrop = async (acceptedFiles) => {
     try {
@@ -32,7 +31,7 @@ export default function StyledDropzone(props) {
       // TODO: add loading and error handling
       await uploadFilesInBatches(acceptedFiles, uploadFolder);
       // await delay(100)
-      props.filesUploaded();
+      filesUploaded();
     } catch (e) {
       toast.error("upload error" + e.toString());
     } finally {
@@ -47,7 +46,11 @@ export default function StyledDropzone(props) {
     isDragAccept,
     isDragReject,
   } = useDropzone({
-    accept: "application/pdf, application/zip, application/epub+zip",
+     accept: {
+      "application/pdf":[], 
+      "application/zip":[".zip", ".rmdoc"], 
+      "application/epub+zip":[],
+     },
     onDropAccepted: onDrop,
     maxSize: 1 * 1024 * 1024 * 1024, // 1GB
   });
