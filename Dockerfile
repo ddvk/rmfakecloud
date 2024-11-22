@@ -2,14 +2,14 @@ ARG VERSION=0.0.0
 FROM --platform=$BUILDPLATFORM node:lts-slim AS uibuilder
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+RUN corepack enable pnpm && corepack install -g pnpm@latest-9
 
 WORKDIR /src
-COPY pnpm-lock.yaml /src
-RUN pnpm fetch --prod
+#COPY ui/package.json ui/pnpm-lock.yaml /src
+#RUN pnpm fetch 
 
 COPY ui .
-RUN pnpm i && pnpm build
+RUN pnpm install && pnpm build
 
 FROM golang:1-alpine AS gobuilder
 ARG VERSION
