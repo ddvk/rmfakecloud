@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Button, ButtonGroup } from "react-bootstrap";
 import Navbar from 'react-bootstrap/Navbar';
 import { FaChevronRight, FaChevronLeft, } from "react-icons/fa6";
@@ -11,14 +11,13 @@ import NameTag from "../../components/NameTag"
 import { pdfjs, Document, Page } from "react-pdf";
 // import 'react-pdf/dist/Page/AnnotationLayer.css';
 // import 'react-pdf/dist/Page/TextLayer.css';
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url,
-).toString();
+// import 'react-pdf/dist/Page/TextLayer.css';
+//pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.js"
+// pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+//   'pdfjs-dist/build/pdf.worker.min.mjs',
+//   import.meta.url,
+// ).toString(); 
 
-const options = {
-	worker: new pdfjs.PDFWorker()
-}
 
 export default function FileViewer({ file, onSelect }) {
   const { data } = file;
@@ -74,6 +73,12 @@ export default function FileViewer({ file, onSelect }) {
       })
   }
 
+  let options = useMemo(()=> {
+    return {
+      worker: new pdfjs.PDFWorker()
+    }
+  },[pdfjs])
+
   return (
     <>
       <Navbar style={{ marginLeft: '-12px' }}>
@@ -99,6 +104,7 @@ export default function FileViewer({ file, onSelect }) {
         </Button>
 
       </Navbar>
+
 
       {file && (
         <div ref={parent} style={{height: "95%"}}>

@@ -13,22 +13,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
+    - name: Check out code
+      uses: actions/checkout@v4
+
     - name: Set up Go 1.x
       uses: actions/setup-go@v5
       with:
         go-version: ^1.23
       id: go
 
-    - name: Check out code
-      uses: actions/checkout@v4
+    - uses: pnpm/action-setup@v4
+      name: Install pnpm
+      with:
+        version: 9 
+        run_install: false
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '21'
-        cache: 'yarn'
-        cache-dependency-path: ui/yarn.lock
-
+        cache: 'pnpm'
+        cache-dependency-path: ui/pnpm-lock.yaml
 
     - name: Build
       run: make build

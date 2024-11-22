@@ -4,14 +4,14 @@ OUT_DIR := dist
 CMD := ./cmd/rmfakecloud
 BINARY := rmfakecloud
 BUILD = go build -ldflags $(LDFLAGS) -o $(@) $(CMD) 
-ASSETS = ui/build
+ASSETS = ui/dist
 GOFILES := $(shell find . -iname '*.go' ! -iname "*_test.go")
 GOFILES += $(ASSETS)
 UIFILES := $(shell find ui/src)
 UIFILES += $(shell find ui/public)
 UIFILES += ui/package.json
 TARGETS := $(addprefix $(OUT_DIR)/$(BINARY)-, x64 armv6 armv7 arm64 win64 docker)
-YARN	= yarn --cwd ui  
+PNPM	= cd ui; pnpm
 
 .PHONY: all run runui clean test testgo testui
 
@@ -43,21 +43,21 @@ container: $(OUT_DIR)/$(BINARY)-docker
 run: $(ASSETS)
 	go run $(CMD) $(ARG)
 
-$(ASSETS): $(UIFILES) ui/yarn.lock
+$(ASSETS): $(UIFILES) ui/pnpm-lock.yaml
 	#@cp ui/node_modules/pdfjs-dist/build/pdf.worker.js ui/public/
-	$(YARN) build
+	$(PNPM) build
 	@#remove unneeded stuff, todo: eject
 	@rm ui/build/service-worker.js ui/build/precache-manifest* ui/build/asset-manifest.json 2> /dev/null || true
 
-ui/yarn.lock: ui/node_modules ui/package.json
-	$(YARN)
+ui/pnpm-lock.yaml: ui/node_modules ui/package.json
+	$(PNPM) i
 	@touch -mr $(shell ls -Atd $? | head -1) $@
 
 ui/node_modules:
 	mkdir -p $@
 
-runui: ui/yarn.lock
-	$(YARN) start
+runui: ui/pnpm-lock.yaml
+	$(PNPM) run dev
 
 clean:
 	rm -f $(OUT_DIR)/*
@@ -67,7 +67,7 @@ test: testui testgo
 
 testui:
 	echo "TODO: fix this"
-	#CI=true $(YARN) test
+	#CI=true $(PNPM) test
 
 testgo:
 	go test ./...

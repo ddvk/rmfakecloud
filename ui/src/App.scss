@@ -3,6 +3,7 @@
 // TODO: Remove styles which are not meant to be global into module files
 
 :root {
+    height:100%;
     --bs-code-color: #{$action} !important;
     --bs-body-bg: #{$background1} !important;
     --bs-border-color: #{$foreground2} !important;
@@ -232,4 +233,4 @@ main h2 {
     padding: 0.5em 0;
 }
 
-@import "node_modules/bootstrap/scss/bootstrap";
+@import "bootstrap/scss/bootstrap";

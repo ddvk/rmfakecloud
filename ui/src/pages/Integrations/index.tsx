@@ -20,7 +20,7 @@ const Integrations = () => {
 
   function openModal(index: number) {
     if (!integrationList) return;
-    let integration = integrationList[index];
+    const integration = integrationList[index];
     setState({
       showModal: UpdateIntegration,
       modalIntegration: integration,
@@ -49,6 +49,7 @@ const Integrations = () => {
   const newIntegration = e => {
     setState({
       showModal: NewIntegration,
+      modalIntegration: null
     });
   }
 
@@ -88,7 +89,7 @@ const Integrations = () => {
           <tbody>
             {!integrationList.length && (
               <tr>
-                <td colspan="5" class="text-center">No integration</td>
+                <td colSpan={5} className="text-center">No integration</td>
               </tr>
             )}
             {integrationList.map((i, index) => (

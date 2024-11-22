@@ -7,7 +7,7 @@ Dependencies
 To be able to compile from source, you'll need the following dependencies:
 
 * [nodejs](https://nodejs.org) version 16 at most
-* [yarn](https://yarnpkg.com/)
+* [pnpm](https://pnpm.io/)
 * [go](https://go.dev/) version 1.16 at least
 * make
 

@@ -4,5 +4,5 @@ package rmfakecloud
 
 import "embed"
 
-//go:embed build/*
+//go:embed dist/*
 var Assets embed.FS

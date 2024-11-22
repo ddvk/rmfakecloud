@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useHistory } from "react-router";
+import { useHistory } from "react-router-dom";
 import { Button, Form } from "react-bootstrap";
 
 import { useAuthState } from "../../common/useAuthContext";
@@ -41,7 +41,9 @@ const Login = () => {
               autoFocus
               onChange={(e) => setUsername(e.target.value)}
               disabled={loading}
-              placeholder="Username" />
+              placeholder="Username" 
+              autoComplete="username"
+              />
           </Form.Group>
 
           <Form.Group className="mb-3">
@@ -52,7 +54,9 @@ const Login = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={loading}
-              placeholder="Password" />
+              placeholder="Password" 
+              autoComplete="current-password"
+              />
           </Form.Group>
 
           <Button type="submit" onClick={handleLogin} disabled={loading}>
