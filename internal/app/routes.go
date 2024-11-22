@@ -24,8 +24,8 @@ func (app *App) registerRoutes(router *gin.Engine) {
 	router.GET("/discovery/v1/endpoints", func(c *gin.Context) {
 		c.JSON(http.StatusOK, messages.EndpointsResponse{
 			Notifications: app.cfg.CloudHost,
-			Webapp: app.cfg.CloudHost,
-			// TODO: investigage usage
+			Webapp:        app.cfg.CloudHost,
+			// TODO: investigate usage
 			// MQTT: app.cfg.CloudHost,
 		})
 	})
@@ -34,7 +34,7 @@ func (app *App) registerRoutes(router *gin.Engine) {
 	// in 3.15 only https without a port is used by the client
 	router.GET("/discovery/v1/webapp", func(c *gin.Context) {
 		c.JSON(http.StatusOK, messages.HostResponse{
-			Host: app.cfg.CloudHost,
+			Host:   app.cfg.CloudHost,
 			Status: "OK",
 		})
 	})
