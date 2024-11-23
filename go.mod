@@ -1,6 +1,6 @@
 module github.com/ddvk/rmfakecloud
 
-go 1.23
+go 1.23.3
 
 require (
 	github.com/dropbox/dropbox-sdk-go-unofficial/v6 v6.0.5
