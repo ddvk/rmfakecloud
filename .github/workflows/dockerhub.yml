@@ -43,7 +43,10 @@ jobs:
           tags: |
             ddvk/rmfakecloud:latest
             ddvk/rmfakecloud:${{ env.image_version }}
-          platforms: linux/amd64,linux/arm/v7,linux/arm64
+          platforms: 
+            - linux/amd64
+            - linux/arm/v7
+            - linux/arm64
           build-args: |
             VERSION=${{ env.version }}
 
