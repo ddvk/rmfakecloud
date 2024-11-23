@@ -1,6 +1,6 @@
 [![rm1](https://img.shields.io/badge/rM1-supported-green)](https://remarkable.com/store/remarkable)
 [![rm2](https://img.shields.io/badge/rM2-supported-green)](https://remarkable.com/store/remarkable-2)
-[![rmpro](https://img.shields.io/badge/rmpro-supported-green)](https://remarkable.com/store/overview/remarkable-paper-pro)
+[![rmpro](https://img.shields.io/badge/rmpro-supported-green)](https://remarkable.com/store/remarkable-paper/pro)
 
 [![opkg](https://img.shields.io/badge/OPKG-rmfakecloud--proxy-blue)](https://toltec-dev.org/)
 
