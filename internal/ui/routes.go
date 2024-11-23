@@ -48,7 +48,7 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 		c.Status(http.StatusOK)
 	})
 	auth.GET("sync", func(c *gin.Context) {
-		uid := c.GetString(userIDContextKey)
+		uid := userID(c)
 		br := c.GetString(browserIDContextKey)
 		log.Info("browser", br)
 		app.h.NotifySync(uid, br)

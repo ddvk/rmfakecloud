@@ -65,9 +65,10 @@ func (app *ReactAppWrapper) authMiddleware() gin.HandlerFunc {
 			}
 		}
 
-		uid := claims.UserID
-		brid := claims.BrowserID
+		uid := common.Sanitize(claims.UserID)
 		c.Set(userIDContextKey, uid)
+
+		brid := claims.BrowserID
 		c.Set(browserIDContextKey, brid)
 		for _, r := range claims.Roles {
 			if r == AdminRole {
