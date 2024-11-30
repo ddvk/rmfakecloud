@@ -1,4 +1,3 @@
-# 0.0.22
-some fixes
-vite
+# 0.0.23
+- bugfix
 
