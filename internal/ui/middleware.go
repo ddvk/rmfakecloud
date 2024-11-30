@@ -65,7 +65,7 @@ func (app *ReactAppWrapper) authMiddleware() gin.HandlerFunc {
 			}
 		}
 
-		uid := common.Sanitize(claims.UserID)
+		uid := common.SanitizeUid(claims.UserID)
 		c.Set(userIDContextKey, uid)
 
 		brid := claims.BrowserID

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"hash/crc32"
 	"io"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -53,6 +54,11 @@ var nameSeparators = regexp.MustCompile(`[./\\]`)
 // Sanitize removes all path separators
 func Sanitize(param string) string {
 	return nameSeparators.ReplaceAllString(param, "")
+}
+
+// SanitizeUid
+func SanitizeUid(uid string) string {
+	return filepath.Clean(filepath.Base(uid))
 }
 
 // QueryS sanitize the param

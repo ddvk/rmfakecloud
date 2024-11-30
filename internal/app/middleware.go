@@ -46,7 +46,7 @@ func (app *App) authMiddleware() gin.HandlerFunc {
 			c.Set(syncVersionKey, common.Sync10)
 		}
 
-		uid := common.Sanitize(strings.TrimPrefix(claims.Profile.UserID, "auth0|"))
+		uid := common.SanitizeUid(strings.TrimPrefix(claims.Profile.UserID, "auth0|"))
 		c.Set(userIDKey, uid)
 		c.Set(deviceIDKey, claims.DeviceID)
 		log.Infof("%s UserId: %s deviceId: %s newSync: %t", authLog, uid, claims.DeviceID, isSync15)

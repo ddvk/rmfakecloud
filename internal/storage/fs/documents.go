@@ -37,7 +37,7 @@ func sanitizeFileName(fileName string) string {
 }
 
 func (fs *FileSystemStorage) getUserPath(uid string) string {
-	return filepath.Join(fs.Cfg.DataDir, filepath.Base(userDir), sanitizeFileName(uid))
+	return filepath.Join(fs.Cfg.DataDir, filepath.Base(userDir), common.SanitizeUid(uid))
 }
 
 // gets the blobstorage path
