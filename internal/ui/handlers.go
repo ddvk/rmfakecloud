@@ -244,6 +244,7 @@ func (app *ReactAppWrapper) getBackend(c *gin.Context) backend {
 	}
 	return backend
 }
+
 func (app *ReactAppWrapper) listDocuments(c *gin.Context) {
 	uid := userID(c)
 

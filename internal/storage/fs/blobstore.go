@@ -282,7 +282,7 @@ func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, st
 		return nil, errors.New("unsupported extension: " + ext)
 	}
 
-	if ext == storage.RmDocFileExt{
+	if ext == storage.RmDocFileExt {
 		return nil, errors.New("TODO: not implemented yet")
 	}
 
@@ -375,8 +375,6 @@ func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, st
 	}
 	payloadEntry = models.NewHashEntry(payloadHash, docid+ext, size)
 	err = hashDoc.AddFile(payloadEntry)
-
-	hashDoc.PayloadSize = size
 
 	if err != nil {
 		return nil, err
@@ -481,7 +479,7 @@ func (fs *FileSystemStorage) LoadBlob(uid, blobid string) (reader io.ReadCloser,
 	osFile, err := os.Open(blobPath)
 	if err != nil {
 		log.Errorf("cannot open blob %v", err)
-		return 
+		return
 	}
 	//TODO: cache the crc32
 	crc32, err = common.CRC32FromReader(osFile)

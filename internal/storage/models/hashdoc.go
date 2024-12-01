@@ -23,8 +23,8 @@ type HashDoc struct {
 
 	//extra fields that are serialized
 	MetadataFile
+	//PayloadType
 	PayloadType string
-	PayloadSize int64
 }
 
 func NewHashDocWithMeta(documentID string, meta MetadataFile) *HashDoc {
@@ -87,6 +87,11 @@ func (d *HashDoc) MetadataReader() (hash string, reader io.Reader, err error) {
 // AddFile adds an entry
 func (d *HashDoc) AddFile(e *HashEntry) error {
 	d.Files = append(d.Files, e)
+	size := int64(0)
+	for _, f := range d.Files {
+		size += f.Size
+	}
+	d.Size = size
 	return d.Rehash()
 }
 
@@ -180,7 +185,11 @@ func (d *HashDoc) ReadMetadata(fileEntry *HashEntry, r RemoteStorage) error {
 		return d.readMetadata(fileEntry.Hash, r)
 	}
 	if fileEntry.IsContent() {
-		return d.readContent(fileEntry.Hash, r)
+		err := d.readContent(fileEntry.Hash, r)
+		if err != nil {
+			return err
+		}
+
 	}
 	return nil
 

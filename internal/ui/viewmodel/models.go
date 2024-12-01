@@ -99,7 +99,7 @@ func DocTreeFromHashTree(tree *models.HashTree) *DocumentTree {
 			Type:         d.MetadataFile.CollectionType,
 			LastModified: lastModified,
 			FileType:     d.PayloadType,
-			Size:         d.PayloadSize,
+			Size:         d.Size,
 		})
 	}
 
