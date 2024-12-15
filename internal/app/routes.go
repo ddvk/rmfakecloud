@@ -77,6 +77,7 @@ func (app *App) registerRoutes(router *gin.Engine) {
 	router.POST("/v1/reports", app.nullReport)
 	router.POST("/v2/reports", app.nullReport)
 	router.POST("/report/v1", app.nullReport)
+	router.POST("/v2/events", app.nullReport)
 
 	//routes needing api authentitcation
 	authRoutes := router.Group("/")

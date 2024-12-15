@@ -1114,10 +1114,10 @@ func (app *App) syncReports(c *gin.Context) {
 }
 
 func (app *App) nullReport(c *gin.Context) {
-	_, err := io.ReadAll(c.Request.Body)
-	if err != nil {
-		log.Warn("could not read report data")
-	}
+	// _, err := io.ReadAll(c.Request.Body)
+	// if err != nil {
+	// 	log.Warn("could not read report data")
+	// }
 	c.Status(http.StatusOK)
 }
 
