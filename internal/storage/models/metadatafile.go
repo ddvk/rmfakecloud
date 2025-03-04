@@ -13,6 +13,7 @@ type MetadataFile struct {
 	DocumentName     string           `json:"visibleName"`
 	CollectionType   common.EntryType `json:"type"`
 	Parent           string           `json:"parent"`
+	CreatedTime      string           `json:"createdTime"`
 	LastModified     string           `json:"lastModified"`
 	LastOpened       string           `json:"lastOpened"`
 	Version          int              `json:"version"`
