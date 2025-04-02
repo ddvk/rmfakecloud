@@ -79,10 +79,11 @@ func List(userstorer storage.UserStorer, uid string) (*messages.IntegrationsResp
 	res := &messages.IntegrationsResponse{}
 	for _, userIntg := range user.Integrations {
 		resIntg := messages.Integration{
-			ID:       userIntg.ID,
-			Name:     userIntg.Name,
-			Provider: fixProviderName(userIntg.Provider),
-			UserID:   uid,
+			ID:           userIntg.ID,
+			Name:         userIntg.Name,
+			Provider:     fixProviderName(userIntg.Provider),
+			ProviderType: "Storage",
+			UserID:       uid,
 		}
 
 		res.Integrations = append(res.Integrations, resIntg)

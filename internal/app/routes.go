@@ -118,6 +118,12 @@ func (app *App) registerRoutes(router *gin.Engine) {
 		authRoutes.POST("/integrations/v1/:"+integrationKey+"/files/:"+folderKey, app.integrationsUpload)
 		authRoutes.GET("/integrations/v1/", app.integrations)
 
+		authRoutes.GET("/integrations/v2/instances", app.integrations)
+		authRoutes.GET("/integrations/v2/storage/:"+integrationKey+"/folders/:"+folderKey, app.integrationsList)
+		authRoutes.GET("/integrations/v2/storage/:"+integrationKey+"/files/:"+fileKey, app.integrationsGetFile)
+		authRoutes.GET("/integrations/v2/storage/:"+integrationKey+"/files/:"+fileKey+"/metadata", app.integrationsGetMetadata)
+		authRoutes.POST("/integrations/v2/storage/:"+integrationKey+"/files/:"+folderKey, app.integrationsUpload)
+
 		// sync15
 		authRoutes.POST("/api/v1/signed-urls/downloads", app.blobStorageDownload)
 		authRoutes.POST("/api/v1/signed-urls/uploads", app.blobStorageUpload)
