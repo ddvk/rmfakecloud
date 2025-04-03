@@ -143,10 +143,10 @@ func (app *App) newUserToken(c *gin.Context) {
 		return
 	}
 
-	scopes := []string{"intgr", "screenshare"}
+	scopes := []string{"intgr", "screenshare", "docedit"}
 
 	if app.cfg.HWRApplicationKey != "" && app.cfg.HWRHmac != "" {
-		scopes = append(scopes, "hwcmail:-1")
+		scopes = append(scopes, "hwcmail:-1", "hwc")
 	}
 
 	if app.cfg.SMTPConfig != nil {

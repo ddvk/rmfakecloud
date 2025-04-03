@@ -184,12 +184,13 @@ type IntegrationsResponse struct {
 
 // Integration integrations (google,dropbox)
 type Integration struct {
-	Added    time.Time `json:"added"`
-	ID       string    `json:"id"`
-	Issues   string    `json:"issues"`
-	Name     string    `json:"name"`
-	Provider string    `json:"provider"`
-	UserID   string    `json:"userID"`
+	Added        time.Time `json:"added"`
+	ID           string    `json:"id"`
+	Issues       string    `json:"issues"`
+	Name         string    `json:"name"`
+	Provider     string    `json:"provider"`
+	ProviderType string    `json:"providerType"`
+	UserID       string    `json:"userID"`
 }
 
 type IntegrationFile struct {
