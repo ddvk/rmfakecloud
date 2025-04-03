@@ -1,4 +1,4 @@
-package storage
+package models
 
 const (
 	MetadataFileExt = ".metadata"
