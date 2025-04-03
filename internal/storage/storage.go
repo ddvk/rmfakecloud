@@ -27,14 +27,15 @@ type DocumentStorer interface {
 
 	GetStorageURL(uid, docid string) (string, time.Time, error)
 	CreateDocument(uid, name, parent string, stream io.Reader) (doc *Document, err error)
+	CreateFolder(uid, name, parent string) (doc *Document, err error)
 }
 
 // BlobStorage stuff for sync15
 type BlobStorage interface {
 	GetBlobURL(uid, docid string, write bool) (string, time.Time, error)
 
-	StoreBlob(uid, blobID string, s io.Reader, matchGeneration int64) (int64, error)
-	LoadBlob(uid, blobID string) (reader io.ReadCloser, gen int64, size int64, crc32c string, err error)
+	StoreBlob(uid, blobID string, filename string, hash string, s io.Reader) error
+	LoadBlob(uid, blobID string) (reader io.ReadCloser, size int64, crc32c string, err error)
 	CreateBlobDocument(uid, name, parent string, stream io.Reader) (doc *Document, err error)
 }
 
@@ -52,6 +53,9 @@ type UserStorer interface {
 	RegisterUser(u *model.User) error
 	UpdateUser(u *model.User) error
 	RemoveUser(uid string) error
+
+	GetRoot(uid string) (string, int64, error)
+	UpdateRoot(uid string, stream io.Reader, lastGen int64) (int64, error)
 }
 
 // Document represents a document in storage
