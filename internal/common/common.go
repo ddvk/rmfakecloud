@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"errors"
+	"hash"
 	"hash/crc32"
 	"io"
 	"path/filepath"
@@ -75,16 +76,13 @@ func ParamS(param string, c *gin.Context) string {
 
 var table = crc32.MakeTable(crc32.Castagnoli)
 
-func CRC32CFromReader(reader io.Reader) (string, error) {
+func CRC32CWriter() hash.Hash32 {
 	// Create a table for CRC32C (Castagnoli polynomial)
 	// Create a CRC32C hasher
-	crc32c := crc32.New(table)
+	return crc32.New(table)
+}
 
-	// Copy the reader data into the hasher
-	if _, err := io.Copy(crc32c, reader); err != nil {
-		return "", err
-	}
-
+func CRC32CSum(crc32c hash.Hash32) string {
 	// Compute the CRC32C checksum
 	checksum := crc32c.Sum32()
 
@@ -93,7 +91,18 @@ func CRC32CFromReader(reader io.Reader) (string, error) {
 	binary.BigEndian.PutUint32(crcBytes, checksum)
 	encodedChecksum := base64.StdEncoding.EncodeToString(crcBytes)
 
-	return encodedChecksum, nil
+	return encodedChecksum
+}
+
+func CRC32CFromReader(reader io.Reader) (string, error) {
+	crc32c := CRC32CWriter()
+
+	// Copy the reader data into the hasher
+	if _, err := io.Copy(crc32c, reader); err != nil {
+		return "", err
+	}
+
+	return CRC32CSum(crc32c), nil
 }
 
 const GCPHashHeader = "x-goog-hash"
