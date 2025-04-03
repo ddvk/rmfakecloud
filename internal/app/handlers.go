@@ -24,6 +24,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/integrations"
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/storage"
+	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/gorilla/websocket"
@@ -230,9 +231,9 @@ func extFromContentType(contentType string) (string, error) {
 	switch contentType {
 
 	case "application/epub+zip":
-		return storage.EpubFileExt, nil
+		return models.EpubFileExt, nil
 	case "application/pdf":
-		return storage.PdfFileExt, nil
+		return models.PdfFileExt, nil
 	}
 	return "", fmt.Errorf("unsupported content type %s", contentType)
 }

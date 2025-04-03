@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/ddvk/rmfakecloud/internal/messages"
-	"github.com/ddvk/rmfakecloud/internal/storage"
+	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -23,7 +23,7 @@ func (fs *FileSystemStorage) GetAllMetadata(uid string) (result []*messages.RawM
 	for _, f := range files {
 		ext := filepath.Ext(f.Name())
 		id := strings.TrimSuffix(f.Name(), ext)
-		if ext != storage.MetadataFileExt {
+		if ext != models.MetadataFileExt {
 			continue
 		}
 		doc, err := fs.GetMetadata(uid, id)
@@ -39,7 +39,7 @@ func (fs *FileSystemStorage) GetAllMetadata(uid string) (result []*messages.RawM
 
 // GetMetadata loads a document's metadata
 func (fs *FileSystemStorage) GetMetadata(uid, id string) (*messages.RawMetadata, error) {
-	fullPath := fs.getPathFromUser(uid, id+storage.MetadataFileExt)
+	fullPath := fs.getPathFromUser(uid, id+models.MetadataFileExt)
 	f, err := os.Open(fullPath)
 	if err != nil {
 		return nil, err
@@ -62,7 +62,7 @@ func (fs *FileSystemStorage) GetMetadata(uid, id string) (*messages.RawMetadata,
 
 // UpdateMetadata updates the metadata of a document
 func (fs *FileSystemStorage) UpdateMetadata(uid string, r *messages.RawMetadata) error {
-	filepath := fs.getPathFromUser(uid, r.ID+storage.MetadataFileExt)
+	filepath := fs.getPathFromUser(uid, r.ID+models.MetadataFileExt)
 
 	js, err := json.Marshal(r)
 	if err != nil {
