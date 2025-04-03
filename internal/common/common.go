@@ -75,7 +75,7 @@ func ParamS(param string, c *gin.Context) string {
 
 var table = crc32.MakeTable(crc32.Castagnoli)
 
-func CRC32FromReader(reader io.Reader) (string, error) {
+func CRC32CFromReader(reader io.Reader) (string, error) {
 	// Create a table for CRC32C (Castagnoli polynomial)
 	// Create a CRC32C hasher
 	crc32c := crc32.New(table)
@@ -96,8 +96,8 @@ func CRC32FromReader(reader io.Reader) (string, error) {
 	return encodedChecksum, nil
 }
 
-const CRC32CHashHeader = "x-goog-hash"
+const GCPHashHeader = "x-goog-hash"
 
-func AddCRCHeader(c *gin.Context, crc string) {
-	c.Header(CRC32CHashHeader, "crc32c="+crc)
+func AddHashHeader(c *gin.Context, hash string) {
+	c.Header(GCPHashHeader, hash)
 }

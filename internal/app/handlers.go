@@ -784,11 +784,11 @@ func crcJSON(c *gin.Context, status int, msg any) {
 		panic(err)
 	}
 
-	crc, err := common.CRC32FromReader(bytes.NewBuffer(b))
+	crc, err := common.CRC32CFromReader(bytes.NewBuffer(b))
 	if err != nil {
 		panic(err)
 	}
-	common.AddCRCHeader(c, crc)
+	common.AddHashHeader(c, "crc32c="+crc)
 	c.Data(status, "application/json", b)
 }
 
@@ -883,7 +883,7 @@ func (app *App) blobStorageRead(c *gin.Context) {
 	uid := userID(c)
 	blobID := common.ParamS(fileKey, c)
 
-	reader, _, size, crc32c, err := app.blobStorer.LoadBlob(uid, blobID)
+	reader, _, size, hash, err := app.blobStorer.LoadBlob(uid, blobID)
 	if err == fs.ErrorNotFound {
 		log.Warn(err)
 		c.AbortWithStatus(http.StatusNotFound)
@@ -895,7 +895,7 @@ func (app *App) blobStorageRead(c *gin.Context) {
 		return
 	}
 	defer reader.Close()
-	common.AddCRCHeader(c, crc32c)
+	common.AddHashHeader(c, hash)
 
 	c.DataFromReader(http.StatusOK, size, "application/octet-stream", reader, nil)
 }
@@ -905,7 +905,7 @@ func (app *App) blobStorageWrite(c *gin.Context) {
 	blobID := common.ParamS(fileKey, c)
 
 	fileName := c.GetHeader(RmFileHeader)
-	hash := c.GetHeader(common.CRC32CHashHeader)
+	hash := c.GetHeader(common.GCPHashHeader)
 	log.Debugf("TODO: check/save etc. write file '%s', hash '%s'", fileName, hash)
 
 	_, err := app.blobStorer.StoreBlob(uid, blobID, c.Request.Body, 0)
