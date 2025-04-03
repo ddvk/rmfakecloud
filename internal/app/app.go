@@ -173,7 +173,7 @@ func NewApp(cfg *config.Config) App {
 	uiApp := ui.New(cfg, fsStorage, codeConnector, ntfHub, fsStorage, fsStorage)
 	uiApp.RegisterRoutes(router)
 
-	storageapp := fs.NewApp(cfg, fsStorage)
+	storageapp := storage.NewApp(cfg, fsStorage, fsStorage, blobStorage)
 	storageapp.RegisterRoutes(router)
 
 	return app

@@ -164,12 +164,12 @@ func (fs *FileSystemStorage) GetStorageURL(uid, id string) (docurl string, expir
 	exp := time.Now().Add(time.Minute * config.ReadStorageExpirationInMinutes)
 
 	log.Debugln("uploadUrl: ", uploadRL)
-	claim := &StorageClaim{
+	claim := &storage.StorageClaim{
 		DocumentID: id,
 		UserID:     uid,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(exp),
-			Audience:  []string{storageUsage},
+			Audience:  []string{storage.StorageUsage},
 		},
 	}
 	signedToken, err := common.SignClaims(claim, fs.Cfg.JWTSecretKey)
@@ -177,5 +177,5 @@ func (fs *FileSystemStorage) GetStorageURL(uid, id string) (docurl string, expir
 		return "", exp, err
 	}
 
-	return fmt.Sprintf("%s%s/%s", uploadRL, routeStorage, url.QueryEscape(signedToken)), exp, nil
+	return fmt.Sprintf("%s%s/%s", uploadRL, storage.RouteStorage, url.QueryEscape(signedToken)), exp, nil
 }
