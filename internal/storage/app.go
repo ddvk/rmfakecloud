@@ -46,15 +46,17 @@ type App struct {
 	cfg        *config.Config
 	docStorer  DocumentStorer
 	userStorer UserStorer
+	rootStorer RootStorer
 	blobStorer BlobStorage
 }
 
 // NewApp StorageApp various storage routes
-func NewApp(cfg *config.Config, docStorer DocumentStorer, userStorer UserStorer, blobStorer BlobStorage) *App {
+func NewApp(cfg *config.Config, docStorer DocumentStorer, userStorer UserStorer, rootStorer RootStorer, blobStorer BlobStorage) *App {
 	staticWrapper := App{
 		cfg:        cfg,
 		docStorer:  docStorer,
 		blobStorer: blobStorer,
+		rootStorer: rootStorer,
 	}
 	return &staticWrapper
 }
@@ -159,7 +161,7 @@ func (app *App) downloadBlob(c *gin.Context) {
 	log.Info("Requestng blob: ", blobID)
 
 	if blobID == RootBlob {
-		root, generation, err := app.userStorer.GetRoot(uid)
+		root, generation, err := app.rootStorer.GetRootIndex(uid)
 		if err != nil && err != ErrorNotFound {
 			log.Error(err)
 			c.AbortWithStatus(http.StatusInternalServerError)
@@ -232,7 +234,7 @@ func (app *App) uploadBlob(c *gin.Context) {
 
 	if blobID == RootBlob {
 		var newgen int64
-		newgen, err = app.userStorer.UpdateRoot(uid, body, generation)
+		newgen, err = app.rootStorer.UpdateRoot(uid, body, generation)
 		if err == ErrorWrongGeneration {
 			c.AbortWithStatus(http.StatusPreconditionFailed)
 			return

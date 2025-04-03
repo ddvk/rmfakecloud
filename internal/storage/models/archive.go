@@ -3,6 +3,7 @@ package models
 import (
 	"encoding/json"
 	"io"
+	"io/ioutil"
 	"path"
 	"strings"
 
@@ -47,15 +48,17 @@ func ArchiveFromHashDoc(doc *HashDoc, rs RemoteStorage) (*exporter.MyArchive, er
 			if err != nil {
 				return nil, err
 			}
-			// defer blob.Close()
-			// contentBytes, err := ioutil.ReadAll(blob)
-			// if err != nil {
-			// 	return nil, err
-			// }
-			// a.Payload = contentBytes
-			//HACK:
-			a.PayloadReader = blob.(io.ReadSeekCloser)
+			if rsc, ok := blob.(io.ReadSeekCloser); ok {
+				a.PayloadReader = rsc
+			} else {
+				defer blob.Close()
 
+				contentBytes, err := ioutil.ReadAll(blob)
+				if err != nil {
+					return nil, err
+				}
+				a.Payload = contentBytes
+			}
 		case ".json":
 			//metadata
 		case RmFileExt:

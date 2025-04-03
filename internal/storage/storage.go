@@ -7,6 +7,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/model"
+	"github.com/ddvk/rmfakecloud/internal/storage/models"
 )
 
 // ExportOption type of export
@@ -36,7 +37,6 @@ type BlobStorage interface {
 
 	StoreBlob(uid, blobID string, filename string, hash string, s io.Reader) error
 	LoadBlob(uid, blobID string) (reader io.ReadCloser, size int64, crc32c string, err error)
-	CreateBlobDocument(uid, name, parent string, stream io.Reader) (doc *Document, err error)
 }
 
 // MetadataStorer manages document metadata
@@ -46,6 +46,14 @@ type MetadataStorer interface {
 	GetMetadata(uid, docid string) (*messages.RawMetadata, error)
 }
 
+// RootStorer holds informations about users
+type RootStorer interface {
+	GetCachedTree(uid string, rs models.RemoteStorage) (t *models.HashTree, err error)
+	GetRootIndex(uid string) (string, int64, error)
+	SaveCachedTree(uid string, t *models.HashTree) error
+	UpdateRoot(uid string, stream io.Reader, lastGen int64) (int64, error)
+}
+
 // UserStorer holds informations about users
 type UserStorer interface {
 	GetUsers() ([]*model.User, error)
@@ -53,9 +61,13 @@ type UserStorer interface {
 	RegisterUser(u *model.User) error
 	UpdateUser(u *model.User) error
 	RemoveUser(uid string) error
+}
 
-	GetRoot(uid string) (string, int64, error)
-	UpdateRoot(uid string, stream io.Reader, lastGen int64) (int64, error)
+type UserRootStorer interface {
+	GetCachedTree() (t *models.HashTree, err error)
+	GetRootIndex() (string, int64, error)
+	SaveCachedTree(t *models.HashTree) error
+	UpdateRoot(stream io.Reader, lastGen int64) (int64, error)
 }
 
 // Document represents a document in storage

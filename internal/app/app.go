@@ -37,7 +37,8 @@ type App struct {
 	docStorer     storage.DocumentStorer
 	userStorer    storage.UserStorer
 	metaStorer    storage.MetadataStorer
-	blobStorer    storage.BlobStorage
+	rootStorer    storage.RootStorer
+	blobStorer    *storage.BlobStorer
 	hub           *hub.Hub
 	codeConnector CodeConnector
 	hwrClient     *hwr.HWRClient
@@ -110,7 +111,6 @@ func (app *App) Stop() {
 	}
 }
 
-
 // NewApp constructs an app
 func NewApp(cfg *config.Config) App {
 	debugMode := log.GetLevel() >= log.DebugLevel
@@ -152,13 +152,16 @@ func NewApp(cfg *config.Config) App {
 		router.Use(requestLoggerMiddleware())
 	}
 
+	blobStorer := storage.NewBlobStorer(fsStorage, fsStorage)
+
 	app := App{
 		router:        router,
 		cfg:           cfg,
 		docStorer:     fsStorage,
 		userStorer:    fsStorage,
 		metaStorer:    fsStorage,
-		blobStorer:    fsStorage,
+		rootStorer:    fsStorage,
+		blobStorer:    blobStorer,
 		hub:           ntfHub,
 		codeConnector: codeConnector,
 		hwrClient: &hwr.HWRClient{
@@ -170,10 +173,10 @@ func NewApp(cfg *config.Config) App {
 
 	app.registerRoutes(router)
 
-	uiApp := ui.New(cfg, fsStorage, codeConnector, ntfHub, fsStorage, fsStorage)
+	uiApp := ui.New(cfg, fsStorage, codeConnector, ntfHub, fsStorage, blobStorer)
 	uiApp.RegisterRoutes(router)
 
-	storageapp := storage.NewApp(cfg, fsStorage, fsStorage, blobStorage)
+	storageapp := storage.NewApp(cfg, fsStorage, fsStorage, fsStorage, fsStorage)
 	storageapp.RegisterRoutes(router)
 
 	return app

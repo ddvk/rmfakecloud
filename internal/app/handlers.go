@@ -748,7 +748,7 @@ func (app *App) syncUpdateRootV3(c *gin.Context) {
 	}
 
 	uid := userID(c)
-	newgeneration, err := app.userStorer.UpdateRoot(uid, bytes.NewBufferString(rootv3.Hash), rootv3.Generation)
+	newgeneration, err := app.rootStorer.UpdateRoot(uid, bytes.NewBufferString(rootv3.Hash), rootv3.Generation)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -794,7 +794,7 @@ func crcJSON(c *gin.Context, status int, msg any) {
 
 func (app *App) syncGetRootV3(c *gin.Context) {
 	uid := userID(c)
-	roothash, generation, err := app.userStorer.GetRoot(uid)
+	roothash, generation, err := app.rootStorer.GetRootIndex(uid)
 	if err == storage.ErrorNotFound {
 		log.Warn("No root file found, assuming this is a new account")
 		c.JSON(http.StatusNotFound, gin.H{"message": "root not found"})
@@ -815,7 +815,7 @@ func (app *App) syncGetRootV3(c *gin.Context) {
 
 func (app *App) syncGetRootV4(c *gin.Context) {
 	uid := userID(c)
-	roothash, generation, err := app.userStorer.GetRoot(uid)
+	roothash, generation, err := app.rootStorer.GetRootIndex(uid)
 	if err == storage.ErrorNotFound {
 		log.Warn("No root file found, assuming this is a new account")
 		crcJSON(c, http.StatusOK, messages.SyncRootV4Response{
