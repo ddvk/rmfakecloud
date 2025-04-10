@@ -69,6 +69,8 @@ const (
 	envHwrApplicationKey = "RMAPI_HWR_APPLICATIONKEY"
 	// envHwrHmac myScript hmac key
 	envHwrHmac = "RMAPI_HWR_HMAC"
+	// envHwrLangOverride override the language specified in myScript requests
+	envHwrLangOverride = "RMAPI_HWR_LANG_OVERRIDE"
 	// EnvLogFile log file to use
 	EnvLogFile     = "RM_LOGFILE"
 	envHTTPSCookie = "RM_HTTPS_COOKIE"
@@ -91,6 +93,7 @@ type Config struct {
 	LogFile           string
 	HWRApplicationKey string
 	HWRHmac           string
+	HWRLangOverride   string
 	HTTPSCookie       bool
 	TrustProxy        bool
 }
@@ -224,6 +227,7 @@ func FromEnv() *Config {
 		SMTPConfig:        smtpCfg,
 		HWRApplicationKey: os.Getenv(envHwrApplicationKey),
 		HWRHmac:           os.Getenv(envHwrHmac),
+		HWRLangOverride:   os.Getenv(envHwrLangOverride),
 		HTTPSCookie:       httpsCookie,
 		TrustProxy:        trustProxy,
 	}
@@ -289,5 +293,6 @@ myScript hwr (needs a developer account):
 
 		envHwrApplicationKey,
 		envHwrHmac,
+		envHwrLangOverride,
 	)
 }
