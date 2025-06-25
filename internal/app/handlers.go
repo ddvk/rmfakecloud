@@ -195,6 +195,7 @@ func (app *App) newUserToken(c *gin.Context) {
 		DeviceID:   deviceToken.DeviceID,
 		Scopes:     scopesStr,
 		Level:      "connect",
+		Tectonic:   "eu",
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 			NotBefore: now.Unix(),
