@@ -27,7 +27,7 @@ type HWRClient struct {
 func DoLangOverride(originalData []byte, overrideLang string) ([]byte, error) {
 	var jsonData map[string]interface{}
 	if err := json.Unmarshal(originalData, &jsonData); err != nil {
-		return nil, fmt.Errorf("failed to parse json", err)
+		return nil, fmt.Errorf("failed to parse json: %w", err)
 	}
 
 	config, ok := jsonData["configuration"].(map[string]interface{})
@@ -39,7 +39,7 @@ func DoLangOverride(originalData []byte, overrideLang string) ([]byte, error) {
 
 	modifiedData, err := json.Marshal(jsonData)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate modified json", err)
+		return nil, fmt.Errorf("failed to generate modified json: %w", err)
 	}
 
 	return modifiedData, nil
@@ -51,9 +51,9 @@ func (hwr *HWRClient) SendRequest(data []byte) (body []byte, err error) {
 		overrideLang := hwr.Cfg.HWRLangOverride
 		modifiedData, err := DoLangOverride(data, overrideLang)
 		if err != nil {
-			return nil, fmt.Errorf("failed to override language", err)
+			return nil, fmt.Errorf("failed to override language: %w", err)
 		}
-		data = modifiedData		
+		data = modifiedData
 	}
 
 	if hwr.Cfg == nil || hwr.Cfg.HWRApplicationKey == "" || hwr.Cfg.HWRHmac == "" {

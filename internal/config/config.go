@@ -267,6 +267,7 @@ Emails, smtp:
 myScript hwr (needs a developer account):
 	%s
 	%s
+	%s      override the language specified in myScript requests
 `,
 		envJWTSecretKey,
 		EnvStorageURL,
