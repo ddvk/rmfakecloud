@@ -166,7 +166,7 @@ func (app *App) downloadBlob(c *gin.Context) {
 	}
 	defer reader.Close()
 
-	common.AddCRCHeader(c, crc32c)
+	common.AddHashHeader(c, crc32c)
 
 	if blobID == rootBlob {
 		log.Debug("Sending gen for root: ", generation)

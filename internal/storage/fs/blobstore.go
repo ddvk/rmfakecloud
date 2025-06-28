@@ -453,7 +453,7 @@ func (fs *FileSystemStorage) GetBlobURL(uid, blobid string, write bool) (docurl 
 }
 
 // LoadBlob Opens a blob by id
-func (fs *FileSystemStorage) LoadBlob(uid, blobid string) (reader io.ReadCloser, gen int64, size int64, crc32 string, err error) {
+func (fs *FileSystemStorage) LoadBlob(uid, blobid string) (reader io.ReadCloser, gen int64, size int64, hash string, err error) {
 	generation := int64(0)
 	blobPath := path.Join(fs.getUserBlobPath(uid), common.Sanitize(blobid))
 	log.Debugln("Fullpath:", blobPath)
@@ -483,10 +483,10 @@ func (fs *FileSystemStorage) LoadBlob(uid, blobid string) (reader io.ReadCloser,
 		log.Errorf("cannot open blob %v", err)
 		return
 	}
-	//TODO: cache the crc32
-	crc32, err = common.CRC32FromReader(osFile)
+	//TODO: cache the crc32c
+	hash, err = common.CRC32CFromReader(osFile)
 	if err != nil {
-		log.Errorf("cannot get crc32 hash %v", err)
+		log.Errorf("cannot get crc32c hash %v", err)
 		return
 	}
 	_, err = osFile.Seek(0, 0)
@@ -495,7 +495,7 @@ func (fs *FileSystemStorage) LoadBlob(uid, blobid string) (reader io.ReadCloser,
 		return
 	}
 	reader = osFile
-	return reader, generation, fi.Size(), crc32, err
+	return reader, generation, fi.Size(), "crc32c=" + hash, err
 }
 
 // StoreBlob stores a document
