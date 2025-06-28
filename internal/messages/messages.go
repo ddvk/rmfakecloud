@@ -1,6 +1,7 @@
 package messages
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/ddvk/rmfakecloud/internal/common"
@@ -115,8 +116,8 @@ type UploadResponse struct {
 // EndpointReponse endpoint hosts
 type EndpointsResponse struct {
 	Notifications string `json:"notifications"`
-	Webapp string `json:"webapp"`
-	MQTT string `json:"mqttbroker,omitempty"`
+	Webapp        string `json:"webapp"`
+	MQTT          string `json:"mqttbroker,omitempty"`
 }
 
 // HostResponse what the host responded
@@ -233,4 +234,8 @@ type IntegrationMetadata struct {
 	SourceFileType   string `json:"sourceFileType"`
 	ProvidedFileType string `json:"providedFileType"`
 	FileType         string `json:"fileType"`
+}
+
+type IntegrationMessageData struct {
+	Destinations []json.RawMessage `json:"destinations"`
 }

@@ -52,7 +52,7 @@ func TestUpload(t *testing.T) {
 	t.Log(id)
 }
 
-func GetWebDav() IntegrationProvider {
+func GetWebDav() StorageIntegrationProvider {
 	config := model.IntegrationConfig{
 		Address:  os.Getenv("WEBDAV_ADDRESS"),
 		Username: os.Getenv("WEBDAV_USERNAME"),

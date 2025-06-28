@@ -6,6 +6,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"image"
+	_ "image/png"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -195,6 +197,7 @@ func (app *App) newUserToken(c *gin.Context) {
 		DeviceID:   deviceToken.DeviceID,
 		Scopes:     scopesStr,
 		Level:      "connect",
+		Tectonic:   "eu",
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 			NotBefore: now.Unix(),
@@ -920,7 +923,7 @@ func (app *App) integrationsGetMetadata(c *gin.Context) {
 	integrationID := common.ParamS(integrationKey, c)
 	fileID := common.ParamS(fileKey, c)
 
-	integrationProvider, err := integrations.GetIntegrationProvider(app.userStorer, uid, integrationID)
+	integrationProvider, err := integrations.GetStorageIntegrationProvider(app.userStorer, uid, integrationID)
 	if err != nil {
 		log.Error(fmt.Errorf("can't get integration, %v", err))
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -937,6 +940,66 @@ func (app *App) integrationsGetMetadata(c *gin.Context) {
 	c.JSON(http.StatusOK, metadata)
 }
 
+func (app *App) integrationsSendMessage(c *gin.Context) {
+	uid := userID(c)
+	integrationID := common.ParamS(integrationKey, c)
+
+	// Retrieve provider
+	integrationProvider, err := integrations.GetMessagingIntegrationProvider(app.userStorer, uid, integrationID)
+	if err != nil {
+		log.Error(fmt.Errorf("can't get integration, %v", err))
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	// Parse request body
+	form, err := c.MultipartForm()
+	if err != nil {
+		log.Error(err)
+		badReq(c, "not multiform")
+		return
+	}
+
+	attachment, ok := form.File["attachment"]
+	if !ok || len(attachment) == 0 {
+		badReq(c, "no attachment")
+		return
+	}
+
+	fd, err := attachment[0].Open()
+	if err != nil {
+		log.Error(err)
+		badReq(c, "unable to read attachment")
+		return
+	}
+	defer fd.Close()
+
+	img, _, err := image.Decode(fd)
+	if err != nil {
+		log.Error(err)
+		badReq(c, "unable to decode attachment")
+		return
+	}
+
+	if _, ok := form.Value["data"]; !ok || len(form.Value["data"]) == 0 {
+		badReq(c, "missing data")
+		return
+	}
+
+	var data messages.IntegrationMessageData
+	err = json.Unmarshal([]byte(form.Value["data"][0]), &data)
+
+	// Send the message
+	id, err := integrationProvider.SendMessage(data, img)
+	if err != nil {
+		log.Error(err)
+		internalError(c, "unable to send the message")
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"id": id})
+}
+
 func (app *App) integrationsUpload(c *gin.Context) {
 	log.Info("uploading...")
 	uid := userID(c)
@@ -945,7 +1008,7 @@ func (app *App) integrationsUpload(c *gin.Context) {
 	name := common.QueryS("name", c)
 	fileType := common.QueryS("fileType", c)
 
-	integrationProvider, err := integrations.GetIntegrationProvider(app.userStorer, uid, integrationID)
+	integrationProvider, err := integrations.GetStorageIntegrationProvider(app.userStorer, uid, integrationID)
 
 	if err != nil {
 		log.Error(fmt.Errorf("can't get integration, %v", err))
@@ -969,7 +1032,7 @@ func (app *App) integrationsGetFile(c *gin.Context) {
 	integrationID := common.ParamS(integrationKey, c)
 	fileID := common.ParamS(fileKey, c)
 
-	integrationProvider, err := integrations.GetIntegrationProvider(app.userStorer, uid, integrationID)
+	integrationProvider, err := integrations.GetStorageIntegrationProvider(app.userStorer, uid, integrationID)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -998,7 +1061,7 @@ func (app *App) integrationsList(c *gin.Context) {
 		folderDepth, _ = strconv.Atoi(folderDepthStr)
 	}
 
-	integrationProvider, err := integrations.GetIntegrationProvider(app.userStorer, uid, integrationID)
+	integrationProvider, err := integrations.GetStorageIntegrationProvider(app.userStorer, uid, integrationID)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)

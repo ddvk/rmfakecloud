@@ -3,8 +3,8 @@ Integration is the [feature added in reMarkable
 that allows to browse, download and upload document from location
 outside of the tablet.
 
-!!! warning
-    Integrations are still work in progress, no UI exists yet.
+You can edit your integrations using the Integration tab in the UI.
+
 
 ## WebDAV
 
@@ -54,3 +54,15 @@ integrations:
     name: [some name]
     path: /some/path/with/files
 ```
+
+
+
+## Messaging webhook
+
+Messaging are a type of integration added in software 3.17.
+
+Originally designed for Slack, this feature allows you to send your current sheet as an attachment to a Slack Canvas. The default behavior uses AI to transcribe the handwritten content on your sheet and posts both the text and the image to Slack.
+
+The Webhook integration extends this capability by sending your sheet to an external automation platform (like [n8n](https://n8n.io/), [Make.com](https://www.make.com/), ...) or custom service. This is especially useful if you want to: use your own AI pipeline or don't want AI to be involved at all, or store and process sheets in a custom backend, ...
+
+The webhook gives you full control: you decide what happens with your data.

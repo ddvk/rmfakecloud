@@ -23,6 +23,7 @@ type UserClaims struct {
 	Scopes     string       `json:"scopes,omitempty"`
 	Version    int          `json:"version"`
 	Level      string       `json:"level"`
+	Tectonic   string       `json:"tectonic"`
 	jwt.StandardClaims
 }
 

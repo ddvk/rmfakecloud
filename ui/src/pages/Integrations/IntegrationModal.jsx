@@ -20,6 +20,7 @@ export default function IntegrationModal(params) {
     insecure: integration?.Insecure,
     accesstoken: integration?.Accesstoken,
     path: integration?.Path,
+    endpoint: integration?.Endpoint,
   });
 
   function handleChange({ target }) {
@@ -53,6 +54,7 @@ export default function IntegrationModal(params) {
         insecure: integrationForm.insecure,
         accesstoken: integrationForm.accesstoken,
         path: integrationForm.path,
+        endpoint: integrationForm.endpoint,
       });
       onSave();
     } catch (e) {
@@ -95,6 +97,7 @@ export default function IntegrationModal(params) {
               <option value="webdav">WebDAV</option>
               <option value="ftp">FTP</option>
               <option value="dropbox">Dropbox</option>
+              <option value="webhook">Messaging webhook</option>
             </Form.Control>
 
             <Form.Label>Name</Form.Label>
@@ -168,6 +171,18 @@ export default function IntegrationModal(params) {
                   placeholder="Access Token"
                   value={integrationForm.accesstoken}
                   name="accesstoken"
+                  onChange={handleChange}
+                />
+              </>
+            )}
+
+            {integrationForm.provider === "webhook" && (
+              <>
+                <Form.Label>Endpoint</Form.Label>
+                <Form.Control
+                  placeholder="https://automation.domain.tld/webhook/0123-456789-abc"
+                  value={integrationForm.endpoint}
+                  name="endpoint"
                   onChange={handleChange}
                 />
               </>

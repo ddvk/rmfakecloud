@@ -689,7 +689,7 @@ func (app *ReactAppWrapper) exploreIntegration(c *gin.Context) {
 
 	integrationID := common.ParamS(intIDParam, c)
 
-	integrationProvider, err := integrations.GetIntegrationProvider(app.userStorer, uid, integrationID)
+	integrationProvider, err := integrations.GetStorageIntegrationProvider(app.userStorer, uid, integrationID)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -716,7 +716,7 @@ func (app *ReactAppWrapper) getMetadataIntegration(c *gin.Context) {
 
 	integrationID := common.ParamS(intIDParam, c)
 
-	integrationProvider, err := integrations.GetIntegrationProvider(app.userStorer, uid, integrationID)
+	integrationProvider, err := integrations.GetStorageIntegrationProvider(app.userStorer, uid, integrationID)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -740,7 +740,7 @@ func (app *ReactAppWrapper) downloadThroughIntegration(c *gin.Context) {
 
 	integrationID := common.ParamS(intIDParam, c)
 
-	integrationProvider, err := integrations.GetIntegrationProvider(app.userStorer, uid, integrationID)
+	integrationProvider, err := integrations.GetStorageIntegrationProvider(app.userStorer, uid, integrationID)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)

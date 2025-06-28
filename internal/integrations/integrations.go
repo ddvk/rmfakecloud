@@ -2,6 +2,7 @@ package integrations
 
 import (
 	"fmt"
+	"image"
 	"io"
 	"io/fs"
 	"path"
@@ -13,6 +14,8 @@ import (
 )
 
 const (
+	WebhookProvider = "webhook"
+	SlackProvider   = "slack"
 	FtpProvider     = "ftp"
 	WebdavProvider  = "webdav"
 	DropboxProvider = "dropbox"
@@ -20,16 +23,25 @@ const (
 	LocalfsProvider = "localfs"
 )
 
-// IntegrationProvider abstracts 3rd party integrations
-type IntegrationProvider interface {
+type IntegrationProvider interface{}
+
+// StorageIntegrationProvider abstracts 3rd party integrations
+type StorageIntegrationProvider interface {
+	IntegrationProvider
 	GetMetadata(fileID string) (result *messages.IntegrationMetadata, err error)
 	List(folderID string, depth int) (result *messages.IntegrationFolder, err error)
 	Download(fileID string) (io.ReadCloser, int64, error)
 	Upload(folderID, name, fileType string, reader io.ReadCloser) (string, error)
 }
 
-// GetIntegrationProvider finds the integration provider for the user
-func GetIntegrationProvider(storer storage.UserStorer, uid, integrationid string) (IntegrationProvider, error) {
+// MessagingIntegrationProvider abstracts 3rd party integrations
+type MessagingIntegrationProvider interface {
+	IntegrationProvider
+	SendMessage(data messages.IntegrationMessageData, img image.Image) (string, error)
+}
+
+// getIntegrationProvider finds the integration provider for the user
+func getIntegrationProvider(storer storage.UserStorer, uid, integrationid string) (IntegrationProvider, error) {
 	usr, err := storer.GetUser(uid)
 	if err != nil {
 		return nil, err
@@ -39,6 +51,8 @@ func GetIntegrationProvider(storer storage.UserStorer, uid, integrationid string
 			continue
 		}
 		switch intg.Provider {
+		case WebhookProvider:
+			return newWebhook(intg), nil
 		case DropboxProvider:
 			return newDropbox(intg), nil
 		case FtpProvider:
@@ -53,9 +67,41 @@ func GetIntegrationProvider(storer storage.UserStorer, uid, integrationid string
 
 }
 
+func GetStorageIntegrationProvider(storer storage.UserStorer, uid, integrationid string) (StorageIntegrationProvider, error) {
+	provider, err := getIntegrationProvider(storer, uid, integrationid)
+	if err != nil {
+		return nil, err
+	}
+
+	sip, ok := provider.(StorageIntegrationProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider %q is not a storage provider", integrationid)
+	}
+
+	return sip, nil
+}
+
+func GetMessagingIntegrationProvider(storer storage.UserStorer, uid, integrationid string) (MessagingIntegrationProvider, error) {
+	provider, err := getIntegrationProvider(storer, uid, integrationid)
+	if err != nil {
+		return nil, err
+	}
+
+	sip, ok := provider.(MessagingIntegrationProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider %q is not a messaging provider", integrationid)
+	}
+
+	return sip, nil
+}
+
 // fix the name
 func fixProviderName(n string) string {
 	switch n {
+	case WebhookProvider:
+		fallthrough
+	case SlackProvider:
+		return "Slack"
 	case FtpProvider:
 		fallthrough
 	case DropboxProvider:
@@ -64,6 +110,23 @@ func fixProviderName(n string) string {
 		fallthrough
 	case WebdavProvider:
 		return "GoogleDrive"
+	default:
+		return n
+	}
+}
+
+func ProviderType(n string) string {
+	switch n {
+	case WebhookProvider:
+		fallthrough
+	case SlackProvider:
+		return "Messaging"
+	case FtpProvider:
+		fallthrough
+	case DropboxProvider:
+		fallthrough
+	case WebdavProvider:
+		return "Storage"
 	default:
 		return n
 	}
@@ -82,7 +145,7 @@ func List(userstorer storage.UserStorer, uid string) (*messages.IntegrationsResp
 			ID:           userIntg.ID,
 			Name:         userIntg.Name,
 			Provider:     fixProviderName(userIntg.Provider),
-			ProviderType: "Storage",
+			ProviderType: ProviderType(userIntg.Provider),
 			UserID:       uid,
 		}
 

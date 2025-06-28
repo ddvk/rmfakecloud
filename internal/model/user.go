@@ -80,6 +80,9 @@ type IntegrationConfig struct {
 	// Localfs
 	// really dangerous as it allows path traversal
 	Path string `yaml:"path,omitempty"`
+
+	// Webhook
+	Endpoint string `yaml:"endpoint,omitempty"`
 }
 
 // GenPassword generates a new random password
