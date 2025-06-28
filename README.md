@@ -11,7 +11,7 @@ This is a replacement of the cloud, in case you want to sync/backup your files a
 
 ## NB
 
-The current release of rmfakecloud support file synchronization for SW <= 3.18.1. Newer releases have not been tested yet.
+The current release of rmfakecloud support file synchronization for SW <= 3.20.0. Newer releases have not been tested yet.
 
 For SW >= 3.15 `STORAGE_URL` should not be set (or only https://some.ho.st without a port should be used)
 
