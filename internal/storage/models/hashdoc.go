@@ -59,7 +59,7 @@ func (d *HashDoc) Rehash() error {
 	return nil
 }
 
-func (d *HashDoc) MetadataReader() (hash string, reader io.Reader, err error) {
+func (d *HashDoc) MetadataReader() (hash string, crc32c string, reader io.Reader, err error) {
 	jsn, err := json.Marshal(d.MetadataFile)
 	if err != nil {
 		return
@@ -68,6 +68,10 @@ func (d *HashDoc) MetadataReader() (hash string, reader io.Reader, err error) {
 	sha.Write(jsn)
 	hash = hex.EncodeToString(sha.Sum(nil))
 	log.Info("new hash: ", hash)
+	crc32c, err = common.CRC32CFromReader(bytes.NewReader(jsn))
+	if err != nil {
+		return
+	}
 	reader = bytes.NewReader(jsn)
 	found := false
 	for _, f := range d.Files {

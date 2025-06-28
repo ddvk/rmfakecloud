@@ -24,7 +24,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/integrations"
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/storage"
-	"github.com/ddvk/rmfakecloud/internal/storage/fs"
+	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/gorilla/websocket"
@@ -231,9 +231,9 @@ func extFromContentType(contentType string) (string, error) {
 	switch contentType {
 
 	case "application/epub+zip":
-		return storage.EpubFileExt, nil
+		return models.EpubFileExt, nil
 	case "application/pdf":
-		return storage.PdfFileExt, nil
+		return models.PdfFileExt, nil
 	}
 	return "", fmt.Errorf("unsupported content type %s", contentType)
 }
@@ -748,7 +748,7 @@ func (app *App) syncUpdateRootV3(c *gin.Context) {
 	}
 
 	uid := userID(c)
-	newgeneration, err := app.blobStorer.StoreBlob(uid, RootHash, bytes.NewBufferString(rootv3.Hash), rootv3.Generation)
+	newgeneration, err := app.rootStorer.UpdateRoot(uid, bytes.NewBufferString(rootv3.Hash), rootv3.Generation)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -794,8 +794,8 @@ func crcJSON(c *gin.Context, status int, msg any) {
 
 func (app *App) syncGetRootV3(c *gin.Context) {
 	uid := userID(c)
-	reader, generation, _, _, err := app.blobStorer.LoadBlob(uid, RootHash)
-	if err == fs.ErrorNotFound {
+	roothash, generation, err := app.rootStorer.GetRootIndex(uid)
+	if err == storage.ErrorNotFound {
 		log.Warn("No root file found, assuming this is a new account")
 		c.JSON(http.StatusNotFound, gin.H{"message": "root not found"})
 		return
@@ -807,23 +807,16 @@ func (app *App) syncGetRootV3(c *gin.Context) {
 		return
 	}
 
-	roothash, err := io.ReadAll(reader)
-	if err != nil {
-		log.Error(err)
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-
 	c.JSON(http.StatusOK, messages.SyncRootV3Response{
 		Generation: generation,
-		Hash:       string(roothash),
+		Hash:       roothash,
 	})
 }
 
 func (app *App) syncGetRootV4(c *gin.Context) {
 	uid := userID(c)
-	reader, generation, _, _, err := app.blobStorer.LoadBlob(uid, RootHash)
-	if err == fs.ErrorNotFound {
+	roothash, generation, err := app.rootStorer.GetRootIndex(uid)
+	if err == storage.ErrorNotFound {
 		log.Warn("No root file found, assuming this is a new account")
 		crcJSON(c, http.StatusOK, messages.SyncRootV4Response{
 			SchemaVersion: SchemaVersion,
@@ -837,12 +830,6 @@ func (app *App) syncGetRootV4(c *gin.Context) {
 		return
 	}
 
-	roothash, err := io.ReadAll(reader)
-	if err != nil {
-		log.Error(err)
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
 	crcJSON(c, http.StatusOK, messages.SyncRootV4Response{
 		Generation:    generation,
 		Hash:          string(roothash),
@@ -883,8 +870,8 @@ func (app *App) blobStorageRead(c *gin.Context) {
 	uid := userID(c)
 	blobID := common.ParamS(fileKey, c)
 
-	reader, _, size, hash, err := app.blobStorer.LoadBlob(uid, blobID)
-	if err == fs.ErrorNotFound {
+	reader, size, hash, err := app.blobStorer.LoadBlob(uid, blobID)
+	if err == storage.ErrorNotFound {
 		log.Warn(err)
 		c.AbortWithStatus(http.StatusNotFound)
 		return
@@ -908,7 +895,7 @@ func (app *App) blobStorageWrite(c *gin.Context) {
 	hash := c.GetHeader(common.GCPHashHeader)
 	log.Debugf("TODO: check/save etc. write file '%s', hash '%s'", fileName, hash)
 
-	_, err := app.blobStorer.StoreBlob(uid, blobID, c.Request.Body, 0)
+	err := app.blobStorer.StoreBlob(uid, blobID, fileName, hash, c.Request.Body)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
