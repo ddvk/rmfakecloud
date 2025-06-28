@@ -22,6 +22,7 @@ Then you'll obtains an application key and its corresponding HMAC to give to rmf
 |----------------------------|-------------|
 | `RMAPI_HWR_APPLICATIONKEY` | Application key obtained from myscript |
 | `RMAPI_HWR_HMAC`           | HMAC obtained from myscript |
+| `RMAPI_HWR_LANG_OVERRIDE`  | Optional: Use this if you want your handwriting to be recognized as a different language. This variable accepts a locale code (e.g., zh_CN). Refer to [this page](https://app-support.myscript.com/support/solutions/articles/16000086001-supported-languages) for supported languages.|
 
 ## Email settings
 
