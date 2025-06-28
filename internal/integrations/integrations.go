@@ -14,6 +14,7 @@ import (
 )
 
 const (
+	WebhookProvider = "webhook"
 	SlackProvider   = "slack"
 	FtpProvider     = "ftp"
 	WebdavProvider  = "webdav"
@@ -50,6 +51,8 @@ func getIntegrationProvider(storer storage.UserStorer, uid, integrationid string
 			continue
 		}
 		switch intg.Provider {
+		case WebhookProvider:
+			return newWebhook(intg), nil
 		case DropboxProvider:
 			return newDropbox(intg), nil
 		case FtpProvider:
@@ -95,6 +98,8 @@ func GetMessagingIntegrationProvider(storer storage.UserStorer, uid, integration
 // fix the name
 func fixProviderName(n string) string {
 	switch n {
+	case WebhookProvider:
+		fallthrough
 	case SlackProvider:
 		return "Slack"
 	case FtpProvider:
@@ -112,6 +117,8 @@ func fixProviderName(n string) string {
 
 func ProviderType(n string) string {
 	switch n {
+	case WebhookProvider:
+		fallthrough
 	case SlackProvider:
 		return "Messaging"
 	case FtpProvider:

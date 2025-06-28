@@ -36,6 +36,7 @@ export default function IntegrationProfileModal(params) {
 
     if (!formIsValid()) return;
 
+    console.log(integrationForm)
     try {
       await apiService.createintegration(integrationForm);
       setFormInfo({ message: "Created" });
@@ -83,6 +84,7 @@ export default function IntegrationProfileModal(params) {
             <option value="ftp">FTP</option>
             <option value="webdav">WebDAV</option>
             <option value="dropbox">Dropbox</option>
+            <option value="webhook">Messaging webhook</option>
           </Form.Select>
 
           {(integrationForm.provider === "webdav" || integrationForm.provider === "ftp") && (
@@ -148,6 +150,18 @@ export default function IntegrationProfileModal(params) {
                 placeholder="Access Token"
                 value={integrationForm.accesstoken}
                 name="accesstoken"
+                onChange={handleChange}
+              />
+            </>
+          )}
+
+          {integrationForm.provider === "webhook" && (
+            <>
+              <Form.Label>Endpoint</Form.Label>
+              <Form.Control
+                placeholder="https://automation.domain.tld/webhook/0123-456789-abc"
+                value={integrationForm.endpoint}
+                name="endpoint"
                 onChange={handleChange}
               />
             </>
