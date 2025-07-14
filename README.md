@@ -6,13 +6,13 @@ See the [project documentation](https://ddvk.github.io/rmfakecloud/) for setup a
 
 ## Supported Devices
 
-| Device               | Supported |
-| -------------------- | --------- |
-| reMarkable 1         | ✅        |
-| reMarkable 2         | ✅        |
-| reMarkable Paper Pro | ✅        |
+| Device               | Is Supported |
+| -------------------- | ------------ |
+| reMarkable 1         | ✅           |
+| reMarkable 2         | ✅           |
+| reMarkable Paper Pro | ✅           |
 
-The current release of rmfakecloud supports file synchronization until reMarkable software 3.20.0. Newer releases have not been tested yet.
+The current release of rmfakecloud supports file synchronization until **reMarkable software 3.20.0**. Newer releases have not been tested yet.
 
 Use the `rmfakecloud-proxy` from [toltec](https://github.com/toltec-dev/toltec/). [More in the doc](https://ddvk.github.io/rmfakecloud/remarkable/setup/).
 
@@ -26,15 +26,15 @@ Use the `rmfakecloud-proxy` from [toltec](https://github.com/toltec-dev/toltec/)
 | [Send document by email](https://ddvk.github.io/rmfakecloud/install/configuration/#email-settings) | ✅ |  |
 | [Handwriting recognition](https://ddvk.github.io/rmfakecloud/install/configuration/#handwriting-recognition) | ✅ |  |
 | Screen sharing | 🟡 | unlocked on reMarkable but doesn't work remotely |
-| [Integrations](https://ddvk.github.io/rmfakecloud/usage/integrations/) | ✅ |  |
+| [Storage integrations](https://ddvk.github.io/rmfakecloud/usage/integrations/) | ✅ |  |
 | Integration with Dropbox | 🟡 | [WIP](https://github.com/ddvk/rmfakecloud/blob/master/internal/integrations/dropbox.go) |
 | Integration with Google Drive | 🟡 | [WIP](https://github.com/ddvk/rmfakecloud/pull/241) |
 | Integration with OneDrive | ❌ |  |
 | Integration with WebDAV | ✅ | Nextcloud, Owncloud, ... |
 | Integration with FTP | ✅ |  |
 | Messaging integrations | ✅ |  |
-| [Messaging integrations through webhook](https://ddvk.github.io/rmfakecloud/usage/integrations/#messaging-webhook) | ✅ |  |
-| Messaging integrations to Slack | 🟡 | Not directly, use a webhook with zapier/make/n8n |
+| [Messaging integration through webhook](https://ddvk.github.io/rmfakecloud/usage/integrations/#messaging-webhook) | ✅ |  |
+| Messaging integration to Slack | 🟡 | Not directly, use a webhook with zapier/make/n8n |
 | Archive document to cloud | 🟡 | It works but the information is not saved |
 | Document rendering in web interface | ❌ | [WIP](https://github.com/ddvk/rmfakecloud/issues/255) |
 
