@@ -1,32 +1,58 @@
-[![rm1](https://img.shields.io/badge/rM1-supported-green)](https://remarkable.com/store/remarkable)
-[![rm2](https://img.shields.io/badge/rM2-supported-green)](https://remarkable.com/store/remarkable-2)
-[![rmpro](https://img.shields.io/badge/rmpro-supported-green)](https://remarkable.com/store/remarkable-paper/pro)
-
-[![opkg](https://img.shields.io/badge/OPKG-rmfakecloud--proxy-blue)](https://toltec-dev.org/)
-
 # rmfakecloud
+
 This is a replacement of the cloud, in case you want to sync/backup your files and have full control of the hosting environment.
 
-## [Docs](https://ddvk.github.io/rmfakecloud/)
+See the [project documentation](https://ddvk.github.io/rmfakecloud/) for setup and configuration.
 
-## NB
+## Supported Devices
 
-The current release of rmfakecloud support file synchronization for SW <= 3.20.0. Newer releases have not been tested yet.
+| Device               | Supported |
+| -------------------- | --------- |
+| reMarkable 1         | ✅        |
+| reMarkable 2         | ✅        |
+| reMarkable Paper Pro | ✅        |
 
-For SW >= 3.15 `STORAGE_URL` should not be set (or only https://some.ho.st without a port should be used)
+The current release of rmfakecloud supports file synchronization until reMarkable software 3.20.0. Newer releases have not been tested yet.
 
-For Tablet SW > 3.X, rendering of the notebooks [is not yet supported](https://github.com/ddvk/rmfakecloud/issues/255).
+Use the `rmfakecloud-proxy` from [toltec](https://github.com/toltec-dev/toltec/). [More in the doc](https://ddvk.github.io/rmfakecloud/remarkable/setup/).
+
+
+## Feature Parity With Official Cloud
+
+| Features | Supported | Notes |
+| -------- | --------- | ----- |
+| File synchronization (1.0) | ✅ |  |
+| File synchronization (1.5, 2, 3, 4) | ✅ |  |
+| [Send document by email](https://ddvk.github.io/rmfakecloud/install/configuration/#email-settings) | ✅ |  |
+| [Handwriting recognition](https://ddvk.github.io/rmfakecloud/install/configuration/#handwriting-recognition) | ✅ |  |
+| Screen sharing | 🟡 | unlocked on reMarkable but doesn't work remotely |
+| [Integrations](https://ddvk.github.io/rmfakecloud/usage/integrations/) | ✅ |  |
+| Integration with Dropbox | 🟡 | [WIP](https://github.com/ddvk/rmfakecloud/blob/master/internal/integrations/dropbox.go) |
+| Integration with Google Drive | 🟡 | [WIP](https://github.com/ddvk/rmfakecloud/pull/241) |
+| Integration with OneDrive | ❌ |  |
+| Integration with WebDAV | ✅ | Nextcloud, Owncloud, ... |
+| Integration with FTP | ✅ |  |
+| Messaging integrations | ✅ |  |
+| [Messaging integrations through webhook](https://ddvk.github.io/rmfakecloud/usage/integrations/#messaging-webhook) | ✅ |  |
+| Messaging integrations to Slack | 🟡 | Not directly, use a webhook with zapier/make/n8n |
+| Archive document to cloud | 🟡 | It works but the information is not saved |
+| Document rendering in web interface | ❌ | [WIP](https://github.com/ddvk/rmfakecloud/issues/255) |
+
 
 ## Breaking Changes
+
+- For SW >= 3.15 `STORAGE_URL` should not be set (or only https://some.ho.st without a port should be used)
 - after v0.0.3 the files in `/data` will have to be manually moved to the user that will be created
-- with v0.0.5 the new diff sync15 is added as an option, in order to use it modify the user with `setuser -u user -s`  
-  or modify the profile and add `sync15:true`  
+- with v0.0.5 the new diff sync15 is added as an option, in order to use it modify the user with `setuser -u user -s`
+  or modify the profile and add `sync15:true`
   a full resync will be needed (the tablet will do it), the old files are kept as they were and everything is put in a new directory
 
 ## Development
+
 run `./dev.sh` which should start the UI and backend
 
 ### Caveats/ WARNING
+
 - (applies when you don't have security, version <= 0.0.3) connecting to the api will delete all your files, unless you mark them as not synced `synced:false` prior to syncing (advisable just to disconnect, reconnect the cloud)
 - **if you delete files from the users directory** on the host, on the next sync those will be deleted from the device
 - if you delete the whole user directory (by mistake) on the host, you should disconnect the cloud from the device and reconnect it
@@ -40,7 +66,7 @@ run `./dev.sh` which should start the UI and backend
     ping thehostpc
     wget -qO- http://host:3000 (or relevant ports, should get Working...)
     wget -qO- https://local.appspot.com (should get Working...)
-    
+
 - check that the proxy is running and certs are installed:
     ```
     echo Q | openssl s_client -connect localhost:443  -verify_hostname local.appspot.com -CAfile /etc/ssl/certs/ca-certificates.crt 2>&1 | grep Verify
@@ -68,7 +94,7 @@ run `./dev.sh` which should start the UI and backend
 
     ```
     if you see *SSL Handshake failed* then something is wrong with the certs
-- check sync logs 
+- check sync logs
    ```
    journalctl -u rm-sync
    ```
