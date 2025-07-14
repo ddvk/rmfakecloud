@@ -7,6 +7,15 @@
 # rmfakecloud
 This is a replacement of the cloud, in case you want to sync/backup your files and have full control of the hosting environment.
 
+## Supported Devices
+
+
+| Device  | Supported Features | Unupported Features | Required Firmware | 
+| ------------- | ------------- | ------------- | ------------- |
+| reMarkable 1  | All  | currently none | before 3.20 |
+| reMarkable 2  | All  | currently none | before 3.20 |
+| reMarkable Paper Pro | All | currently none | before 3.20 |
+
 ## [Docs](https://ddvk.github.io/rmfakecloud/)
 
 ## NB
