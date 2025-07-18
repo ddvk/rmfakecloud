@@ -12,8 +12,12 @@ import (
 )
 
 const (
-	userDir     = "users"
-	profileName = ".userprofile"
+	cachedTreeName = ".tree"
+	profileName    = ".userprofile"
+	userDir        = "users"
+
+	// serves as root modification log and generation number source
+	historyFile = ".root.history"
 )
 
 // NewStorage new file system storage
