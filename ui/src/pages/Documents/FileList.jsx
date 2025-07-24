@@ -56,8 +56,15 @@ export default function FileListViewer({ listStyle, files, onSelect, counter, se
   );
 
   const gridFolderItems = files.filter(file => !file.isLeaf).map(file =>
-    <div className="filegrid-folder-item" key={file.id} onClick={() => onClickItem(file)}>
-      <div>
+    <div className="filegrid-folder-item" key={file.id}>
+      <input
+        type="checkbox"
+        checked={selectedIds.includes(file.id)}
+        onClick={e => e.stopPropagation()}
+        onChange={() => onSelectItem && onSelectItem(file.id)}
+        className="filelist-checkbox"
+      />
+      <div className="filegrid-checkbox-spacer" onClick={() => onClickItem(file)}>
         <FileIcon file={file.data} />
         {file.data.name}
       </div>
@@ -65,8 +72,15 @@ export default function FileListViewer({ listStyle, files, onSelect, counter, se
   );
 
   const gridFileItems = files.filter(file => file.isLeaf).map(file =>
-    <div className="filegrid-file-item" key={file.id} onClick={() => onClickItem(file)}>
-      <div className="fileicon">
+    <div className="filegrid-file-item" key={file.id}>
+      <input
+        type="checkbox"
+        checked={selectedIds.includes(file.id)}
+        onClick={e => e.stopPropagation()}
+        onChange={() => onSelectItem && onSelectItem(file.id)}
+        className="filelist-checkbox"
+      />
+      <div className="filegrid-checkbox-spacer fileicon" onClick={() => onClickItem(file)}>
         <FileIcon file={file.data} />
       </div>
       <div className="filename">

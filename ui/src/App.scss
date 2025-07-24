@@ -231,6 +231,15 @@ div[role="tree"] {
     white-space: nowrap;
     text-overflow: ellipsis;
   }
+
+  .filelist-checkbox {
+    position: absolute;
+    margin: 0.4em;
+  }
+
+  .filegrid-checkbox-spacer {
+    margin-left: 2.4em;
+  }
 }
 
 main h2 {
