@@ -27,7 +27,7 @@ export default function Folder({ selection, onSelect, onUpdate }) {
     console.log("created folder with id", res.ID);
     setFolderName("");
     setShowCreateFolder(false);
-    
+
     onUpdate();
   }
 
