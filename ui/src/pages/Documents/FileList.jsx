@@ -13,7 +13,7 @@ function formatBytes(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-export default function FileListViewer({ listStyle, files, onSelect, counter }) {
+export default function FileListViewer({ listStyle, files, onSelect, counter, selectedIds = [], onSelectItem }) {
   const onClickItem = (file) => {
     onSelect(file);
   }
@@ -26,6 +26,15 @@ export default function FileListViewer({ listStyle, files, onSelect, counter }) 
   const listItems = files.map(file =>
     <div className="filelist-item p-2" key={file.id} onClick={() => onClickItem(file)}>
       <Stack direction="horizontal">
+        <div>
+          <input
+            type="checkbox"
+            checked={selectedIds.includes(file.id)}
+            onClick={e => e.stopPropagation()}
+            onChange={() => onSelectItem && onSelectItem(file.id)}
+            className="filelist-checkbox"
+          />
+        </div>
         <div>
           <FileIcon file={file.data} />
         </div>

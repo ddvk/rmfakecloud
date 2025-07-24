@@ -88,6 +88,13 @@ class ApiServices {
       return r.json();
     });
   }
+
+  deleteDocument(id) {
+    return fetch(`${constants.ROOT_URL}/documents/${id}`, {
+      method: "DELETE",
+      headers: this.header(),
+    }).then((r) => handleError(r));
+  }
   download(id) {
     return fetch(`${constants.ROOT_URL}/documents/${id}`, {
       method: "GET",
@@ -97,6 +104,7 @@ class ApiServices {
       return r.blob();
     });
   }
+
   createFolder(data) {
     return fetch(`${constants.ROOT_URL}/folders`, {
       method: "POST",

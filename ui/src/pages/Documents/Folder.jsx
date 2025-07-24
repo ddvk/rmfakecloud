@@ -18,25 +18,45 @@ export default function Folder({ selection, onSelect, onUpdate }) {
   const [listStyle, setListStyle] = useState("list");
   const [folderName, setFolderName] = useState("");
   const [showCreateFileModal, setShowCreateFolder] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
 
   const folder = selection
 
   const onCreateFolderClick = async () => {
-    const res = await apiservice.createFolder({ name: folderName, parentId: selection.id});
+    await apiservice.createFolder({ name: folderName, parentId: selection.id });
     console.log("created folder with id", res.ID);
     setFolderName("");
     setShowCreateFolder(false);
-
+    
     onUpdate();
   }
 
   const onDeleteClick = async () => {
-	toast.info("Not implemented yet");
+    if (selectedIds.length === 0) return;
+    if (!window.confirm(`Are you sure you want to delete the selected item(s)?`)) return;
+    for (const id of selectedIds) {
+      const file = folder.children.find(f => f.id === id);
+      const name = file?.data?.name || id;
+      try {
+        await apiservice.deleteDocument(id);
+        toast.success(`Deleted ${name}`);
+      } catch (e) {
+        toast.error(`Failed to delete ${name}`);
+      }
+    }
+    setSelectedIds([]);
+    onUpdate();
   }
 
   const fileUploaded = () => {
     onUpdate();
   }
+
+  const handleSelectItem = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
 
   // this should generally not happen, but just in case
   if (!folder) {
@@ -51,7 +71,7 @@ export default function Folder({ selection, onSelect, onUpdate }) {
       <Navbar className={styles.filedivider}>
         <Button size="sm" variant="outline" onClick={() => setShowCreateFolder(true)}>Create Folder</Button>
         <div className={styles.stretch}></div>
-		<Button size="sm" onClick={onDeleteClick}>Delete</Button>
+        <Button size="sm" onClick={onDeleteClick} disabled={selectedIds.length === 0}>Delete</Button>
         <ToggleButtonGroup value={listStyle} onChange={(v) => setListStyle(v)} name="abc">
           <ToggleButton id="grid" name="grid" size="sm" value="grid" variant="outline">
             <BsFillGridFill />
@@ -63,7 +83,13 @@ export default function Folder({ selection, onSelect, onUpdate }) {
       </Navbar>
 
       <Upload filesUploaded={fileUploaded} uploadFolder={selection.id}></Upload>
-      <FileList listStyle={listStyle} files={folder.children} onSelect={onSelect} />
+      <FileList
+        listStyle={listStyle}
+        files={folder.children}
+        onSelect={onSelect}
+        selectedIds={selectedIds}
+        onSelectItem={handleSelectItem}
+      />
 
       <Modal show={showCreateFileModal} onHide={() => setShowCreateFolder(false)}>
         <Modal.Header closeButton>
