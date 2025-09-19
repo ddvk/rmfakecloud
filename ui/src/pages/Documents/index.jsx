@@ -20,10 +20,25 @@ export default function DocumentList() {
   const [showSearch, setShowSearch] = useState(false);
   const [counter, setCounter] = useState(0);
   const [entries, setEntries] = useState([])
+  const [initialSelectionSet, setInitialSelectionSet] = useState(false);
 
   const { state: { user } } = useAuthState();
 
   const treeRef = useRef(null);
+  const lastSelectedId = useRef(null);
+
+  useEffect(() => {
+    lastSelectedId.current = selected?.id || null;
+  }, [selected]);
+
+  useEffect(() => {
+    if (lastSelectedId.current && treeRef.current && typeof treeRef.current.get === 'function') {
+      const node = treeRef.current.get(lastSelectedId.current);
+      if (node && node !== selected) {
+        setSelected(node);
+      }
+    }
+  }, [entries]);
 
   const toggleNode = (node) => {
     if (node == null) {
@@ -51,12 +66,18 @@ export default function DocumentList() {
     setCounter(prev => prev+1);
   };
 
-  if (!selected) {
-    const tree = treeRef.current
-    if (tree) {
-      setSelected(tree.root.children[0])
+  useEffect(() => {
+    if (
+      !initialSelectionSet &&
+      selected === null &&
+      treeRef.current &&
+      treeRef.current.root &&
+      treeRef.current.root.children[0]
+    ) {
+      setSelected(treeRef.current.root.children[0]);
+      setInitialSelectionSet(true);
     }
-  }
+  }, [entries, selected, initialSelectionSet]);
 
 	useEffect(() => {
 		const loadDocs = async () => {
