@@ -178,6 +178,10 @@ div[role="tree"] {
       font-size: 0.8em;
       padding:  0 0.5em;
     }
+
+    .filelist-checkbox {
+      margin-right: 0.8em;
+    }
   }
 }
 
@@ -226,6 +230,15 @@ div[role="tree"] {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
+  }
+
+  .filelist-checkbox {
+    position: absolute;
+    margin: 0.4em;
+  }
+
+  .filegrid-checkbox-spacer {
+    margin-left: 2.4em;
   }
 }
 
