@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -83,16 +85,77 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 	if err != nil {
 		return nil, err
 	}
-	reader, writer := io.Pipe()
-	go func() {
-		err = exporter.RenderRmapi(archive, writer)
+
+	// Detect version
+	version := exporter.VersionUnknown
+	if len(archive.Pages) > 0 {
+		version, err = detectBlobArchiveVersion(archive)
 		if err != nil {
-			log.Error(err)
-			writer.Close()
-			return
+			log.Warnf("Could not detect version for blob doc %s: %v, assuming v5", docid, err)
+			version = exporter.VersionV5
 		}
-		writer.Close()
-	}()
+	}
+
+	log.Debugf("Detected format %s for blob doc %s", version.String(), docid)
+
+	reader, writer := io.Pipe()
+
+	// Route to appropriate renderer
+	if version == exporter.VersionV6 {
+		log.Infof("Using rmc for v6 format blob doc %s", docid)
+
+		go func() {
+			// Create temp file for rmc output
+			tempDir := fs.Cfg.DataDir
+			cachePath := filepath.Join(tempDir, "cache", uid)
+			os.MkdirAll(cachePath, 0755)
+
+			outputPath := filepath.Join(cachePath, docid+"-v6.pdf")
+
+			cfg := exporter.RmcConfig{
+				RmcPath:      fs.Cfg.RmcPath,
+				TempDir:      cachePath,
+				Timeout:      time.Duration(fs.Cfg.RmcTimeout) * time.Second,
+				InkscapePath: fs.Cfg.InkscapePath,
+			}
+
+			err = exporter.ExportV6ArchiveToPdf(archive, outputPath, cfg)
+			if err != nil {
+				log.Error("v6 export failed:", err)
+				writer.CloseWithError(err)
+				return
+			}
+
+			// Stream the file to the pipe
+			file, err := os.Open(outputPath)
+			if err != nil {
+				log.Error("failed to open v6 output:", err)
+				writer.CloseWithError(err)
+				return
+			}
+			defer file.Close()
+
+			_, err = io.Copy(writer, file)
+			if err != nil {
+				log.Error("failed to copy v6 output:", err)
+			}
+			writer.Close()
+		}()
+	} else {
+		// Use existing v5 rendering
+		log.Debugf("Using rmapi for v5 format blob doc %s", docid)
+
+		go func() {
+			err = exporter.RenderRmapi(archive, writer)
+			if err != nil {
+				log.Error(err)
+				writer.Close()
+				return
+			}
+			writer.Close()
+		}()
+	}
+
 	return reader, err
 }
 
@@ -568,4 +631,22 @@ func (fs *FileSystemStorage) StoreBlob(uid, id string, stream io.Reader, lastGen
 func generationFromFileSize(size int64) int64 {
 	//time + 1 space + 64 hash + 1 newline
 	return size / 86
+}
+
+// detectBlobArchiveVersion detects the .rm file version from a blob archive
+func detectBlobArchiveVersion(arch *exporter.MyArchive) (exporter.RmVersion, error) {
+	if len(arch.Pages) == 0 {
+		return exporter.VersionUnknown, fmt.Errorf("no pages in archive")
+	}
+
+	// Try to marshal first page and detect from header
+	if arch.Pages[0].Data != nil {
+		data, err := arch.Pages[0].Data.MarshalBinary()
+		if err != nil {
+			return exporter.VersionUnknown, fmt.Errorf("failed to marshal page data: %w", err)
+		}
+		return exporter.DetectRmVersion(bytes.NewReader(data))
+	}
+
+	return exporter.VersionUnknown, fmt.Errorf("no page data available")
 }

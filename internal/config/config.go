@@ -75,6 +75,11 @@ const (
 	EnvLogFile     = "RM_LOGFILE"
 	envHTTPSCookie = "RM_HTTPS_COOKIE"
 	envTrustProxy  = "RM_TRUST_PROXY"
+
+	// v6 support
+	envRmcPath      = "RMC_PATH"
+	envInkscapePath = "INKSCAPE_PATH"
+	envRmcTimeout   = "RMC_TIMEOUT"
 )
 
 // Config config
@@ -96,6 +101,10 @@ type Config struct {
 	HWRLangOverride   string
 	HTTPSCookie       bool
 	TrustProxy        bool
+	// V6 Support
+	RmcPath           string
+	InkscapePath      string
+	RmcTimeout        int
 }
 
 // Verify verify
@@ -215,10 +224,26 @@ func FromEnv() *Config {
 
 	trustProxy, _ := strconv.ParseBool(os.Getenv(envTrustProxy))
 
+	// V6 support configuration
+	rmcPath := os.Getenv(envRmcPath)
+	if rmcPath == "" {
+		rmcPath = "rmc" // Default to PATH
+	}
+
+	inkscapePath := os.Getenv(envInkscapePath)
+	// Empty is fine, will auto-detect
+
+	rmcTimeout := 60 // Default 60 seconds
+	if timeoutStr := os.Getenv(envRmcTimeout); timeoutStr != "" {
+		if t, err := strconv.Atoi(timeoutStr); err == nil && t > 0 {
+			rmcTimeout = t
+		}
+	}
+
 	cfg := Config{
 		Port:              port,
 		StorageURL:        uploadURL,
-		CloudHost: cloudHost,
+		CloudHost:         cloudHost,
 		DataDir:           dataDir,
 		JWTSecretKey:      dk,
 		JWTRandom:         jwtGenerated,
@@ -230,6 +255,9 @@ func FromEnv() *Config {
 		HWRLangOverride:   os.Getenv(envHwrLangOverride),
 		HTTPSCookie:       httpsCookie,
 		TrustProxy:        trustProxy,
+		RmcPath:           rmcPath,
+		InkscapePath:      inkscapePath,
+		RmcTimeout:        rmcTimeout,
 	}
 	return &cfg
 }
@@ -268,6 +296,11 @@ myScript hwr (needs a developer account):
 	%s
 	%s
 	%s      override the language specified in myScript requests
+
+V6 file format support:
+	%s		Path to rmc binary (default: rmc, assumes in PATH)
+	%s	Path to Inkscape binary (optional, for custom location)
+	%s		Timeout for rmc conversion in seconds (default: 60)
 `,
 		envJWTSecretKey,
 		EnvStorageURL,
@@ -295,5 +328,9 @@ myScript hwr (needs a developer account):
 		envHwrApplicationKey,
 		envHwrHmac,
 		envHwrLangOverride,
+
+		envRmcPath,
+		envInkscapePath,
+		envRmcTimeout,
 	)
 }

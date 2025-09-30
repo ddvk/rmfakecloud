@@ -37,6 +37,7 @@ Use the `rmfakecloud-proxy` from [toltec](https://github.com/toltec-dev/toltec/)
 | Messaging integration to Slack | 🟡 | Not directly, use a webhook with zapier/make/n8n |
 | Archive document to cloud | 🟡 | It works but the information is not saved |
 | Document rendering in web interface | ❌ | [WIP](https://github.com/ddvk/rmfakecloud/issues/255) |
+| v6 file format support (software 3.0+) | ✅ | PDF export via `rmc` tool |
 
 
 ## Breaking Changes
@@ -46,6 +47,55 @@ Use the `rmfakecloud-proxy` from [toltec](https://github.com/toltec-dev/toltec/)
 - with v0.0.5 the new diff sync15 is added as an option, in order to use it modify the user with `setuser -u user -s`
   or modify the profile and add `sync15:true`
   a full resync will be needed (the tablet will do it), the old files are kept as they were and everything is put in a new directory
+
+## v6 File Format Support
+
+rmfakecloud now supports v6 file format (introduced in reMarkable software 3.0+) for PDF export via the web UI.
+
+### How It Works
+
+- **v5 files** (software < 3.0): Rendered using built-in rmapi library
+- **v6 files** (software >= 3.0): Converted using external `rmc` tool
+
+### Requirements
+
+When using Docker (recommended), all dependencies are included automatically.
+
+For manual installation:
+- Python 3.10+
+- `rmc` tool: `pip install rmc`
+- Inkscape (for PDF generation)
+
+### Configuration
+
+Set these environment variables if needed:
+
+```bash
+# Path to rmc binary (default: rmc, assumes in PATH)
+RMC_PATH=/usr/local/bin/rmc
+
+# Path to Inkscape (optional, for custom location)
+INKSCAPE_PATH=/usr/bin/inkscape
+
+# Timeout for conversion in seconds (default: 60)
+RMC_TIMEOUT=60
+```
+
+### Docker Usage
+
+The Docker image includes all v6 dependencies:
+
+```bash
+docker run -d -p 3000:3000 \
+  -v $PWD/data:/data \
+  ddvk/rmfakecloud:latest
+```
+
+### Known Limitations
+
+- Multi-page v6 documents: Currently exports first page only
+- Text rendering: Supported via rmc
+- Performance: First render takes 2-5 seconds, subsequent renders are cached
 
 ## Development
 
