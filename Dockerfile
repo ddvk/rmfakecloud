@@ -27,25 +27,20 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 RUN pip install --no-cache-dir rmc
 
-FROM debian:bookworm-slim
+# Use python slim as final base to keep Python environment intact
+FROM python:3.11-slim
 EXPOSE 3000
 
-# Install runtime dependencies for Python and Inkscape
+# Install runtime dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         ca-certificates \
-        libpython3.11 \
         inkscape \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy Python from rmcbuilder
-COPY --from=rmcbuilder /usr/local/lib/python3.11 /usr/local/lib/python3.11
-COPY --from=rmcbuilder /usr/local/bin/python3.11 /usr/local/bin/python3.11
+# Copy rmc and its dependencies (already installed in python:3.11-slim base)
+COPY --from=rmcbuilder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=rmcbuilder /usr/local/bin/rmc /usr/local/bin/rmc
-
-# Create symlinks for python
-RUN ln -s /usr/local/bin/python3.11 /usr/local/bin/python3 && \
-    ln -s /usr/local/bin/python3.11 /usr/local/bin/python
 
 # Copy rmfakecloud binary
 COPY --from=gobuilder /src/rmfakecloud-docker /rmfakecloud
@@ -54,5 +49,6 @@ COPY --from=gobuilder /src/rmfakecloud-docker /rmfakecloud
 ENV RMC_PATH=/usr/local/bin/rmc
 ENV INKSCAPE_PATH=/usr/bin/inkscape
 ENV RMC_TIMEOUT=60
+ENV PYTHONPATH=/usr/local/lib/python3.11/site-packages
 
 ENTRYPOINT ["/rmfakecloud"]
