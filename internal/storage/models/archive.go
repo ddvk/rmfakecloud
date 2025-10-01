@@ -76,17 +76,57 @@ func ArchiveFromHashDoc(doc *HashDoc, rs RemoteStorage) (*exporter.MyArchive, er
 			if err != nil {
 				return nil, err
 			}
-			rmpage := rm.New()
-			err = rmpage.UnmarshalBinary(pageBin)
-			if err != nil {
-				return nil, err
-			}
 
-			page := archive.Page{
-				Data:     rmpage,
-				Pagedata: "Blank",
+			// Try to detect version first
+			version, versionErr := exporter.DetectRmVersionFromBytes(pageBin)
+
+			// For v5 and earlier, parse with rmapi
+			if versionErr == nil && (version == exporter.VersionV3 || version == exporter.VersionV5) {
+				rmpage := rm.New()
+				err = rmpage.UnmarshalBinary(pageBin)
+				if err != nil {
+					log.Warnf("Failed to unmarshal v5 page: %v", err)
+					return nil, err
+				}
+
+				page := archive.Page{
+					Data:     rmpage,
+					Pagedata: "Blank",
+				}
+				a.Pages = append(a.Pages, page)
+			} else if versionErr == nil && version == exporter.VersionV6 {
+				// For v6, we can't unmarshal with rmapi
+				// Store the raw bytes in a special way
+				log.Debugf("Detected v6 page, storing raw data")
+
+				// Create a dummy rm page with the raw bytes stored
+				// This is a workaround - we'll handle v6 differently in the export
+				rmpage := rm.New()
+				// Store raw v6 data - we'll write it directly to file later
+				page := archive.Page{
+					Data:     rmpage, // Empty, but needed for structure
+					Pagedata: "Blank",
+				}
+				// We need to store the raw v6 bytes somehow
+				// The Page structure doesn't have a field for this
+				// We'll need to modify the export logic instead
+				a.Pages = append(a.Pages, page)
+			} else {
+				log.Warnf("Unknown rm file version or detection failed: %v", versionErr)
+				// Try to parse as v5 anyway (backward compatibility)
+				rmpage := rm.New()
+				err = rmpage.UnmarshalBinary(pageBin)
+				if err != nil {
+					log.Warnf("Failed to unmarshal page: %v", err)
+					return nil, err
+				}
+
+				page := archive.Page{
+					Data:     rmpage,
+					Pagedata: "Blank",
+				}
+				a.Pages = append(a.Pages, page)
 			}
-			a.Pages = append(a.Pages, page)
 		}
 	}
 

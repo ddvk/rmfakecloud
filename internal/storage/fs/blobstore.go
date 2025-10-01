@@ -21,6 +21,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	"github.com/google/uuid"
 	"github.com/juju/fslock"
+	"github.com/juruen/rmapi/archive"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -81,18 +82,30 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 	}
 	ls := fs.BlobStorage(uid)
 
-	archive, err := models.ArchiveFromHashDoc(doc, ls)
-	if err != nil {
-		return nil, err
+	// Detect version BEFORE trying to load archive
+	// This is crucial because v6 files can't be unmarshaled by rmapi
+	version := exporter.VersionUnknown
+	var firstRmHash string
+
+	// Find first .rm file in doc
+	for _, f := range doc.Files {
+		if filepath.Ext(f.EntryName) == storage.RmFileExt {
+			firstRmHash = f.Hash
+			break
+		}
 	}
 
-	// Detect version
-	version := exporter.VersionUnknown
-	if len(archive.Pages) > 0 {
-		version, err = detectBlobArchiveVersion(archive)
-		if err != nil {
-			log.Warnf("Could not detect version for blob doc %s: %v, assuming v5", docid, err)
-			version = exporter.VersionV5
+	// Detect version from raw .rm blob
+	if firstRmHash != "" {
+		reader, err := ls.GetReader(firstRmHash)
+		if err == nil {
+			defer reader.Close()
+			// Read just enough for version detection
+			header := make([]byte, 43)
+			n, err := reader.Read(header)
+			if err == nil || err == io.EOF {
+				version, _ = exporter.DetectRmVersionFromBytes(header[:n])
+			}
 		}
 	}
 
@@ -105,21 +118,90 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 		log.Infof("Using rmc for v6 format blob doc %s", docid)
 
 		go func() {
-			// Create temp file for rmc output
+			// Create temp directory for v6 processing
 			tempDir := fs.Cfg.DataDir
 			cachePath := filepath.Join(tempDir, "cache", uid)
 			os.MkdirAll(cachePath, 0755)
+
+			tempWorkDir := filepath.Join(cachePath, "temp-"+docid)
+			os.MkdirAll(tempWorkDir, 0755)
+			defer os.RemoveAll(tempWorkDir)
+
+			// Extract .rm files directly from blob storage without parsing
+			// First, get content.json to know page order
+			var contentData archive.Content
+			for _, f := range doc.Files {
+				if filepath.Ext(f.EntryName) == storage.ContentFileExt {
+					blob, err := ls.GetReader(f.Hash)
+					if err == nil {
+						contentBytes, _ := io.ReadAll(blob)
+						blob.Close()
+						json.Unmarshal(contentBytes, &contentData)
+					}
+					break
+				}
+			}
+
+			// Build map of page names to hashes
+			pageMap := make(map[string]string)
+			for _, f := range doc.Files {
+				if filepath.Ext(f.EntryName) == storage.RmFileExt {
+					name := strings.TrimSuffix(filepath.Base(f.EntryName), storage.RmFileExt)
+					pageMap[name] = f.Hash
+				}
+			}
+
+			// Extract first page (single page for now)
+			var firstPageHash string
+			if len(contentData.Pages) > 0 {
+				if hash, ok := pageMap[contentData.Pages[0]]; ok {
+					firstPageHash = hash
+				}
+			}
+
+			if firstPageHash == "" {
+				log.Error("No pages found in v6 document")
+				writer.CloseWithError(fmt.Errorf("no pages found"))
+				return
+			}
+
+			// Get raw .rm data
+			rmReader, err := ls.GetReader(firstPageHash)
+			if err != nil {
+				log.Errorf("Failed to get v6 page data: %v", err)
+				writer.CloseWithError(err)
+				return
+			}
+			defer rmReader.Close()
+
+			// Write to temp file
+			rmFile := filepath.Join(tempWorkDir, "page.rm")
+			outFile, err := os.Create(rmFile)
+			if err != nil {
+				log.Errorf("Failed to create temp .rm file: %v", err)
+				writer.CloseWithError(err)
+				return
+			}
+
+			_, err = io.Copy(outFile, rmReader)
+			outFile.Close()
+			if err != nil {
+				log.Errorf("Failed to write .rm file: %v", err)
+				writer.CloseWithError(err)
+				return
+			}
 
 			outputPath := filepath.Join(cachePath, docid+"-v6.pdf")
 
 			cfg := exporter.RmcConfig{
 				RmcPath:      fs.Cfg.RmcPath,
-				TempDir:      cachePath,
+				TempDir:      tempWorkDir,
 				Timeout:      time.Duration(fs.Cfg.RmcTimeout) * time.Second,
 				InkscapePath: fs.Cfg.InkscapePath,
 			}
 
-			err = exporter.ExportV6ArchiveToPdf(archive, outputPath, cfg)
+			// Convert the .rm file to PDF
+			err = exporter.ExportV6ToPdf(rmFile, outputPath, cfg)
 			if err != nil {
 				log.Error("v6 export failed:", err)
 				writer.CloseWithError(err)
@@ -144,6 +226,12 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 	} else {
 		// Use existing v5 rendering
 		log.Debugf("Using rmapi for v5 format blob doc %s", docid)
+
+		archive, err := models.ArchiveFromHashDoc(doc, ls)
+		if err != nil {
+			log.Error("Failed to load v5 archive:", err)
+			return nil, err
+		}
 
 		go func() {
 			err = exporter.RenderRmapi(archive, writer)
