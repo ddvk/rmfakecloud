@@ -136,11 +136,16 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 					if err == nil {
 						contentBytes, _ := io.ReadAll(blob)
 						blob.Close()
-						json.Unmarshal(contentBytes, &contentData)
+						err = json.Unmarshal(contentBytes, &contentData)
+						if err != nil {
+							log.Warnf("Failed to unmarshal content.json: %v", err)
+						}
 					}
 					break
 				}
 			}
+
+			log.Debugf("Content has %d pages", len(contentData.Pages))
 
 			// Build map of page names to hashes
 			pageMap := make(map[string]string)
@@ -148,19 +153,35 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 				if filepath.Ext(f.EntryName) == storage.RmFileExt {
 					name := strings.TrimSuffix(filepath.Base(f.EntryName), storage.RmFileExt)
 					pageMap[name] = f.Hash
+					log.Debugf("Found .rm file: %s -> %s", name, f.Hash)
 				}
 			}
+
+			log.Debugf("Built page map with %d entries", len(pageMap))
 
 			// Extract first page (single page for now)
 			var firstPageHash string
 			if len(contentData.Pages) > 0 {
+				log.Debugf("Looking for page: %s", contentData.Pages[0])
 				if hash, ok := pageMap[contentData.Pages[0]]; ok {
 					firstPageHash = hash
+					log.Debugf("Found first page hash: %s", hash)
+				} else {
+					log.Warnf("Page %s not found in pageMap", contentData.Pages[0])
+				}
+			} else {
+				// No pages in content.json, try to use any .rm file we found
+				log.Warn("content.json has no pages array, trying first .rm file found")
+				for name, hash := range pageMap {
+					firstPageHash = hash
+					log.Infof("Using .rm file: %s -> %s", name, hash)
+					break
 				}
 			}
 
 			if firstPageHash == "" {
 				log.Error("No pages found in v6 document")
+				log.Debugf("Doc files: %+v", doc.Files)
 				writer.CloseWithError(fmt.Errorf("no pages found"))
 				return
 			}
