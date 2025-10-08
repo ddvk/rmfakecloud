@@ -41,6 +41,7 @@ See the [documentation](https://ddvk.github.io/rmfakecloud/remarkable/setup/) fo
 | Archive document to cloud | 🟡 | It works but the information is not saved |
 | [Passcode (PIN) reset](https://ddvk.github.io/rmfakecloud/usage/passcode-reset/) | ✅ | reMarkable 1 / reMarkable 2 only |
 | Document rendering in web interface | ❌ | [WIP](https://github.com/ddvk/rmfakecloud/issues/255) |
+| OAuth2/OpenID Connect | 🟡 | |
 
 
 ## Breaking Changes
