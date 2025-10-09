@@ -85,23 +85,29 @@ func (app *ReactAppWrapper) register(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
-func (app *ReactAppWrapper) login(c *gin.Context) {
-	if app.cfg.OIDCConfig != nil {
-		if app.cfg.OIDCConfig.Only {
-			c.AbortWithStatus(http.StatusUnauthorized)
+// loginWith login with email and password as strings
+func (app *ReactAppWrapper) loginWith(c *gin.Context, oidc bool, email string, password string) {
+	// Generate random password
+	if oidc {
+		newPassword, err := model.GenPassword()
+		if err != nil {
+			log.Error("[login]", err)
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
 		}
+
+		password = newPassword
 	}
 
-	var form viewmodel.LoginForm
-	if err := c.ShouldBindJSON(&form); err != nil {
-		log.Error(uiLogger, err)
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
 	// not really thread safe
 	if app.cfg.CreateFirstUser {
 		log.Info("Creating an admin user")
-		user, err := model.NewUser(form.Email, form.Password)
+
+		if oidc {
+			log.Info("Assigning random password (to allow login without OIDC)")
+		}
+
+		user, err := model.NewUser(email, password)
 		if err != nil {
 			log.Error("[login]", err)
 			c.AbortWithStatus(http.StatusInternalServerError)
@@ -118,21 +124,44 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 	}
 
 	// Try to find the user
-	user, err := app.userStorer.GetUser(form.Email)
+	user, err := app.userStorer.GetUser(email)
 	if err != nil {
-		log.Error(uiLogger, err, " cannot load user, login failed ip: ", c.ClientIP())
-		c.AbortWithStatus(http.StatusUnauthorized)
-		return
+		if app.cfg.RegistrationOpen && oidc {
+			log.Info("Registering new user " + email + " with OIDC")
+			log.Info("Assigning random password (to allow login without OIDC)")
+
+			newUser, err := model.NewUser(email, password)
+			if err != nil {
+				log.Error("[login]", err)
+				c.AbortWithStatus(http.StatusInternalServerError)
+				return
+			}
+
+			err = app.userStorer.RegisterUser(newUser)
+			if err != nil {
+				log.Error(err)
+				c.AbortWithStatus(http.StatusInternalServerError)
+				return
+			}
+
+			user = newUser
+		} else {
+			log.Error(uiLogger, err, " cannot load user, login failed ip: ", c.ClientIP())
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
 	}
 
-	if ok, err := user.CheckPassword(form.Password); err != nil || !ok {
-		if err != nil {
-			log.Error(err)
-		} else if !ok {
-			log.Warn(uiLogger, "wrong password for: ", form.Email, ", login failed ip: ", c.ClientIP())
+	if !oidc {
+		if ok, err := user.CheckPassword(password); err != nil || !ok {
+			if err != nil {
+				log.Error(err)
+			} else if !ok {
+				log.Warn(uiLogger, "wrong password for: ", email, ", login failed ip: ", c.ClientIP())
+			}
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
 		}
-		c.AbortWithStatus(http.StatusUnauthorized)
-		return
 	}
 
 	scopes := ""
@@ -170,6 +199,23 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 	c.SetCookie(cookieName, tokenString, int(expiresAfter.Seconds()), "/", "", app.cfg.HTTPSCookie, true)
 
 	c.String(http.StatusOK, tokenString)
+}
+
+func (app *ReactAppWrapper) login(c *gin.Context) {
+	if app.cfg.OIDCConfig != nil {
+		if app.cfg.OIDCConfig.Only {
+			c.AbortWithStatus(http.StatusUnauthorized)
+		}
+	}
+
+	var form viewmodel.LoginForm
+	if err := c.ShouldBindJSON(&form); err != nil {
+		log.Error(uiLogger, err)
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	app.loginWith(c, false, form.Email, form.Password)
 }
 
 func (app *ReactAppWrapper) oidcInfo(c *gin.Context) {
@@ -266,71 +312,7 @@ func (app *ReactAppWrapper) oidcCallback(c *gin.Context) {
 		return
 	}
 
-	// not really thread safe
-	if app.cfg.CreateFirstUser {
-		// Random string
-		password := uuid.NewString()
-
-		log.Infof("Creating an admin user (with random password \"%s\")", password)
-		user, err := model.NewUser(oidcClaims.Email, password)
-		if err != nil {
-			log.Error("[login]", err)
-			c.AbortWithStatus(http.StatusInternalServerError)
-			return
-		}
-		user.IsAdmin = true
-		err = app.userStorer.RegisterUser(user)
-		if err != nil {
-			log.Error("[login] Register ", err)
-			c.AbortWithStatus(http.StatusInternalServerError)
-			return
-		}
-		app.cfg.CreateFirstUser = false
-	}
-
-	// Try to find the user
-	user, err := app.userStorer.GetUser(oidcClaims.Email)
-	if err != nil {
-		log.Error(uiLogger, err, " cannot load user, login failed ip: ", c.ClientIP())
-		c.AbortWithStatus(http.StatusUnauthorized)
-		return
-	}
-
-	scopes := ""
-	if user.Sync15 {
-		scopes = isSync15Key
-	}
-	expiresAfter := 24 * time.Hour
-	expires := time.Now().Add(expiresAfter)
-	claims := &WebUserClaims{
-		UserID:    user.ID,
-		BrowserID: uuid.NewString(),
-		Email:     user.Email,
-		Scopes:    scopes,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(expires),
-			Issuer:    "rmFake WEB",
-			Audience:  []string{WebUsage},
-		},
-	}
-	if user.IsAdmin {
-		claims.Roles = []string{AdminRole}
-	} else {
-		claims.Roles = []string{"User"}
-	}
-
-	tokenString, err := common.SignClaims(claims, app.cfg.JWTSecretKey)
-
-	if err != nil {
-		log.Error(err)
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-	log.Debug("cookie expires after: ", expiresAfter)
-	c.SetSameSite(http.SameSiteStrictMode)
-	c.SetCookie(cookieName, tokenString, int(expiresAfter.Seconds()), "/", "", app.cfg.HTTPSCookie, true)
-
-	c.String(http.StatusOK, tokenString)
+	app.loginWith(c, true, oidcClaims.Email, "")
 }
 
 func (app *ReactAppWrapper) changePassword(c *gin.Context) {
