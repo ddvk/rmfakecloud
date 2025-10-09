@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/integrations"
 	"github.com/ddvk/rmfakecloud/internal/model"
@@ -14,6 +15,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/oauth2"
 	"gopkg.in/yaml.v3"
 )
 
@@ -83,17 +85,29 @@ func (app *ReactAppWrapper) register(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
-func (app *ReactAppWrapper) login(c *gin.Context) {
-	var form viewmodel.LoginForm
-	if err := c.ShouldBindJSON(&form); err != nil {
-		log.Error(uiLogger, err)
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
+// loginWith login with email and password as strings
+func (app *ReactAppWrapper) loginWith(c *gin.Context, oidc bool, email string, password string) {
+	// Generate random password
+	if oidc {
+		newPassword, err := model.GenPassword()
+		if err != nil {
+			log.Error("[login]", err)
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+
+		password = newPassword
 	}
+
 	// not really thread safe
 	if app.cfg.CreateFirstUser {
 		log.Info("Creating an admin user")
-		user, err := model.NewUser(form.Email, form.Password)
+
+		if oidc {
+			log.Info("Assigning random password (to allow login without OIDC)")
+		}
+
+		user, err := model.NewUser(email, password)
 		if err != nil {
 			log.Error("[login]", err)
 			c.AbortWithStatus(http.StatusInternalServerError)
@@ -110,21 +124,44 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 	}
 
 	// Try to find the user
-	user, err := app.userStorer.GetUser(form.Email)
+	user, err := app.userStorer.GetUser(email)
 	if err != nil {
-		log.Error(uiLogger, err, " cannot load user, login failed ip: ", c.ClientIP())
-		c.AbortWithStatus(http.StatusUnauthorized)
-		return
+		if app.cfg.RegistrationOpen && oidc {
+			log.Info("Registering new user " + email + " with OIDC")
+			log.Info("Assigning random password (to allow login without OIDC)")
+
+			newUser, err := model.NewUser(email, password)
+			if err != nil {
+				log.Error("[login]", err)
+				c.AbortWithStatus(http.StatusInternalServerError)
+				return
+			}
+
+			err = app.userStorer.RegisterUser(newUser)
+			if err != nil {
+				log.Error(err)
+				c.AbortWithStatus(http.StatusInternalServerError)
+				return
+			}
+
+			user = newUser
+		} else {
+			log.Error(uiLogger, err, " cannot load user, login failed ip: ", c.ClientIP())
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
 	}
 
-	if ok, err := user.CheckPassword(form.Password); err != nil || !ok {
-		if err != nil {
-			log.Error(err)
-		} else if !ok {
-			log.Warn(uiLogger, "wrong password for: ", form.Email, ", login failed ip: ", c.ClientIP())
+	if !oidc {
+		if ok, err := user.CheckPassword(password); err != nil || !ok {
+			if err != nil {
+				log.Error(err)
+			} else if !ok {
+				log.Warn(uiLogger, "wrong password for: ", email, ", login failed ip: ", c.ClientIP())
+			}
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
 		}
-		c.AbortWithStatus(http.StatusUnauthorized)
-		return
 	}
 
 	scopes := ""
@@ -162,6 +199,120 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 	c.SetCookie(cookieName, tokenString, int(expiresAfter.Seconds()), "/", "", app.cfg.HTTPSCookie, true)
 
 	c.String(http.StatusOK, tokenString)
+}
+
+func (app *ReactAppWrapper) login(c *gin.Context) {
+	if app.cfg.OIDCConfig != nil {
+		if app.cfg.OIDCConfig.Only {
+			c.AbortWithStatus(http.StatusUnauthorized)
+		}
+	}
+
+	var form viewmodel.LoginForm
+	if err := c.ShouldBindJSON(&form); err != nil {
+		log.Error(uiLogger, err)
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	app.loginWith(c, false, form.Email, form.Password)
+}
+
+func (app *ReactAppWrapper) oidcInfo(c *gin.Context) {
+	if app.cfg.OIDCConfig != nil {
+		c.JSON(http.StatusOK, viewmodel.OIDCInfo{
+			Enabled: true,
+			Label:   app.cfg.OIDCConfig.Label,
+			Only:    app.cfg.OIDCConfig.Only,
+		})
+	} else {
+		c.JSON(http.StatusOK, viewmodel.OIDCInfo{
+			Enabled: false,
+			Label:   "",
+			Only:    false,
+		})
+	}
+}
+
+func (app *ReactAppWrapper) oidcAuth(c *gin.Context) {
+	if app.cfg.OIDCConfig == nil {
+		log.Error("OIDC configuration required")
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	provider, err := oidc.NewProvider(c, app.cfg.OIDCConfig.ConfigURL)
+
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	app.oidcProvider = provider
+	app.oauth2Config = &oauth2.Config{
+		ClientID:     app.cfg.OIDCConfig.ClientID,
+		ClientSecret: app.cfg.OIDCConfig.ClientSecret,
+		Endpoint:     provider.Endpoint(),
+		RedirectURL:  app.cfg.StorageURL + "/login",
+		Scopes:       []string{oidc.ScopeOpenID, "profile", "email"},
+	}
+
+	c.String(http.StatusOK, app.oauth2Config.AuthCodeURL("")) // todo: store and verify OAuth2 states
+}
+
+func (app *ReactAppWrapper) oidcCallback(c *gin.Context) {
+	if app.cfg.OIDCConfig == nil {
+		log.Error("OIDC configuration required")
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	var req viewmodel.OIDCCallback
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Error(err)
+		badReq(c, err.Error())
+		return
+	}
+
+	verifier := app.oidcProvider.Verifier(&oidc.Config{ClientID: app.cfg.OIDCConfig.ClientID})
+
+	// Verify state and errors.
+	oauth2Token, err := app.oauth2Config.Exchange(c, req.Code)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	// Extract the ID Token from OAuth2 token.
+	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
+	if !ok {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	// Parse and verify ID Token payload.
+	idToken, err := verifier.Verify(c, rawIDToken)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	// Extract custom claims
+	var oidcClaims struct {
+		Email string `json:"email"`
+	}
+	if err := idToken.Claims(&oidcClaims); err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	app.loginWith(c, true, oidcClaims.Email, "")
 }
 
 func (app *ReactAppWrapper) changePassword(c *gin.Context) {
