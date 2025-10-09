@@ -47,15 +47,17 @@ const (
 	// auth
 	envJWTSecretKey     = "JWT_SECRET_KEY"
 	envRegistrationOpen = "OPEN_REGISTRATION"
-	// envDisablePasswordAuth disable username/password auth
-	envDisablePasswordAuth = "DISABLE_PASSWORD_AUTH"
 
-	// envOAUTH2ConfigURL OpenID configuration URL
-	envOAUTH2ConfigURL = "RM_OAUTH2_CONFIG_URL"
-	// envOAUTH2ClientID OpenID Client identifier
-	envOAUTH2ClientID = "RM_OAUTH2_CLIENT_ID"
-	// envOAUTH2ClientSecret OpenID Client secret
-	envOAUTH2ClientSecret = "RM_OAUTH2_CLIENT_SECRET"
+	// envOIDCIssuer OpenID issuer URL (without '.well-known/openid-configuration')
+	envOIDCIssuer = "RM_OIDC_ISSUER"
+	// envOIDCLabel OIDC login button label
+	envOIDCLabel = "RM_OIDC_LABEL"
+	// envOIDCClientID OpenID Client identifier
+	envOIDCClientID = "RM_OIDC_CLIENT_ID"
+	// envOIDCClientSecret OpenID Client secret
+	envOIDCClientSecret = "RM_OIDC_CLIENT_SECRET"
+	// envOIDCOnly only allow OIDC auth
+	envOIDCOnly = "RM_OIDC_ONLY"
 
 	// envSMTPServer the mail server
 	envSMTPServer = "RM_SMTP_SERVER"
@@ -86,10 +88,12 @@ const (
 	envTrustProxy  = "RM_TRUST_PROXY"
 )
 
-type OAuth2Config struct {
+type OIDCConfig struct {
 	ConfigURL    string
+	Label        string
 	ClientID     string
 	ClientSecret string
+	Only         bool
 }
 
 // Config config
@@ -101,8 +105,7 @@ type Config struct {
 	DataDir           string
 	RegistrationOpen  bool
 	CreateFirstUser   bool
-	DisablePwdAuth    bool
-	OAuth2Config      *OAuth2Config
+	OIDCConfig        *OIDCConfig
 	JWTSecretKey      []byte
 	JWTRandom         bool
 	Certificate       tls.Certificate
@@ -125,11 +128,6 @@ func (cfg *Config) Verify() {
 
 	if !cfg.HTTPSCookie {
 		log.Warnln(envHTTPSCookie + " is not set, use only when not using https!")
-	}
-
-	if cfg.DisablePwdAuth && cfg.OAuth2Config == nil {
-		log.Warnln(envDisablePasswordAuth + " is true and OAuth2/OIDC is not configured!")
-		log.Warnln("either set " + envDisablePasswordAuth + " to false or configure OAuth2/OIDC")
 	}
 
 	if cfg.SMTPConfig == nil {
@@ -189,14 +187,23 @@ func FromEnv() *Config {
 	httpsCookie, _ := strconv.ParseBool(os.Getenv(envHTTPSCookie))
 
 	// oauth2
-	var oauth2cfg *OAuth2Config
-	configURL := os.Getenv(envOAUTH2ConfigURL)
+	var oidcCfg *OIDCConfig
+	configURL := os.Getenv(envOIDCIssuer)
 
 	if configURL != "" {
-		oauth2cfg = &OAuth2Config{
+		label := os.Getenv(envOIDCLabel)
+		only, _ := strconv.ParseBool(os.Getenv(envOIDCOnly))
+
+		if label == "" {
+			label = "OpenID Connect"
+		}
+
+		oidcCfg = &OIDCConfig{
 			ConfigURL:    configURL,
-			ClientID:     os.Getenv(envOAUTH2ClientID),
-			ClientSecret: os.Getenv(envOAUTH2ClientSecret),
+			Label:        label,
+			ClientID:     os.Getenv(envOIDCClientID),
+			ClientSecret: os.Getenv(envOIDCClientSecret),
+			Only:         only,
 		}
 	}
 
@@ -259,7 +266,7 @@ func FromEnv() *Config {
 		Certificate:       cert,
 		RegistrationOpen:  openRegistration,
 		SMTPConfig:        smtpCfg,
-		OAuth2Config:      oauth2cfg,
+		OIDCConfig:        oidcCfg,
 		HWRApplicationKey: os.Getenv(envHwrApplicationKey),
 		HWRHmac:           os.Getenv(envHwrHmac),
 		HWRLangOverride:   os.Getenv(envHwrLangOverride),

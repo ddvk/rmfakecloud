@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/integrations"
 	"github.com/ddvk/rmfakecloud/internal/model"
@@ -14,6 +15,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/oauth2"
 	"gopkg.in/yaml.v3"
 )
 
@@ -84,6 +86,12 @@ func (app *ReactAppWrapper) register(c *gin.Context) {
 }
 
 func (app *ReactAppWrapper) login(c *gin.Context) {
+	if app.cfg.OIDCConfig != nil {
+		if app.cfg.OIDCConfig.Only {
+			c.AbortWithStatus(http.StatusUnauthorized)
+		}
+	}
+
 	var form viewmodel.LoginForm
 	if err := c.ShouldBindJSON(&form); err != nil {
 		log.Error(uiLogger, err)
@@ -123,6 +131,167 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 		} else if !ok {
 			log.Warn(uiLogger, "wrong password for: ", form.Email, ", login failed ip: ", c.ClientIP())
 		}
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	scopes := ""
+	if user.Sync15 {
+		scopes = isSync15Key
+	}
+	expiresAfter := 24 * time.Hour
+	expires := time.Now().Add(expiresAfter)
+	claims := &WebUserClaims{
+		UserID:    user.ID,
+		BrowserID: uuid.NewString(),
+		Email:     user.Email,
+		Scopes:    scopes,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expires),
+			Issuer:    "rmFake WEB",
+			Audience:  []string{WebUsage},
+		},
+	}
+	if user.IsAdmin {
+		claims.Roles = []string{AdminRole}
+	} else {
+		claims.Roles = []string{"User"}
+	}
+
+	tokenString, err := common.SignClaims(claims, app.cfg.JWTSecretKey)
+
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	log.Debug("cookie expires after: ", expiresAfter)
+	c.SetSameSite(http.SameSiteStrictMode)
+	c.SetCookie(cookieName, tokenString, int(expiresAfter.Seconds()), "/", "", app.cfg.HTTPSCookie, true)
+
+	c.String(http.StatusOK, tokenString)
+}
+
+func (app *ReactAppWrapper) oidcInfo(c *gin.Context) {
+	if app.cfg.OIDCConfig != nil {
+		c.JSON(http.StatusOK, viewmodel.OIDCInfo{
+			Enabled: true,
+			Label:   app.cfg.OIDCConfig.Label,
+			Only:    app.cfg.OIDCConfig.Only,
+		})
+	} else {
+		c.JSON(http.StatusOK, viewmodel.OIDCInfo{
+			Enabled: false,
+			Label:   "",
+			Only:    false,
+		})
+	}
+}
+
+func (app *ReactAppWrapper) oidcAuth(c *gin.Context) {
+	if app.cfg.OIDCConfig == nil {
+		log.Error("OIDC configuration required")
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	provider, err := oidc.NewProvider(c, app.cfg.OIDCConfig.ConfigURL)
+
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	app.oidcProvider = provider
+	app.oauth2Config = &oauth2.Config{
+		ClientID:     app.cfg.OIDCConfig.ClientID,
+		ClientSecret: app.cfg.OIDCConfig.ClientSecret,
+		Endpoint:     provider.Endpoint(),
+		RedirectURL:  app.cfg.StorageURL + "/login",
+		Scopes:       []string{oidc.ScopeOpenID, "profile", "email"},
+	}
+
+	c.String(http.StatusOK, app.oauth2Config.AuthCodeURL("")) // todo: store and verify OAuth2 states
+}
+
+func (app *ReactAppWrapper) oidcCallback(c *gin.Context) {
+	if app.cfg.OIDCConfig == nil {
+		log.Error("OIDC configuration required")
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	var req viewmodel.OIDCCallback
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Error(err)
+		badReq(c, err.Error())
+		return
+	}
+
+	verifier := app.oidcProvider.Verifier(&oidc.Config{ClientID: app.cfg.OIDCConfig.ClientID})
+
+	// Verify state and errors.
+	oauth2Token, err := app.oauth2Config.Exchange(c, req.Code)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	// Extract the ID Token from OAuth2 token.
+	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
+	if !ok {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	// Parse and verify ID Token payload.
+	idToken, err := verifier.Verify(c, rawIDToken)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	// Extract custom claims
+	var oidcClaims struct {
+		Email string `json:"email"`
+	}
+	if err := idToken.Claims(&oidcClaims); err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	// not really thread safe
+	if app.cfg.CreateFirstUser {
+		// Random string
+		password := uuid.NewString()
+
+		log.Infof("Creating an admin user (with random password \"%s\")", password)
+		user, err := model.NewUser(oidcClaims.Email, password)
+		if err != nil {
+			log.Error("[login]", err)
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+		user.IsAdmin = true
+		err = app.userStorer.RegisterUser(user)
+		if err != nil {
+			log.Error("[login] Register ", err)
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+		app.cfg.CreateFirstUser = false
+	}
+
+	// Try to find the user
+	user, err := app.userStorer.GetUser(oidcClaims.Email)
+	if err != nil {
+		log.Error(uiLogger, err, " cannot load user, login failed ip: ", c.ClientIP())
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}

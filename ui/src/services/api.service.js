@@ -36,6 +36,45 @@ class ApiServices {
     removeUser();
     fetch(`${constants.ROOT_URL}/logout`);
   }
+  oidcInfo() {
+    return fetch(`${constants.ROOT_URL}/oidc/info`, {
+      method: "GET",
+      headers: this.header(),
+    }).then((r) => {
+      handleError(r);
+      return r.json();
+    });
+  }
+  oidcAuth() {
+    return fetch(`${constants.ROOT_URL}/oidc/auth`, {
+      method: "GET",
+      headers: this.header()
+    })
+      .then((r) => {
+        if (!r.ok) {
+          throw new Error(r.statusText);
+        }
+        return r.text();
+      })
+  }
+  oidcCallback(payload) {
+    return fetch(`${constants.ROOT_URL}/oidc/callback`, {
+      method: "POST",
+      headers: this.header(),
+      body: JSON.stringify(payload),
+    })
+      .then((r) => {
+        if (!r.ok) {
+          throw new Error(r.statusText);
+        }
+        return r.text();
+      })
+      .then((text) => {
+        let user = jwtDecode(text);
+        localStorage.setItem("currentUser", JSON.stringify(user));
+        return user;
+      });
+  }
 
   upload(parent, files) {
     const formData = new FormData();
