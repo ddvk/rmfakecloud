@@ -62,7 +62,7 @@ const Home = () => {
               </li>
               <li>
                 <p>
-                  Clicking on selected directoires again will open or close them respectively.
+                  Clicking on selected directories again will open or close them respectively.
                 </p>
               </li>
             </ul>
