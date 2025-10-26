@@ -41,8 +41,7 @@ export default function FileListViewer({ listStyle, files, onSelect, counter, se
         <div className={isFolderClassName(file)}>
           {file.data.name}
         </div>
-        <div style={{ flex: 1 }}>
-        </div>
+        <div className="flex-spacer"></div>
         <div className="filelist-metadata">
           {!file.isLeaf && <span>{file.children.length || "empty"}</span> }
           {file.isLeaf && <span>{formatBytes(file.data.size)}</span> }
