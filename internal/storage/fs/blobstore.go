@@ -115,11 +115,7 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 
 	// Route to appropriate renderer
 	if version == exporter.VersionV6 {
-		if fs.Cfg.UseNativeRmc {
-			log.Infof("Using native rmc-go for v6 format blob doc %s", docid)
-		} else {
-			log.Infof("Using Python rmc subprocess for v6 format blob doc %s", docid)
-		}
+		log.Infof("Using native rmc-go for v6 format blob doc %s", docid)
 
 		go func() {
 			defer writer.Close()
@@ -200,66 +196,12 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 				return
 			}
 
-			// Choose rendering method based on config
-			if fs.Cfg.UseNativeRmc {
-				// NEW: Use rmc-go library (in-process, Cairo renderer)
-				err = exporter.ExportV6ToPdfNative(rmData, writer)
-				if err != nil {
-					log.Errorf("Failed to export v6 with rmc-go: %v", err)
-					writer.CloseWithError(err)
-					return
-				}
-			} else {
-				// LEGACY: Use Python rmc subprocess (fallback)
-				tempDir := fs.Cfg.DataDir
-				cachePath := filepath.Join(tempDir, "cache", uid)
-				os.MkdirAll(cachePath, 0755)
-
-				tempWorkDir := filepath.Join(cachePath, "temp-"+docid)
-				os.MkdirAll(tempWorkDir, 0755)
-				defer os.RemoveAll(tempWorkDir)
-
-				// Write to temp file
-				rmFile := filepath.Join(tempWorkDir, "page.rm")
-				err = os.WriteFile(rmFile, rmData, 0644)
-				if err != nil {
-					log.Errorf("Failed to write temp .rm file: %v", err)
-					writer.CloseWithError(err)
-					return
-				}
-
-				outputPath := filepath.Join(cachePath, docid+"-v6.pdf")
-
-				cfg := exporter.RmcConfig{
-					RmcPath:      fs.Cfg.RmcPath,
-					TempDir:      tempWorkDir,
-					Timeout:      time.Duration(fs.Cfg.RmcTimeout) * time.Second,
-					InkscapePath: fs.Cfg.InkscapePath,
-				}
-
-				// Convert the .rm file to PDF via subprocess
-				err = exporter.ExportV6ToPdf(rmFile, outputPath, cfg)
-				if err != nil {
-					log.Errorf("v6 export failed: %v", err)
-					writer.CloseWithError(err)
-					return
-				}
-
-				// Stream the file to the pipe
-				file, err := os.Open(outputPath)
-				if err != nil {
-					log.Errorf("failed to open v6 output: %v", err)
-					writer.CloseWithError(err)
-					return
-				}
-				defer file.Close()
-
-				_, err = io.Copy(writer, file)
-				if err != nil {
-					log.Errorf("failed to copy v6 output: %v", err)
-					writer.CloseWithError(err)
-					return
-				}
+			// Use rmc-go library (in-process, Cairo renderer)
+			err = exporter.ExportV6ToPdfNative(rmData, writer)
+			if err != nil {
+				log.Errorf("Failed to export v6 with rmc-go: %v", err)
+				writer.CloseWithError(err)
+				return
 			}
 		}()
 	} else {

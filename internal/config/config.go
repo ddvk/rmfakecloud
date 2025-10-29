@@ -75,12 +75,6 @@ const (
 	EnvLogFile     = "RM_LOGFILE"
 	envHTTPSCookie = "RM_HTTPS_COOKIE"
 	envTrustProxy  = "RM_TRUST_PROXY"
-
-	// v6 support
-	envRmcPath       = "RMC_PATH"
-	envInkscapePath  = "INKSCAPE_PATH"
-	envRmcTimeout    = "RMC_TIMEOUT"
-	envUseNativeRmc  = "USE_NATIVE_RMC"
 )
 
 // Config config
@@ -102,11 +96,6 @@ type Config struct {
 	HWRLangOverride   string
 	HTTPSCookie       bool
 	TrustProxy        bool
-	// V6 Support
-	RmcPath           string
-	InkscapePath      string
-	RmcTimeout        int
-	UseNativeRmc      bool   // Enable rmc-go library (Cairo renderer)
 }
 
 // Verify verify
@@ -226,30 +215,6 @@ func FromEnv() *Config {
 
 	trustProxy, _ := strconv.ParseBool(os.Getenv(envTrustProxy))
 
-	// V6 support configuration
-	rmcPath := os.Getenv(envRmcPath)
-	if rmcPath == "" {
-		rmcPath = "rmc" // Default to PATH
-	}
-
-	inkscapePath := os.Getenv(envInkscapePath)
-	// Empty is fine, will auto-detect
-
-	rmcTimeout := 60 // Default 60 seconds
-	if timeoutStr := os.Getenv(envRmcTimeout); timeoutStr != "" {
-		if t, err := strconv.Atoi(timeoutStr); err == nil && t > 0 {
-			rmcTimeout = t
-		}
-	}
-
-	// Use native rmc-go library by default (Cairo renderer)
-	useNativeRmc := true // Default to true
-	if nativeStr := os.Getenv(envUseNativeRmc); nativeStr != "" {
-		if b, err := strconv.ParseBool(nativeStr); err == nil {
-			useNativeRmc = b
-		}
-	}
-
 	cfg := Config{
 		Port:              port,
 		StorageURL:        uploadURL,
@@ -265,10 +230,6 @@ func FromEnv() *Config {
 		HWRLangOverride:   os.Getenv(envHwrLangOverride),
 		HTTPSCookie:       httpsCookie,
 		TrustProxy:        trustProxy,
-		RmcPath:           rmcPath,
-		InkscapePath:      inkscapePath,
-		RmcTimeout:        rmcTimeout,
-		UseNativeRmc:      useNativeRmc,
 	}
 	return &cfg
 }
@@ -309,10 +270,8 @@ myScript hwr (needs a developer account):
 	%s      override the language specified in myScript requests
 
 V6 file format support:
-	%s	Use native rmc-go library with Cairo renderer (default: true)
-	%s		Path to rmc binary (default: rmc, assumes in PATH) [legacy fallback]
-	%s	Path to Inkscape binary (optional, for custom location) [legacy fallback]
-	%s		Timeout for rmc conversion in seconds (default: 60) [legacy fallback]
+	Native rmc-go library with Cairo renderer is always enabled.
+	No configuration needed - v6 files are rendered in-process.
 `,
 		envJWTSecretKey,
 		EnvStorageURL,
@@ -340,10 +299,5 @@ V6 file format support:
 		envHwrApplicationKey,
 		envHwrHmac,
 		envHwrLangOverride,
-
-		envUseNativeRmc,
-		envRmcPath,
-		envInkscapePath,
-		envRmcTimeout,
 	)
 }

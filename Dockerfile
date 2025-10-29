@@ -40,11 +40,6 @@ RUN apt-get update && \
         libcairo2 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy rmfakecloud binary
 COPY --from=gobuilder /src/rmfakecloud-docker /rmfakecloud
-
-# Set environment for native rmc-go (Cairo renderer)
-ENV USE_NATIVE_RMC=true
-ENV RMC_TIMEOUT=60
 
 ENTRYPOINT ["/rmfakecloud"]

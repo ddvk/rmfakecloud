@@ -114,49 +114,32 @@ func (fs *FileSystemStorage) ExportDocument(uid, id, outputType string, exportOp
 
 	// Route to appropriate renderer based on version
 	if version == exporter.VersionV6 {
-		if fs.Cfg.UseNativeRmc {
-			log.Infof("Using native rmc-go for v6 format doc %s", sanitizedID)
+		log.Infof("Using native rmc-go for v6 format doc %s", sanitizedID)
 
-			// Use native rmc-go library (Cairo renderer)
-			if len(arch.V6PageData) > 0 {
-				// Get first page data (currently only single page supported)
-				var firstPageData []byte
-				if data, ok := arch.V6PageData[0]; ok {
-					firstPageData = data
-				} else {
-					// If page 0 doesn't exist, get the first available page
-					for _, data := range arch.V6PageData {
-						firstPageData = data
-						break
-					}
-				}
-
-				if firstPageData == nil {
-					return nil, fmt.Errorf("no v6 page data found in archive")
-				}
-
-				err = exporter.ExportV6ToPdfNative(firstPageData, outputFile)
-				if err != nil {
-					return nil, fmt.Errorf("v6 native export failed: %w", err)
-				}
+		// Use native rmc-go library (Cairo renderer)
+		if len(arch.V6PageData) > 0 {
+			// Get first page data (currently only single page supported)
+			var firstPageData []byte
+			if data, ok := arch.V6PageData[0]; ok {
+				firstPageData = data
 			} else {
-				return nil, fmt.Errorf("no v6 pages in archive")
+				// If page 0 doesn't exist, get the first available page
+				for _, data := range arch.V6PageData {
+					firstPageData = data
+					break
+				}
+			}
+
+			if firstPageData == nil {
+				return nil, fmt.Errorf("no v6 page data found in archive")
+			}
+
+			err = exporter.ExportV6ToPdfNative(firstPageData, outputFile)
+			if err != nil {
+				return nil, fmt.Errorf("v6 native export failed: %w", err)
 			}
 		} else {
-			log.Infof("Using Python rmc subprocess for v6 format doc %s", sanitizedID)
-
-			// Use Python rmc subprocess (legacy fallback)
-			cfg := exporter.RmcConfig{
-				RmcPath:      fs.Cfg.RmcPath,
-				TempDir:      cacheDirPath,
-				Timeout:      time.Duration(fs.Cfg.RmcTimeout) * time.Second,
-				InkscapePath: fs.Cfg.InkscapePath,
-			}
-
-			err = exporter.ExportV6ArchiveToPdf(arch, outputFilePath, cfg)
-			if err != nil {
-				return nil, fmt.Errorf("v6 export failed: %w", err)
-			}
+			return nil, fmt.Errorf("no v6 pages in archive")
 		}
 	} else {
 		// Use existing v5 rendering
