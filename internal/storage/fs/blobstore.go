@@ -115,17 +115,14 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 
 	// Route to appropriate renderer
 	if version == exporter.VersionV6 {
-		log.Infof("Using rmc for v6 format blob doc %s", docid)
+		if fs.Cfg.UseNativeRmc {
+			log.Infof("Using native rmc-go for v6 format blob doc %s", docid)
+		} else {
+			log.Infof("Using Python rmc subprocess for v6 format blob doc %s", docid)
+		}
 
 		go func() {
-			// Create temp directory for v6 processing
-			tempDir := fs.Cfg.DataDir
-			cachePath := filepath.Join(tempDir, "cache", uid)
-			os.MkdirAll(cachePath, 0755)
-
-			tempWorkDir := filepath.Join(cachePath, "temp-"+docid)
-			os.MkdirAll(tempWorkDir, 0755)
-			defer os.RemoveAll(tempWorkDir)
+			defer writer.Close()
 
 			// Extract .rm files directly from blob storage without parsing
 			// First, get content.json to know page order
@@ -195,54 +192,75 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 			}
 			defer rmReader.Close()
 
-			// Write to temp file
-			rmFile := filepath.Join(tempWorkDir, "page.rm")
-			outFile, err := os.Create(rmFile)
+			// Read .rm data into memory
+			rmData, err := io.ReadAll(rmReader)
 			if err != nil {
-				log.Errorf("Failed to create temp .rm file: %v", err)
+				log.Errorf("Failed to read .rm data: %v", err)
 				writer.CloseWithError(err)
 				return
 			}
 
-			_, err = io.Copy(outFile, rmReader)
-			outFile.Close()
-			if err != nil {
-				log.Errorf("Failed to write .rm file: %v", err)
-				writer.CloseWithError(err)
-				return
-			}
+			// Choose rendering method based on config
+			if fs.Cfg.UseNativeRmc {
+				// NEW: Use rmc-go library (in-process, Cairo renderer)
+				err = exporter.ExportV6ToPdfNative(rmData, writer)
+				if err != nil {
+					log.Errorf("Failed to export v6 with rmc-go: %v", err)
+					writer.CloseWithError(err)
+					return
+				}
+			} else {
+				// LEGACY: Use Python rmc subprocess (fallback)
+				tempDir := fs.Cfg.DataDir
+				cachePath := filepath.Join(tempDir, "cache", uid)
+				os.MkdirAll(cachePath, 0755)
 
-			outputPath := filepath.Join(cachePath, docid+"-v6.pdf")
+				tempWorkDir := filepath.Join(cachePath, "temp-"+docid)
+				os.MkdirAll(tempWorkDir, 0755)
+				defer os.RemoveAll(tempWorkDir)
 
-			cfg := exporter.RmcConfig{
-				RmcPath:      fs.Cfg.RmcPath,
-				TempDir:      tempWorkDir,
-				Timeout:      time.Duration(fs.Cfg.RmcTimeout) * time.Second,
-				InkscapePath: fs.Cfg.InkscapePath,
-			}
+				// Write to temp file
+				rmFile := filepath.Join(tempWorkDir, "page.rm")
+				err = os.WriteFile(rmFile, rmData, 0644)
+				if err != nil {
+					log.Errorf("Failed to write temp .rm file: %v", err)
+					writer.CloseWithError(err)
+					return
+				}
 
-			// Convert the .rm file to PDF
-			err = exporter.ExportV6ToPdf(rmFile, outputPath, cfg)
-			if err != nil {
-				log.Error("v6 export failed:", err)
-				writer.CloseWithError(err)
-				return
-			}
+				outputPath := filepath.Join(cachePath, docid+"-v6.pdf")
 
-			// Stream the file to the pipe
-			file, err := os.Open(outputPath)
-			if err != nil {
-				log.Error("failed to open v6 output:", err)
-				writer.CloseWithError(err)
-				return
-			}
-			defer file.Close()
+				cfg := exporter.RmcConfig{
+					RmcPath:      fs.Cfg.RmcPath,
+					TempDir:      tempWorkDir,
+					Timeout:      time.Duration(fs.Cfg.RmcTimeout) * time.Second,
+					InkscapePath: fs.Cfg.InkscapePath,
+				}
 
-			_, err = io.Copy(writer, file)
-			if err != nil {
-				log.Error("failed to copy v6 output:", err)
+				// Convert the .rm file to PDF via subprocess
+				err = exporter.ExportV6ToPdf(rmFile, outputPath, cfg)
+				if err != nil {
+					log.Errorf("v6 export failed: %v", err)
+					writer.CloseWithError(err)
+					return
+				}
+
+				// Stream the file to the pipe
+				file, err := os.Open(outputPath)
+				if err != nil {
+					log.Errorf("failed to open v6 output: %v", err)
+					writer.CloseWithError(err)
+					return
+				}
+				defer file.Close()
+
+				_, err = io.Copy(writer, file)
+				if err != nil {
+					log.Errorf("failed to copy v6 output: %v", err)
+					writer.CloseWithError(err)
+					return
+				}
 			}
-			writer.Close()
 		}()
 	} else {
 		// Use existing v5 rendering

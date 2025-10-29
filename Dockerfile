@@ -14,41 +14,37 @@ RUN pnpm install && pnpm build
 FROM golang:bookworm AS gobuilder
 ARG VERSION
 WORKDIR /src
-COPY . .
-COPY --from=uibuilder /src/dist ./ui/dist
-#RUN apk add git
-RUN go generate ./... && CGO_ENABLED=0 go build -ldflags "-s -w -X main.version=${VERSION}" -o rmfakecloud-docker ./cmd/rmfakecloud/
 
-# Build Python + rmc + Inkscape stage for v6 support
-FROM python:3.11-slim AS rmcbuilder
+# Install Cairo development libraries for native rmc-go
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        inkscape \
+        libcairo2-dev \
+        pkg-config \
     && rm -rf /var/lib/apt/lists/*
-RUN pip install --no-cache-dir rmc
 
-# Use python slim as final base to keep Python environment intact
-FROM python:3.11-slim
+COPY . .
+COPY --from=uibuilder /src/dist ./ui/dist
+
+# Build with Cairo support (native rmc-go)
+RUN go generate ./... && \
+    CGO_ENABLED=1 go build -tags cairo -ldflags "-s -w -X main.version=${VERSION}" -o rmfakecloud-docker ./cmd/rmfakecloud/
+
+# Final runtime image - use Debian slim instead of Python
+FROM debian:bookworm-slim
 EXPOSE 3000
 
-# Install runtime dependencies
+# Install runtime dependencies for Cairo
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         ca-certificates \
-        inkscape \
+        libcairo2 \
     && rm -rf /var/lib/apt/lists/*
-
-# Copy rmc and its dependencies (already installed in python:3.11-slim base)
-COPY --from=rmcbuilder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-COPY --from=rmcbuilder /usr/local/bin/rmc /usr/local/bin/rmc
 
 # Copy rmfakecloud binary
 COPY --from=gobuilder /src/rmfakecloud-docker /rmfakecloud
 
-# Set environment for v6 support
-ENV RMC_PATH=/usr/local/bin/rmc
-ENV INKSCAPE_PATH=/usr/bin/inkscape
+# Set environment for native rmc-go (Cairo renderer)
+ENV USE_NATIVE_RMC=true
 ENV RMC_TIMEOUT=60
-ENV PYTHONPATH=/usr/local/lib/python3.11/site-packages
 
 ENTRYPOINT ["/rmfakecloud"]

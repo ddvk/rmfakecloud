@@ -20,6 +20,7 @@ func ArchiveFromHashDoc(doc *HashDoc, rs RemoteStorage) (*exporter.MyArchive, er
 		Zip: archive.Zip{
 			UUID: uuid,
 		},
+		V6PageData: make(map[int][]byte), // Initialize map for v6 raw data
 	}
 
 	pageMap := make(map[string]string)
@@ -65,7 +66,7 @@ func ArchiveFromHashDoc(doc *HashDoc, rs RemoteStorage) (*exporter.MyArchive, er
 		}
 	}
 
-	for _, p := range a.Content.Pages {
+	for pageIdx, p := range a.Content.Pages {
 		if hash, ok := pageMap[p]; ok {
 			log.Debug("page ", hash)
 			reader, err := rs.GetReader(hash)
@@ -96,20 +97,18 @@ func ArchiveFromHashDoc(doc *HashDoc, rs RemoteStorage) (*exporter.MyArchive, er
 				a.Pages = append(a.Pages, page)
 			} else if versionErr == nil && version == exporter.VersionV6 {
 				// For v6, we can't unmarshal with rmapi
-				// Store the raw bytes in a special way
-				log.Debugf("Detected v6 page, storing raw data")
+				// Store the raw bytes in V6PageData map
+				log.Debugf("Detected v6 page, storing raw data for page %d", pageIdx)
 
-				// Create a dummy rm page with the raw bytes stored
-				// This is a workaround - we'll handle v6 differently in the export
+				// Store raw v6 data in the map
+				a.V6PageData[pageIdx] = pageBin
+
+				// Create a dummy page for structure compatibility
 				rmpage := rm.New()
-				// Store raw v6 data - we'll write it directly to file later
 				page := archive.Page{
 					Data:     rmpage, // Empty, but needed for structure
 					Pagedata: "Blank",
 				}
-				// We need to store the raw v6 bytes somehow
-				// The Page structure doesn't have a field for this
-				// We'll need to modify the export logic instead
 				a.Pages = append(a.Pages, page)
 			} else {
 				log.Warnf("Unknown rm file version or detection failed: %v", versionErr)
