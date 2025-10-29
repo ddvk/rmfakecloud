@@ -218,7 +218,7 @@ func FromEnv() *Config {
 	cfg := Config{
 		Port:              port,
 		StorageURL:        uploadURL,
-		CloudHost: cloudHost,
+		CloudHost:         cloudHost,
 		DataDir:           dataDir,
 		JWTSecretKey:      dk,
 		JWTRandom:         jwtGenerated,
@@ -268,6 +268,10 @@ myScript hwr (needs a developer account):
 	%s
 	%s
 	%s      override the language specified in myScript requests
+
+V6 file format support:
+	Native rmc-go library with Cairo renderer is always enabled.
+	No configuration needed - v6 files are rendered in-process.
 `,
 		envJWTSecretKey,
 		EnvStorageURL,

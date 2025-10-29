@@ -20,6 +20,7 @@ func ArchiveFromHashDoc(doc *HashDoc, rs RemoteStorage) (*exporter.MyArchive, er
 		Zip: archive.Zip{
 			UUID: uuid,
 		},
+		V6PageData: make(map[int][]byte), // Initialize map for v6 raw data
 	}
 
 	pageMap := make(map[string]string)
@@ -65,7 +66,7 @@ func ArchiveFromHashDoc(doc *HashDoc, rs RemoteStorage) (*exporter.MyArchive, er
 		}
 	}
 
-	for _, p := range a.Content.Pages {
+	for pageIdx, p := range a.Content.Pages {
 		if hash, ok := pageMap[p]; ok {
 			log.Debug("page ", hash)
 			reader, err := rs.GetReader(hash)
@@ -76,17 +77,55 @@ func ArchiveFromHashDoc(doc *HashDoc, rs RemoteStorage) (*exporter.MyArchive, er
 			if err != nil {
 				return nil, err
 			}
-			rmpage := rm.New()
-			err = rmpage.UnmarshalBinary(pageBin)
-			if err != nil {
-				return nil, err
-			}
 
-			page := archive.Page{
-				Data:     rmpage,
-				Pagedata: "Blank",
+			// Try to detect version first
+			version, versionErr := exporter.DetectRmVersionFromBytes(pageBin)
+
+			// For v5 and earlier, parse with rmapi
+			if versionErr == nil && (version == exporter.VersionV3 || version == exporter.VersionV5) {
+				rmpage := rm.New()
+				err = rmpage.UnmarshalBinary(pageBin)
+				if err != nil {
+					log.Warnf("Failed to unmarshal v5 page: %v", err)
+					return nil, err
+				}
+
+				page := archive.Page{
+					Data:     rmpage,
+					Pagedata: "Blank",
+				}
+				a.Pages = append(a.Pages, page)
+			} else if versionErr == nil && version == exporter.VersionV6 {
+				// For v6, we can't unmarshal with rmapi
+				// Store the raw bytes in V6PageData map
+				log.Debugf("Detected v6 page, storing raw data for page %d", pageIdx)
+
+				// Store raw v6 data in the map
+				a.V6PageData[pageIdx] = pageBin
+
+				// Create a dummy page for structure compatibility
+				rmpage := rm.New()
+				page := archive.Page{
+					Data:     rmpage, // Empty, but needed for structure
+					Pagedata: "Blank",
+				}
+				a.Pages = append(a.Pages, page)
+			} else {
+				log.Warnf("Unknown rm file version or detection failed: %v", versionErr)
+				// Try to parse as v5 anyway (backward compatibility)
+				rmpage := rm.New()
+				err = rmpage.UnmarshalBinary(pageBin)
+				if err != nil {
+					log.Warnf("Failed to unmarshal page: %v", err)
+					return nil, err
+				}
+
+				page := archive.Page{
+					Data:     rmpage,
+					Pagedata: "Blank",
+				}
+				a.Pages = append(a.Pages, page)
 			}
-			a.Pages = append(a.Pages, page)
 		}
 	}
 

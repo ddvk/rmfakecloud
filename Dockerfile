@@ -14,14 +14,32 @@ RUN pnpm install && pnpm build
 FROM golang:bookworm AS gobuilder
 ARG VERSION
 WORKDIR /src
+
+# Install Cairo development libraries for native rmc-go
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        libcairo2-dev \
+        pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY . .
 COPY --from=uibuilder /src/dist ./ui/dist
-#RUN apk add git
-RUN go generate ./... && CGO_ENABLED=0 go build -ldflags "-s -w -X main.version=${VERSION}" -o rmfakecloud-docker ./cmd/rmfakecloud/
 
-FROM scratch
+# Build with Cairo support (native rmc-go)
+RUN go generate ./... && \
+    CGO_ENABLED=1 go build -tags cairo -ldflags "-s -w -X main.version=${VERSION}" -o rmfakecloud-docker ./cmd/rmfakecloud/
+
+# Final runtime image - use Debian slim instead of Python
+FROM debian:bookworm-slim
 EXPOSE 3000
-ADD ./docker/rootfs.tar /
-COPY --from=gobuilder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=gobuilder /src/rmfakecloud-docker /
-ENTRYPOINT ["/rmfakecloud-docker"]
+
+# Install runtime dependencies for Cairo
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        libcairo2 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=gobuilder /src/rmfakecloud-docker /rmfakecloud
+
+ENTRYPOINT ["/rmfakecloud"]

@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -19,6 +21,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	"github.com/google/uuid"
 	"github.com/juju/fslock"
+	"github.com/juruen/rmapi/archive"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -79,20 +82,149 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 	}
 	ls := fs.BlobStorage(uid)
 
-	archive, err := models.ArchiveFromHashDoc(doc, ls)
-	if err != nil {
-		return nil, err
-	}
-	reader, writer := io.Pipe()
-	go func() {
-		err = exporter.RenderRmapi(archive, writer)
-		if err != nil {
-			log.Error(err)
-			writer.Close()
-			return
+	// Detect version BEFORE trying to load archive
+	// This is crucial because v6 files can't be unmarshaled by rmapi
+	version := exporter.VersionUnknown
+	var firstRmHash string
+
+	// Find first .rm file in doc
+	for _, f := range doc.Files {
+		if filepath.Ext(f.EntryName) == storage.RmFileExt {
+			firstRmHash = f.Hash
+			break
 		}
-		writer.Close()
-	}()
+	}
+
+	// Detect version from raw .rm blob
+	if firstRmHash != "" {
+		reader, err := ls.GetReader(firstRmHash)
+		if err == nil {
+			defer reader.Close()
+			// Read just enough for version detection
+			header := make([]byte, 43)
+			n, err := reader.Read(header)
+			if err == nil || err == io.EOF {
+				version, _ = exporter.DetectRmVersionFromBytes(header[:n])
+			}
+		}
+	}
+
+	log.Debugf("Detected format %s for blob doc %s", version.String(), docid)
+
+	reader, writer := io.Pipe()
+
+	// Route to appropriate renderer
+	if version == exporter.VersionV6 {
+		log.Infof("Using native rmc-go for v6 format blob doc %s", docid)
+
+		go func() {
+			defer writer.Close()
+
+			// Extract .rm files directly from blob storage without parsing
+			// First, get content.json to know page order
+			var contentData archive.Content
+			for _, f := range doc.Files {
+				if filepath.Ext(f.EntryName) == storage.ContentFileExt {
+					blob, err := ls.GetReader(f.Hash)
+					if err == nil {
+						contentBytes, _ := io.ReadAll(blob)
+						blob.Close()
+						err = json.Unmarshal(contentBytes, &contentData)
+						if err != nil {
+							log.Warnf("Failed to unmarshal content.json: %v", err)
+						}
+					}
+					break
+				}
+			}
+
+			log.Debugf("Content has %d pages", len(contentData.Pages))
+
+			// Build map of page names to hashes
+			pageMap := make(map[string]string)
+			for _, f := range doc.Files {
+				if filepath.Ext(f.EntryName) == storage.RmFileExt {
+					name := strings.TrimSuffix(filepath.Base(f.EntryName), storage.RmFileExt)
+					pageMap[name] = f.Hash
+					log.Debugf("Found .rm file: %s -> %s", name, f.Hash)
+				}
+			}
+
+			log.Debugf("Built page map with %d entries", len(pageMap))
+
+			// Extract first page (single page for now)
+			var firstPageHash string
+			if len(contentData.Pages) > 0 {
+				log.Debugf("Looking for page: %s", contentData.Pages[0])
+				if hash, ok := pageMap[contentData.Pages[0]]; ok {
+					firstPageHash = hash
+					log.Debugf("Found first page hash: %s", hash)
+				} else {
+					log.Warnf("Page %s not found in pageMap", contentData.Pages[0])
+				}
+			} else {
+				// No pages in content.json, try to use any .rm file we found
+				log.Warn("content.json has no pages array, trying first .rm file found")
+				for name, hash := range pageMap {
+					firstPageHash = hash
+					log.Infof("Using .rm file: %s -> %s", name, hash)
+					break
+				}
+			}
+
+			if firstPageHash == "" {
+				log.Error("No pages found in v6 document")
+				log.Debugf("Doc files: %+v", doc.Files)
+				writer.CloseWithError(fmt.Errorf("no pages found"))
+				return
+			}
+
+			// Get raw .rm data
+			rmReader, err := ls.GetReader(firstPageHash)
+			if err != nil {
+				log.Errorf("Failed to get v6 page data: %v", err)
+				writer.CloseWithError(err)
+				return
+			}
+			defer rmReader.Close()
+
+			// Read .rm data into memory
+			rmData, err := io.ReadAll(rmReader)
+			if err != nil {
+				log.Errorf("Failed to read .rm data: %v", err)
+				writer.CloseWithError(err)
+				return
+			}
+
+			// Use rmc-go library (in-process, Cairo renderer)
+			err = exporter.ExportV6ToPdfNative(rmData, writer)
+			if err != nil {
+				log.Errorf("Failed to export v6 with rmc-go: %v", err)
+				writer.CloseWithError(err)
+				return
+			}
+		}()
+	} else {
+		// Use existing v5 rendering
+		log.Debugf("Using rmapi for v5 format blob doc %s", docid)
+
+		archive, err := models.ArchiveFromHashDoc(doc, ls)
+		if err != nil {
+			log.Error("Failed to load v5 archive:", err)
+			return nil, err
+		}
+
+		go func() {
+			err = exporter.RenderRmapi(archive, writer)
+			if err != nil {
+				log.Error(err)
+				writer.Close()
+				return
+			}
+			writer.Close()
+		}()
+	}
+
 	return reader, err
 }
 
@@ -568,4 +700,22 @@ func (fs *FileSystemStorage) StoreBlob(uid, id string, stream io.Reader, lastGen
 func generationFromFileSize(size int64) int64 {
 	//time + 1 space + 64 hash + 1 newline
 	return size / 86
+}
+
+// detectBlobArchiveVersion detects the .rm file version from a blob archive
+func detectBlobArchiveVersion(arch *exporter.MyArchive) (exporter.RmVersion, error) {
+	if len(arch.Pages) == 0 {
+		return exporter.VersionUnknown, fmt.Errorf("no pages in archive")
+	}
+
+	// Try to marshal first page and detect from header
+	if arch.Pages[0].Data != nil {
+		data, err := arch.Pages[0].Data.MarshalBinary()
+		if err != nil {
+			return exporter.VersionUnknown, fmt.Errorf("failed to marshal page data: %w", err)
+		}
+		return exporter.DetectRmVersion(bytes.NewReader(data))
+	}
+
+	return exporter.VersionUnknown, fmt.Errorf("no page data available")
 }

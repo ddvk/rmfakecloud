@@ -1,6 +1,7 @@
 package fs
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -93,14 +94,60 @@ func (fs *FileSystemStorage) ExportDocument(uid, id, outputType string, exportOp
 		arch.PayloadReader = exporter.NewSeekCloser(arch.Payload)
 	}
 
+	// Detect version from first .rm file in archive
+	version := exporter.VersionUnknown
+	if len(arch.Pages) > 0 {
+		version, err = detectArchiveVersion(arch)
+		if err != nil {
+			log.Warnf("Could not detect version for doc %s: %v, assuming v5", sanitizedID, err)
+			version = exporter.VersionV5
+		}
+	}
+
+	log.Debugf("Detected format %s for doc %s", version.String(), sanitizedID)
+
 	outputFile, err := os.Create(outputFilePath)
 	if err != nil {
 		return nil, err
 	}
+	defer outputFile.Close()
 
-	err = exporter.RenderRmapi(arch, outputFile)
-	if err != nil {
-		return nil, err
+	// Route to appropriate renderer based on version
+	if version == exporter.VersionV6 {
+		log.Infof("Using native rmc-go for v6 format doc %s", sanitizedID)
+
+		// Use native rmc-go library (Cairo renderer)
+		if len(arch.V6PageData) > 0 {
+			// Get first page data (currently only single page supported)
+			var firstPageData []byte
+			if data, ok := arch.V6PageData[0]; ok {
+				firstPageData = data
+			} else {
+				// If page 0 doesn't exist, get the first available page
+				for _, data := range arch.V6PageData {
+					firstPageData = data
+					break
+				}
+			}
+
+			if firstPageData == nil {
+				return nil, fmt.Errorf("no v6 page data found in archive")
+			}
+
+			err = exporter.ExportV6ToPdfNative(firstPageData, outputFile)
+			if err != nil {
+				return nil, fmt.Errorf("v6 native export failed: %w", err)
+			}
+		} else {
+			return nil, fmt.Errorf("no v6 pages in archive")
+		}
+	} else {
+		// Use existing v5 rendering
+		log.Debugf("Using rmapi for v5 format doc %s", sanitizedID)
+		err = exporter.RenderRmapi(arch, outputFile)
+		if err != nil {
+			return nil, fmt.Errorf("v5 export failed: %w", err)
+		}
 	}
 
 	_, err = outputFile.Seek(0, 0)
@@ -178,4 +225,22 @@ func (fs *FileSystemStorage) GetStorageURL(uid, id string) (docurl string, expir
 	}
 
 	return fmt.Sprintf("%s%s/%s", uploadRL, routeStorage, url.QueryEscape(signedToken)), exp, nil
+}
+
+// detectArchiveVersion detects the .rm file version from an archive
+func detectArchiveVersion(arch *exporter.MyArchive) (exporter.RmVersion, error) {
+	if len(arch.Pages) == 0 {
+		return exporter.VersionUnknown, fmt.Errorf("no pages in archive")
+	}
+
+	// Try to marshal first page and detect from header
+	if arch.Pages[0].Data != nil {
+		data, err := arch.Pages[0].Data.MarshalBinary()
+		if err != nil {
+			return exporter.VersionUnknown, fmt.Errorf("failed to marshal page data: %w", err)
+		}
+		return exporter.DetectRmVersion(bytes.NewReader(data))
+	}
+
+	return exporter.VersionUnknown, fmt.Errorf("no page data available")
 }
