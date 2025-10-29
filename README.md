@@ -11,8 +11,9 @@ See the [project documentation](https://ddvk.github.io/rmfakecloud/) for setup a
 | reMarkable 1         | ✅           |
 | reMarkable 2         | ✅           |
 | reMarkable Paper Pro | ✅           |
+| reMarkable Paper Pro Move | ✅           |
 
-The current release of rmfakecloud supports file synchronization until **reMarkable software 3.20.0**. Newer releases have not been tested yet.
+The current release of rmfakecloud supports file synchronization up to **reMarkable software 3.22.0**. Newer releases have not been tested yet.
 
 Use the `rmfakecloud-proxy` from [toltec](https://github.com/toltec-dev/toltec/). [More in the doc](https://ddvk.github.io/rmfakecloud/remarkable/setup/).
 
@@ -25,6 +26,7 @@ Use the `rmfakecloud-proxy` from [toltec](https://github.com/toltec-dev/toltec/)
 | File synchronization (1.5, 2, 3, 4) | ✅ |  |
 | [Send document by email](https://ddvk.github.io/rmfakecloud/install/configuration/#email-settings) | ✅ |  |
 | [Handwriting recognition](https://ddvk.github.io/rmfakecloud/install/configuration/#handwriting-recognition) | ✅ |  |
+| Handwriting search | ❌ |  |
 | Screen sharing | 🟡 | unlocked on reMarkable but doesn't work remotely |
 | [Storage integrations](https://ddvk.github.io/rmfakecloud/usage/integrations/) | ✅ |  |
 | Integration with Dropbox | 🟡 | [WIP](https://github.com/ddvk/rmfakecloud/blob/master/internal/integrations/dropbox.go) |
