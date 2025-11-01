@@ -5,12 +5,12 @@ go 1.23.3
 toolchain go1.24.1
 
 require (
+	github.com/danjacques/gofslock v0.0.0-20240212154529-d899e02bfe22
 	github.com/dropbox/dropbox-sdk-go-unofficial/v6 v6.0.5
 	github.com/gin-gonic/gin v1.9.1
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.1
-	github.com/juju/fslock v0.0.0-20160525022230-4d5c94c67b4b
 	github.com/juruen/rmapi v0.0.25
 	github.com/poundifdef/go-remarkable2pdf v0.2.0
 	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5
