@@ -12,13 +12,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/danjacques/gofslock/fslock"
 	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/storage/exporter"
 	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	"github.com/google/uuid"
-	"github.com/juju/fslock"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -459,8 +459,7 @@ func (fs *FileSystemStorage) LoadBlob(uid, blobid string) (reader io.ReadCloser,
 	log.Debugln("Fullpath:", blobPath)
 	if blobid == rootBlob {
 		historyPath := path.Join(fs.getUserBlobPath(uid), historyFile)
-		lock := fslock.New(historyPath)
-		err := lock.LockWithTimeout(time.Duration(time.Second * 5))
+		lock, err := fslock.Lock(historyPath)
 		if err != nil {
 			log.Error("cannot obtain lock")
 			return nil, 0, 0, "", err
@@ -505,8 +504,7 @@ func (fs *FileSystemStorage) StoreBlob(uid, id string, stream io.Reader, lastGen
 	reader := stream
 	if id == rootBlob {
 		historyPath := path.Join(fs.getUserBlobPath(uid), historyFile)
-		lock := fslock.New(historyPath)
-		err = lock.LockWithTimeout(time.Duration(time.Second * 5))
+		lock, err := fslock.Lock(historyPath)
 		if err != nil {
 			log.Error("cannot obtain lock")
 		}
