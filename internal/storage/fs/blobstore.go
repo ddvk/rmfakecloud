@@ -504,9 +504,11 @@ func (fs *FileSystemStorage) StoreBlob(uid, id string, stream io.Reader, lastGen
 	reader := stream
 	if id == rootBlob {
 		historyPath := path.Join(fs.getUserBlobPath(uid), historyFile)
-		lock, err := fslock.Lock(historyPath)
+		var lock fslock.Handle
+		lock, err = fslock.Lock(historyPath)
 		if err != nil {
 			log.Error("cannot obtain lock")
+			return 0, err
 		}
 		defer lock.Unlock()
 
