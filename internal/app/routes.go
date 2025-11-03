@@ -72,7 +72,7 @@ func (app *App) registerRoutes(router *gin.Engine) {
 		c.Status(http.StatusOK)
 	})
 
-	router.POST("/analytics/v2/events", app.nullReport)
+	router.POST("/analytics/v2/events", app.analyticsReport)
 	//some telemetry stuff from ping.
 	router.POST("/v1/reports", app.nullReport)
 	router.POST("/v2/reports", app.nullReport)

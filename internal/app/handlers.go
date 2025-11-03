@@ -1176,6 +1176,15 @@ func (app *App) syncReports(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+func (app *App) analyticsReport(c *gin.Context) {
+	// _, err := io.ReadAll(c.Request.Body)
+	// if err != nil {
+	// 	log.Warn("could not read report data")
+	// }
+
+	c.JSON(http.StatusCreated, gin.H{"message": "Success"})
+}
+
 func (app *App) nullReport(c *gin.Context) {
 	// _, err := io.ReadAll(c.Request.Body)
 	// if err != nil {
