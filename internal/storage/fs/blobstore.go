@@ -165,11 +165,19 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 					}
 				}
 			} else {
-				// No pages in content.json, try to use any .rm files we found
-				log.Warn("content.json has no pages array, using all .rm files found")
-				for name, hash := range pageMap {
-					pageHashes = append(pageHashes, hash)
-					log.Infof("Using .rm file: %s -> %s", name, hash)
+				// No pages in content.json, use order from doc.Files (index file order)
+				// doc.Files is sorted alphabetically which reverses page order, so we reverse it back
+				log.Warn("content.json has no pages array, using .rm files in reversed index order")
+				var tempHashes []string
+				for _, f := range doc.Files {
+					if filepath.Ext(f.EntryName) == storage.RmFileExt {
+						tempHashes = append(tempHashes, f.Hash)
+					}
+				}
+				// Reverse the order to get correct page sequence
+				for i := len(tempHashes) - 1; i >= 0; i-- {
+					pageHashes = append(pageHashes, tempHashes[i])
+					log.Infof("Using .rm file in reversed order: page %d", len(tempHashes)-i)
 				}
 			}
 
