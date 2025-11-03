@@ -48,12 +48,21 @@ func ExportV6ToSvgNative(rmData []byte, output io.Writer) error {
 }
 
 // ExportV6MultiPageToPdfNative converts multiple v6 .rm pages to a single PDF
-// TODO: Implement multi-page support
-// For now, just render first page
 func ExportV6MultiPageToPdfNative(pages [][]byte, output io.Writer) error {
 	if len(pages) == 0 {
 		return fmt.Errorf("no pages provided")
 	}
 
-	return ExportV6ToPdfNative(pages[0], output)
+	opts := &rmc.Options{
+		UseLegacy: false, // Use Cairo renderer
+	}
+
+	// Use rmc-go's multipage function
+	pdfData, err := rmc.ConvertMultipleFromBytes(pages, opts)
+	if err != nil {
+		return fmt.Errorf("failed to convert multiple v6 pages to PDF: %w", err)
+	}
+
+	_, err = io.Copy(output, bytes.NewReader(pdfData))
+	return err
 }

@@ -152,54 +152,61 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 
 			log.Debugf("Built page map with %d entries", len(pageMap))
 
-			// Extract first page (single page for now)
-			var firstPageHash string
+			// Extract all pages in order
+			var pageHashes []string
 			if len(contentData.Pages) > 0 {
-				log.Debugf("Looking for page: %s", contentData.Pages[0])
-				if hash, ok := pageMap[contentData.Pages[0]]; ok {
-					firstPageHash = hash
-					log.Debugf("Found first page hash: %s", hash)
-				} else {
-					log.Warnf("Page %s not found in pageMap", contentData.Pages[0])
+				// Use pages from content.json in the correct order
+				for _, pageName := range contentData.Pages {
+					if hash, ok := pageMap[pageName]; ok {
+						pageHashes = append(pageHashes, hash)
+						log.Debugf("Found page %s -> %s", pageName, hash)
+					} else {
+						log.Warnf("Page %s not found in pageMap", pageName)
+					}
 				}
 			} else {
-				// No pages in content.json, try to use any .rm file we found
-				log.Warn("content.json has no pages array, trying first .rm file found")
+				// No pages in content.json, try to use any .rm files we found
+				log.Warn("content.json has no pages array, using all .rm files found")
 				for name, hash := range pageMap {
-					firstPageHash = hash
+					pageHashes = append(pageHashes, hash)
 					log.Infof("Using .rm file: %s -> %s", name, hash)
-					break
 				}
 			}
 
-			if firstPageHash == "" {
+			if len(pageHashes) == 0 {
 				log.Error("No pages found in v6 document")
 				log.Debugf("Doc files: %+v", doc.Files)
 				writer.CloseWithError(fmt.Errorf("no pages found"))
 				return
 			}
 
-			// Get raw .rm data
-			rmReader, err := ls.GetReader(firstPageHash)
-			if err != nil {
-				log.Errorf("Failed to get v6 page data: %v", err)
-				writer.CloseWithError(err)
-				return
-			}
-			defer rmReader.Close()
+			log.Infof("Exporting %d v6 pages", len(pageHashes))
 
-			// Read .rm data into memory
-			rmData, err := io.ReadAll(rmReader)
-			if err != nil {
-				log.Errorf("Failed to read .rm data: %v", err)
-				writer.CloseWithError(err)
-				return
+			// Read all pages into memory
+			var pages [][]byte
+			for i, pageHash := range pageHashes {
+				rmReader, err := ls.GetReader(pageHash)
+				if err != nil {
+					log.Errorf("Failed to get v6 page %d data: %v", i, err)
+					writer.CloseWithError(err)
+					return
+				}
+
+				rmData, err := io.ReadAll(rmReader)
+				rmReader.Close()
+				if err != nil {
+					log.Errorf("Failed to read v6 page %d data: %v", i, err)
+					writer.CloseWithError(err)
+					return
+				}
+
+				pages = append(pages, rmData)
 			}
 
-			// Use rmc-go library (in-process, Cairo renderer)
-			err = exporter.ExportV6ToPdfNative(rmData, writer)
+			// Use rmc-go library for multipage export (in-process, Cairo renderer)
+			err = exporter.ExportV6MultiPageToPdfNative(pages, writer)
 			if err != nil {
-				log.Errorf("Failed to export v6 with rmc-go: %v", err)
+				log.Errorf("Failed to export v6 multipage with rmc-go: %v", err)
 				writer.CloseWithError(err)
 				return
 			}
