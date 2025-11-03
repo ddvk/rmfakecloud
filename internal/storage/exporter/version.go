@@ -80,3 +80,22 @@ func DetectRmVersion(reader io.Reader) (RmVersion, error) {
 func DetectRmVersionFromBytes(data []byte) (RmVersion, error) {
 	return DetectRmVersion(bytes.NewReader(data))
 }
+
+// DetectArchiveVersion detects the .rm file version from an archive
+// by examining the first page data
+func DetectArchiveVersion(arch *MyArchive) (RmVersion, error) {
+	if len(arch.Pages) == 0 {
+		return VersionUnknown, fmt.Errorf("no pages in archive")
+	}
+
+	// Try to marshal first page and detect from header
+	if arch.Pages[0].Data != nil {
+		data, err := arch.Pages[0].Data.MarshalBinary()
+		if err != nil {
+			return VersionUnknown, fmt.Errorf("failed to marshal page data: %w", err)
+		}
+		return DetectRmVersion(bytes.NewReader(data))
+	}
+
+	return VersionUnknown, fmt.Errorf("no page data available")
+}

@@ -1,14 +1,13 @@
 package fs
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
+	"sort"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -70,7 +69,7 @@ func (fs *FileSystemStorage) ExportDocument(uid, id, outputType string, exportOp
 		return nil, fmt.Errorf("cant find raw document %v", err)
 	}
 
-	outputFilePath := path.Join(cacheDirPath, sanitizedID+"-annotated.pdf")
+	outputFilePath := filepath.Join(cacheDirPath, sanitizedID+"-annotated.pdf")
 	outStat, err := os.Stat(outputFilePath)
 
 	// exists and not older
@@ -97,7 +96,7 @@ func (fs *FileSystemStorage) ExportDocument(uid, id, outputType string, exportOp
 	// Detect version from first .rm file in archive
 	version := exporter.VersionUnknown
 	if len(arch.Pages) > 0 {
-		version, err = detectArchiveVersion(arch)
+		version, err = exporter.DetectArchiveVersion(arch)
 		if err != nil {
 			log.Warnf("Could not detect version for doc %s: %v, assuming v5", sanitizedID, err)
 			version = exporter.VersionV5
@@ -119,11 +118,17 @@ func (fs *FileSystemStorage) ExportDocument(uid, id, outputType string, exportOp
 		// Use native rmc-go library (Cairo renderer)
 		if len(arch.V6PageData) > 0 {
 			// Collect all v6 pages in the correct order
+			// Get sorted page indices to ensure correct order
+			pageIndices := make([]int, 0, len(arch.V6PageData))
+			for idx := range arch.V6PageData {
+				pageIndices = append(pageIndices, idx)
+			}
+			sort.Ints(pageIndices)
+
+			// Collect pages in sorted order
 			var pages [][]byte
-			for i := 0; i < len(arch.V6PageData); i++ {
-				if data, ok := arch.V6PageData[i]; ok {
-					pages = append(pages, data)
-				}
+			for _, idx := range pageIndices {
+				pages = append(pages, arch.V6PageData[idx])
 			}
 
 			if len(pages) == 0 {
@@ -176,14 +181,14 @@ func (fs *FileSystemStorage) RemoveDocument(uid, id string) error {
 	log.Info(trashDir)
 	meta := filepath.Base(id + storage.MetadataFileExt)
 	fullPath := fs.getPathFromUser(uid, meta)
-	err = os.Rename(fullPath, path.Join(trashDir, meta))
+	err = os.Rename(fullPath, filepath.Join(trashDir, meta))
 	if err != nil {
 		return err
 	}
 
 	zipfile := filepath.Base(id + storage.ZipFileExt)
 	fullPath = fs.getPathFromUser(uid, zipfile)
-	err = os.Rename(fullPath, path.Join(trashDir, zipfile))
+	err = os.Rename(fullPath, filepath.Join(trashDir, zipfile))
 	if err != nil {
 		return err
 	}
@@ -224,20 +229,3 @@ func (fs *FileSystemStorage) GetStorageURL(uid, id string) (docurl string, expir
 	return fmt.Sprintf("%s%s/%s", uploadRL, routeStorage, url.QueryEscape(signedToken)), exp, nil
 }
 
-// detectArchiveVersion detects the .rm file version from an archive
-func detectArchiveVersion(arch *exporter.MyArchive) (exporter.RmVersion, error) {
-	if len(arch.Pages) == 0 {
-		return exporter.VersionUnknown, fmt.Errorf("no pages in archive")
-	}
-
-	// Try to marshal first page and detect from header
-	if arch.Pages[0].Data != nil {
-		data, err := arch.Pages[0].Data.MarshalBinary()
-		if err != nil {
-			return exporter.VersionUnknown, fmt.Errorf("failed to marshal page data: %w", err)
-		}
-		return exporter.DetectRmVersion(bytes.NewReader(data))
-	}
-
-	return exporter.VersionUnknown, fmt.Errorf("no page data available")
-}

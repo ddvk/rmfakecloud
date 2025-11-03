@@ -717,20 +717,3 @@ func generationFromFileSize(size int64) int64 {
 	return size / 86
 }
 
-// detectBlobArchiveVersion detects the .rm file version from a blob archive
-func detectBlobArchiveVersion(arch *exporter.MyArchive) (exporter.RmVersion, error) {
-	if len(arch.Pages) == 0 {
-		return exporter.VersionUnknown, fmt.Errorf("no pages in archive")
-	}
-
-	// Try to marshal first page and detect from header
-	if arch.Pages[0].Data != nil {
-		data, err := arch.Pages[0].Data.MarshalBinary()
-		if err != nil {
-			return exporter.VersionUnknown, fmt.Errorf("failed to marshal page data: %w", err)
-		}
-		return exporter.DetectRmVersion(bytes.NewReader(data))
-	}
-
-	return exporter.VersionUnknown, fmt.Errorf("no page data available")
-}

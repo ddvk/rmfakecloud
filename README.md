@@ -98,7 +98,7 @@ docker run -d -p 3000:3000 \
 
 ### Known Limitations
 
-- Multi-page v6 documents: Currently exports first page only
+- Multi-page v6 documents: Fully supported
 - Text rendering: Fully supported
 
 ## Development
