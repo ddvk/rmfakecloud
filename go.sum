@@ -155,6 +155,8 @@ github.com/joagonca/rmc-go v1.0.0 h1:oOIi2+If/UokYc+MohESW8MVEWV76zSZa9v57PlHt2I
 github.com/joagonca/rmc-go v1.0.0/go.mod h1:om1x4PQCiZFpLfEx1QrISz7v6eFozejiufmlNgtM90s=
 github.com/joagonca/rmc-go v1.1.0 h1:LfT0VxGqosCJaBL0u0IL43RNfWLpX90P5QizlVkPRUU=
 github.com/joagonca/rmc-go v1.1.0/go.mod h1:om1x4PQCiZFpLfEx1QrISz7v6eFozejiufmlNgtM90s=
+github.com/joagonca/rmc-go v1.1.1 h1:2usXJnjuhmBdPPCDETk9r26CaqjVNZ5wDuVggCNOhMU=
+github.com/joagonca/rmc-go v1.1.1/go.mod h1:om1x4PQCiZFpLfEx1QrISz7v6eFozejiufmlNgtM90s=
 github.com/json-iterator/go v1.1.12 h1:PV8peI4a0ysnczrg+LtxykD8LfKY9ML6u2jnxaEnrnM=
 github.com/json-iterator/go v1.1.12/go.mod h1:e30LSqwooZae/UwlEbR2852Gd8hjQvJoHmT4TnhNGBo=
 github.com/jstemmer/go-junit-report v0.0.0-20190106144839-af01ea7f8024/go.mod h1:6v2b51hI/fHJwM22ozAgKL4VKDeJcHhJFhtBdhmNjmU=
