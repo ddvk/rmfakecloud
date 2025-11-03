@@ -151,6 +151,12 @@ github.com/gorilla/websocket v1.5.1/go.mod h1:x3kM2JMyaluk02fnUJpQuwD2dCS5NDG2ZH
 github.com/hashicorp/golang-lru v0.5.0/go.mod h1:/m3WP610KZHVQ1SGc6re/UDhFvYD7pJ4Ao+sR/qLZy8=
 github.com/hashicorp/golang-lru v0.5.1/go.mod h1:/m3WP610KZHVQ1SGc6re/UDhFvYD7pJ4Ao+sR/qLZy8=
 github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=
+github.com/joagonca/rmc-go v1.0.0 h1:oOIi2+If/UokYc+MohESW8MVEWV76zSZa9v57PlHt2I=
+github.com/joagonca/rmc-go v1.0.0/go.mod h1:om1x4PQCiZFpLfEx1QrISz7v6eFozejiufmlNgtM90s=
+github.com/joagonca/rmc-go v1.1.0 h1:LfT0VxGqosCJaBL0u0IL43RNfWLpX90P5QizlVkPRUU=
+github.com/joagonca/rmc-go v1.1.0/go.mod h1:om1x4PQCiZFpLfEx1QrISz7v6eFozejiufmlNgtM90s=
+github.com/joagonca/rmc-go v1.1.1 h1:2usXJnjuhmBdPPCDETk9r26CaqjVNZ5wDuVggCNOhMU=
+github.com/joagonca/rmc-go v1.1.1/go.mod h1:om1x4PQCiZFpLfEx1QrISz7v6eFozejiufmlNgtM90s=
 github.com/json-iterator/go v1.1.12 h1:PV8peI4a0ysnczrg+LtxykD8LfKY9ML6u2jnxaEnrnM=
 github.com/json-iterator/go v1.1.12/go.mod h1:e30LSqwooZae/UwlEbR2852Gd8hjQvJoHmT4TnhNGBo=
 github.com/jstemmer/go-junit-report v0.0.0-20190106144839-af01ea7f8024/go.mod h1:6v2b51hI/fHJwM22ozAgKL4VKDeJcHhJFhtBdhmNjmU=
@@ -224,6 +230,8 @@ github.com/twitchyliquid64/golang-asm v0.15.1 h1:SU5vSMR7hnwNxj24w34ZyCi/FmDZTkS
 github.com/twitchyliquid64/golang-asm v0.15.1/go.mod h1:a1lVb/DtPvCB8fslRZhAngC2+aY1QWCk3Cedj/Gdt08=
 github.com/ugorji/go/codec v1.2.12 h1:9LC83zGrHhuUA9l16C9AHXAqEV/2wBQ4nkvumAE65EE=
 github.com/ugorji/go/codec v1.2.12/go.mod h1:UNopzCgEMSXjBc6AOMqYvWC1ktqTAfzJZUZgYf6w6lg=
+github.com/ungerik/go-cairo v0.0.0-20240304075741-47de8851d267 h1:KA55kgg61iraQP4wSKIFRHwHIgDqim2Tvh8EXn7Udxw=
+github.com/ungerik/go-cairo v0.0.0-20240304075741-47de8851d267/go.mod h1:yLTJg56omDJ+JVxZ5whpCrZgQdaSs+OBdFa+X6ViJcI=
 github.com/unidoc/freetype v0.2.3 h1:uPqW+AY0vXN6K2tvtg8dMAtHTEvvHTN52b72XpZU+3I=
 github.com/unidoc/freetype v0.2.3/go.mod h1:mJ/Q7JnqEoWtajJVrV6S1InbRv0K/fJerPB5SQs32KI=
 github.com/unidoc/pkcs7 v0.0.0-20200411230602-d883fd70d1df/go.mod h1:UEzOZUEpJfDpywVJMUT8QiugqEZC29pDq7kdIZhWCr8=
