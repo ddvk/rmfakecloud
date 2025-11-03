@@ -48,6 +48,17 @@ const (
 	envJWTSecretKey     = "JWT_SECRET_KEY"
 	envRegistrationOpen = "OPEN_REGISTRATION"
 
+	// envOIDCIssuer OpenID issuer URL (without '.well-known/openid-configuration')
+	envOIDCIssuer = "RM_OIDC_ISSUER"
+	// envOIDCLabel OIDC login button label
+	envOIDCLabel = "RM_OIDC_LABEL"
+	// envOIDCClientID OpenID Client identifier
+	envOIDCClientID = "RM_OIDC_CLIENT_ID"
+	// envOIDCClientSecret OpenID Client secret
+	envOIDCClientSecret = "RM_OIDC_CLIENT_SECRET"
+	// envOIDCOnly only allow OIDC auth
+	envOIDCOnly = "RM_OIDC_ONLY"
+
 	// envSMTPServer the mail server
 	envSMTPServer = "RM_SMTP_SERVER"
 	// envSMTPUsername the username for the mail server
@@ -77,15 +88,24 @@ const (
 	envTrustProxy  = "RM_TRUST_PROXY"
 )
 
+type OIDCConfig struct {
+	ConfigURL    string
+	Label        string
+	ClientID     string
+	ClientSecret string
+	Only         bool
+}
+
 // Config config
 type Config struct {
-	Port              string
-	StorageURL        string
+	Port       string
+	StorageURL string
 	//only https
 	CloudHost         string
 	DataDir           string
 	RegistrationOpen  bool
 	CreateFirstUser   bool
+	OIDCConfig        *OIDCConfig
 	JWTSecretKey      []byte
 	JWTRandom         bool
 	Certificate       tls.Certificate
@@ -166,6 +186,27 @@ func FromEnv() *Config {
 	openRegistration, _ := strconv.ParseBool(os.Getenv(envRegistrationOpen))
 	httpsCookie, _ := strconv.ParseBool(os.Getenv(envHTTPSCookie))
 
+	// oauth2
+	var oidcCfg *OIDCConfig
+	configURL := os.Getenv(envOIDCIssuer)
+
+	if configURL != "" {
+		label := os.Getenv(envOIDCLabel)
+		only, _ := strconv.ParseBool(os.Getenv(envOIDCOnly))
+
+		if label == "" {
+			label = "OpenID Connect"
+		}
+
+		oidcCfg = &OIDCConfig{
+			ConfigURL:    configURL,
+			Label:        label,
+			ClientID:     os.Getenv(envOIDCClientID),
+			ClientSecret: os.Getenv(envOIDCClientSecret),
+			Only:         only,
+		}
+	}
+
 	cloudHost := DefaultHost
 	uploadURL := os.Getenv(EnvStorageURL)
 	if uploadURL == "" {
@@ -173,7 +214,7 @@ func FromEnv() *Config {
 		uploadURL = "https://" + DefaultHost
 	} else {
 		u, err := url.Parse(uploadURL)
-		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == ""  {
+		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
 			log.Fatalf("%s '%s' cannot be parsed, or missing scheme (http|https) %v", EnvStorageURL, uploadURL, err)
 		}
 		if u.Port() != "" {
@@ -218,13 +259,14 @@ func FromEnv() *Config {
 	cfg := Config{
 		Port:              port,
 		StorageURL:        uploadURL,
-		CloudHost: cloudHost,
+		CloudHost:         cloudHost,
 		DataDir:           dataDir,
 		JWTSecretKey:      dk,
 		JWTRandom:         jwtGenerated,
 		Certificate:       cert,
 		RegistrationOpen:  openRegistration,
 		SMTPConfig:        smtpCfg,
+		OIDCConfig:        oidcCfg,
 		HWRApplicationKey: os.Getenv(envHwrApplicationKey),
 		HWRHmac:           os.Getenv(envHwrHmac),
 		HWRLangOverride:   os.Getenv(envHwrLangOverride),

@@ -9,6 +9,7 @@ const NavigationBar = () => {
 
   function handleLogout(e) {
     logout(dispatch);
+    window.location.replace("/logout")
   }
 
   function isAdmin() {

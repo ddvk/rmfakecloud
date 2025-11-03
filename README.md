@@ -39,6 +39,7 @@ Use the `rmfakecloud-proxy` from [toltec](https://github.com/toltec-dev/toltec/)
 | Messaging integration to Slack | 🟡 | Not directly, use a webhook with zapier/make/n8n |
 | Archive document to cloud | 🟡 | It works but the information is not saved |
 | Document rendering in web interface | ❌ | [WIP](https://github.com/ddvk/rmfakecloud/issues/255) |
+| OAuth2/OpenID Connect | ✅ | |
 
 
 ## Breaking Changes

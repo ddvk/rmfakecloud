@@ -38,3 +38,15 @@ To be able to send email from your reMarkable, fill the following variables:
 | `RM_SMTP_NOTLS` | don't use tls |
 | `RM_SMTP_STARTTLS` | use starttls command, should be combined with NOTLS. in most cases port 587 should be used |
 | `RM_SMTP_INSECURE_TLS` | If set, don't check the server certificate (not recommended) |
+
+## OAuth2/OIDC settings
+
+To be able to log in/register with OIDC, fill the following variables:
+
+| Variable name           | Description                                                                                |
+|-------------------------|--------------------------------------------------------------------------------------------|
+| `RM_OIDC_ISSUER`        | The issuer URL (without `.well-known/openid-configuration`)                                |
+| `RM_OIDC_LABEL`         | The label of the OAuth2/OIDC log in button (on the log in page). Default: `OpenID Connect` |
+| `RM_OIDC_CLIENT_ID`     | The OIDC client ID.                                                                        |
+| `RM_OIDC_CLIENT_SECRET` | The OIDC client secret.                                                                    |
+| `RM_OIDC_ONLY`          | Disable username/password authentication                                                   |
