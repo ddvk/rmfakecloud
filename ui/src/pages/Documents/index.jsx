@@ -168,6 +168,14 @@ export default function DocumentList() {
       if (grandparentResult && grandparentResult.parent) {
         parentNode.parent = buildParentChain(grandparentResult.parent);
       }
+    } else {
+      // This is root or trash - add the internal react-arborist root above it
+      parentNode.parent = {
+        id: '__REACT_ARBORIST_INTERNAL_ROOT__',
+        data: { id: '__REACT_ARBORIST_INTERNAL_ROOT__', name: '' },
+        isLeaf: false,
+        parent: null,
+      };
     }
 
     return parentNode;
@@ -192,8 +200,6 @@ export default function DocumentList() {
 
     const { item: foundItem, parent: parentItem } = result;
 
-    console.log('Found item:', foundItem.name, 'Parent:', parentItem?.name);
-
     // Create a pseudo-node object that matches what onSelect expects
     // React-arborist wraps the data, so the node has both top-level properties
     // and a 'data' property containing the actual item
@@ -209,8 +215,6 @@ export default function DocumentList() {
       parent: parentItem ? buildParentChain(parentItem) : null,
       isRoot: foundItem.id === 'root' || foundItem.id === 'trash',
     };
-
-    console.log('Pseudo node parent chain:', pseudoNode.parent);
 
     // Set the selection directly
     setSelected(pseudoNode);
