@@ -40,7 +40,7 @@ export default function App() {
           <Navigationbar />
             <Switch>
               <PrivateRoute exact path="/" component={Home} />
-              <PrivateRoute path="/documents" component={Documents} />
+              <PrivateRoute path="/documents/:itemId?" component={Documents} />
               <PrivateRoute path="/connect" component={Connect} />
               <PrivateRoute path="/integrations" component={Integrations} />
               <PrivateRoute path="/profile" component={Profile} />
