@@ -3,14 +3,18 @@ package app
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ddvk/rmfakecloud/internal/app/hub"
+	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/hwr"
+	"github.com/ddvk/rmfakecloud/internal/mqtt"
 	"github.com/ddvk/rmfakecloud/internal/storage"
 
 	"github.com/ddvk/rmfakecloud/internal/storage/fs"
@@ -37,6 +41,7 @@ type App struct {
 	hub           *hub.Hub
 	codeConnector CodeConnector
 	hwrClient     *hwr.HWRClient
+	mqttBroker    *mqtt.Broker
 }
 
 // Start starts the app
@@ -47,7 +52,11 @@ func (app *App) Start() {
 		log.Info("(Cloud HOST): ", app.cfg.CloudHost)
 	}
 	log.Info("Data: ", app.cfg.DataDir)
-	log.Info("Listening on port: ", app.cfg.Port)
+	log.Info("HTTP listening on port: ", app.cfg.Port)
+
+	if !app.cfg.TrustProxy {
+		app.router.SetTrustedProxies(nil)
+	}
 
 	var tlsConfig *tls.Config
 	if app.cfg.Certificate.Certificate != nil {
@@ -56,9 +65,15 @@ func (app *App) Start() {
 				app.cfg.Certificate,
 			},
 		}
+		log.Info("TLS certificates configured")
 	}
-	if !app.cfg.TrustProxy {
-		app.router.SetTrustedProxies(nil)
+
+	if app.mqttBroker != nil {
+		log.Infof("MQTT listening on port: %s", app.cfg.MQTTPort)
+		app.mqttBroker = mqtt.NewBroker(app.cfg.MQTTPort, tlsConfig, app.validateMQTTToken, app.cfg.ICEServers)
+		if err := app.mqttBroker.Start(); err != nil {
+			log.Errorf("Failed to start MQTT broker: %v", err)
+		}
 	}
 
 	app.srv = &http.Server{
@@ -68,12 +83,12 @@ func (app *App) Start() {
 	}
 
 	if tlsConfig != nil {
-		log.Info("Using TLS")
+		log.Info("Starting HTTPS server")
 		if err := app.srv.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("listen: %s\n", err)
 		}
 	} else {
-		log.Info("Using plain HTTP")
+		log.Info("Starting HTTP server (plain)")
 		if err := app.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("listen: %s\n", err)
 		}
@@ -85,6 +100,11 @@ func (app *App) Stop() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	// app.hub.Stop()
+	if app.mqttBroker != nil {
+		if err := app.mqttBroker.Stop(); err != nil {
+			log.Errorf("Error stopping MQTT broker: %v", err)
+		}
+	}
 	if err := app.srv.Shutdown(ctx); err != nil {
 		log.Fatal("Server Shutdown:", err)
 	}
@@ -145,6 +165,9 @@ func NewApp(cfg *config.Config) App {
 			Cfg: cfg,
 		},
 	}
+
+	app.mqttBroker = mqtt.NewBroker(cfg.MQTTPort, nil, app.validateMQTTToken, cfg.ICEServers)
+
 	app.registerRoutes(router)
 
 	uiApp := ui.New(cfg, fsStorage, codeConnector, ntfHub, fsStorage, fsStorage)
@@ -162,4 +185,27 @@ func badReq(c *gin.Context, message string) {
 
 func internalError(c *gin.Context, message string) {
 	c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": message})
+}
+
+func (app *App) validateMQTTToken(token string) (string, error) {
+	if token == "" {
+		return "", fmt.Errorf("empty token")
+	}
+
+	claims := &UserClaims{}
+	err := common.ClaimsFromToken(claims, token, app.cfg.JWTSecretKey)
+	if err != nil {
+		return "", fmt.Errorf("invalid token: %w", err)
+	}
+
+	if claims.Profile.UserID == "" {
+		return "", fmt.Errorf("missing user ID in token")
+	}
+
+	if claims.Version != tokenVersion {
+		return "", fmt.Errorf("invalid token version")
+	}
+
+	userID := common.SanitizeUid(strings.TrimPrefix(claims.Profile.UserID, "auth0|"))
+	return userID, nil
 }
