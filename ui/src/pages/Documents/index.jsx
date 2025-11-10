@@ -232,9 +232,9 @@ export default function DocumentList() {
   }, [entries, itemId, initialSelectionSet]);
 
   return (
-    <Container fluid style={{minHeight: "100vh", display: "flex", flexDirection: "column", paddingBottom: "20px"}}>
-        <Row style={{flex: "1 1 auto", minHeight: 0}} className="mt-2">
-          <Col md={4} style={{display: "flex", flexDirection: "column", minHeight: 0}}>
+    <Container fluid style={{height: "100%", display: "flex", flexDirection: "column", overflow: "hidden", padding: "25px 0 20px 0"}}>
+        <Row style={{flex: "1 1 auto", minHeight: 0}}>
+          <Col md={4} style={{display: "flex", flexDirection: "column", height: "100%"}}>
             <Navbar style={{flexShrink: 0}}>
               <div className={`${styles.stretch} ${styles.userid}`}>{user.UserID}</div>
               <Button variant="outline" onClick={() => { setShowSearch(!showSearch); setTerm("") }}><BsSearch/></Button>

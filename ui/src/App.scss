@@ -67,18 +67,20 @@
     margin-bottom: 0.5em;
 }
 
-#root > .container-fluid {
-    margin-top: 25px;
-}
 
 #root > nav { 
     backdrop-filter: blur(12px);
     background-color: $background1;
 }
 
-html > body {
-    overflow-y: scroll;
+html, body {
+    height: 100%;
+    overflow: hidden;
     background-color: $background2;
+}
+
+#root {
+    height: 100%;
 }
 
 *:disabled {
