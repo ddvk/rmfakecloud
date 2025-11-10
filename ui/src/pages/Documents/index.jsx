@@ -254,9 +254,11 @@ export default function DocumentList() {
               <DocumentTree selection={selected} onSelect={onSelect} treeRef={treeRef} term={term} entries={entries} height={treeHeight} />
             </div>
           </Col>
-          <Col md={8} style={{height: "100%", overflow: "auto"}}>
-            {selected && selected.isLeaf && <File file={selected} onSelect={onSelect} />}
-            {selected && !selected.isLeaf && <Folder selection={selected} onSelect={onSelect} onUpdate={onUpdate} counter={counter} />}
+          <Col md={8} style={{display: "flex", flexDirection: "column", height: "100%"}}>
+            <div style={{flex: "1 1 auto", minHeight: 0, overflow: "auto"}}>
+              {selected && selected.isLeaf && <File file={selected} onSelect={onSelect} />}
+              {selected && !selected.isLeaf && <Folder selection={selected} onSelect={onSelect} onUpdate={onUpdate} counter={counter} />}
+            </div>
           </Col>
         </Row>
     </Container>
