@@ -56,11 +56,6 @@ export default function DocumentList() {
     node.toggle()
   }
 
-  // const findInTree = (id) => {
-  //   treeRef.current.openParents(id)
-  //   return treeRef.current.get(id)
-  // }
-
   // select from tree. node must extend NodeApi from react-arborist
   const onSelect = (node) => {
     setSelected(node);
