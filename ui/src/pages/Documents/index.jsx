@@ -135,17 +135,42 @@ export default function DocumentList() {
 	},[counter])
 
   // Helper function to recursively search for an item by ID in the tree
-  const findItemInEntries = (entries, targetId) => {
+  // Returns both the item and its parent chain
+  const findItemInEntries = (entries, targetId, parent = null) => {
     for (const entry of entries) {
       if (entry.id === targetId) {
-        return entry;
+        return { item: entry, parent };
       }
       if (entry.children && entry.children.length > 0) {
-        const found = findItemInEntries(entry.children, targetId);
+        const found = findItemInEntries(entry.children, targetId, entry);
         if (found) return found;
       }
     }
     return null;
+  };
+
+  // Helper to build parent chain for breadcrumb
+  const buildParentChain = (parentItem) => {
+    if (!parentItem) return null;
+
+    const parentNode = {
+      id: parentItem.id,
+      data: parentItem,
+      isLeaf: !parentItem.isFolder,
+      isRoot: parentItem.id === 'root' || parentItem.id === 'trash',
+      // Add a dummy toggle function for compatibility
+      toggle: () => {},
+    };
+
+    // If this parent is not root/trash, try to find its parent
+    if (parentItem.id !== 'root' && parentItem.id !== 'trash') {
+      const grandparentResult = findItemInEntries(entries, parentItem.id);
+      if (grandparentResult && grandparentResult.parent) {
+        parentNode.parent = buildParentChain(grandparentResult.parent);
+      }
+    }
+
+    return parentNode;
   };
 
   // Handle URL navigation: restore selection from URL parameter
@@ -156,14 +181,18 @@ export default function DocumentList() {
     }
 
     // Find the item in our data
-    const foundItem = findItemInEntries(entries, itemId);
+    const result = findItemInEntries(entries, itemId);
 
-    if (!foundItem) {
+    if (!result) {
       // Item doesn't exist in our data
       toast.warning(`Item not found, returning to root`);
       history.push('/documents');
       return;
     }
+
+    const { item: foundItem, parent: parentItem } = result;
+
+    console.log('Found item:', foundItem.name, 'Parent:', parentItem?.name);
 
     // Create a pseudo-node object that matches what onSelect expects
     // React-arborist wraps the data, so the node has both top-level properties
@@ -177,7 +206,11 @@ export default function DocumentList() {
         data: child,
         isLeaf: !child.isFolder,
       })),
+      parent: parentItem ? buildParentChain(parentItem) : null,
+      isRoot: foundItem.id === 'root' || foundItem.id === 'trash',
     };
+
+    console.log('Pseudo node parent chain:', pseudoNode.parent);
 
     // Set the selection directly
     setSelected(pseudoNode);

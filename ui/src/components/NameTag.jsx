@@ -9,5 +9,6 @@ export default function NameTag({ node, onSelect }) {
             <Button variant="outline" onClick={() => onSelect(node)}>{node.data.name}</Button>
         </>)
     }
-    return <></>
+    // No parent means this is the root - render it
+    return <Button variant="outline" onClick={() => onSelect(node)}>{node.data.name}</Button>
 }
