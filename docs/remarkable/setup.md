@@ -25,11 +25,21 @@ The `<URL>` above has to be the same as in the `STORAGE_URL` server configuratio
 
 Get the installer from: [rmfakecloud-proxy](https://github.com/ddvk/rmfakecloud-proxy/releases)
 scp to the device and run it
-```
-scp installer.sh root@10.11.99.1:
+
+**reMarkable 1 & reMarkable 2**
+```shell
+scp installer-rm12.sh root@10.11.99.1:
 ssh root@10.11.99.1
-chmod +x ./installer-xxxx.sh
-./installer-xxxx.sh
+chmod +x ./installer-rm12.sh
+./installer-rm12.sh install
+```
+
+reMarkable Paper Pro & Paper Pro Move
+```shell
+scp installer-rmpro.sh root@10.11.99.1:
+ssh root@10.11.99.1
+chmod +x ./installer-rmpro.sh
+./installer-rmpro.sh install
 ```
 
 the automagic script doesn't work anymore, because of the busybox wget tls
@@ -53,7 +63,7 @@ Steps (done by the automagic scripts):
 - modify the hosts file `/etc/hosts`
 - Run a reverse https proxy on the rm tablet as a service, e.g. [secure](https://github.com/yi-jiayu/secure),
 - stop xochitl `systemctl stop xochitl`
-- add the followint entries to `/etc/hosts`
+- add the following entries to `/etc/hosts`
 
 ```
 127.0.0.1 hwr-production-dot-remarkable-production.appspot.com
@@ -62,6 +72,12 @@ Steps (done by the automagic scripts):
 127.0.0.1 my.remarkable.com
 127.0.0.1 ping.remarkable.com
 127.0.0.1 internal.cloud.remarkable.com
+127.0.0.1 eu.tectonic.remarkable.com
+127.0.0.1 backtrace-proxy.cloud.remarkable.engineering
+127.0.0.1 dev.ping.remarkable.com
+127.0.0.1 dev.tectonic.remarkable.com
+127.0.0.1 dev.internal.cloud.remarkable.com
+127.0.0.1 eu.internal.tctn.cloud.remarkable.com
 ```
 
 - set the address of your api host:port in the reverse proxy
@@ -78,7 +94,7 @@ Windows/Mac Desktop Client:
 - run a reverse proxy on the host or somewhere else pointing it to rmfakecloud with the same certs
 - profit
 
-**PROS**: easy setup, you can use whichever port you want, you can get a real trusted ca cert from let's encrypt, if running in a trusted network you may chose to use HTTP
+**PROS**: easy setup, you can use whichever port you want, you can get a real trusted ca cert from let's encrypt, if running in a trusted network you may chose to use HTTP  
 **CONS**: you have to configure HTTPS on the host yourself, additional Desktop config
 
 ### Modify device /etc/hosts
@@ -104,7 +120,7 @@ Windows/Mac Desktop Client:
 - modify the hosts file (`\system32\drivers\etc\hosts`) add the same entries as on the tablet
 - profit
 
-**PROS**: you can use the Windows/Mac clients, no need for a proxy on the device
+**PROS**: you can use the Windows/Mac clients, no need for a proxy on the device  
 **CONS**: a bit harder to setup, each host has to trust the ca and modify the hosts file, you have to use port 443
 
 ### Edit router DNS entries
@@ -115,7 +131,7 @@ Same as [the previous method](#modify-device-etchosts), but instead of modifying
 - trust the ca.crt
 - profit
 
-**PROS**: a bit easier, you can you even the mobile apps if you manage to install the root ca
+**PROS**: a bit easier, you can you even the mobile apps if you manage to install the root ca  
 **CONS**: you can't use the official cloud anymore due to the mangled DNS
 
 ## Reenabling after a system update

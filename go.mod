@@ -12,10 +12,12 @@ require (
 	github.com/gorilla/websocket v1.5.1
 	github.com/juju/fslock v0.0.0-20160525022230-4d5c94c67b4b
 	github.com/juruen/rmapi v0.0.25
+	github.com/mochi-mqtt/server/v2 v2.7.9
 	github.com/poundifdef/go-remarkable2pdf v0.2.0
 	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5
 	github.com/secsy/goftp v0.0.0-20200609142545-aa2de14babf4
 	github.com/sirupsen/logrus v1.9.3
+	github.com/soheilhy/cmux v0.1.5
 	github.com/stretchr/testify v1.9.0
 	github.com/studio-b12/gowebdav v0.9.0
 	github.com/unidoc/unipdf/v3 v3.56.0
@@ -49,6 +51,7 @@ require (
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/rs/xid v1.4.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	github.com/unidoc/freetype v0.2.3 // indirect
