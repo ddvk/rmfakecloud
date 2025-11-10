@@ -1,5 +1,19 @@
 @import "../../theme.scss";
 
+.treeContainer {
+    height: 100%;
+
+    // Ensure the inner div also takes full height
+    > div {
+        height: 100% !important;
+    }
+
+    // Target the react-arborist tree div
+    div[role="tree"] {
+        height: 100% !important;
+    }
+}
+
 .base {
     background-color: $background2;
     transition: background 0.3s ease;

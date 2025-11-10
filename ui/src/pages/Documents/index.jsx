@@ -232,15 +232,15 @@ export default function DocumentList() {
   }, [entries, itemId, initialSelectionSet]);
 
   return (
-    <Container fluid>
-        <Row className="mt-2">
-          <Col md={4}>
-            <Navbar>
+    <Container fluid style={{minHeight: "100vh", display: "flex", flexDirection: "column", paddingBottom: "20px"}}>
+        <Row style={{flex: "1 1 auto", minHeight: 0}} className="mt-2">
+          <Col md={4} style={{display: "flex", flexDirection: "column", minHeight: 0}}>
+            <Navbar style={{flexShrink: 0}}>
               <div className={`${styles.stretch} ${styles.userid}`}>{user.UserID}</div>
               <Button variant="outline" onClick={() => { setShowSearch(!showSearch); setTerm("") }}><BsSearch/></Button>
             </Navbar>
 
-            {showSearch && <div>
+            {showSearch && <div style={{flexShrink: 0}}>
               <InputGroup className="mb-3">
                 <InputGroup.Text>
                   <BsSearch />
@@ -250,11 +250,11 @@ export default function DocumentList() {
               </InputGroup>
             </div>}
 
-            <div ref={treeContainerRef} style={{height: "95%"}}>
+            <div ref={treeContainerRef} className={styles.treeContainer} style={{flex: "1 1 auto", minHeight: 0, overflow: "auto"}}>
               <DocumentTree selection={selected} onSelect={onSelect} treeRef={treeRef} term={term} entries={entries} height={treeHeight} />
             </div>
           </Col>
-          <Col md={8}>
+          <Col md={8} style={{height: "100%", overflow: "auto"}}>
             {selected && selected.isLeaf && <File file={selected} onSelect={onSelect} />}
             {selected && !selected.isLeaf && <Folder selection={selected} onSelect={onSelect} onUpdate={onUpdate} counter={counter} />}
           </Col>
