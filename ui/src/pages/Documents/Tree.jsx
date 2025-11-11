@@ -3,7 +3,7 @@ import FileIcon from './FileIcon';
 
 import styles from "./Documents.module.scss"
 
-const DocumentTree = ({ selection, onSelect, treeRef, term, entries }) => {
+const DocumentTree = ({ selection, onSelect, treeRef, term, entries, height = 700 }) => {
   const onTreeSelect = (sel) => {
     if (sel.length > 0) {
       const node = sel[0];
@@ -53,7 +53,7 @@ const DocumentTree = ({ selection, onSelect, treeRef, term, entries }) => {
         rowHeight={36}
         indent={36}
         width="100%"
-        height={700}
+        height={height}
         renderCursor={Cursor}
         searchTerm={term}
         onSelect={onTreeSelect}

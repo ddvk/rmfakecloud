@@ -23,7 +23,7 @@ export default function Folder({ selection, onSelect, onUpdate }) {
   const folder = selection
 
   const onCreateFolderClick = async () => {
-    await apiservice.createFolder({ name: folderName, parentId: selection.id });
+    const res = await apiservice.createFolder({ name: folderName, parentId: selection.id });
     console.log("created folder with id", res.ID);
     setFolderName("");
     setShowCreateFolder(false);

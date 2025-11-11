@@ -37,18 +37,22 @@ export default function App() {
     <>
       <AuthProvider>
         <Router>
-          <Navigationbar />
-            <Switch>
-              <PrivateRoute exact path="/" component={Home} />
-              <PrivateRoute path="/documents" component={Documents} />
-              <PrivateRoute path="/connect" component={Connect} />
-              <PrivateRoute path="/integrations" component={Integrations} />
-              <PrivateRoute path="/profile" component={Profile} />
-              <PrivateRoute path="/admin" roles={[Role.Admin]} component={Admin} />
+          <div style={{display: "flex", flexDirection: "column", height: "100%"}}>
+            <Navigationbar />
+            <div style={{flex: "1 1 auto", minHeight: 0, overflow: "hidden"}}>
+              <Switch>
+                <PrivateRoute exact path="/" component={Home} />
+                <PrivateRoute path="/documents/:itemId?" component={Documents} />
+                <PrivateRoute path="/connect" component={Connect} />
+                <PrivateRoute path="/integrations" component={Integrations} />
+                <PrivateRoute path="/profile" component={Profile} />
+                <PrivateRoute path="/admin" roles={[Role.Admin]} component={Admin} />
 
-              <Route path="/login" component={Login} />
-              <Route component={NoMatch} />
-            </Switch>
+                <Route path="/login" component={Login} />
+                <Route component={NoMatch} />
+              </Switch>
+            </div>
+          </div>
         </Router>
       </AuthProvider>
       <ToastContainer autoClose={2000} />
