@@ -5,12 +5,12 @@
 
     // Ensure the inner div also takes full height
     > div {
-        height: 100% !important;
+        height: 100%;
     }
 
     // Target the react-arborist tree div
     div[role="tree"] {
-        height: 100% !important;
+        height: 100%;
     }
 }
 
