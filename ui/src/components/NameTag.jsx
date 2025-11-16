@@ -5,9 +5,10 @@ export default function NameTag({ node, onSelect }) {
     if (node.parent) {
         return (<>
             <NameTag node={node.parent} onSelect={onSelect} />
-            {!node.parent.isRoot && <BsChevronRight />}
+            <BsChevronRight />
             <Button variant="outline" onClick={() => onSelect(node)}>{node.data.name}</Button>
         </>)
     }
-    return <></>
+    // No parent means this is the root - render it
+    return <Button variant="outline" onClick={() => onSelect(node)}>{node.data.name}</Button>
 }
