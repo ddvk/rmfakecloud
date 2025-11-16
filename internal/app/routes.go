@@ -22,11 +22,14 @@ const (
 func (app *App) registerRoutes(router *gin.Engine) {
 	//endpoints discovery
 	router.GET("/discovery/v1/endpoints", func(c *gin.Context) {
+		mqttHost := ""
+		if app.mqttBroker != nil {
+			mqttHost = app.cfg.CloudHost
+		}
 		c.JSON(http.StatusOK, messages.EndpointsResponse{
 			Notifications: app.cfg.CloudHost,
 			Webapp:        app.cfg.CloudHost,
-			// TODO: investigate usage
-			// MQTT: app.cfg.CloudHost,
+			MQTT:          mqttHost,
 		})
 	})
 

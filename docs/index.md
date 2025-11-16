@@ -8,7 +8,7 @@ rmfakecloud is a clone of the cloud sync the remarkable tablet is using, in case
 * Integrations with external files sources (using webdav or with a dedicated directory on local file system, instead of Google Drive and Dropbox)
 * Send document by email
 * Handwriting recognition
-* Unlock the screen sharing feature (but it doesn't work remotely, you should use the app through USB)
+* Screen sharing
 
 It comes with a very basic web interface that let you:
 
