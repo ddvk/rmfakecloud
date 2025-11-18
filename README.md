@@ -15,7 +15,7 @@ See the [project documentation](https://ddvk.github.io/rmfakecloud/) for setup a
 
 The current release of rmfakecloud supports file synchronization up to **reMarkable software 3.22.0**. Newer releases have not been tested yet.
 
-Use the `rmfakecloud-proxy` from [toltec](https://github.com/toltec-dev/toltec/). [More in the doc](https://ddvk.github.io/rmfakecloud/remarkable/setup/).
+See the [documentation](https://ddvk.github.io/rmfakecloud/remarkable/setup/) for how to setup your device to use rmfakecloud.
 
 
 ## Feature Parity With Official Cloud
