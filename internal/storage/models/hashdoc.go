@@ -203,7 +203,8 @@ func (d *HashDoc) Line() string {
 	}
 	sb.WriteString(d.Hash)
 	sb.WriteRune(delimiter)
-	sb.WriteString(docType)
+	// Use fileType ("0") for v4 compatibility instead of docType ("80000000")
+	sb.WriteString(fileType)
 	sb.WriteRune(delimiter)
 	sb.WriteString(d.EntryName)
 	sb.WriteRune(delimiter)
@@ -211,7 +212,8 @@ func (d *HashDoc) Line() string {
 	numFilesStr := strconv.Itoa(len(d.Files))
 	sb.WriteString(numFilesStr)
 	sb.WriteRune(delimiter)
-	sb.WriteString("0")
+
+	sb.WriteString(strconv.FormatInt(d.Size, 10))
 	return sb.String()
 }
 
