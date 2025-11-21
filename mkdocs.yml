@@ -27,6 +27,7 @@ nav:
           - Nginx: install/reverse-proxy/nginx.md
           - Traefik: install/reverse-proxy/traefik.md
       - Fail2ban: install/fail2ban.md
+      - External access: install/external-access.md
   - Device Setup:
       - Device: remarkable/setup.md
       - HTTPS: remarkable/https.md
