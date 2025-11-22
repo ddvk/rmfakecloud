@@ -41,6 +41,7 @@ func (fs *FileSystemStorage) GetCachedTree(uid string) (t *models.HashTree, err 
 	if err != nil {
 		return nil, err
 	}
+	tree.SchemaVersion = fs.Cfg.HashSchemaVersion
 	changed, err := tree.Mirror(blobStorage)
 	if err != nil {
 		return nil, err

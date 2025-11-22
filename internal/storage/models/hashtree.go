@@ -14,7 +14,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const schemaVersion = "3"
+const schemaVersionV3 = "3"
+const schemaVersionV4 = "4"
+const schemaVersion = schemaVersionV4
 const docType = "80000000"
 const fileType = "0"
 const delimiter = ':'
@@ -128,24 +130,81 @@ func parseEntry(line string) (*HashEntry, error) {
 	return &entry, nil
 }
 
+func parseSchemaV4SummaryLine(line string) (entriesCount int, totalSize int64, err error) {
+	rdr := NewFieldReader(line)
+	if len(rdr.fields) != 4 {
+		return 0, 0, fmt.Errorf("invalid v4 summary line, expected 4 fields, got %d", len(rdr.fields))
+	}
+	if _, err = rdr.Next(); err != nil {
+		return 0, 0, fmt.Errorf("cannot read field 1: %w", err)
+	}
+	if _, err = rdr.Next(); err != nil {
+		return 0, 0, fmt.Errorf("cannot read field 2: %w", err)
+	}
+	entriesCountStr, err := rdr.Next()
+	if err != nil {
+		return 0, 0, fmt.Errorf("cannot read entry count field: %w", err)
+	}
+	totalSizeStr, err := rdr.Next()
+	if err != nil {
+		return 0, 0, fmt.Errorf("cannot read total size field: %w", err)
+	}
+
+	entriesCount, err = strconv.Atoi(entriesCountStr)
+	if err != nil {
+		return 0, 0, fmt.Errorf("cannot parse entry count: %w", err)
+	}
+	totalSize, err = strconv.ParseInt(totalSizeStr, 10, 64)
+	if err != nil {
+		return 0, 0, fmt.Errorf("cannot parse total size: %w", err)
+	}
+
+	return entriesCount, totalSize, nil
+}
+
 func parseIndex(r io.Reader) ([]*HashEntry, error) {
 	var entries []*HashEntry
 	scanner := bufio.NewScanner(r)
 	scanner.Scan()
 	schema := scanner.Text()
 
-	if schema != schemaVersion {
+	expectedCount := 0
+	count := 0
+
+	switch schema {
+	case schemaVersionV4:
+		if !scanner.Scan() {
+			return nil, fmt.Errorf("expecting v4 summary line after schema version")
+		}
+		line := scanner.Text()
+		var err error
+		expectedCount, _, err = parseSchemaV4SummaryLine(line)
+		if err != nil {
+			return nil, fmt.Errorf("cannot parse v4 summary line: %w", err)
+		}
+		fallthrough
+	case schemaVersionV3:
+		for scanner.Scan() {
+			line := scanner.Text()
+			if line == "" {
+				log.Warn("empty line in index file, ignored")
+				continue
+			}
+			count++
+			entry, err := parseEntry(line)
+			if err != nil {
+				return nil, fmt.Errorf("cant parse line '%s', %w", line, err)
+			}
+			entries = append(entries, entry)
+		}
+	default:
 		return nil, fmt.Errorf("parseInde unknown schema: %s", schema)
 	}
-	for scanner.Scan() {
-		line := scanner.Text()
-		entry, err := parseEntry(line)
-		if err != nil {
-			return nil, fmt.Errorf("cant parse line '%s', %w", line, err)
-		}
 
-		entries = append(entries, entry)
+	if schema == schemaVersionV4 && count != expectedCount {
+		return nil, fmt.Errorf("v4 index entry count mismatch: expected %d, got %d", expectedCount, count)
 	}
+
 	return entries, nil
 }
 
@@ -155,8 +214,28 @@ func (t *HashTree) RootIndex() (io.ReadCloser, error) {
 	w := bufio.NewWriter(pipeWriter)
 	go func() {
 		defer pipeWriter.Close()
-		w.WriteString(schemaVersion)
+		version := t.SchemaVersion
+		if version == "" {
+			version = schemaVersion
+		}
+		w.WriteString(version)
 		w.WriteString("\n")
+
+		if version == schemaVersionV4 {
+			totalSize := int64(0)
+			for _, d := range t.Docs {
+				totalSize += d.Size
+			}
+			w.WriteString(fileType)
+			w.WriteRune(delimiter)
+			w.WriteString(".")
+			w.WriteRune(delimiter)
+			w.WriteString(strconv.Itoa(len(t.Docs)))
+			w.WriteRune(delimiter)
+			w.WriteString(strconv.FormatInt(totalSize, 10))
+			w.WriteString("\n")
+		}
+
 		for _, d := range t.Docs {
 			w.WriteString(d.Line())
 			w.WriteString("\n")
@@ -169,9 +248,10 @@ func (t *HashTree) RootIndex() (io.ReadCloser, error) {
 
 // HashTree a tree of hashes
 type HashTree struct {
-	Hash       string
-	Generation int64
-	Docs       []*HashDoc
+	Hash          string
+	Generation    int64
+	Docs          []*HashDoc
+	SchemaVersion string
 }
 
 // FindDoc finds a document by its name
