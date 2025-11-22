@@ -11,7 +11,7 @@ The configuration is made through environment variables.
 | `LOGLEVEL`        | Set the log verbosity. Default is **info**, set to **debug** for more logging or **warn**, **error** for less |
 | `RM_HTTPS_COOKIE` | For the UI, force cookies to be available only via https |
 | `RM_TRUST_PROXY`  | Trust the proxy for client ip addresses (X-Forwarded-For/X-Real-IP) default false |
-| `HASH_SCHEMA_VERSION` | Hash tree schema version: "3" or "4" (default: 4) |
+| `HASH_SCHEMA_VERSION` | Hash tree schema version: "3" or "4" (default: 3) |
 
 ## Handwriting recognition
 

@@ -252,7 +252,7 @@ func FromEnv() *Config {
 
 	hashSchemaVersion := os.Getenv(envHashSchemaVersion)
 	if hashSchemaVersion == "" {
-		hashSchemaVersion = "4"
+		hashSchemaVersion = "3"
 	} else if hashSchemaVersion != "3" && hashSchemaVersion != "4" {
 		log.Fatalf("%s must be either '3' or '4', got: %s", envHashSchemaVersion, hashSchemaVersion)
 	}
@@ -299,7 +299,7 @@ General:
 	%s	Write logs to file
 	%s Send auth cookie only via https
 	%s	Trust the proxy for X-Forwarded-For/X-Real-IP (set only if behind a proxy)
-	%s	Hash tree schema version: "3" or "4" (default: 4)
+	%s	Hash tree schema version: "3" or "4" (default: 3)
 
 MQTT (for screenshare):
 	%s	MQTT TCP port (default: 8883)

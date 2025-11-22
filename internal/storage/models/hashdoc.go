@@ -113,7 +113,7 @@ func (d *HashDoc) IndexReader() (io.ReadCloser, error) {
 	w := bufio.NewWriter(pipeWriter)
 	go func() {
 		defer pipeWriter.Close()
-		w.WriteString(schemaVersion)
+		w.WriteString(schemaVersionV3)
 		w.WriteString("\n")
 		for _, d := range d.Files {
 			w.WriteString(d.Line())
@@ -203,8 +203,7 @@ func (d *HashDoc) Line() string {
 	}
 	sb.WriteString(d.Hash)
 	sb.WriteRune(delimiter)
-	// Use fileType ("0") for v4 compatibility instead of docType ("80000000")
-	sb.WriteString(fileType)
+	sb.WriteString(docType)
 	sb.WriteRune(delimiter)
 	sb.WriteString(d.EntryName)
 	sb.WriteRune(delimiter)
