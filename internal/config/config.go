@@ -77,8 +77,9 @@ const (
 	envHTTPSCookie = "RM_HTTPS_COOKIE"
 	envTrustProxy  = "RM_TRUST_PROXY"
 
-	envMQTTPort   = "MQTT_PORT"
-	envICEServers = "ICE_SERVERS"
+	envMQTTPort          = "MQTT_PORT"
+	envICEServers        = "ICE_SERVERS"
+	envHashSchemaVersion = "HASH_SCHEMA_VERSION"
 )
 
 // Config config
@@ -102,6 +103,7 @@ type Config struct {
 	TrustProxy        bool
 	MQTTPort          string
 	ICEServers        []interface{}
+	HashSchemaVersion string
 }
 
 // Verify verify
@@ -248,6 +250,13 @@ func FromEnv() *Config {
 		}
 	}
 
+	hashSchemaVersion := os.Getenv(envHashSchemaVersion)
+	if hashSchemaVersion == "" {
+		hashSchemaVersion = "3"
+	} else if hashSchemaVersion != "3" && hashSchemaVersion != "4" {
+		log.Fatalf("%s must be either '3' or '4', got: %s", envHashSchemaVersion, hashSchemaVersion)
+	}
+
 	cfg := Config{
 		Port:              port,
 		StorageURL:        uploadURL,
@@ -265,6 +274,7 @@ func FromEnv() *Config {
 		TrustProxy:        trustProxy,
 		MQTTPort:          mqttPort,
 		ICEServers:        iceServers,
+		HashSchemaVersion: hashSchemaVersion,
 	}
 	return &cfg
 }
@@ -289,6 +299,7 @@ General:
 	%s	Write logs to file
 	%s Send auth cookie only via https
 	%s	Trust the proxy for X-Forwarded-For/X-Real-IP (set only if behind a proxy)
+	%s	Hash tree schema version: "3" or "4" (default: 3)
 
 MQTT (for screenshare):
 	%s	MQTT TCP port (default: 8883)
@@ -324,6 +335,7 @@ myScript hwr (needs a developer account):
 		EnvLogFile,
 		envHTTPSCookie,
 		envTrustProxy,
+		envHashSchemaVersion,
 
 		envMQTTPort,
 		envICEServers,
