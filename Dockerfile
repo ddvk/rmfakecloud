@@ -16,24 +16,23 @@ ARG VERSION
 WORKDIR /src
 
 # Install Cairo development dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libcairo2-dev \
     pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 COPY . .
 COPY --from=uibuilder /src/dist ./ui/dist
-RUN go generate ./... && go build -tags cairo -ldflags "-s -w -X main.version=${VERSION}" -o rmfakecloud-docker ./cmd/rmfakecloud/
+RUN go generate ./... && CGO_ENABLED=1 go build -tags cairo -ldflags "-s -w -X main.version=${VERSION}" -o rmfakecloud-docker ./cmd/rmfakecloud/
 
 FROM debian:bookworm-slim
 EXPOSE 3000
 
 # Install Cairo runtime libraries
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     libcairo2 \
     && rm -rf /var/lib/apt/lists/*
 
-ADD ./docker/rootfs.tar /
-COPY --from=gobuilder /src/rmfakecloud-docker /
-ENTRYPOINT ["/rmfakecloud-docker"]
+COPY --from=gobuilder /src/rmfakecloud-docker /rmfakecloud
+ENTRYPOINT ["/rmfakecloud"]
