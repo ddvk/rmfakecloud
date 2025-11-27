@@ -26,7 +26,12 @@ jobs:
           version: 9
           run_install: false
 
-      - name: Build 
+      - name: Install Cairo dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcairo2-dev pkg-config
+
+      - name: Build
         run: make all
 
       - name: Release
