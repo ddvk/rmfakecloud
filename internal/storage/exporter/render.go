@@ -38,8 +38,8 @@ func RenderPoundifdef(input, output string) (io.ReadCloser, error) {
 	return writer, nil
 }
 
-// RenderRmapi renders with Cairo-based PDF generator
-func RenderRmapi(a *MyArchive, output io.Writer) error {
+// RenderPDF renders a reMarkable archive to PDF using the Cairo-based PDF generator
+func RenderPDF(a *MyArchive, output io.Writer) error {
 	pdfgen := PdfGenerator{}
 	options := PdfGeneratorOptions{
 		AllPages: true,
