@@ -10,6 +10,11 @@ To be able to compile from source, you'll need the following dependencies:
 * [pnpm](https://pnpm.io/)
 * [go](https://go.dev/) version 1.16 at least
 * make
+* **Cairo graphics library** (required for PDF rendering with annotations)
+  - On Debian/Ubuntu: `sudo apt-get install libcairo2-dev pkg-config`
+  - On Fedora/RHEL: `sudo dnf install cairo-devel pkgconfig`
+  - On macOS: `brew install cairo pkg-config`
+  - On Arch Linux: `sudo pacman -S cairo pkgconf`
 
 Build
 -----
@@ -19,6 +24,8 @@ git clone https://github.com/ddvk/rmfakecloud
 cd rmfakecloud
 make all
 ```
+
+**Note:** The build process requires Cairo to be installed, as it's used for rendering reMarkable annotations to PDF. The build uses the `-tags cairo` flag to enable Cairo support. If you encounter build errors related to Cairo, ensure the Cairo development libraries are properly installed on your system.
 
 Installing
 ==========

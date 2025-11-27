@@ -14,14 +14,26 @@ RUN pnpm install && pnpm build
 FROM golang:bookworm AS gobuilder
 ARG VERSION
 WORKDIR /src
+
+# Install Cairo development dependencies
+RUN apt-get update && apt-get install -y \
+    libcairo2-dev \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY . .
 COPY --from=uibuilder /src/dist ./ui/dist
-#RUN apk add git
-RUN go generate ./... && CGO_ENABLED=0 go build -ldflags "-s -w -X main.version=${VERSION}" -o rmfakecloud-docker ./cmd/rmfakecloud/
+RUN go generate ./... && go build -tags cairo -ldflags "-s -w -X main.version=${VERSION}" -o rmfakecloud-docker ./cmd/rmfakecloud/
 
-FROM scratch
+FROM debian:bookworm-slim
 EXPOSE 3000
+
+# Install Cairo runtime libraries
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libcairo2 \
+    && rm -rf /var/lib/apt/lists/*
+
 ADD ./docker/rootfs.tar /
-COPY --from=gobuilder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=gobuilder /src/rmfakecloud-docker /
 ENTRYPOINT ["/rmfakecloud-docker"]
