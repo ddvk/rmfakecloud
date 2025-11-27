@@ -1,4 +1,4 @@
-// +build cairo
+//go:build cairo
 
 package exporter
 

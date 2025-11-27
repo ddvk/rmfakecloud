@@ -3,7 +3,7 @@ LDFLAGS := "-s -w -X main.version=$(VERSION)"
 OUT_DIR := dist
 CMD := ./cmd/rmfakecloud
 BINARY := rmfakecloud
-BUILD = go build -tags cairo -ldflags $(LDFLAGS) -o $(@) $(CMD) 
+BUILD = CGO_ENABLED=1 go build -tags cairo -ldflags $(LDFLAGS) -o $(@) $(CMD) 
 ASSETS = ui/dist
 GOFILES := $(shell find . -iname '*.go' ! -iname "*_test.go")
 GOFILES += $(ASSETS)
