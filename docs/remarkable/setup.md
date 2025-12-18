@@ -38,8 +38,6 @@ chmod +x ./installer-rm12.sh
 ```shell
 scp installer-rmpro.sh root@10.11.99.1:
 ssh root@10.11.99.1
-mount -o remount,rw /
-umount -R /etc
 chmod +x ./installer-rmpro.sh
 ./installer-rmpro.sh install
 ```
