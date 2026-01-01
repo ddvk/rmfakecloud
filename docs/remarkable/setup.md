@@ -42,12 +42,6 @@ chmod +x ./installer-rmpro.sh
 ./installer-rmpro.sh install
 ```
 
-the automagic script doesn't work anymore, because of the busybox wget tls
-
-```commandline
-sh -c "$(wget https://raw.githubusercontent.com/ddvk/rmfakecloud/master/scripts/device/automagic.sh -O-)"
-```
-
 ## Manual
 
 ### Installing a proxy on devices
