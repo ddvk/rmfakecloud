@@ -57,6 +57,8 @@ func getIntegrationProvider(storer storage.UserStorer, uid, integrationid string
 			return newDropbox(intg), nil
 		case FtpProvider:
 			return newFTP(intg), nil
+		case GoogleProvider:
+			return newGDrive(uid, storer, intg), nil
 		case LocalfsProvider:
 			return newLocalFS(intg), nil
 		case WebdavProvider:
