@@ -66,3 +66,50 @@ Originally designed for Slack, this feature allows you to send your current shee
 The Webhook integration extends this capability by sending your sheet to an external automation platform (like [n8n](https://n8n.io/), [Make.com](https://www.make.com/), ...) or custom service. This is especially useful if you want to: use your own AI pipeline or don't want AI to be involved at all, or store and process sheets in a custom backend, ...
 
 The webhook gives you full control: you decide what happens with your data.
+
+
+## OPDS Catalog
+
+OPDS (Open Publication Distribution System) is a standard for publishing ebook catalogs. This read-only integration allows you to browse and download ebooks from any OPDS 1.x compatible server (like Calibre-Web, Booklore, etc.).
+
+Add this to your [`.userprofile`](userprofile.md):
+
+```yaml
+integrations:
+  - provider: opds
+    id: [generate some uuid]
+    name: [some name]
+    feedurl: [opds feed url]
+    headers:  # optional, for authentication
+      - name: [header name]
+        value: [header value]
+```
+
+For example, with basic authentication via header:
+
+```yaml
+integrations:
+  - provider: opds
+    id: opds-calibre-12345
+    name: Home Calibre
+    feedurl: https://calibre.example.com/opds
+    headers:
+      - name: Authorization
+        value: Basic dXNlcjpwYXNzd29yZA==
+```
+
+Or with an API key:
+
+```yaml
+integrations:
+  - provider: opds
+    id: opds-kavita-67890
+    name: Kavita Library
+    feedurl: https://kavita.example.com/api/opds/abc123
+    headers:
+      - name: X-API-Key
+        value: your-api-key-here
+```
+
+!!! note
+    OPDS integration is read-only. You can browse and download files (PDF and EPUB), but uploading is not supported.

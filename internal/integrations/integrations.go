@@ -21,6 +21,7 @@ const (
 	DropboxProvider = "dropbox"
 	GoogleProvider  = "google"
 	LocalfsProvider = "localfs"
+	OPDSProvider    = "opds"
 )
 
 type IntegrationProvider interface{}
@@ -61,6 +62,8 @@ func getIntegrationProvider(storer storage.UserStorer, uid, integrationid string
 			return newLocalFS(intg), nil
 		case WebdavProvider:
 			return newWebDav(intg), nil
+		case OPDSProvider:
+			return newOPDS(intg), nil
 		}
 	}
 	return nil, fmt.Errorf("integration not found or no implmentation (only webdav) %s", integrationid)
@@ -126,6 +129,8 @@ func ProviderType(n string) string {
 	case DropboxProvider:
 		fallthrough
 	case WebdavProvider:
+		fallthrough
+	case OPDSProvider:
 		return "Storage"
 	default:
 		return n
