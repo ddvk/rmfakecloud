@@ -13,7 +13,7 @@ See the [project documentation](https://ddvk.github.io/rmfakecloud/) for setup a
 | reMarkable Paper Pro | ✅           |
 | reMarkable Paper Pro Move | ✅           |
 
-The current release of rmfakecloud supports file synchronization up to **reMarkable software 3.22.0**. Newer releases have not been tested yet.
+The current release of rmfakecloud supports file synchronization up to **reMarkable software 3.25.1**. Newer releases have not been tested yet.
 
 See the [documentation](https://ddvk.github.io/rmfakecloud/remarkable/setup/) for how to setup your device to use rmfakecloud.
 
