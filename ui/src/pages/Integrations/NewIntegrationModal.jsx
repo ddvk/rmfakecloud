@@ -38,9 +38,13 @@ export default function IntegrationProfileModal(params) {
 
     console.log(integrationForm)
     try {
-      await apiService.createintegration(integrationForm);
-      setFormInfo({ message: "Created" });
-      onSave();
+      const res = await (await apiService.createintegration(integrationForm)).json();
+      if (res.redirect) {
+        window.location.href = res.redirect;
+      } else {
+        setFormInfo({ message: "Created" });
+        onSave();
+      }
     } catch (e) {
       setFormErrors({ error: e.toString() });
     }
@@ -69,7 +73,7 @@ export default function IntegrationProfileModal(params) {
             placeholder="Integration name"
             value={integrationForm.name}
             name="name"
-            autofocus
+            autoFocus="on"
             onChange={handleChange}
           />
 
@@ -84,6 +88,7 @@ export default function IntegrationProfileModal(params) {
             <option value="ftp">FTP</option>
             <option value="webdav">WebDAV</option>
             <option value="dropbox">Dropbox</option>
+            <option value="google">Google Drive</option>
             <option value="webhook">Messaging webhook</option>
           </Form.Select>
 
@@ -169,7 +174,7 @@ export default function IntegrationProfileModal(params) {
         </Card.Body>
         <Card.Footer style={{ display: "flex", gap: "15px" }}>
           <Button variant="primary" type="submit">
-            Save
+            {(integrationForm.provider === "google" && "Continue") || "Save"}
           </Button>
           <Button variant="secondary" onClick={onClose}>Close</Button>
         </Card.Footer>

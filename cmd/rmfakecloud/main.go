@@ -11,6 +11,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/app"
 	"github.com/ddvk/rmfakecloud/internal/cli"
 	"github.com/ddvk/rmfakecloud/internal/config"
+	"github.com/ddvk/rmfakecloud/internal/integrations"
 	"github.com/gin-gonic/gin"
 	"github.com/rifflock/lfshook"
 	"github.com/sirupsen/logrus"
@@ -76,6 +77,7 @@ func main() {
 	}
 
 	cfg.Verify()
+	integrations.ConfigGDrive(cfg)
 
 	logrus.Info("Version: ", version)
 
