@@ -44,6 +44,8 @@ export default function App() {
                 <PrivateRoute exact path="/" component={Home} />
                 <PrivateRoute path="/documents/:itemId?" component={Documents} />
                 <PrivateRoute path="/connect" component={Connect} />
+                <PrivateRoute path="/pair/app" component={Connect} />
+                <PrivateRoute path="/pair" component={Connect} />
                 <PrivateRoute path="/integrations" component={Integrations} />
                 <PrivateRoute path="/profile" component={Profile} />
                 <PrivateRoute path="/admin" roles={[Role.Admin]} component={Admin} />
