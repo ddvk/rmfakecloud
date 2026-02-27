@@ -21,10 +21,30 @@ export default function IntegrationModal(params) {
     accesstoken: integration?.Accesstoken,
     path: integration?.Path,
     endpoint: integration?.Endpoint,
+    feedurl: integration?.FeedURL,
+    headers: integration?.Headers || [],
   });
 
   function handleChange({ target }) {
     setIntegrationForm({ ...integrationForm, [target.name]: target.value });
+  }
+
+  function handleHeaderChange(index, field, value) {
+    const newHeaders = [...integrationForm.headers];
+    newHeaders[index] = { ...newHeaders[index], [field]: value };
+    setIntegrationForm({ ...integrationForm, headers: newHeaders });
+  }
+
+  function addHeader() {
+    setIntegrationForm({
+      ...integrationForm,
+      headers: [...integrationForm.headers, { name: "", value: "" }],
+    });
+  }
+
+  function removeHeader(index) {
+    const newHeaders = integrationForm.headers.filter((_, i) => i !== index);
+    setIntegrationForm({ ...integrationForm, headers: newHeaders });
   }
 
   function formIsValid() {
@@ -55,6 +75,8 @@ export default function IntegrationModal(params) {
         accesstoken: integrationForm.accesstoken,
         path: integrationForm.path,
         endpoint: integrationForm.endpoint,
+        feedurl: integrationForm.feedurl,
+        headers: integrationForm.headers,
       });
       onSave();
     } catch (e) {
@@ -98,6 +120,7 @@ export default function IntegrationModal(params) {
               <option value="ftp">FTP</option>
               <option value="dropbox">Dropbox</option>
               <option value="webhook">Messaging webhook</option>
+              <option value="opds">OPDS Catalog</option>
             </Form.Control>
 
             <Form.Label>Name</Form.Label>
@@ -185,6 +208,42 @@ export default function IntegrationModal(params) {
                   name="endpoint"
                   onChange={handleChange}
                 />
+              </>
+            )}
+
+            {integrationForm.provider === "opds" && (
+              <>
+                <Form.Label>Feed URL</Form.Label>
+                <Form.Control
+                  placeholder="https://example.com/opds"
+                  value={integrationForm.feedurl}
+                  name="feedurl"
+                  onChange={handleChange}
+                />
+
+                <Form.Label className="mt-2">HTTP Headers (for authentication)</Form.Label>
+                {integrationForm.headers.map((header, index) => (
+                  <div key={index} style={{ display: "flex", gap: "10px", marginBottom: "5px" }}>
+                    <Form.Control
+                      placeholder="Header name"
+                      value={header.Name || header.name || ""}
+                      onChange={(e) => handleHeaderChange(index, "name", e.target.value)}
+                      style={{ flex: 1 }}
+                    />
+                    <Form.Control
+                      placeholder="Header value"
+                      value={header.Value || header.value || ""}
+                      onChange={(e) => handleHeaderChange(index, "value", e.target.value)}
+                      style={{ flex: 1 }}
+                    />
+                    <Button variant="outline-danger" onClick={() => removeHeader(index)}>
+                      Remove
+                    </Button>
+                  </div>
+                ))}
+                <Button variant="outline-secondary" size="sm" onClick={addHeader}>
+                  Add Header
+                </Button>
               </>
             )}
           </div>

@@ -13,10 +13,29 @@ export default function IntegrationProfileModal(params) {
   const [integrationForm, setIntegrationForm] = useState({
     name: "",
     provider: "localfs",
+    headers: [],
   });
 
   function handleChange({ target }) {
     setIntegrationForm({ ...integrationForm, [target.name]: target.value });
+  }
+
+  function handleHeaderChange(index, field, value) {
+    const newHeaders = [...integrationForm.headers];
+    newHeaders[index] = { ...newHeaders[index], [field]: value };
+    setIntegrationForm({ ...integrationForm, headers: newHeaders });
+  }
+
+  function addHeader() {
+    setIntegrationForm({
+      ...integrationForm,
+      headers: [...integrationForm.headers, { name: "", value: "" }],
+    });
+  }
+
+  function removeHeader(index) {
+    const newHeaders = integrationForm.headers.filter((_, i) => i !== index);
+    setIntegrationForm({ ...integrationForm, headers: newHeaders });
   }
 
   function formIsValid() {
@@ -85,6 +104,7 @@ export default function IntegrationProfileModal(params) {
             <option value="webdav">WebDAV</option>
             <option value="dropbox">Dropbox</option>
             <option value="webhook">Messaging webhook</option>
+            <option value="opds">OPDS Catalog</option>
           </Form.Select>
 
           {(integrationForm.provider === "webdav" || integrationForm.provider === "ftp") && (
@@ -164,6 +184,44 @@ export default function IntegrationProfileModal(params) {
                 name="endpoint"
                 onChange={handleChange}
               />
+            </>
+          )}
+
+          {integrationForm.provider === "opds" && (
+            <>
+              <Form.Label>Feed URL</Form.Label>
+              <Form.Control
+                placeholder="https://example.com/opds"
+                value={integrationForm.feedurl}
+                name="feedurl"
+                onChange={handleChange}
+              />
+
+              <Form.Label className="mt-2">HTTP Headers</Form.Label>
+              {integrationForm.headers.map((header, index) => (
+                <div key={index} style={{ display: "flex", gap: "10px", marginBottom: "5px" }}>
+                  <Form.Control
+                    placeholder="Header name"
+                    value={header.name}
+                    onChange={(e) => handleHeaderChange(index, "name", e.target.value)}
+                    style={{ flex: 1 }}
+                  />
+                  <Form.Control
+                    placeholder="Header value"
+                    value={header.value}
+                    onChange={(e) => handleHeaderChange(index, "value", e.target.value)}
+                    style={{ flex: 1 }}
+                  />
+                  <Button variant="outline-danger" onClick={() => removeHeader(index)}>
+                    Remove
+                  </Button>
+                </div>
+              ))}
+              <div className="mt-2">
+                <Button variant="outline-secondary" size="sm" onClick={addHeader}>
+                  Add Header
+                </Button>
+              </div>
             </>
           )}
         </Card.Body>
