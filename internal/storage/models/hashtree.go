@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strconv"
 
+	"github.com/ddvk/rmfakecloud/internal/common"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -37,15 +38,17 @@ func HashEntries(entries []*HashEntry) (string, error) {
 	return hashStr, nil
 }
 
-func Hash(r io.Reader) (string, int64, error) {
+func Hash(r io.Reader) (string, string, int64, error) {
 	hasher := sha256.New()
-	w, err := io.Copy(hasher, r)
+	crc32c := common.CRC32CWriter()
+	mw := io.MultiWriter(hasher, crc32c)
+	w, err := io.Copy(mw, r)
 	if err != nil {
-		return "", w, err
+		return "", "", w, err
 	}
 	h := hasher.Sum(nil)
 	hstr := hex.EncodeToString(h)
-	return hstr, w, err
+	return hstr, common.CRC32CSum(crc32c), w, err
 }
 func FileHashAndSize(file string) ([]byte, int64, error) {
 	f, err := os.Open(file)

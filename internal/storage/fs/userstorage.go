@@ -8,12 +8,17 @@ import (
 
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/model"
+
 	log "github.com/sirupsen/logrus"
 )
 
 const (
-	userDir     = "users"
-	profileName = ".userprofile"
+	cachedTreeName = ".tree"
+	profileName    = ".userprofile"
+	userDir        = "users"
+
+	// serves as root modification log and generation number source
+	historyFile = ".root.history"
 )
 
 // NewStorage new file system storage

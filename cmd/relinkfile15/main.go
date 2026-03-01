@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/ddvk/rmfakecloud/internal/config"
+	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/storage/fs"
 	"github.com/ddvk/rmfakecloud/internal/storage/models"
 )
@@ -26,17 +27,17 @@ func main() {
 	cfg := config.FromEnv()
 	filesystem := fs.NewStorage(cfg)
 
-	lbs := filesystem.BlobStorage(userId)
+	lbs := storage.NewBlobStorer(filesystem, filesystem)
 
 	h := models.RootHistory{Hash: rootHash}
-	oldtree, err := h.GetHashTree(lbs)
+	oldtree, err := h.GetHashTree(lbs.RemoteStorage(userId))
 	if err != nil {
 		log.Fatalf("%s: %s", h.Hash, err.Error())
 	}
 
-	hash, gen, _ := lbs.GetRootIndex()
+	hash, gen, _ := lbs.RemoteStorage(userId).GetRootIndex()
 	h = models.RootHistory{Hash: hash, Generation: gen}
-	curtree, err := h.GetHashTree(lbs)
+	curtree, err := h.GetHashTree(lbs.RemoteStorage(userId))
 
 	for _, doc := range oldtree.Docs {
 		concerned := false
@@ -48,7 +49,7 @@ func main() {
 		}
 
 		if concerned {
-			err = fs.UpdateTree(curtree, lbs, func(t *models.HashTree) error {
+			err = storage.UpdateTree(curtree, lbs, userId, func(t *models.HashTree) error {
 				return t.Add(doc)
 			})
 			if err != nil {

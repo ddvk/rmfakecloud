@@ -1,4 +1,4 @@
-package fs
+package storage
 
 import (
 	"crypto/hmac"
@@ -22,15 +22,17 @@ const (
 	tokenParam            = "token"
 	generationHeader      = "x-goog-generation"
 	generationMatchHeader = "x-goog-if-generation-match"
-	storageUsage          = "storage"
+	StorageUsage          = "storage"
 
-	paramUID       = "uid"
-	paramBlobID    = "blobid"
-	paramExp       = "exp"
-	paramSignature = "signature"
-	paramScope     = "scope"
-	routeBlob      = "/blobstorage"
-	routeStorage   = "/storage"
+	ParamUID       = "uid"
+	ParamBlobID    = "blobid"
+	ParamExp       = "exp"
+	ParamSignature = "signature"
+	ParamScope     = "scope"
+	RouteBlob      = "/blobstorage"
+	RouteStorage   = "/storage"
+
+	RootBlob = "root"
 )
 
 // ErrorNotFound not found
@@ -41,28 +43,32 @@ var ErrorWrongGeneration = errors.New("wrong generation")
 
 // App file system document storage
 type App struct {
-	cfg *config.Config
-	fs  *FileSystemStorage
+	cfg        *config.Config
+	docStorer  DocumentStorer
+	userStorer UserStorer
+	rootStorer RootStorer
+	blobStorer BlobStorage
 }
 
 // NewApp StorageApp various storage routes
-func NewApp(cfg *config.Config, fs *FileSystemStorage) *App {
+func NewApp(cfg *config.Config, docStorer DocumentStorer, userStorer UserStorer, rootStorer RootStorer, blobStorer BlobStorage) *App {
 	staticWrapper := App{
-		fs:  fs,
-		cfg: cfg,
+		cfg:        cfg,
+		docStorer:  docStorer,
+		blobStorer: blobStorer,
+		rootStorer: rootStorer,
 	}
 	return &staticWrapper
 }
 
 // RegisterRoutes blah
 func (app *App) RegisterRoutes(router *gin.Engine) {
-
-	router.GET(routeStorage+"/:"+tokenParam, app.downloadDocument)
-	router.PUT(routeStorage+"/:"+tokenParam, app.uploadDocument)
+	router.GET(RouteStorage+"/:"+tokenParam, app.downloadDocument)
+	router.PUT(RouteStorage+"/:"+tokenParam, app.uploadDocument)
 
 	//sync15
-	router.GET(routeBlob, app.downloadBlob)
-	router.PUT(routeBlob, app.uploadBlob)
+	router.GET(RouteBlob, app.downloadBlob)
+	router.PUT(RouteBlob, app.uploadBlob)
 }
 
 func (app *App) parseToken(token string) (*StorageClaim, error) {
@@ -71,7 +77,7 @@ func (app *App) parseToken(token string) (*StorageClaim, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !slices.Contains(claim.Audience, storageUsage) {
+	if !slices.Contains(claim.Audience, StorageUsage) {
 		return nil, errors.New("not a storage token")
 	}
 	return claim, nil
@@ -92,7 +98,7 @@ func (app *App) uploadDocument(c *gin.Context) {
 	body := c.Request.Body
 	defer body.Close()
 
-	err = app.fs.StoreDocument(token.UserID, id, body)
+	err = app.docStorer.StoreDocument(token.UserID, id, body)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -115,7 +121,7 @@ func (app *App) downloadDocument(c *gin.Context) {
 	//todo: storage provider
 	log.Info("Requestng Id: ", id)
 
-	reader, err := app.fs.GetDocument(token.UserID, id)
+	reader, err := app.docStorer.GetDocument(token.UserID, id)
 
 	if err != nil {
 		log.Error(err)
@@ -128,12 +134,12 @@ func (app *App) downloadDocument(c *gin.Context) {
 
 func (app *App) downloadBlob(c *gin.Context) {
 	//not sanitized, email address etc
-	uid := c.Query(paramUID)
+	uid := c.Query(ParamUID)
 
-	blobID := common.QueryS(paramBlobID, c)
-	exp := common.QueryS(paramExp, c)
-	signature := common.QueryS(paramSignature, c)
-	scope := common.QueryS(paramScope, c)
+	blobID := common.QueryS(ParamBlobID, c)
+	exp := common.QueryS(ParamExp, c)
+	signature := common.QueryS(ParamSignature, c)
+	scope := common.QueryS(ParamScope, c)
 
 	err := VerifyURLParams([]string{uid, blobID, exp, scope}, exp, signature, app.cfg.JWTSecretKey)
 	if err != nil {
@@ -154,35 +160,45 @@ func (app *App) downloadBlob(c *gin.Context) {
 
 	log.Info("Requestng blob: ", blobID)
 
-	reader, generation, size, crc32c, err := app.fs.LoadBlob(uid, blobID)
-	if err != nil {
-		if err == ErrorNotFound {
-			c.AbortWithStatus(http.StatusNotFound)
+	if blobID == RootBlob {
+		root, generation, err := app.rootStorer.GetRootIndex(uid)
+		if err != nil && err != ErrorNotFound {
+			log.Error(err)
+			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
-		log.Error(err)
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-	defer reader.Close()
 
-	common.AddHashHeader(c, crc32c)
-
-	if blobID == rootBlob {
 		log.Debug("Sending gen for root: ", generation)
 		c.Header(generationHeader, strconv.FormatInt(generation, 10))
+
+		c.Data(http.StatusOK, "application/octet-stream", []byte(root))
+	} else {
+		reader, size, crc32c, err := app.blobStorer.LoadBlob(uid, blobID)
+		if err != nil {
+			if err == ErrorNotFound {
+				c.AbortWithStatus(http.StatusNotFound)
+				return
+			}
+			log.Error(err)
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+		defer reader.Close()
+
+		common.AddHashHeader(c, crc32c)
+
+		c.DataFromReader(http.StatusOK, size, "application/octet-stream", reader, nil)
 	}
-	c.DataFromReader(http.StatusOK, size, "application/octet-stream", reader, nil)
 }
 
 func (app *App) uploadBlob(c *gin.Context) {
 	//not sanitized, email address etc
-	uid := c.Query(paramUID)
+	uid := c.Query(ParamUID)
 
-	blobID := common.QueryS(paramBlobID, c)
-	exp := common.QueryS(paramExp, c)
-	signature := common.QueryS(paramSignature, c)
-	scope := common.QueryS(paramScope, c)
+	blobID := common.QueryS(ParamBlobID, c)
+	exp := common.QueryS(ParamExp, c)
+	signature := common.QueryS(ParamSignature, c)
+	scope := common.QueryS(ParamScope, c)
 
 	err := VerifyURLParams([]string{uid, blobID, exp, scope}, exp, signature, app.cfg.JWTSecretKey)
 	if err != nil {
@@ -205,7 +221,7 @@ func (app *App) uploadBlob(c *gin.Context) {
 	body := c.Request.Body
 	defer body.Close()
 
-	generation := int64(0)
+	var generation int64
 	gh := c.Request.Header.Get(generationMatchHeader)
 	if gh != "" {
 		log.Info("Client sent generation:", gh)
@@ -216,11 +232,17 @@ func (app *App) uploadBlob(c *gin.Context) {
 		}
 	}
 
-	newgen, err := app.fs.StoreBlob(uid, blobID, body, generation)
+	if blobID == RootBlob {
+		var newgen int64
+		newgen, err = app.rootStorer.UpdateRoot(uid, body, generation)
+		if err == ErrorWrongGeneration {
+			c.AbortWithStatus(http.StatusPreconditionFailed)
+			return
+		}
 
-	if err == ErrorWrongGeneration {
-		c.AbortWithStatus(http.StatusPreconditionFailed)
-		return
+		c.Header(generationHeader, strconv.FormatInt(newgen, 10))
+	} else {
+		err = app.blobStorer.StoreBlob(uid, blobID, "", "", body)
 	}
 
 	if err != nil {
@@ -229,7 +251,6 @@ func (app *App) uploadBlob(c *gin.Context) {
 		return
 	}
 
-	c.Header(generationHeader, strconv.FormatInt(newgen, 10))
 	c.JSON(http.StatusOK, gin.H{})
 }
 
