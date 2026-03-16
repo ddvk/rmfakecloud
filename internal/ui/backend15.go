@@ -23,6 +23,9 @@ func (b *backend15) GetDocumentTree(uid string) (tree *viewmodel.DocumentTree, e
 	return viewmodel.DocTreeFromHashTree(hashTree), nil
 }
 func (b *backend15) Export(uid, docid, exporttype string, opt storage.ExportOption) (r io.ReadCloser, err error) {
+	if exporttype == "rmdoc" {
+		return b.blobHandler.ExportRmDoc(uid, docid)
+	}
 	r, err = b.blobHandler.Export(uid, docid)
 	return
 }

@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/integrations"
 	"github.com/ddvk/rmfakecloud/internal/model"
 	"github.com/ddvk/rmfakecloud/internal/storage"
+	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
@@ -263,10 +265,10 @@ func (app *ReactAppWrapper) getDocument(c *gin.Context) {
 	uid := userID(c)
 	docid := common.ParamS(docIDParam, c)
 
-	exportType := "pdf"
+	exportType := c.DefaultQuery("type", "pdf")
 	var exportOption storage.ExportOption = 0
 
-	log.Info("exporting ", docid)
+	log.Info("exporting ", docid, " as ", exportType)
 	backend := app.getBackend(c)
 
 	reader, err := backend.Export(uid, docid, exportType, exportOption)
@@ -277,6 +279,11 @@ func (app *ReactAppWrapper) getDocument(c *gin.Context) {
 	}
 
 	defer reader.Close()
+
+	if exportType == "rmdoc" {
+		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s.rmdoc\"", docid))
+	}
+
 	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
 }
 
@@ -380,8 +387,13 @@ func (app *ReactAppWrapper) createDocument(c *gin.Context) {
 
 		doc, err := backend.CreateDocument(uid, file.Filename, parentID, f)
 		if err != nil {
+			var existsErr *models.ErrDocumentExists
+			if errors.As(err, &existsErr) {
+				c.AbortWithStatusJSON(http.StatusConflict, gin.H{"error": err.Error(), "docId": existsErr.DocID})
+				return
+			}
 			log.Error(err)
-			c.AbortWithStatus(http.StatusInternalServerError)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 		docs = append(docs, doc)

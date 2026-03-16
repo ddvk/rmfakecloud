@@ -16,6 +16,15 @@ async function uploadFilesInBatches(files, uploadFolder, batchSize = 100) {
       await apiservice.upload(uploadFolder, batch);
       uploadedCount += batchSize;
     } catch (e) {
+      if (e.status === 409 && e.docId) {
+        if (window.confirm(`${e.message}\n\nOverwrite?`)) {
+          await apiservice.deleteDocument(e.docId);
+          await apiservice.upload(uploadFolder, batch);
+          uploadedCount += batchSize;
+          continue;
+        }
+        return;
+      }
       console.error("Batch upload error:", e);
       throw e;
     }
