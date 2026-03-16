@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"sort"
 	"strconv"
@@ -95,10 +96,22 @@ func (d *HashDoc) AddFile(e *HashEntry) error {
 	return d.Rehash()
 }
 
+type ErrDocumentExists struct {
+	DocID string
+	Name  string
+}
+
+func (e *ErrDocumentExists) Error() string {
+	return fmt.Sprintf("document %q already exists (id: %s)", e.Name, e.DocID)
+}
+
 // Add  adds a doc to the tree
 func (t *HashTree) Add(d *HashDoc) error {
 	if len(d.Files) == 0 {
 		return errors.New("no files")
+	}
+	if existing, err := t.FindDoc(d.EntryName); err == nil {
+		return &ErrDocumentExists{DocID: existing.EntryName, Name: existing.PayloadType}
 	}
 	t.Docs = append(t.Docs, d)
 	return t.Rehash()

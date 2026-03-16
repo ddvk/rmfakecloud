@@ -1,6 +1,7 @@
 package fs
 
 import (
+	"archive/zip"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -66,6 +67,53 @@ func (fs *FileSystemStorage) BlobStorage(uid string) *LocalBlobStorage {
 		fs:  fs,
 		uid: uid,
 	}
+}
+
+// ExportRmDoc exports a document as a zip of all blobs
+func (fs *FileSystemStorage) ExportRmDoc(uid, docid string) (io.ReadCloser, error) {
+	tree, err := fs.GetCachedTree(uid)
+	if err != nil {
+		return nil, err
+	}
+	doc, err := tree.FindDoc(docid)
+	if err != nil {
+		return nil, err
+	}
+	ls := fs.BlobStorage(uid)
+
+	reader, writer := io.Pipe()
+	go func() {
+		zw := zip.NewWriter(writer)
+		var writeErr error
+		for _, entry := range doc.Files {
+			blob, err := ls.GetReader(entry.Hash)
+			if err != nil {
+				writeErr = err
+				break
+			}
+			fw, err := zw.Create(entry.EntryName)
+			if err != nil {
+				blob.Close()
+				writeErr = err
+				break
+			}
+			_, err = io.Copy(fw, blob)
+			blob.Close()
+			if err != nil {
+				writeErr = err
+				break
+			}
+		}
+		if writeErr != nil {
+			log.Error(writeErr)
+			zw.Close()
+			writer.CloseWithError(writeErr)
+			return
+		}
+		zw.Close()
+		writer.Close()
+	}()
+	return reader, nil
 }
 
 // Export exports a document
@@ -285,13 +333,11 @@ func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, st
 	}
 
 	if ext == storage.RmDocFileExt {
-		return nil, errors.New("TODO: not implemented yet")
+		return fs.createFromRmDoc(uid, parent, stream)
 	}
 
-	//TODO: zips and rm
 	blobPath := fs.getUserBlobPath(uid)
 	docid := uuid.New().String()
-	//create metadata
 	docName := strings.TrimSuffix(filename, ext)
 
 	tree, err := fs.GetCachedTree(uid)
@@ -407,6 +453,146 @@ func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, st
 		Name:   docName,
 	}
 	return
+}
+
+func (fs *FileSystemStorage) createFromRmDoc(uid, parent string, stream io.Reader) (*storage.Document, error) {
+	data, err := io.ReadAll(stream)
+	if err != nil {
+		return nil, err
+	}
+
+	zr, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		return nil, err
+	}
+
+	var metadataEntry *zip.File
+	for _, f := range zr.File {
+		if strings.HasSuffix(f.Name, storage.MetadataFileExt) {
+			metadataEntry = f
+			break
+		}
+	}
+	if metadataEntry == nil {
+		return nil, errors.New("rmdoc: no .metadata file found in archive")
+	}
+
+	docid := strings.TrimSuffix(metadataEntry.Name, storage.MetadataFileExt)
+
+	mr, err := metadataEntry.Open()
+	if err != nil {
+		return nil, err
+	}
+	metaBytes, err := io.ReadAll(mr)
+	mr.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	var metadata models.MetadataFile
+	if err := json.Unmarshal(metaBytes, &metadata); err != nil {
+		return nil, err
+	}
+
+	if parent != "" {
+		metadata.Parent = parent
+	}
+	metadata.Synced = true
+	metadata.MetadataModified = true
+
+	blobStorage := fs.BlobStorage(uid)
+
+	metaReader := bytes.NewReader(metaBytes)
+	metaHash, metaSize, err := models.Hash(metaReader)
+	if err != nil {
+		return nil, err
+	}
+	metaReader.Seek(0, io.SeekStart)
+	if err := blobStorage.Write(metaHash, metaReader); err != nil {
+		return nil, err
+	}
+
+	hashDoc := models.NewHashDocWithMeta(docid, metadata)
+	hashDoc.PayloadType = metadata.DocumentName
+
+	for _, f := range zr.File {
+		if strings.HasSuffix(f.Name, storage.ContentFileExt) {
+			cr, err := f.Open()
+			if err == nil {
+				var contentFile models.ContentFile
+				contentBytes, err := io.ReadAll(cr)
+				cr.Close()
+				if err == nil {
+					if json.Unmarshal(contentBytes, &contentFile) == nil && contentFile.FileType != "" {
+						hashDoc.PayloadType = contentFile.FileType
+					}
+				}
+			}
+			break
+		}
+	}
+
+	entry := models.NewHashEntry(metaHash, metadataEntry.Name, metaSize)
+	if err := hashDoc.AddFile(entry); err != nil {
+		return nil, err
+	}
+
+	for _, f := range zr.File {
+		if f.Name == metadataEntry.Name {
+			continue
+		}
+
+		rc, err := f.Open()
+		if err != nil {
+			return nil, err
+		}
+		fileData, err := io.ReadAll(rc)
+		rc.Close()
+		if err != nil {
+			return nil, err
+		}
+
+		reader := bytes.NewReader(fileData)
+		fileHash, fileSize, err := models.Hash(reader)
+		if err != nil {
+			return nil, err
+		}
+		reader.Seek(0, io.SeekStart)
+		if err := blobStorage.Write(fileHash, reader); err != nil {
+			return nil, err
+		}
+
+		entry := models.NewHashEntry(fileHash, f.Name, fileSize)
+		if err := hashDoc.AddFile(entry); err != nil {
+			return nil, err
+		}
+	}
+
+	indexReader, err := hashDoc.IndexReader()
+	if err != nil {
+		return nil, err
+	}
+	if err := blobStorage.Write(hashDoc.Hash, indexReader); err != nil {
+		return nil, err
+	}
+
+	tree, err := fs.GetCachedTree(uid)
+	if err != nil {
+		return nil, err
+	}
+	err = updateTree(tree, blobStorage, func(t *models.HashTree) error {
+		return tree.Add(hashDoc)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &storage.Document{
+		ID:     docid,
+		Type:   metadata.CollectionType,
+		Parent: metadata.Parent,
+		Name:   metadata.DocumentName,
+	}, nil
 }
 
 func createMetadataFile(metadata models.MetadataFile) (r io.Reader, filehash string, size int64, err error) {

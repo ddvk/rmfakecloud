@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Button, ButtonGroup } from "react-bootstrap";
+import { Button, ButtonGroup, Dropdown } from "react-bootstrap";
 import Navbar from 'react-bootstrap/Navbar';
 import { FaChevronRight, FaChevronLeft, } from "react-icons/fa6";
 import { AiOutlineDownload } from "react-icons/ai";
@@ -55,22 +55,26 @@ export default function FileViewer({ file, onSelect }) {
 	});
 
   // TODO: add loading and error handling
-  const onDownloadClick = () => {
-    //setDownloadError(null)
-    //const {id, name} = dwn
+  const triggerDownload = (blob, filename) => {
+    var url = window.URL.createObjectURL(blob)
+    var a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+  }
+
+  const onDownloadPdf = () => {
     apiservice.download(data.id)
-      .then(blob => {
-        var url = window.URL.createObjectURL(blob)
-        var a = document.createElement('a')
-        a.href = url
-        a.download = data.name + '.pdf'
-        document.body.appendChild(a)
-        a.click()
-        a.remove()
-      })
-      .catch(e => {
-        //setDownloadError('cant download ' + e)
-      })
+      .then(blob => triggerDownload(blob, data.name + '.pdf'))
+      .catch(() => {})
+  }
+
+  const onDownloadRmdoc = () => {
+    apiservice.download(data.id, 'rmdoc')
+      .then(blob => triggerDownload(blob, data.name + '.rmdoc'))
+      .catch(() => {})
   }
 
   let options = useMemo(()=> {
@@ -99,9 +103,15 @@ export default function FileViewer({ file, onSelect }) {
         )}
         <div style={{ flex: 1 }}></div>
 
-        <Button size="sm" onClick={onDownloadClick}>
-          <AiOutlineDownload />
-        </Button>
+        <Dropdown align="end">
+          <Dropdown.Toggle size="sm" variant="secondary">
+            <AiOutlineDownload />
+          </Dropdown.Toggle>
+          <Dropdown.Menu>
+            <Dropdown.Item onClick={onDownloadPdf}>Download PDF</Dropdown.Item>
+            <Dropdown.Item onClick={onDownloadRmdoc}>Download .rmdoc</Dropdown.Item>
+          </Dropdown.Menu>
+        </Dropdown>
 
       </Navbar>
 

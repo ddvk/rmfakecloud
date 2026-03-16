@@ -57,7 +57,20 @@ class ApiServices {
     return fetch(`${constants.ROOT_URL}/documents/upload`, {
       method: "POST",
       body: formData,
-    }).then(r => r.json()); //.then(handleError);
+    }).then(async (r) => {
+      if (r.status === 409) {
+        const body = await r.json();
+        const err = new Error(body.error);
+        err.status = 409;
+        err.docId = body.docId;
+        throw err;
+      }
+      if (!r.ok) {
+        const body = await r.json();
+        throw new Error(body.error || r.statusText);
+      }
+      return r.json();
+    });
   }
 
   resetPassword(resetPasswordForm) {
@@ -95,10 +108,11 @@ class ApiServices {
       headers: this.header(),
     }).then((r) => handleError(r));
   }
-  download(id) {
-    return fetch(`${constants.ROOT_URL}/documents/${id}`, {
+  download(id, exportType) {
+    let url = `${constants.ROOT_URL}/documents/${id}`;
+    if (exportType) url += `?type=${exportType}`;
+    return fetch(url, {
       method: "GET",
-      // headers: this.header()
     }).then((r) => {
       handleError(r);
       return r.blob();
