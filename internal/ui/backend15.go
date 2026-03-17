@@ -5,6 +5,7 @@ import (
 
 	"github.com/ddvk/rmfakecloud/internal/app/hub"
 	"github.com/ddvk/rmfakecloud/internal/storage"
+	"github.com/ddvk/rmfakecloud/internal/storage/epub"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
 	"github.com/google/uuid"
 )
@@ -22,6 +23,19 @@ func (b *backend15) GetDocumentTree(uid string) (tree *viewmodel.DocumentTree, e
 
 	return viewmodel.DocTreeFromHashTree(hashTree), nil
 }
+
+func (b *backend15) GetSyncedMethodEntries(uid string) ([]viewmodel.Entry, error) {
+	hashTree, err := b.blobHandler.GetCachedTree(uid)
+	if err != nil {
+		return nil, err
+	}
+	return viewmodel.MethodEntriesFromHashTree(hashTree), nil
+}
+
+func (b *backend15) GetMethodSVG(uid, docid string) (string, error) {
+	return b.blobHandler.GetMethodSVG(uid, docid)
+}
+
 func (b *backend15) Export(uid, docid, exporttype string, opt storage.ExportOption) (r io.ReadCloser, err error) {
 	switch exporttype {
 	case "rmdoc":
@@ -31,6 +45,26 @@ func (b *backend15) Export(uid, docid, exporttype string, opt storage.ExportOpti
 	default:
 		return b.blobHandler.Export(uid, docid)
 	}
+}
+
+func (b *backend15) GetTemplate(uid, docid string) (io.ReadCloser, error) {
+	return b.blobHandler.GetTemplate(uid, docid)
+}
+
+func (b *backend15) GetDocumentMetadata(uid, docid string) (docType string, hasWritings bool, pageCount int, err error) {
+	return b.blobHandler.GetDocumentMetadata(uid, docid)
+}
+
+func (b *backend15) ExportPagePNG(uid, docid string, pageNum int) (io.ReadCloser, error) {
+	return b.blobHandler.ExportPagePNG(uid, docid, pageNum)
+}
+
+func (b *backend15) GetEpubManifest(uid, docid string) (*epub.Manifest, error) {
+	return b.blobHandler.GetEpubManifest(uid, docid)
+}
+
+func (b *backend15) GetEpubFile(uid, docid, filePath string) (io.ReadCloser, string, error) {
+	return b.blobHandler.GetEpubFile(uid, docid, filePath)
 }
 
 func (b *backend15) CreateDocument(uid, filename, parent string, stream io.Reader) (doc *storage.Document, err error) {

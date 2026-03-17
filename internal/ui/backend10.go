@@ -81,6 +81,15 @@ func (d *backend10) GetDocumentTree(uid string) (tree *viewmodel.DocumentTree, e
 	}
 	return viewmodel.DocTreeFromRawMetadata(docs), nil
 }
+
+func (d *backend10) GetSyncedMethodEntries(uid string) ([]viewmodel.Entry, error) {
+	return nil, nil
+}
+
+func (d *backend10) GetMethodSVG(uid, docid string) (string, error) {
+	return "", nil
+}
+
 func (d *backend10) Export(uid, docID, exporttype string, opt storage.ExportOption) (stream io.ReadCloser, err error) {
 	r, err := d.documentHandler.ExportDocument(uid, docID, exporttype, opt)
 	if err != nil {

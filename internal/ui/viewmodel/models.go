@@ -82,11 +82,15 @@ func makeDocument(d *InternalDoc) (entry Entry) {
 	return
 }
 
-// DocTreeFromHashTree from hash tree
+// DocTreeFromHashTree from hash tree. Excludes templates and methods so they only appear under Templates / rm Methods.
 func DocTreeFromHashTree(tree *models.HashTree) *DocumentTree {
 	docs := make([]*InternalDoc, 0)
 	for _, d := range tree.Docs {
 		if d.Deleted {
+			continue
+		}
+		// Do not list templates or methods under My Files
+		if d.MetadataFile.CollectionType == common.TemplateType || d.MetadataFile.Source == "com.remarkable.methods" {
 			continue
 		}
 
@@ -106,6 +110,28 @@ func DocTreeFromHashTree(tree *models.HashTree) *DocumentTree {
 	}
 
 	return DocTreeFromRawMetadata(docs)
+}
+
+// MethodEntriesFromHashTree returns document entries for synced Methods (source com.remarkable.methods or type TemplateType).
+func MethodEntriesFromHashTree(tree *models.HashTree) []Entry {
+	out := make([]Entry, 0)
+	for _, d := range tree.Docs {
+		if d.Deleted {
+			continue
+		}
+		if d.MetadataFile.Source != "com.remarkable.methods" && d.MetadataFile.CollectionType != common.TemplateType {
+			continue
+		}
+		lastModified, _ := models.ToTime(d.LastModified)
+		out = append(out, &Document{
+			ID:           d.EntryName,
+			Name:         d.MetadataFile.DocumentName,
+			DocumentType: "method",
+			LastModified: lastModified,
+			Size:         d.Size,
+		})
+	}
+	return out
 }
 
 // DocTreeFromRawMetadata from raw metadata

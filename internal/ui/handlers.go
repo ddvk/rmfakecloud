@@ -3,7 +3,9 @@ package ui
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/ddvk/rmfakecloud/internal/common"
@@ -261,9 +263,13 @@ func (app *ReactAppWrapper) listDocuments(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	// Add built-in templates and methods sections
+	// Add built-in templates and methods sections (include synced Methods from device)
 	tree.Templates = []viewmodel.Entry{templates.BuiltinTemplatesDirectory()}
-	tree.Methods = []viewmodel.Entry{methods.BuiltinMethodsDirectory()}
+	methodsDir := methods.BuiltinMethodsDirectory()
+	if synced, err := backend.GetSyncedMethodEntries(uid); err == nil && len(synced) > 0 {
+		methodsDir.Entries = append(methodsDir.Entries, synced...)
+	}
+	tree.Methods = []viewmodel.Entry{methodsDir}
 	c.JSON(http.StatusOK, tree)
 }
 func (app *ReactAppWrapper) getDocument(c *gin.Context) {
@@ -310,8 +316,13 @@ func (app *ReactAppWrapper) getTemplate(c *gin.Context) {
 }
 
 func (app *ReactAppWrapper) getMethod(c *gin.Context) {
+	uid := userID(c)
 	methodID := c.Param("id")
 	svg := methods.GetSVG(methodID)
+	if svg == "" {
+		backend := app.getBackend(c)
+		svg, _ = backend.GetMethodSVG(uid, methodID)
+	}
 	if svg == "" {
 		c.AbortWithStatus(http.StatusNotFound)
 		return
@@ -323,14 +334,80 @@ func (app *ReactAppWrapper) getMethod(c *gin.Context) {
 func (app *ReactAppWrapper) getDocumentMetadata(c *gin.Context) {
 	uid := userID(c)
 	docid := common.ParamS(docIDParam, c)
-	// if err != nil {
-	// 	log.Error(err)
-	// 	c.AbortWithStatus(http.StatusInternalServerError)
-	// 	return
-	// }
-	log.Info(uid, docid)
-	c.JSON(http.StatusOK, "TODO")
+	type metadataGetter interface {
+		GetDocumentMetadata(uid, docid string) (docType string, hasWritings bool, pageCount int, err error)
+	}
+	backend := app.getBackend(c)
+	mg, ok := backend.(metadataGetter)
+	if !ok {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	docType, hasWritings, pageCount, err := mg.GetDocumentMetadata(uid, docid)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"type":        docType,
+		"hasWritings": hasWritings,
+		"pageCount":   pageCount,
+	})
+}
 
+func (app *ReactAppWrapper) getDocumentTemplate(c *gin.Context) {
+	uid := userID(c)
+	docid := common.ParamS(docIDParam, c)
+	type templateGetter interface {
+		GetTemplate(uid, docid string) (io.ReadCloser, error)
+	}
+	backend := app.getBackend(c)
+	tg, ok := backend.(templateGetter)
+	if !ok {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	reader, err := tg.GetTemplate(uid, docid)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	defer reader.Close()
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%q", docid+storage.TemplateFileExt))
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
+}
+
+func (app *ReactAppWrapper) getDocumentPage(c *gin.Context) {
+	uid := userID(c)
+	docid := common.ParamS(docIDParam, c)
+	pagenumStr := c.Param("pagenum")
+	pagenum, err := strconv.Atoi(pagenumStr)
+	if err != nil || pagenum < 1 {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	type pagePNGExporter interface {
+		ExportPagePNG(uid, docid string, pageNum int) (io.ReadCloser, error)
+	}
+	backend := app.getBackend(c)
+	pe, ok := backend.(pagePNGExporter)
+	if !ok {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	reader, err := pe.ExportPagePNG(uid, docid, pagenum)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	defer reader.Close()
+	c.Header("Content-Type", "image/png")
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.DataFromReader(http.StatusOK, -1, "image/png", reader, nil)
 }
 
 // move rename

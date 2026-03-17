@@ -1,4 +1,4 @@
-import { BsFilePdf, BsFolder, BsFileEarmark, BsFileEarmarkText, BsCloud, BsFile, BsTrash, BsGrid3X3 } from "react-icons/bs";
+import { BsFilePdf, BsFolder, BsFileEarmark, BsFileEarmarkText, BsCloud, BsFile, BsTrash, BsGrid3X3, BsBook } from "react-icons/bs";
 
 export default function FileIcon({ file }) {
 
@@ -29,7 +29,7 @@ export default function FileIcon({ file }) {
     }
 
     if (file.type === "epub" || (file.name && file.name.toLowerCase().endsWith(".epub"))) {
-      return <BsFileEarmarkText />
+      return <BsBook />
     }
 
     if (file.type === "notebook") {

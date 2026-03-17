@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -83,6 +84,16 @@ func (d *HashDoc) MetadataReader() (hash string, reader io.Reader, err error) {
 	}
 
 	return
+}
+
+// HasWritings returns true if the document has any .rm annotation pages.
+func (d *HashDoc) HasWritings() bool {
+	for _, f := range d.Files {
+		if strings.ToLower(path.Ext(f.EntryName)) == ".rm" {
+			return true
+		}
+	}
+	return false
 }
 
 // AddFile adds an entry

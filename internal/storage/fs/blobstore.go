@@ -3,8 +3,10 @@ package fs
 import (
 	"archive/zip"
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/url"
 	"os"
@@ -17,6 +19,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/storage"
+	"github.com/ddvk/rmfakecloud/internal/storage/epub"
 	"github.com/ddvk/rmfakecloud/internal/storage/exporter"
 	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	"github.com/google/uuid"
@@ -145,6 +148,49 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 	return reader, err
 }
 
+// GetMethodSVG returns the SVG for a synced Method document by loading its .template blob and decoding iconData.
+func (fs *FileSystemStorage) GetMethodSVG(uid, docid string) (string, error) {
+	tree, err := fs.GetCachedTree(uid)
+	if err != nil {
+		return "", err
+	}
+	doc, err := tree.FindDoc(docid)
+	if err != nil {
+		return "", err
+	}
+	var templateHash string
+	for _, f := range doc.Files {
+		if strings.HasSuffix(strings.ToLower(f.EntryName), storage.TemplateFileExt) {
+			templateHash = f.Hash
+			break
+		}
+	}
+	if templateHash == "" {
+		return "", errors.New("no .template file")
+	}
+	ls := fs.BlobStorage(uid)
+	r, err := ls.GetReader(templateHash)
+	if err != nil {
+		return "", err
+	}
+	defer r.Close()
+	raw, err := io.ReadAll(r)
+	if err != nil {
+		return "", err
+	}
+	var data struct {
+		IconData string `json:"iconData"`
+	}
+	if err := json.Unmarshal(raw, &data); err != nil || data.IconData == "" {
+		return "", errors.New("template has no iconData")
+	}
+	svg, err := base64.StdEncoding.DecodeString(data.IconData)
+	if err != nil {
+		return "", err
+	}
+	return string(svg), nil
+}
+
 // ExportEpub returns the raw EPUB payload for a document that has an .epub in its archive.
 func (fs *FileSystemStorage) ExportEpub(uid, docid string) (io.ReadCloser, error) {
 	tree, err := fs.GetCachedTree(uid)
@@ -174,6 +220,137 @@ func (fs *FileSystemStorage) ExportEpub(uid, docid string) (io.ReadCloser, error
 		return nil, errors.New("epub payload not available")
 	}
 	return archive.PayloadReader, nil
+}
+
+// GetTemplate returns the raw .template file for a given entry (if present).
+func (fs *FileSystemStorage) GetTemplate(uid, docid string) (r io.ReadCloser, err error) {
+	tree, err := fs.GetCachedTree(uid)
+	if err != nil {
+		return nil, err
+	}
+	doc, err := tree.FindDoc(docid)
+	if err != nil {
+		return nil, err
+	}
+	ls := fs.BlobStorage(uid)
+	for _, f := range doc.Files {
+		if strings.HasSuffix(strings.ToLower(f.EntryName), storage.TemplateFileExt) {
+			return ls.GetReader(f.Hash)
+		}
+	}
+	return nil, errors.New("template not found")
+}
+
+// GetEpub returns the raw .epub file for a document (if present).
+func (fs *FileSystemStorage) GetEpub(uid, docid string) (io.ReadCloser, error) {
+	tree, err := fs.GetCachedTree(uid)
+	if err != nil {
+		return nil, err
+	}
+	doc, err := tree.FindDoc(docid)
+	if err != nil {
+		return nil, err
+	}
+	ls := fs.BlobStorage(uid)
+	for _, f := range doc.Files {
+		if strings.HasSuffix(strings.ToLower(f.EntryName), storage.EpubFileExt) {
+			return ls.GetReader(f.Hash)
+		}
+	}
+	return nil, errors.New("epub not found")
+}
+
+// GetEpubManifest parses the EPUB and returns spine and base path as JSON.
+func (fs *FileSystemStorage) GetEpubManifest(uid, docid string) (*epub.Manifest, error) {
+	rc, err := fs.GetEpub(uid, docid)
+	if err != nil {
+		return nil, err
+	}
+	defer rc.Close()
+	b, err := io.ReadAll(rc)
+	if err != nil {
+		return nil, err
+	}
+	zr, err := zip.NewReader(bytes.NewReader(b), int64(len(b)))
+	if err != nil {
+		return nil, err
+	}
+	return epub.ReadManifest(zr)
+}
+
+// GetEpubFile returns a reader for a file inside the document's EPUB (path relative to zip root).
+func (fs *FileSystemStorage) GetEpubFile(uid, docid, filePath string) (io.ReadCloser, string, error) {
+	rc, err := fs.GetEpub(uid, docid)
+	if err != nil {
+		return nil, "", err
+	}
+	defer rc.Close()
+	b, err := io.ReadAll(rc)
+	if err != nil {
+		return nil, "", err
+	}
+	zr, err := zip.NewReader(bytes.NewReader(b), int64(len(b)))
+	if err != nil {
+		return nil, "", err
+	}
+	f, err := epub.OpenZipFile(zr, filePath)
+	if err != nil {
+		return nil, "", err
+	}
+	contentType := epub.ContentType(filePath)
+	return f, contentType, nil
+}
+
+// GetDocumentMetadata returns document type, hasWritings, and page count for the given doc.
+func (fs *FileSystemStorage) GetDocumentMetadata(uid, docid string) (docType string, hasWritings bool, pageCount int, err error) {
+	tree, err := fs.GetCachedTree(uid)
+	if err != nil {
+		return "", false, 0, err
+	}
+	doc, err := tree.FindDoc(docid)
+	if err != nil {
+		return "", false, 0, err
+	}
+	docType = doc.PayloadType
+	hasWritings = doc.HasWritings()
+	for _, f := range doc.Files {
+		if strings.HasSuffix(strings.ToLower(f.EntryName), storage.ContentFileExt) {
+			rc, err := fs.BlobStorage(uid).GetReader(f.Hash)
+			if err != nil {
+				return docType, hasWritings, 0, err
+			}
+			defer rc.Close()
+			var content models.ContentFile
+			if err := json.NewDecoder(rc).Decode(&content); err != nil {
+				return docType, hasWritings, 0, err
+			}
+			if content.PageCount > 0 {
+				pageCount = content.PageCount
+			} else {
+				pageCount = len(content.Pages)
+			}
+			return docType, hasWritings, pageCount, nil
+		}
+	}
+	return docType, hasWritings, pageCount, nil
+}
+
+// ExportPagePNG exports a single page of the document as PNG (1-based page number).
+func (fs *FileSystemStorage) ExportPagePNG(uid, docid string, pageNum int) (io.ReadCloser, error) {
+	tree, err := fs.GetCachedTree(uid)
+	if err != nil {
+		return nil, err
+	}
+	doc, err := tree.FindDoc(docid)
+	if err != nil {
+		return nil, err
+	}
+	ls := fs.BlobStorage(uid)
+	archive, err := models.ArchiveFromHashDoc(doc, ls)
+	if err != nil {
+		return nil, err
+	}
+	return exporter.RenderPagePNGReader(archive, pageNum)
 }
 
 // UpdateBlobDocument updates metadata
@@ -356,20 +533,319 @@ func updateTree(tree *models.HashTree, storage *LocalBlobStorage, treeMutation f
 
 // CreateBlobDocument creates a new document
 func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, stream io.Reader) (doc *storage.Document, err error) {
-	ext := path.Ext(filename)
+	origExt := path.Ext(filename)
+	ext := strings.ToLower(origExt)
 	switch ext {
-	case storage.EpubFileExt, storage.PdfFileExt, storage.RmDocFileExt:
+	case storage.EpubFileExt, storage.PdfFileExt, storage.RmDocFileExt, storage.TemplateFileExt:
 	default:
 		return nil, errors.New("unsupported extension: " + ext)
 	}
 
 	if ext == storage.RmDocFileExt {
-		return fs.createFromRmDoc(uid, parent, stream)
+		// Decode .rmdoc container (from mymod: full inline with template support and corrected metadata).
+		tmpFile, err := os.CreateTemp("", "rmdoc-*")
+		if err != nil {
+			return nil, err
+		}
+		defer os.Remove(tmpFile.Name())
+
+		if _, err = io.Copy(tmpFile, stream); err != nil {
+			tmpFile.Close()
+			return nil, err
+		}
+		if err = tmpFile.Close(); err != nil {
+			return nil, err
+		}
+
+		zr, err := zip.OpenReader(tmpFile.Name())
+		if err != nil {
+			return nil, err
+		}
+		defer zr.Close()
+
+		var docid string
+		for _, f := range zr.File {
+			base := path.Base(f.Name)
+			low := strings.ToLower(base)
+			switch {
+			case strings.HasSuffix(low, storage.MetadataFileExt),
+				strings.HasSuffix(low, storage.ContentFileExt),
+				strings.HasSuffix(low, storage.TemplateFileExt),
+				strings.HasSuffix(low, storage.PdfFileExt),
+				strings.HasSuffix(low, storage.EpubFileExt):
+				docid = strings.TrimSuffix(base, path.Ext(base))
+				break
+			}
+			if docid != "" {
+				break
+			}
+		}
+		if docid == "" {
+			return nil, errors.New("rmdoc: could not determine document id")
+		}
+
+		var metaFile, contentFile, templateFile, pdfFile, epubFile *zip.File
+		rmFiles := []*zip.File{}
+		pagedataFiles := []*zip.File{}
+		for _, f := range zr.File {
+			low := strings.ToLower(f.Name)
+			switch {
+			case f.Name == docid+storage.MetadataFileExt:
+				metaFile = f
+			case f.Name == docid+storage.ContentFileExt:
+				contentFile = f
+			case f.Name == docid+storage.TemplateFileExt:
+				templateFile = f
+			case f.Name == docid+storage.PdfFileExt:
+				pdfFile = f
+			case f.Name == docid+storage.EpubFileExt:
+				epubFile = f
+			case strings.HasSuffix(low, storage.PageFileExt):
+				pagedataFiles = append(pagedataFiles, f)
+			case strings.HasSuffix(low, storage.RmFileExt):
+				rmFiles = append(rmFiles, f)
+			}
+		}
+
+		payloadFile := pdfFile
+		payloadExt := storage.PdfFileExt
+		if payloadFile == nil && epubFile != nil {
+			payloadFile = epubFile
+			payloadExt = storage.EpubFileExt
+		}
+		isTemplate := templateFile != nil && payloadFile == nil
+
+		embeddedMeta := models.MetadataFile{}
+		metaOK := false
+		if metaFile != nil {
+			rc, err := metaFile.Open()
+			if err != nil {
+				return nil, err
+			}
+			metaBytes, err := io.ReadAll(rc)
+			rc.Close()
+			if err != nil {
+				return nil, err
+			}
+			if err := json.Unmarshal(metaBytes, &embeddedMeta); err == nil {
+				metaOK = true
+			}
+		}
+
+		embeddedContent := models.ContentFile{}
+		contentOK := false
+		if contentFile != nil {
+			rc, err := contentFile.Open()
+			if err != nil {
+				return nil, err
+			}
+			contentBytes, err := io.ReadAll(rc)
+			rc.Close()
+			if err != nil {
+				return nil, err
+			}
+			if err := json.Unmarshal(contentBytes, &embeddedContent); err == nil {
+				contentOK = true
+			}
+		}
+
+		now := models.FromTime(time.Now())
+		docName := ""
+		if metaOK && embeddedMeta.DocumentName != "" {
+			docName = embeddedMeta.DocumentName
+		}
+		if docName == "" {
+			docName = strings.TrimSuffix(filename, origExt)
+		}
+
+		correctedMeta := embeddedMeta
+		if !metaOK {
+			correctedMeta = models.MetadataFile{}
+			correctedMeta.CreatedTime = now
+			correctedMeta.LastModified = now
+		}
+		correctedMeta.DocumentName = docName
+		correctedMeta.Parent = parent
+		correctedMeta.Version = 1
+		correctedMeta.Synced = true
+		correctedMeta.MetadataModified = true
+		if correctedMeta.CreatedTime == "" {
+			correctedMeta.CreatedTime = now
+		}
+		if correctedMeta.LastModified == "" {
+			correctedMeta.LastModified = now
+		}
+		if isTemplate {
+			correctedMeta.CollectionType = common.EntryType("TemplateType")
+		} else {
+			correctedMeta.CollectionType = common.DocumentType
+		}
+
+		correctedContent := embeddedContent
+		if !contentOK {
+			correctedContent = models.ContentFile{}
+		}
+		if isTemplate {
+			correctedContent.FileType = "template"
+		} else {
+			correctedContent.FileType = strings.TrimPrefix(payloadExt, ".")
+		}
+
+		blobStorage := fs.BlobStorage(uid)
+		tree, err := fs.GetCachedTree(uid)
+		if err != nil {
+			return nil, err
+		}
+
+		hashDoc := models.NewHashDocWithMeta(docid, correctedMeta)
+		hashDoc.PayloadType = correctedContent.FileType
+
+		writeZipEntry := func(zf *zip.File) (hash string, size int64, err error) {
+			tf, err := os.CreateTemp(fs.getUserBlobPath(uid), "rmdoc-entry-*")
+			if err != nil {
+				return "", 0, err
+			}
+			defer os.Remove(tf.Name())
+			defer tf.Close()
+
+			rc, err := zf.Open()
+			if err != nil {
+				return "", 0, err
+			}
+			defer rc.Close()
+
+			tee := io.TeeReader(rc, tf)
+			hash, size, err = models.Hash(tee)
+			if err != nil {
+				return "", size, err
+			}
+			if _, err := tf.Seek(0, io.SeekStart); err != nil {
+				return "", size, err
+			}
+			if err := blobStorage.Write(hash, tf); err != nil {
+				return "", size, err
+			}
+			return hash, size, nil
+		}
+
+		metaJSON, err := json.Marshal(correctedMeta)
+		if err != nil {
+			return nil, err
+		}
+		metaReader := bytes.NewReader(metaJSON)
+		metaHash, metaSize, err := models.Hash(metaReader)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := metaReader.Seek(0, io.SeekStart); err != nil {
+			return nil, err
+		}
+		if err := blobStorage.Write(metaHash, metaReader); err != nil {
+			return nil, err
+		}
+		if err := hashDoc.AddFile(models.NewHashEntry(metaHash, docid+storage.MetadataFileExt, metaSize)); err != nil {
+			return nil, err
+		}
+
+		var payloadSize int64
+		if isTemplate && templateFile != nil {
+			payloadSize = int64(templateFile.UncompressedSize64)
+		} else if payloadFile != nil {
+			payloadSize = int64(payloadFile.UncompressedSize64)
+		}
+		if payloadSize > 0 {
+			correctedContent.SizeInBytes = fmt.Sprintf("%d", payloadSize)
+		}
+		contentJSON, err := json.Marshal(correctedContent)
+		if err != nil {
+			return nil, err
+		}
+		contentReader := bytes.NewReader(contentJSON)
+		contentHash, contentSize, err := models.Hash(contentReader)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := contentReader.Seek(0, io.SeekStart); err != nil {
+			return nil, err
+		}
+		if err := blobStorage.Write(contentHash, contentReader); err != nil {
+			return nil, err
+		}
+		if err := hashDoc.AddFile(models.NewHashEntry(contentHash, docid+storage.ContentFileExt, contentSize)); err != nil {
+			return nil, err
+		}
+
+		for _, pf := range pagedataFiles {
+			h, s, err := writeZipEntry(pf)
+			if err != nil {
+				return nil, err
+			}
+			if err := hashDoc.AddFile(models.NewHashEntry(h, pf.Name, s)); err != nil {
+				return nil, err
+			}
+		}
+
+		for _, rf := range rmFiles {
+			h, s, err := writeZipEntry(rf)
+			if err != nil {
+				return nil, err
+			}
+			if err := hashDoc.AddFile(models.NewHashEntry(h, rf.Name, s)); err != nil {
+				return nil, err
+			}
+		}
+
+		if isTemplate {
+			if templateFile == nil {
+				return nil, errors.New("rmdoc: template type but no .template found")
+			}
+			h, s, err := writeZipEntry(templateFile)
+			if err != nil {
+				return nil, err
+			}
+			if err := hashDoc.AddFile(models.NewHashEntry(h, docid+storage.TemplateFileExt, s)); err != nil {
+				return nil, err
+			}
+			ext = storage.TemplateFileExt
+		} else {
+			if payloadFile == nil {
+				return nil, errors.New("rmdoc: no supported document payload (pdf/epub) found")
+			}
+			h, s, err := writeZipEntry(payloadFile)
+			if err != nil {
+				return nil, err
+			}
+			if err := hashDoc.AddFile(models.NewHashEntry(h, docid+payloadExt, s)); err != nil {
+				return nil, err
+			}
+			ext = payloadExt
+		}
+
+		indexReader, err := hashDoc.IndexReader()
+		if err != nil {
+			return nil, err
+		}
+		if err := blobStorage.Write(hashDoc.Hash, indexReader); err != nil {
+			return nil, err
+		}
+
+		if err := updateTree(tree, blobStorage, func(t *models.HashTree) error {
+			return tree.Add(hashDoc)
+		}); err != nil {
+			return nil, err
+		}
+
+		return &storage.Document{
+			ID:     docid,
+			Type:   correctedMeta.CollectionType,
+			Parent: "",
+			Name:   docName,
+		}, nil
 	}
 
 	blobPath := fs.getUserBlobPath(uid)
 	docid := uuid.New().String()
-	docName := strings.TrimSuffix(filename, ext)
+	docName := strings.TrimSuffix(filename, origExt)
 
 	tree, err := fs.GetCachedTree(uid)
 	if err != nil {
@@ -378,9 +854,13 @@ func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, st
 
 	log.Info("Creating metadata... parent: ", parent)
 
+	collectionType := common.DocumentType
+	if ext == storage.TemplateFileExt {
+		collectionType = common.EntryType("TemplateType")
+	}
 	metadata := models.MetadataFile{
 		DocumentName:     docName,
-		CollectionType:   common.DocumentType,
+		CollectionType:   collectionType,
 		Parent:           parent,
 		Version:          1,
 		CreatedTime:      models.FromTime(time.Now()),
@@ -409,7 +889,10 @@ func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, st
 		return
 	}
 
-	content := createContent(ext)
+	content := "{}"
+	if ext != storage.TemplateFileExt {
+		content = createContent(ext)
+	}
 
 	contentReader := strings.NewReader(content)
 	contentHash, size, err := models.Hash(contentReader)
@@ -479,7 +962,7 @@ func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, st
 
 	doc = &storage.Document{
 		ID:     docid,
-		Type:   common.DocumentType,
+		Type:   collectionType,
 		Parent: "",
 		Name:   docName,
 	}

@@ -2,7 +2,7 @@ import DocumentTree from "./Tree";
 import apiservice from "../../services/api.service"
 import { useEffect, useRef, useState } from "react";
 import { useParams, useHistory } from "react-router-dom";
-import { Container, Row, Col, Nav } from "react-bootstrap";
+import { Container, Row, Col } from "react-bootstrap";
 import File from "./File";
 import Folder from "./Folder";
 import TemplateViewer from "./TemplateViewer";
@@ -33,7 +33,6 @@ export default function DocumentList() {
   const [entries, setEntries] = useState([])
   const [initialSelectionSet, setInitialSelectionSet] = useState(false);
   const [treeHeight, setTreeHeight] = useState(700);
-  const [activeTab, setActiveTab] = useState("root");
 
   const { itemId } = useParams();
   const history = useHistory();
@@ -154,11 +153,6 @@ export default function DocumentList() {
 		loadDocs().catch(e => toast.error(e));
 	},[counter])
 
-  const tabIndex = { root: 0, templates: 1, methods: 2, trash: 3 };
-  const treeEntries = entries.length && activeTab in tabIndex
-    ? [entries[tabIndex[activeTab]]]
-    : [];
-
   // Helper function to recursively search for an item by ID in the tree
   // Returns both the item and its parent chain
   const findItemInEntries = (entries, targetId, parent = null) => {
@@ -225,17 +219,6 @@ export default function DocumentList() {
 
     const { item: foundItem, parent: parentItem } = result;
 
-    // Switch to the tab that contains this item
-    let curr = foundItem;
-    while (curr) {
-      if (["root", "templates", "methods", "trash"].includes(curr.id)) {
-        setActiveTab(curr.id);
-        break;
-      }
-      const res = findItemInEntries(entries, curr.id);
-      curr = res?.parent ?? null;
-    }
-
     // Create a pseudo-node object that matches what onSelect expects
     // React-arborist wraps the data, so the node has both top-level properties
     // and a 'data' property containing the actual item
@@ -286,23 +269,8 @@ export default function DocumentList() {
               </InputGroup>
             </div>}
 
-            <Nav variant="tabs" activeKey={activeTab} onSelect={(k) => { setActiveTab(k); setSelected(null); }} className="mb-2 flex-nowrap">
-              <Nav.Item>
-                <Nav.Link eventKey="root">My Files</Nav.Link>
-              </Nav.Item>
-              <Nav.Item>
-                <Nav.Link eventKey="templates">Templates</Nav.Link>
-              </Nav.Item>
-              <Nav.Item>
-                <Nav.Link eventKey="methods">rm Methods</Nav.Link>
-              </Nav.Item>
-              <Nav.Item>
-                <Nav.Link eventKey="trash">Trash</Nav.Link>
-              </Nav.Item>
-            </Nav>
-
             <div ref={treeContainerRef} className={styles.treeContainer} style={{flex: "1 1 auto", minHeight: 0, overflow: "auto"}}>
-              <DocumentTree selection={selected} onSelect={onSelect} treeRef={treeRef} term={term} entries={treeEntries} height={treeHeight} />
+              <DocumentTree selection={selected} onSelect={onSelect} treeRef={treeRef} term={term} entries={entries} height={treeHeight} />
             </div>
           </Col>
           <Col md={8} style={{display: "flex", flexDirection: "column", height: "100%"}}>
