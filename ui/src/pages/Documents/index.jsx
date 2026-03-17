@@ -2,9 +2,12 @@ import DocumentTree from "./Tree";
 import apiservice from "../../services/api.service"
 import { useEffect, useRef, useState } from "react";
 import { useParams, useHistory } from "react-router-dom";
-import { Container, Row, Col } from "react-bootstrap";
+import { Container, Row, Col, Nav } from "react-bootstrap";
 import File from "./File";
 import Folder from "./Folder";
+import TemplateViewer from "./TemplateViewer";
+import MethodViewer from "./MethodViewer";
+import EpubViewer from "./EpubViewer";
 import Navbar from 'react-bootstrap/Navbar';
 import { BsSearch } from "react-icons/bs";
 import Form from 'react-bootstrap/Form';
@@ -15,6 +18,13 @@ import { useAuthState } from "../../common/useAuthContext";
 
 import styles from "./Documents.module.scss";
 
+function isEpub(data) {
+  if (!data) return false;
+  if (data.type === "epub") return true;
+  const name = (data.name || "").toLowerCase();
+  return name.endsWith(".epub");
+}
+
 export default function DocumentList() {
   const [selected, setSelected] = useState(null);
   const [term, setTerm] = useState("");
@@ -23,6 +33,7 @@ export default function DocumentList() {
   const [entries, setEntries] = useState([])
   const [initialSelectionSet, setInitialSelectionSet] = useState(false);
   const [treeHeight, setTreeHeight] = useState(700);
+  const [activeTab, setActiveTab] = useState("root");
 
   const { itemId } = useParams();
   const history = useHistory();
@@ -63,8 +74,8 @@ export default function DocumentList() {
 
     // Update URL with selected item ID
     if (node && node.id) {
-      // Don't add root and trash to URL, keep as /documents
-      if (node.id === 'root' || node.id === 'trash') {
+      // Don't add root, templates, methods, or trash to URL, keep as /documents
+      if (node.id === 'root' || node.id === 'trash' || node.id === 'templates' || node.id === 'methods') {
         history.push('/documents');
       } else {
         history.push(`/documents/${node.id}`);
@@ -107,27 +118,46 @@ export default function DocumentList() {
 
 	useEffect(() => {
 		const loadDocs = async () => {
-			const { Trash, Entries } = await apiservice.listDocument()
+			const { Trash, Entries, Templates, Methods } = await apiservice.listDocument()
 
 			const root = {
 				id: "root",
 				name: "My Files",
 				isFolder: true,
 				icon: "device",
-				children: Entries,
+				children: Entries || [],
+			}
+			const templates = {
+				id: "templates",
+				name: "Templates",
+				isFolder: true,
+				icon: "templates",
+				children: Templates?.[0]?.children ?? [],
+			}
+			const methods = {
+				id: "methods",
+				name: "rm Methods",
+				isFolder: true,
+				icon: "methods",
+				children: Methods?.[0]?.children ?? [],
 			}
 			const trash = {
 				id: "trash",
 				name: "Trash",
 				isFolder: true,
 				icon: "trash",
-				children: Trash,
+				children: Trash || [],
 			}
-			setEntries([root, trash]);
+			setEntries([root, templates, methods, trash]);
 		}
 
 		loadDocs().catch(e => toast.error(e));
 	},[counter])
+
+  const tabIndex = { root: 0, templates: 1, methods: 2, trash: 3 };
+  const treeEntries = entries.length && activeTab in tabIndex
+    ? [entries[tabIndex[activeTab]]]
+    : [];
 
   // Helper function to recursively search for an item by ID in the tree
   // Returns both the item and its parent chain
@@ -152,19 +182,19 @@ export default function DocumentList() {
       id: parentItem.id,
       data: parentItem,
       isLeaf: !parentItem.isFolder,
-      isRoot: parentItem.id === 'root' || parentItem.id === 'trash',
+      isRoot: parentItem.id === 'root' || parentItem.id === 'trash' || parentItem.id === 'templates' || parentItem.id === 'methods',
       // Add a dummy toggle function for compatibility
       toggle: () => {},
     };
 
     // If this parent is not root/trash, try to find its parent
-    if (parentItem.id !== 'root' && parentItem.id !== 'trash') {
+    if (parentItem.id !== 'root' && parentItem.id !== 'trash' && parentItem.id !== 'templates' && parentItem.id !== 'methods') {
       const grandparentResult = findItemInEntries(entries, parentItem.id);
       if (grandparentResult && grandparentResult.parent) {
         parentNode.parent = buildParentChain(grandparentResult.parent);
       }
     } else {
-      // This is root or trash - add the internal react-arborist root above it
+      // This is root, templates, methods, or trash - add the internal react-arborist root above it
       parentNode.parent = {
         id: '__REACT_ARBORIST_INTERNAL_ROOT__',
         data: { id: '__REACT_ARBORIST_INTERNAL_ROOT__', name: '' },
@@ -195,6 +225,17 @@ export default function DocumentList() {
 
     const { item: foundItem, parent: parentItem } = result;
 
+    // Switch to the tab that contains this item
+    let curr = foundItem;
+    while (curr) {
+      if (["root", "templates", "methods", "trash"].includes(curr.id)) {
+        setActiveTab(curr.id);
+        break;
+      }
+      const res = findItemInEntries(entries, curr.id);
+      curr = res?.parent ?? null;
+    }
+
     // Create a pseudo-node object that matches what onSelect expects
     // React-arborist wraps the data, so the node has both top-level properties
     // and a 'data' property containing the actual item
@@ -208,7 +249,7 @@ export default function DocumentList() {
         isLeaf: !child.isFolder,
       })),
       parent: parentItem ? buildParentChain(parentItem) : null,
-      isRoot: foundItem.id === 'root' || foundItem.id === 'trash',
+      isRoot: foundItem.id === 'root' || foundItem.id === 'trash' || foundItem.id === 'templates' || foundItem.id === 'methods',
     };
 
     // Set the selection directly
@@ -245,13 +286,31 @@ export default function DocumentList() {
               </InputGroup>
             </div>}
 
+            <Nav variant="tabs" activeKey={activeTab} onSelect={(k) => { setActiveTab(k); setSelected(null); }} className="mb-2 flex-nowrap">
+              <Nav.Item>
+                <Nav.Link eventKey="root">My Files</Nav.Link>
+              </Nav.Item>
+              <Nav.Item>
+                <Nav.Link eventKey="templates">Templates</Nav.Link>
+              </Nav.Item>
+              <Nav.Item>
+                <Nav.Link eventKey="methods">rm Methods</Nav.Link>
+              </Nav.Item>
+              <Nav.Item>
+                <Nav.Link eventKey="trash">Trash</Nav.Link>
+              </Nav.Item>
+            </Nav>
+
             <div ref={treeContainerRef} className={styles.treeContainer} style={{flex: "1 1 auto", minHeight: 0, overflow: "auto"}}>
-              <DocumentTree selection={selected} onSelect={onSelect} treeRef={treeRef} term={term} entries={entries} height={treeHeight} />
+              <DocumentTree selection={selected} onSelect={onSelect} treeRef={treeRef} term={term} entries={treeEntries} height={treeHeight} />
             </div>
           </Col>
           <Col md={8} style={{display: "flex", flexDirection: "column", height: "100%"}}>
             <div style={{flex: "1 1 auto", minHeight: 0, overflow: "auto"}}>
-              {selected && selected.isLeaf && <File file={selected} onSelect={onSelect} />}
+              {selected && selected.isLeaf && selected.data?.type === "template" && <TemplateViewer file={selected} onSelect={onSelect} />}
+              {selected && selected.isLeaf && selected.data?.type === "method" && <MethodViewer file={selected} onSelect={onSelect} />}
+              {selected && selected.isLeaf && isEpub(selected.data) && <EpubViewer file={selected} onSelect={onSelect} />}
+              {selected && selected.isLeaf && !isEpub(selected.data) && selected.data?.type !== "template" && selected.data?.type !== "method" && <File file={selected} onSelect={onSelect} />}
               {selected && !selected.isLeaf && <Folder selection={selected} onSelect={onSelect} onUpdate={onUpdate} counter={counter} />}
             </div>
           </Col>

@@ -92,6 +92,35 @@ class ApiServices {
       return r.json();
     });
   }
+
+  getTemplateUrl(id) {
+    return `${constants.ROOT_URL}/templates/${id}`;
+  }
+
+  getTemplate(id) {
+    return fetch(this.getTemplateUrl(id), {
+      method: "GET",
+      credentials: "same-origin",
+    }).then((r) => {
+      handleError(r);
+      return r.text();
+    });
+  }
+
+  getMethodUrl(id) {
+    return `${constants.ROOT_URL}/methods/${id}`;
+  }
+
+  getMethod(id) {
+    return fetch(this.getMethodUrl(id), {
+      method: "GET",
+      credentials: "same-origin",
+    }).then((r) => {
+      handleError(r);
+      return r.text();
+    });
+  }
+
   getCode() {
     return fetch(`${constants.ROOT_URL}/newcode`, {
       method: "GET",
@@ -113,6 +142,7 @@ class ApiServices {
     if (exportType) url += `?type=${exportType}`;
     return fetch(url, {
       method: "GET",
+      credentials: "same-origin",
     }).then((r) => {
       handleError(r);
       return r.blob();

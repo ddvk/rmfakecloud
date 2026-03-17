@@ -116,7 +116,7 @@ func (fs *FileSystemStorage) ExportRmDoc(uid, docid string) (io.ReadCloser, erro
 	return reader, nil
 }
 
-// Export exports a document
+// Export exports a document (as PDF)
 func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err error) {
 	tree, err := fs.GetCachedTree(uid)
 	if err != nil {
@@ -143,6 +143,37 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 		writer.Close()
 	}()
 	return reader, err
+}
+
+// ExportEpub returns the raw EPUB payload for a document that has an .epub in its archive.
+func (fs *FileSystemStorage) ExportEpub(uid, docid string) (io.ReadCloser, error) {
+	tree, err := fs.GetCachedTree(uid)
+	if err != nil {
+		return nil, err
+	}
+	doc, err := tree.FindDoc(docid)
+	if err != nil {
+		return nil, err
+	}
+	hasEpub := false
+	for _, f := range doc.Files {
+		if strings.HasSuffix(strings.ToLower(f.EntryName), storage.EpubFileExt) {
+			hasEpub = true
+			break
+		}
+	}
+	if !hasEpub {
+		return nil, errors.New("document has no epub payload")
+	}
+	ls := fs.BlobStorage(uid)
+	archive, err := models.ArchiveFromHashDoc(doc, ls)
+	if err != nil {
+		return nil, err
+	}
+	if archive.PayloadReader == nil {
+		return nil, errors.New("epub payload not available")
+	}
+	return archive.PayloadReader, nil
 }
 
 // UpdateBlobDocument updates metadata

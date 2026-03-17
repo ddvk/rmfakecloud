@@ -12,6 +12,7 @@ import Login from "./pages/Login";
 import Home from "./pages/Home";
 import Connect from "./pages/Connect";
 import Documents from "./pages/Documents";
+import ViewPdf from "./pages/ViewPdf";
 import Integrations from "./pages/Integrations";
 import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
@@ -42,6 +43,7 @@ export default function App() {
             <div style={{flex: "1 1 auto", minHeight: 0, overflow: "hidden"}}>
               <Switch>
                 <PrivateRoute exact path="/" component={Home} />
+                <PrivateRoute path="/view-pdf/:docId" component={ViewPdf} />
                 <PrivateRoute path="/documents/:itemId?" component={Documents} />
                 <PrivateRoute path="/connect" component={Connect} />
                 <PrivateRoute path="/pair/app" component={Connect} />

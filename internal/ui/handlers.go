@@ -11,6 +11,8 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/model"
 	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/storage/models"
+	"github.com/ddvk/rmfakecloud/internal/ui/methods"
+	"github.com/ddvk/rmfakecloud/internal/ui/templates"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
@@ -259,6 +261,9 @@ func (app *ReactAppWrapper) listDocuments(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+	// Add built-in templates and methods sections
+	tree.Templates = []viewmodel.Entry{templates.BuiltinTemplatesDirectory()}
+	tree.Methods = []viewmodel.Entry{methods.BuiltinMethodsDirectory()}
 	c.JSON(http.StatusOK, tree)
 }
 func (app *ReactAppWrapper) getDocument(c *gin.Context) {
@@ -266,7 +271,10 @@ func (app *ReactAppWrapper) getDocument(c *gin.Context) {
 	docid := common.ParamS(docIDParam, c)
 
 	exportType := c.DefaultQuery("type", "pdf")
-	var exportOption storage.ExportOption = 0
+	exportOption := storage.ExportWithAnnotations
+	if c.Query("annotations") == "0" || c.Query("payload") == "1" {
+		exportOption = storage.ExportPayload
+	}
 
 	log.Info("exporting ", docid, " as ", exportType)
 	backend := app.getBackend(c)
@@ -280,11 +288,36 @@ func (app *ReactAppWrapper) getDocument(c *gin.Context) {
 
 	defer reader.Close()
 
+	contentType := "application/octet-stream"
 	if exportType == "rmdoc" {
 		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s.rmdoc\"", docid))
+	} else if exportType == "epub" {
+		contentType = "application/epub+zip"
 	}
 
-	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
+	c.DataFromReader(http.StatusOK, -1, contentType, reader, nil)
+}
+
+func (app *ReactAppWrapper) getTemplate(c *gin.Context) {
+	templateID := c.Param("id")
+	svg := templates.GetSVG(templateID)
+	if svg == "" {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	c.Header("Content-Type", "image/svg+xml")
+	c.String(http.StatusOK, svg)
+}
+
+func (app *ReactAppWrapper) getMethod(c *gin.Context) {
+	methodID := c.Param("id")
+	svg := methods.GetSVG(methodID)
+	if svg == "" {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	c.Header("Content-Type", "image/svg+xml")
+	c.String(http.StatusOK, svg)
 }
 
 func (app *ReactAppWrapper) getDocumentMetadata(c *gin.Context) {

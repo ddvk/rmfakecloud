@@ -43,8 +43,10 @@ func NewErrorResponse(errormsg string) ErrorResponse {
 
 // DocumentTree a tree of documents
 type DocumentTree struct {
-	Entries []Entry
-	Trash   []Entry
+	Entries   []Entry
+	Templates []Entry
+	Methods   []Entry
+	Trash     []Entry
 }
 
 type InternalDoc struct {

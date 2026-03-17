@@ -48,6 +48,7 @@ type blobHandler interface {
 	DeleteBlobDocument(uid, docID string) (err error)
 	CreateBlobFolder(uid, name, parent string) (doc *storage.Document, err error)
 	Export(uid, docid string) (io.ReadCloser, error)
+	ExportEpub(uid, docid string) (io.ReadCloser, error)
 	ExportRmDoc(uid, docid string) (io.ReadCloser, error)
 }
 

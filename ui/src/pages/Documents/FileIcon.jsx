@@ -1,4 +1,4 @@
-import { BsFilePdf, BsFolder, BsFileEarmark, BsFileEarmarkText, BsCloud, BsFile, BsTrash } from "react-icons/bs";
+import { BsFilePdf, BsFolder, BsFileEarmark, BsFileEarmarkText, BsCloud, BsFile, BsTrash, BsGrid3X3 } from "react-icons/bs";
 
 export default function FileIcon({ file }) {
 
@@ -9,6 +9,10 @@ export default function FileIcon({ file }) {
           return <BsFile />
         case "trash":
           return <BsTrash />
+        case "templates":
+          return <BsFileEarmarkText />
+        case "methods":
+          return <BsGrid3X3 />
         case "cloud":
           return <BsCloud />
         default:
@@ -24,8 +28,20 @@ export default function FileIcon({ file }) {
       return <BsFilePdf />
     }
 
+    if (file.type === "epub" || (file.name && file.name.toLowerCase().endsWith(".epub"))) {
+      return <BsFileEarmarkText />
+    }
+
     if (file.type === "notebook") {
       return <BsFileEarmarkText />
+    }
+
+    if (file.type === "template") {
+      return <BsFileEarmarkText />
+    }
+
+    if (file.type === "method") {
+      return <BsGrid3X3 />
     }
 
     return <BsFileEarmark />
