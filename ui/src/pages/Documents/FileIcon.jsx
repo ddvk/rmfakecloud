@@ -10,6 +10,7 @@ export default function FileIcon({ file }) {
         case "trash":
           return <BsTrash />
         case "templates":
+        case "templates-methods":
           return <BsFileEarmarkText />
         case "methods":
           return <BsGrid3X3 />

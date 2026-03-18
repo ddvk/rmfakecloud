@@ -5,9 +5,8 @@ import { useParams, useHistory } from "react-router-dom";
 import { Container, Row, Col } from "react-bootstrap";
 import File from "./File";
 import Folder from "./Folder";
-import TemplateViewer from "./TemplateViewer";
-import MethodViewer from "./MethodViewer";
 import EpubViewer from "./EpubViewer";
+import TemplatesMethodsGrid from "./TemplatesMethodsGrid";
 import Navbar from 'react-bootstrap/Navbar';
 import { BsSearch } from "react-icons/bs";
 import Form from 'react-bootstrap/Form';
@@ -30,7 +29,8 @@ export default function DocumentList() {
   const [term, setTerm] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [counter, setCounter] = useState(0);
-  const [entries, setEntries] = useState([])
+  const [entries, setEntries] = useState([]);
+  const [templatesMethodsList, setTemplatesMethodsList] = useState({ templates: [], methods: [] });
   const [initialSelectionSet, setInitialSelectionSet] = useState(false);
   const [treeHeight, setTreeHeight] = useState(700);
 
@@ -74,7 +74,7 @@ export default function DocumentList() {
     // Update URL with selected item ID
     if (node && node.id) {
       // Don't add root, templates, methods, or trash to URL, keep as /documents
-      if (node.id === 'root' || node.id === 'trash' || node.id === 'templates' || node.id === 'methods') {
+      if (node.id === 'root' || node.id === 'trash' || node.id === 'templates-methods') {
         history.push('/documents');
       } else {
         history.push(`/documents/${node.id}`);
@@ -117,41 +117,36 @@ export default function DocumentList() {
 
 	useEffect(() => {
 		const loadDocs = async () => {
-			const { Trash, Entries, Templates, Methods } = await apiservice.listDocument()
-
+			const { Trash, Entries, Templates, Methods } = await apiservice.listDocument();
+			const templatesChildren = Templates?.[0]?.children ?? [];
+			const methodsChildren = Methods?.[0]?.children ?? [];
 			const root = {
 				id: "root",
 				name: "My Files",
 				isFolder: true,
 				icon: "device",
 				children: Entries || [],
-			}
-			const templates = {
-				id: "templates",
-				name: "Templates",
+			};
+			const templatesAndMethods = {
+				id: "templates-methods",
+				name: "Templates & rm Methods",
 				isFolder: true,
 				icon: "templates",
-				children: Templates?.[0]?.children ?? [],
-			}
-			const methods = {
-				id: "methods",
-				name: "rm Methods",
-				isFolder: true,
-				icon: "methods",
-				children: Methods?.[0]?.children ?? [],
-			}
+				children: [],
+			};
 			const trash = {
 				id: "trash",
 				name: "Trash",
 				isFolder: true,
 				icon: "trash",
 				children: Trash || [],
-			}
-			setEntries([root, templates, methods, trash]);
-		}
+			};
+			setTemplatesMethodsList({ templates: templatesChildren, methods: methodsChildren });
+			setEntries([root, templatesAndMethods, trash]);
+		};
 
-		loadDocs().catch(e => toast.error(e));
-	},[counter])
+		loadDocs().catch((e) => toast.error(e));
+	}, [counter]);
 
   // Helper function to recursively search for an item by ID in the tree
   // Returns both the item and its parent chain
@@ -176,13 +171,13 @@ export default function DocumentList() {
       id: parentItem.id,
       data: parentItem,
       isLeaf: !parentItem.isFolder,
-      isRoot: parentItem.id === 'root' || parentItem.id === 'trash' || parentItem.id === 'templates' || parentItem.id === 'methods',
+      isRoot: parentItem.id === 'root' || parentItem.id === 'trash' || parentItem.id === 'templates-methods',
       // Add a dummy toggle function for compatibility
       toggle: () => {},
     };
 
     // If this parent is not root/trash, try to find its parent
-    if (parentItem.id !== 'root' && parentItem.id !== 'trash' && parentItem.id !== 'templates' && parentItem.id !== 'methods') {
+    if (parentItem.id !== 'root' && parentItem.id !== 'trash' && parentItem.id !== 'templates-methods') {
       const grandparentResult = findItemInEntries(entries, parentItem.id);
       if (grandparentResult && grandparentResult.parent) {
         parentNode.parent = buildParentChain(grandparentResult.parent);
@@ -232,7 +227,7 @@ export default function DocumentList() {
         isLeaf: !child.isFolder,
       })),
       parent: parentItem ? buildParentChain(parentItem) : null,
-      isRoot: foundItem.id === 'root' || foundItem.id === 'trash' || foundItem.id === 'templates' || foundItem.id === 'methods',
+      isRoot: foundItem.id === 'root' || foundItem.id === 'trash' || foundItem.id === 'templates-methods',
     };
 
     // Set the selection directly
@@ -275,11 +270,15 @@ export default function DocumentList() {
           </Col>
           <Col md={8} style={{display: "flex", flexDirection: "column", height: "100%"}}>
             <div style={{flex: "1 1 auto", minHeight: 0, overflow: "auto"}}>
-              {selected && selected.isLeaf && selected.data?.type === "template" && <TemplateViewer file={selected} onSelect={onSelect} />}
-              {selected && selected.isLeaf && selected.data?.type === "method" && <MethodViewer file={selected} onSelect={onSelect} />}
+              {selected?.id === "templates-methods" && (
+                <TemplatesMethodsGrid
+                  templates={templatesMethodsList.templates}
+                  methods={templatesMethodsList.methods}
+                />
+              )}
               {selected && selected.isLeaf && isEpub(selected.data) && <EpubViewer file={selected} onSelect={onSelect} />}
-              {selected && selected.isLeaf && !isEpub(selected.data) && selected.data?.type !== "template" && selected.data?.type !== "method" && <File file={selected} onSelect={onSelect} />}
-              {selected && !selected.isLeaf && <Folder selection={selected} onSelect={onSelect} onUpdate={onUpdate} counter={counter} />}
+              {selected && selected.isLeaf && !isEpub(selected.data) && selected.id !== "templates-methods" && <File file={selected} onSelect={onSelect} />}
+              {selected && !selected.isLeaf && selected?.id !== "templates-methods" && <Folder selection={selected} onSelect={onSelect} onUpdate={onUpdate} counter={counter} />}
             </div>
           </Col>
         </Row>
