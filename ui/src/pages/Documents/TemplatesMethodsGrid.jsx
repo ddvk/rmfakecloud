@@ -141,7 +141,7 @@ function forceBlackSvg(svgText) {
   return s;
 }
 
-function Card({ item, isTemplate, fetchSvg, onTemplateHoverChange }) {
+function Card({ item, isTemplate, fetchSvg, onHoverChange }) {
   const [svgContent, setSvgContent] = useState(null);
   const [dimensions, setDimensions] = useState(null);
 
@@ -180,11 +180,10 @@ function Card({ item, isTemplate, fetchSvg, onTemplateHoverChange }) {
         minWidth: 0,
       }}
       onMouseEnter={(e) => {
-        if (!isTemplate) return;
         if (!isSvg) return;
-        if (typeof onTemplateHoverChange !== "function") return;
+        if (typeof onHoverChange !== "function") return;
         const rect = e.currentTarget.getBoundingClientRect();
-        onTemplateHoverChange({
+        onHoverChange({
           id: item?.id,
           name: item?.name,
           svg: svgContent,
@@ -193,16 +192,15 @@ function Card({ item, isTemplate, fetchSvg, onTemplateHoverChange }) {
         });
       }}
       onMouseLeave={() => {
-        if (!isTemplate) return;
-        if (typeof onTemplateHoverChange !== "function") return;
-        onTemplateHoverChange(null);
+        if (typeof onHoverChange !== "function") return;
+        onHoverChange(null);
       }}
     >
       <div
         style={{
           aspectRatio: `${preset.w} / ${preset.h}`,
           width: "100%",
-          maxWidth: 120,
+          maxWidth: 240,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -322,7 +320,7 @@ export default function TemplatesMethodsGrid({ templates, methods }) {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
           gap: 16,
         }}
       >
@@ -332,7 +330,7 @@ export default function TemplatesMethodsGrid({ templates, methods }) {
             item={item}
             isTemplate={item.isTemplate}
             fetchSvg={item.isTemplate ? fetchTemplate : fetchMethod}
-            onTemplateHoverChange={item.isTemplate ? setHoverPreview : undefined}
+            onHoverChange={setHoverPreview}
           />
         ))}
       </div>

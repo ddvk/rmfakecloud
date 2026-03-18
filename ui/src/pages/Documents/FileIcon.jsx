@@ -33,8 +33,8 @@ export default function FileIcon({ file, showThumbnail = false }) {
             src={apiservice.getDocumentPageBackgroundUrl(file.id, 1)}
             alt={file.name || "PDF"}
             style={{
-              width: 34,
-              height: 44,
+              width: 68,
+              height: 88,
               objectFit: "cover",
               borderRadius: 3,
               border: "1px solid #dee2e6",

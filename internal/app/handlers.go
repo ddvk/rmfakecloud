@@ -1,6 +1,7 @@
 package app
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/rand"
 	"encoding/base64"
@@ -897,7 +898,13 @@ func (app *App) blobStorageRead(c *gin.Context) {
 	defer reader.Close()
 	common.AddHashHeader(c, hash)
 
-	c.DataFromReader(http.StatusOK, size, "application/octet-stream", reader, nil)
+	br := bufio.NewReader(reader)
+	ct := "application/octet-stream"
+	if b, err := br.Peek(5); err == nil && string(b) == "%PDF-" {
+		ct = "application/pdf"
+	}
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.DataFromReader(http.StatusOK, size, ct, br, nil)
 }
 
 func (app *App) blobStorageWrite(c *gin.Context) {
@@ -1048,7 +1055,13 @@ func (app *App) integrationsGetFile(c *gin.Context) {
 
 	defer reader.Close()
 
-	c.DataFromReader(http.StatusOK, size, "application/octet-stream", reader, nil)
+	br := bufio.NewReader(reader)
+	ct := "application/octet-stream"
+	if b, err := br.Peek(5); err == nil && string(b) == "%PDF-" {
+		ct = "application/pdf"
+	}
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.DataFromReader(http.StatusOK, size, ct, br, nil)
 }
 
 func (app *App) integrationsList(c *gin.Context) {

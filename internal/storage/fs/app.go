@@ -1,6 +1,7 @@
 package fs
 
 import (
+	"bufio"
 	"crypto/hmac"
 	"crypto/sha256"
 	"crypto/subtle"
@@ -123,7 +124,13 @@ func (app *App) downloadDocument(c *gin.Context) {
 		return
 	}
 	defer reader.Close()
-	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
+	br := bufio.NewReader(reader)
+	ct := "application/octet-stream"
+	if b, err := br.Peek(5); err == nil && string(b) == "%PDF-" {
+		ct = "application/pdf"
+	}
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.DataFromReader(http.StatusOK, -1, ct, br, nil)
 }
 
 func (app *App) downloadBlob(c *gin.Context) {

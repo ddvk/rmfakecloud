@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Stack } from "react-bootstrap";
 import {
   useReactTable,
@@ -24,6 +24,53 @@ export default function FileListViewer({ listStyle, files, onSelect, counter, se
   const onClickItem = (file) => {
     onSelect(file);
   }
+
+  const [contextMenu, setContextMenu] = useState(null); // { x, y, file }
+  const contextMenuRef = useRef(null);
+
+  useEffect(() => {
+    if (!contextMenu) return;
+    const onDown = (e) => {
+      // Close if click outside the menu.
+      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target)) {
+        setContextMenu(null);
+      }
+    };
+    const onKey = (e) => {
+      if (e.key === "Escape") setContextMenu(null);
+    };
+    window.addEventListener("mousedown", onDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("mousedown", onDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [contextMenu]);
+
+  const openContextMenu = (e, file) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const pad = 8;
+    const vw = window.innerWidth || 0;
+    const vh = window.innerHeight || 0;
+    const menuW = 240;
+    const menuH = 210;
+    const x = Math.min(Math.max(pad, e.clientX), Math.max(pad, vw - menuW - pad));
+    const y = Math.min(Math.max(pad, e.clientY), Math.max(pad, vh - menuH - pad));
+    setContextMenu({ x, y, file });
+  };
+
+  const contextHeader = useMemo(() => {
+    if (!contextMenu?.file) return "";
+    if (selectedIds.length > 1) return `${selectedIds.length} selected`;
+    return contextMenu.file?.data?.name || contextMenu.file?.id || "Actions";
+  }, [contextMenu?.file, selectedIds.length]);
+
+  const onActionOpen = () => {
+    if (!contextMenu?.file) return;
+    onClickItem(contextMenu.file);
+    setContextMenu(null);
+  };
 
   const isFolderClassName = (item) => {
     if (item.isFolder) return "is-folder";
@@ -130,7 +177,7 @@ export default function FileListViewer({ listStyle, files, onSelect, counter, se
   });
 
   const gridFolderItems = files.filter(file => !file.isLeaf).map(file =>
-    <div className="filegrid-folder-item" key={file.id}>
+    <div className="filegrid-folder-item" key={file.id} onContextMenu={(e) => openContextMenu(e, file)}>
       <input
         type="checkbox"
         checked={selectedIds.includes(file.id)}
@@ -146,7 +193,7 @@ export default function FileListViewer({ listStyle, files, onSelect, counter, se
   );
 
   const gridFileItems = files.filter(file => file.isLeaf).map(file =>
-    <div className="filegrid-file-item" key={file.id}>
+    <div className="filegrid-file-item" key={file.id} onContextMenu={(e) => openContextMenu(e, file)}>
       <input
         type="checkbox"
         checked={selectedIds.includes(file.id)}
@@ -168,6 +215,61 @@ export default function FileListViewer({ listStyle, files, onSelect, counter, se
 
   return (
     <>
+      {contextMenu && (
+        <div
+          ref={contextMenuRef}
+          style={{
+            position: "fixed",
+            left: contextMenu.x,
+            top: contextMenu.y,
+            width: 240,
+            background: "#fff",
+            border: "1px solid rgba(0,0,0,0.15)",
+            borderRadius: 8,
+            boxShadow: "0 10px 30px rgba(0,0,0,0.18)",
+            zIndex: 5000,
+            overflow: "hidden",
+          }}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+        >
+          <div
+            style={{
+              padding: "8px 10px",
+              fontSize: 12,
+              fontWeight: 700,
+              color: "#212529",
+              background: "#f8f9fa",
+              borderBottom: "1px solid rgba(0,0,0,0.08)",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+            title={contextHeader}
+          >
+            {contextHeader}
+          </div>
+          <button
+            type="button"
+            style={menuItemStyle}
+            onClick={onActionOpen}
+          >
+            Open
+          </button>
+          <button type="button" style={menuItemStyle} disabled>
+            Download
+          </button>
+          <button type="button" style={menuItemStyle} disabled>
+            Rename
+          </button>
+          <div style={{ height: 1, background: "rgba(0,0,0,0.08)" }} />
+          <button type="button" style={{ ...menuItemStyle, color: "#dc3545" }} disabled>
+            Delete
+          </button>
+        </div>
+      )}
       {files && (listStyle === "list") && (
         <div>
           <div style={{ height: '1em', width: '100%' }}></div>
@@ -209,6 +311,7 @@ export default function FileListViewer({ listStyle, files, onSelect, counter, se
                   key={row.id}
                   className="filelist-item p-2"
                   onClick={() => onClickItem(row.original)}
+                  onContextMenu={(e) => openContextMenu(e, row.original)}
                 >
                   <Stack direction="horizontal">
                     {row.getVisibleCells().map(cell => (
@@ -245,3 +348,14 @@ export default function FileListViewer({ listStyle, files, onSelect, counter, se
     </>
   );
 }
+
+const menuItemStyle = {
+  width: "100%",
+  textAlign: "left",
+  padding: "9px 10px",
+  background: "transparent",
+  border: "none",
+  fontSize: 13,
+  color: "#212529",
+  cursor: "pointer",
+};
