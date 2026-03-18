@@ -141,7 +141,7 @@ function forceBlackSvg(svgText) {
   return s;
 }
 
-function Card({ item, isTemplate, fetchSvg }) {
+function Card({ item, isTemplate, fetchSvg, onTemplateHoverChange }) {
   const [svgContent, setSvgContent] = useState(null);
   const [dimensions, setDimensions] = useState(null);
 
@@ -178,6 +178,24 @@ function Card({ item, isTemplate, fetchSvg }) {
         flexDirection: "column",
         alignItems: "center",
         minWidth: 0,
+      }}
+      onMouseEnter={(e) => {
+        if (!isTemplate) return;
+        if (!isSvg) return;
+        if (typeof onTemplateHoverChange !== "function") return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        onTemplateHoverChange({
+          id: item?.id,
+          name: item?.name,
+          svg: svgContent,
+          preset,
+          rect,
+        });
+      }}
+      onMouseLeave={() => {
+        if (!isTemplate) return;
+        if (typeof onTemplateHoverChange !== "function") return;
+        onTemplateHoverChange(null);
       }}
     >
       <div
@@ -223,6 +241,7 @@ function Card({ item, isTemplate, fetchSvg }) {
 export default function TemplatesMethodsGrid({ templates, methods }) {
   const templatesList = useMemo(() => templates ?? [], [templates]);
   const methodsList = useMemo(() => methods ?? [], [methods]);
+  const [hoverPreview, setHoverPreview] = useState(null);
   const combined = useMemo(
     () => [
       ...templatesList.map((c) => ({ ...c, isTemplate: true })),
@@ -234,6 +253,37 @@ export default function TemplatesMethodsGrid({ templates, methods }) {
   const fetchTemplate = (id) => apiservice.getTemplate(id);
   const fetchMethod = (id) => apiservice.getMethod(id);
 
+  const previewStyle = useMemo(() => {
+    if (!hoverPreview?.rect || !hoverPreview?.preset) return null;
+    const gap = 12;
+    const maxW = 260;
+    const maxH = 360;
+    const viewportW = window?.innerWidth ?? 0;
+    const viewportH = window?.innerHeight ?? 0;
+
+    let left = hoverPreview.rect.right + gap;
+    let top = hoverPreview.rect.top;
+
+    // Flip to left side if we'd overflow.
+    if (viewportW && left+maxW > viewportW - gap) {
+      left = Math.max(gap, hoverPreview.rect.left - gap - maxW);
+    }
+    // Clamp vertically.
+    if (viewportH && top+maxH > viewportH - gap) {
+      top = Math.max(gap, viewportH - gap - maxH);
+    }
+
+    return {
+      position: "fixed",
+      left,
+      top,
+      width: maxW,
+      maxWidth: `calc(100vw - ${gap * 2}px)`,
+      zIndex: 2000,
+      pointerEvents: "none", // disappear when leaving template rect
+    };
+  }, [hoverPreview]);
+
   return (
     <div
       style={{
@@ -241,8 +291,34 @@ export default function TemplatesMethodsGrid({ templates, methods }) {
         minHeight: 0,
         overflow: "auto",
         padding: 16,
+        position: "relative",
       }}
     >
+      {hoverPreview?.svg && previewStyle && (
+        <div style={previewStyle}>
+          <div
+            style={{
+              border: "1px solid #ced4da",
+              borderRadius: 10,
+              background: "#fff",
+              boxShadow: "0 10px 30px rgba(0,0,0,0.20)",
+              padding: 10,
+            }}
+          >
+            <div
+              style={{
+                aspectRatio: `${hoverPreview.preset.w} / ${hoverPreview.preset.h}`,
+                width: "100%",
+                maxHeight: 360,
+                background: "#f5f5f5",
+                borderRadius: 6,
+                overflow: "hidden",
+              }}
+              dangerouslySetInnerHTML={{ __html: svgToScaledInline(hoverPreview.svg) }}
+            />
+          </div>
+        </div>
+      )}
       <div
         style={{
           display: "grid",
@@ -256,6 +332,7 @@ export default function TemplatesMethodsGrid({ templates, methods }) {
             item={item}
             isTemplate={item.isTemplate}
             fetchSvg={item.isTemplate ? fetchTemplate : fetchMethod}
+            onTemplateHoverChange={item.isTemplate ? setHoverPreview : undefined}
           />
         ))}
       </div>
