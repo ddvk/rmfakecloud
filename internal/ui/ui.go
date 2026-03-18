@@ -30,6 +30,7 @@ type backend interface {
 }
 type codeGenerator interface {
 	NewCode(string) (string, error)
+	CodeStatus(uid string) (expiresAt time.Time, valid bool)
 }
 
 type documentHandler interface {

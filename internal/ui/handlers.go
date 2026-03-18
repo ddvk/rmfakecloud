@@ -234,8 +234,18 @@ func (app *ReactAppWrapper) newCode(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, viewmodel.NewErrorResponse("Unable to generate new code"))
 		return
 	}
+	expiresAt, _ := app.codeConnector.CodeStatus(user.ID)
+	c.JSON(http.StatusOK, gin.H{"code": code, "expiresAt": expiresAt.Unix()})
+}
 
-	c.JSON(http.StatusOK, code)
+func (app *ReactAppWrapper) newCodeStatus(c *gin.Context) {
+	uid := userID(c)
+	expiresAt, valid := app.codeConnector.CodeStatus(uid)
+	if !valid {
+		c.JSON(http.StatusOK, gin.H{"valid": false})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"valid": true, "expiresAt": expiresAt.Unix()})
 }
 
 func (app *ReactAppWrapper) getBackend(c *gin.Context) backend {

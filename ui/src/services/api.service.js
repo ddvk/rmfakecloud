@@ -137,6 +137,17 @@ class ApiServices {
     return fetch(`${constants.ROOT_URL}/newcode`, {
       method: "GET",
       headers: this.header(),
+      credentials: "same-origin",
+    }).then((r) => {
+      handleError(r);
+      return r.json();
+    });
+  }
+
+  getCodeStatus() {
+    return fetch(`${constants.ROOT_URL}/newcode/status`, {
+      method: "GET",
+      credentials: "same-origin",
     }).then((r) => {
       handleError(r);
       return r.json();
