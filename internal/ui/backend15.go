@@ -23,9 +23,15 @@ func (b *backend15) GetDocumentTree(uid string) (tree *viewmodel.DocumentTree, e
 		return nil, err
 	}
 	tree = viewmodel.DocTreeFromHashTree(hashTree)
-	// Templates: builtin only (frontend expects [ Directory ])
-	tree.Templates = []viewmodel.Entry{templates.BuiltinTemplatesDirectory()}
-	// Methods: merge builtin with synced (synced filtered by file extension in viewmodel)
+	// Templates: merge builtin with synced (separate section in tree)
+	tDir := templates.BuiltinTemplatesDirectory()
+	if len(tree.Templates) > 0 {
+		if d, ok := tree.Templates[0].(*viewmodel.Directory); ok {
+			tDir.Entries = append(tDir.Entries, d.Entries...)
+		}
+	}
+	tree.Templates = []viewmodel.Entry{tDir}
+	// Methods: merge builtin with synced (separate section in tree)
 	mDir := methods.BuiltinMethodsDirectory()
 	if len(tree.Methods) > 0 {
 		if d, ok := tree.Methods[0].(*viewmodel.Directory); ok {

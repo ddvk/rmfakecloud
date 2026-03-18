@@ -88,6 +88,9 @@ func makeDocument(d *InternalDoc) (entry Entry) {
 // methodsSource is the reMarkable metadata source for rm Methods.
 const methodsSource = "com.remarkable.methods"
 
+// templateType is the collection type for Templates (device/synced templates).
+const templateType = common.EntryType("TemplateType")
+
 // fileTypeFromDoc returns document type by file extension; else "notebook" or payloadType.
 func fileTypeFromDoc(d *models.HashDoc) string {
 	if t := d.PayloadTypeFromFiles(); t != "" {
@@ -96,9 +99,10 @@ func fileTypeFromDoc(d *models.HashDoc) string {
 	return "notebook"
 }
 
-// DocTreeFromHashTree from hash tree
+// DocTreeFromHashTree from hash tree. Templates and Methods are separated into their own sections.
 func DocTreeFromHashTree(tree *models.HashTree) *DocumentTree {
 	docs := make([]*InternalDoc, 0)
+	templateDocs := make([]*InternalDoc, 0)
 	methodDocs := make([]*InternalDoc, 0)
 	for _, d := range tree.Docs {
 		if d.Deleted {
@@ -123,11 +127,32 @@ func DocTreeFromHashTree(tree *models.HashTree) *DocumentTree {
 			methodDocs = append(methodDocs, internalDoc)
 			continue
 		}
+		if d.MetadataFile.CollectionType == templateType {
+			templateDocs = append(templateDocs, internalDoc)
+			continue
+		}
 		docs = append(docs, internalDoc)
 	}
 	dt := DocTreeFromRawMetadata(docs)
+	dt.Templates = templateEntriesToDirectory(templateDocs)
 	dt.Methods = methodEntriesToDirectory(methodDocs)
 	return dt
+}
+
+// templateEntriesToDirectory returns a single Directory (as []Entry) for synced template documents.
+func templateEntriesToDirectory(templateDocs []*InternalDoc) []Entry {
+	children := make([]Entry, 0, len(templateDocs))
+	for _, d := range templateDocs {
+		children = append(children, makeDocument(d))
+	}
+	dir := &Directory{
+		ID:           "templates",
+		Name:         "Templates",
+		Entries:      children,
+		LastModified: time.Time{},
+		IsFolder:     true,
+	}
+	return []Entry{dir}
 }
 
 // methodEntriesToDirectory returns a single Directory (as []Entry) for method documents with type by extension.
