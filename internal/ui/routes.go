@@ -60,19 +60,17 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	// auth.POST("changeEmail", app.changePassword)
 
 	auth.GET("documents", app.listDocuments)
-	auth.GET("documents/:docid/epub/*path", app.getDocumentEpub)
-	auth.GET("documents/:docid/template", app.getDocumentTemplate)
-	auth.GET("documents/:docid/metadata", app.getDocumentMetadata)
-	auth.GET("documents/:docid/page/:pagenum", app.getDocumentPage)
 	auth.GET("documents/:docid", app.getDocument)
-	auth.GET("templates/:id", app.getTemplate)
-	auth.GET("methods/:id", app.getMethod)
+	auth.GET("documents/:docid/template", app.getTemplate)
 	auth.POST("documents/upload", app.createDocument)
 
 	//move, rename
 	auth.DELETE("documents/:docid", app.deleteDocument)
 	auth.PUT("documents", app.updateDocument)
 	auth.POST("folders", app.createFolder)
+	auth.GET("documents/:docid/metadata", app.getDocumentMetadata)
+	auth.GET("documents/:docid/page/:pagenum", app.getDocumentPage)
+	auth.GET("documents/:docid/epub/*path", app.getEpubPath)
 
 	// integrations
 	auth.GET("integrations", app.listIntegrations)

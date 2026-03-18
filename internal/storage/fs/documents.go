@@ -1,8 +1,6 @@
 package fs
 
 import (
-	"archive/zip"
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -10,7 +8,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -54,26 +51,22 @@ func (fs *FileSystemStorage) getPathFromUser(uid, path string) string {
 
 // ExportDocument Exports a document to the outputType
 func (fs *FileSystemStorage) ExportDocument(uid, id, outputType string, exportOption storage.ExportOption) (io.ReadCloser, error) {
+	if outputType != "pdf" {
+		return nil, errors.New("todo: only pdfs supported")
+	}
+
+	cacheDirPath := fs.getPathFromUser(uid, CacheDir)
+	err := os.MkdirAll(cacheDirPath, 0700)
+	if err != nil {
+		return nil, err
+	}
 	sanitizedID := common.Sanitize(id)
+
 	zipFilePath := fs.getPathFromUser(uid, sanitizedID+storage.ZipFileExt)
 	log.Debugln("Fullpath:", zipFilePath)
 	rawStat, err := os.Stat(zipFilePath)
 	if err != nil {
 		return nil, fmt.Errorf("cant find raw document %v", err)
-	}
-
-	if outputType == "epub" {
-		return fs.exportEpubFromZip(zipFilePath, rawStat.Size())
-	}
-
-	if outputType != "pdf" {
-		return nil, errors.New("todo: only pdf and epub supported")
-	}
-
-	cacheDirPath := fs.getPathFromUser(uid, CacheDir)
-	err = os.MkdirAll(cacheDirPath, 0700)
-	if err != nil {
-		return nil, err
 	}
 
 	outputFilePath := path.Join(cacheDirPath, sanitizedID+"-annotated.pdf")
@@ -94,11 +87,6 @@ func (fs *FileSystemStorage) ExportDocument(uid, id, outputType string, exportOp
 	err = arch.Read(zipFile, size)
 	if err != nil {
 		return nil, err
-	}
-
-	// Export raw PDF only (no annotations/drawings) when requested
-	if exportOption == storage.ExportPayload && len(arch.Payload) > 0 {
-		return io.NopCloser(bytes.NewReader(arch.Payload)), nil
 	}
 
 	if arch.Payload != nil {
@@ -122,41 +110,6 @@ func (fs *FileSystemStorage) ExportDocument(uid, id, outputType string, exportOp
 
 	return outputFile, nil
 
-}
-
-// exportEpubFromZip opens the document zip and returns a reader for the .epub entry.
-func (fs *FileSystemStorage) exportEpubFromZip(zipFilePath string, size int64) (io.ReadCloser, error) {
-	zipFile, err := os.Open(zipFilePath)
-	if err != nil {
-		return nil, err
-	}
-	zr, err := zip.NewReader(zipFile, size)
-	if err != nil {
-		zipFile.Close()
-		return nil, err
-	}
-	for _, f := range zr.File {
-		if strings.HasSuffix(strings.ToLower(f.Name), storage.EpubFileExt) {
-			rc, err := f.Open()
-			if err != nil {
-				zipFile.Close()
-				return nil, err
-			}
-			return &zipEntryReadCloser{ReadCloser: rc, close: zipFile.Close}, nil
-		}
-	}
-	zipFile.Close()
-	return nil, errors.New("no epub entry found in document")
-}
-
-type zipEntryReadCloser struct {
-	io.ReadCloser
-	close func() error
-}
-
-func (z *zipEntryReadCloser) Close() error {
-	_ = z.ReadCloser.Close()
-	return z.close()
 }
 
 // GetDocument Opens a document by id

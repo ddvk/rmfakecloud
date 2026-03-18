@@ -32,8 +32,8 @@ type opfPackage struct {
 	XMLName  xml.Name `xml:"http://www.idpf.org/2007/opf package"`
 	Manifest struct {
 		Items []struct {
-			ID        string `xml:"id,attr"`
-			Href      string `xml:"href,attr"`
+			ID       string `xml:"id,attr"`
+			Href     string `xml:"href,attr"`
 			MediaType string `xml:"media-type,attr"`
 		} `xml:"item"`
 	} `xml:"manifest"`

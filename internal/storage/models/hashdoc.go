@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"path"
 	"sort"
@@ -15,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/ddvk/rmfakecloud/internal/common"
+	"github.com/ddvk/rmfakecloud/internal/storage"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -89,7 +89,7 @@ func (d *HashDoc) MetadataReader() (hash string, reader io.Reader, err error) {
 // HasWritings returns true if the document has any .rm annotation pages.
 func (d *HashDoc) HasWritings() bool {
 	for _, f := range d.Files {
-		if strings.ToLower(path.Ext(f.EntryName)) == ".rm" {
+		if strings.ToLower(path.Ext(f.EntryName)) == storage.RmFileExt {
 			return true
 		}
 	}
@@ -107,22 +107,10 @@ func (d *HashDoc) AddFile(e *HashEntry) error {
 	return d.Rehash()
 }
 
-type ErrDocumentExists struct {
-	DocID string
-	Name  string
-}
-
-func (e *ErrDocumentExists) Error() string {
-	return fmt.Sprintf("document %q already exists (id: %s)", e.Name, e.DocID)
-}
-
 // Add  adds a doc to the tree
 func (t *HashTree) Add(d *HashDoc) error {
 	if len(d.Files) == 0 {
 		return errors.New("no files")
-	}
-	if existing, err := t.FindDoc(d.EntryName); err == nil {
-		return &ErrDocumentExists{DocID: existing.EntryName, Name: existing.PayloadType}
 	}
 	t.Docs = append(t.Docs, d)
 	return t.Rehash()

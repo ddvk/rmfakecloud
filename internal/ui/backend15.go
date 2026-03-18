@@ -23,31 +23,12 @@ func (b *backend15) GetDocumentTree(uid string) (tree *viewmodel.DocumentTree, e
 
 	return viewmodel.DocTreeFromHashTree(hashTree), nil
 }
-
-func (b *backend15) GetSyncedMethodEntries(uid string) ([]viewmodel.Entry, error) {
-	hashTree, err := b.blobHandler.GetCachedTree(uid)
-	if err != nil {
-		return nil, err
-	}
-	return viewmodel.MethodEntriesFromHashTree(hashTree), nil
-}
-
-func (b *backend15) GetMethodSVG(uid, docid string) (string, error) {
-	return b.blobHandler.GetMethodSVG(uid, docid)
-}
-
 func (b *backend15) Export(uid, docid, exporttype string, opt storage.ExportOption) (r io.ReadCloser, err error) {
-	switch exporttype {
-	case "rmdoc":
-		return b.blobHandler.ExportRmDoc(uid, docid)
-	case "epub":
-		return b.blobHandler.ExportEpub(uid, docid)
-	default:
-		return b.blobHandler.Export(uid, docid)
-	}
+	r, err = b.blobHandler.Export(uid, docid)
+	return
 }
 
-func (b *backend15) GetTemplate(uid, docid string) (io.ReadCloser, error) {
+func (b *backend15) GetTemplate(uid, docid string) (r io.ReadCloser, err error) {
 	return b.blobHandler.GetTemplate(uid, docid)
 }
 

@@ -43,10 +43,8 @@ func NewErrorResponse(errormsg string) ErrorResponse {
 
 // DocumentTree a tree of documents
 type DocumentTree struct {
-	Entries   []Entry
-	Templates []Entry
-	Methods   []Entry
-	Trash     []Entry
+	Entries []Entry
+	Trash   []Entry
 }
 
 type InternalDoc struct {
@@ -59,6 +57,7 @@ type InternalDoc struct {
 	CurrentPage  int
 	Parent       string
 	Size         int64
+	HasWritings  bool
 }
 
 func makeFolder(d *InternalDoc) (entry *Directory) {
@@ -77,20 +76,18 @@ func makeDocument(d *InternalDoc) (entry Entry) {
 		Name:         d.Name,
 		LastModified: d.LastModified,
 		DocumentType: d.FileType,
+		Collection:   d.Type,
 		Size:         d.Size,
+		HasWritings:  d.HasWritings,
 	}
 	return
 }
 
-// DocTreeFromHashTree from hash tree. Excludes templates and methods so they only appear under Templates / rm Methods.
+// DocTreeFromHashTree from hash tree
 func DocTreeFromHashTree(tree *models.HashTree) *DocumentTree {
 	docs := make([]*InternalDoc, 0)
 	for _, d := range tree.Docs {
 		if d.Deleted {
-			continue
-		}
-		// Do not list templates or methods under My Files
-		if d.MetadataFile.CollectionType == common.TemplateType || d.MetadataFile.Source == "com.remarkable.methods" {
 			continue
 		}
 
@@ -106,32 +103,11 @@ func DocTreeFromHashTree(tree *models.HashTree) *DocumentTree {
 			LastModified: lastModified,
 			FileType:     d.PayloadType,
 			Size:         d.Size,
+			HasWritings:  d.HasWritings(),
 		})
 	}
 
 	return DocTreeFromRawMetadata(docs)
-}
-
-// MethodEntriesFromHashTree returns document entries for synced Methods (source com.remarkable.methods or type TemplateType).
-func MethodEntriesFromHashTree(tree *models.HashTree) []Entry {
-	out := make([]Entry, 0)
-	for _, d := range tree.Docs {
-		if d.Deleted {
-			continue
-		}
-		if d.MetadataFile.Source != "com.remarkable.methods" && d.MetadataFile.CollectionType != common.TemplateType {
-			continue
-		}
-		lastModified, _ := models.ToTime(d.LastModified)
-		out = append(out, &Document{
-			ID:           d.EntryName,
-			Name:         d.MetadataFile.DocumentName,
-			DocumentType: "method",
-			LastModified: lastModified,
-			Size:         d.Size,
-		})
-	}
-	return out
 }
 
 // DocTreeFromRawMetadata from raw metadata
@@ -226,11 +202,13 @@ type Directory struct {
 
 // Document is a single document
 type Document struct {
-	ID           string    `json:"id"`
-	Name         string    `json:"name"`
-	DocumentType string    `json:"type"` //notebook, pdf, epub
-	LastModified time.Time `json:"lastModified"`
-	Size         int64     `json:"size"`
+	ID           string             `json:"id"`
+	Name         string             `json:"name"`
+	DocumentType string             `json:"type"` // notebook, pdf, epub
+	Collection   common.EntryType   `json:"collectionType"`
+	LastModified time.Time          `json:"lastModified"`
+	Size         int64              `json:"size"`
+	HasWritings  bool               `json:"hasWritings"`
 }
 
 // DocumentList is a list of documents

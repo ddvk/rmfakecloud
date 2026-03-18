@@ -1,20 +1,19 @@
 package ui
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"path"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/integrations"
+	"github.com/ddvk/rmfakecloud/internal/storage/epub"
 	"github.com/ddvk/rmfakecloud/internal/model"
 	"github.com/ddvk/rmfakecloud/internal/storage"
-	"github.com/ddvk/rmfakecloud/internal/storage/models"
-	"github.com/ddvk/rmfakecloud/internal/ui/methods"
-	"github.com/ddvk/rmfakecloud/internal/ui/templates"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
@@ -263,26 +262,16 @@ func (app *ReactAppWrapper) listDocuments(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	// Add built-in templates and methods sections (include synced Methods from device)
-	tree.Templates = []viewmodel.Entry{templates.BuiltinTemplatesDirectory()}
-	methodsDir := methods.BuiltinMethodsDirectory()
-	if synced, err := backend.GetSyncedMethodEntries(uid); err == nil && len(synced) > 0 {
-		methodsDir.Entries = append(methodsDir.Entries, synced...)
-	}
-	tree.Methods = []viewmodel.Entry{methodsDir}
 	c.JSON(http.StatusOK, tree)
 }
 func (app *ReactAppWrapper) getDocument(c *gin.Context) {
 	uid := userID(c)
 	docid := common.ParamS(docIDParam, c)
 
-	exportType := c.DefaultQuery("type", "pdf")
-	exportOption := storage.ExportWithAnnotations
-	if c.Query("annotations") == "0" || c.Query("payload") == "1" {
-		exportOption = storage.ExportPayload
-	}
+	exportType := "pdf"
+	var exportOption storage.ExportOption = 0
 
-	log.Info("exporting ", docid, " as ", exportType)
+	log.Info("exporting ", docid)
 	backend := app.getBackend(c)
 
 	reader, err := backend.Export(uid, docid, exportType, exportOption)
@@ -293,42 +282,38 @@ func (app *ReactAppWrapper) getDocument(c *gin.Context) {
 	}
 
 	defer reader.Close()
-
-	contentType := "application/octet-stream"
-	if exportType == "rmdoc" {
-		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s.rmdoc\"", docid))
-	} else if exportType == "epub" {
-		contentType = "application/epub+zip"
-	}
-
-	c.DataFromReader(http.StatusOK, -1, contentType, reader, nil)
+	// Helpful for browser downloads / embedded PDF viewers.
+	// UI uses this endpoint both for inline viewing (react-pdf) and for downloads.
+	c.Header("Content-Disposition", fmt.Sprintf("inline; filename=%q", docid+"."+exportType))
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.DataFromReader(http.StatusOK, -1, "application/pdf", reader, nil)
 }
 
 func (app *ReactAppWrapper) getTemplate(c *gin.Context) {
-	templateID := c.Param("id")
-	svg := templates.GetSVG(templateID)
-	if svg == "" {
-		c.AbortWithStatus(http.StatusNotFound)
-		return
-	}
-	c.Header("Content-Type", "image/svg+xml")
-	c.String(http.StatusOK, svg)
-}
-
-func (app *ReactAppWrapper) getMethod(c *gin.Context) {
 	uid := userID(c)
-	methodID := c.Param("id")
-	svg := methods.GetSVG(methodID)
-	if svg == "" {
-		backend := app.getBackend(c)
-		svg, _ = backend.GetMethodSVG(uid, methodID)
+	docid := common.ParamS(docIDParam, c)
+
+	backend := app.getBackend(c)
+	// only sync15 backends have templates
+	type templateGetter interface {
+		GetTemplate(uid, docid string) (io.ReadCloser, error)
 	}
-	if svg == "" {
+	tg, ok := backend.(templateGetter)
+	if !ok {
 		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
-	c.Header("Content-Type", "image/svg+xml")
-	c.String(http.StatusOK, svg)
+	reader, err := tg.GetTemplate(uid, docid)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	defer reader.Close()
+
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%q", docid+storage.TemplateFileExt))
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
 }
 
 func (app *ReactAppWrapper) getDocumentMetadata(c *gin.Context) {
@@ -354,30 +339,6 @@ func (app *ReactAppWrapper) getDocumentMetadata(c *gin.Context) {
 		"hasWritings": hasWritings,
 		"pageCount":   pageCount,
 	})
-}
-
-func (app *ReactAppWrapper) getDocumentTemplate(c *gin.Context) {
-	uid := userID(c)
-	docid := common.ParamS(docIDParam, c)
-	type templateGetter interface {
-		GetTemplate(uid, docid string) (io.ReadCloser, error)
-	}
-	backend := app.getBackend(c)
-	tg, ok := backend.(templateGetter)
-	if !ok {
-		c.AbortWithStatus(http.StatusNotFound)
-		return
-	}
-	reader, err := tg.GetTemplate(uid, docid)
-	if err != nil {
-		log.Error(err)
-		c.AbortWithStatus(http.StatusNotFound)
-		return
-	}
-	defer reader.Close()
-	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%q", docid+storage.TemplateFileExt))
-	c.Header("X-Content-Type-Options", "nosniff")
-	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
 }
 
 func (app *ReactAppWrapper) getDocumentPage(c *gin.Context) {
@@ -408,6 +369,48 @@ func (app *ReactAppWrapper) getDocumentPage(c *gin.Context) {
 	c.Header("Content-Type", "image/png")
 	c.Header("X-Content-Type-Options", "nosniff")
 	c.DataFromReader(http.StatusOK, -1, "image/png", reader, nil)
+}
+
+// getEpubPath handles GET /documents/:docid/epub/*path. Path "manifest" returns JSON manifest; otherwise serves the file from the EPUB.
+func (app *ReactAppWrapper) getEpubPath(c *gin.Context) {
+	uid := userID(c)
+	docid := common.ParamS(docIDParam, c)
+	pathParam := c.Param("path")
+	pathParam = strings.TrimPrefix(path.Clean("/"+pathParam), "/")
+	if pathParam == "" || strings.Contains(pathParam, "..") {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	type epubBackend interface {
+		GetEpubManifest(uid, docid string) (*epub.Manifest, error)
+		GetEpubFile(uid, docid, filePath string) (io.ReadCloser, string, error)
+	}
+	backend := app.getBackend(c)
+	eb, ok := backend.(epubBackend)
+	if !ok {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	if pathParam == "manifest" {
+		manifest, err := eb.GetEpubManifest(uid, docid)
+		if err != nil {
+			log.Error(err)
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+		c.JSON(http.StatusOK, manifest)
+		return
+	}
+	reader, contentType, err := eb.GetEpubFile(uid, docid, pathParam)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	defer reader.Close()
+	c.Header("Content-Type", contentType)
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.DataFromReader(http.StatusOK, -1, contentType, reader, nil)
 }
 
 // move rename
@@ -497,13 +500,8 @@ func (app *ReactAppWrapper) createDocument(c *gin.Context) {
 
 		doc, err := backend.CreateDocument(uid, file.Filename, parentID, f)
 		if err != nil {
-			var existsErr *models.ErrDocumentExists
-			if errors.As(err, &existsErr) {
-				c.AbortWithStatusJSON(http.StatusConflict, gin.H{"error": err.Error(), "docId": existsErr.DocID})
-				return
-			}
 			log.Error(err)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
 		docs = append(docs, doc)

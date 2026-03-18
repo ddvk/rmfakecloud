@@ -21,8 +21,6 @@ import (
 
 type backend interface {
 	GetDocumentTree(uid string) (tree *viewmodel.DocumentTree, err error)
-	GetSyncedMethodEntries(uid string) ([]viewmodel.Entry, error)
-	GetMethodSVG(uid, docid string) (string, error)
 	Export(uid, doc, exporttype string, opt storage.ExportOption) (stream io.ReadCloser, err error)
 	CreateDocument(uid, name, parent string, stream io.Reader) (doc *storage.Document, err error)
 	CreateFolder(uid, name, parent string) (doc *storage.Document, err error)
@@ -51,9 +49,6 @@ type blobHandler interface {
 	DeleteBlobDocument(uid, docID string) (err error)
 	CreateBlobFolder(uid, name, parent string) (doc *storage.Document, err error)
 	Export(uid, docid string) (io.ReadCloser, error)
-	ExportEpub(uid, docid string) (io.ReadCloser, error)
-	ExportRmDoc(uid, docid string) (io.ReadCloser, error)
-	GetMethodSVG(uid, docid string) (string, error)
 	GetTemplate(uid, docid string) (io.ReadCloser, error)
 	GetDocumentMetadata(uid, docid string) (docType string, hasWritings bool, pageCount int, err error)
 	ExportPagePNG(uid, docid string, pageNum int) (io.ReadCloser, error)
