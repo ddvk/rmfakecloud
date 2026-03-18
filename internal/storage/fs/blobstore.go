@@ -190,7 +190,14 @@ func (fs *FileSystemStorage) GetDocumentMetadata(uid, docid string) (docType str
 	if err != nil {
 		return "", false, 0, err
 	}
-	docType = doc.PayloadType
+	if t := doc.PayloadTypeFromFiles(); t != "" {
+		docType = t
+	} else {
+		docType = doc.PayloadType
+	}
+	if docType == "" {
+		docType = "notebook"
+	}
 	hasWritings = doc.HasWritings()
 	for _, f := range doc.Files {
 		if strings.HasSuffix(strings.ToLower(f.EntryName), storage.ContentFileExt) {

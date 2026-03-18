@@ -6,6 +6,8 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/app/hub"
 	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/storage/epub"
+	"github.com/ddvk/rmfakecloud/internal/ui/methods"
+	"github.com/ddvk/rmfakecloud/internal/ui/templates"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
 	"github.com/google/uuid"
 )
@@ -20,8 +22,18 @@ func (b *backend15) GetDocumentTree(uid string) (tree *viewmodel.DocumentTree, e
 	if err != nil {
 		return nil, err
 	}
-
-	return viewmodel.DocTreeFromHashTree(hashTree), nil
+	tree = viewmodel.DocTreeFromHashTree(hashTree)
+	// Templates: builtin only (frontend expects [ Directory ])
+	tree.Templates = []viewmodel.Entry{templates.BuiltinTemplatesDirectory()}
+	// Methods: merge builtin with synced (synced filtered by file extension in viewmodel)
+	mDir := methods.BuiltinMethodsDirectory()
+	if len(tree.Methods) > 0 {
+		if d, ok := tree.Methods[0].(*viewmodel.Directory); ok {
+			mDir.Entries = append(mDir.Entries, d.Entries...)
+		}
+	}
+	tree.Methods = []viewmodel.Entry{mDir}
+	return tree, nil
 }
 func (b *backend15) Export(uid, docid, exporttype string, opt storage.ExportOption) (r io.ReadCloser, err error) {
 	r, err = b.blobHandler.Export(uid, docid)

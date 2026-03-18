@@ -96,6 +96,25 @@ func (d *HashDoc) HasWritings() bool {
 	return false
 }
 
+// PayloadTypeFromFiles returns document type from file extensions only.
+// Returns "epub", "pdf", "template", or "" (caller should use "notebook" or d.PayloadType when "").
+func (d *HashDoc) PayloadTypeFromFiles() string {
+	low := func(s string) string { return strings.ToLower(s) }
+	for _, f := range d.Files {
+		name := low(f.EntryName)
+		if strings.HasSuffix(name, storage.EpubFileExt) {
+			return "epub"
+		}
+		if strings.HasSuffix(name, storage.PdfFileExt) {
+			return "pdf"
+		}
+		if strings.HasSuffix(name, storage.TemplateFileExt) {
+			return "template"
+		}
+	}
+	return ""
+}
+
 // AddFile adds an entry
 func (d *HashDoc) AddFile(e *HashEntry) error {
 	d.Files = append(d.Files, e)

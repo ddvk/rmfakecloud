@@ -12,6 +12,7 @@ import (
 type MetadataFile struct {
 	DocumentName     string           `json:"visibleName"`
 	CollectionType   common.EntryType `json:"type"`
+	Source           string           `json:"source,omitempty"` // e.g. "com.remarkable.methods"
 	Parent           string           `json:"parent"`
 	CreatedTime      string           `json:"createdTime"`
 	LastModified     string           `json:"lastModified"`

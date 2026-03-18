@@ -43,8 +43,10 @@ func NewErrorResponse(errormsg string) ErrorResponse {
 
 // DocumentTree a tree of documents
 type DocumentTree struct {
-	Entries []Entry
-	Trash   []Entry
+	Entries   []Entry
+	Trash     []Entry
+	Templates []Entry // [ Directory ] for frontend; optional
+	Methods   []Entry // [ Directory ] for frontend; synced + builtin merged in backend
 }
 
 type InternalDoc struct {
@@ -83,31 +85,65 @@ func makeDocument(d *InternalDoc) (entry Entry) {
 	return
 }
 
+// methodsSource is the reMarkable metadata source for rm Methods.
+const methodsSource = "com.remarkable.methods"
+
+// fileTypeFromDoc returns document type by file extension; else "notebook" or payloadType.
+func fileTypeFromDoc(d *models.HashDoc) string {
+	if t := d.PayloadTypeFromFiles(); t != "" {
+		return t
+	}
+	return "notebook"
+}
+
 // DocTreeFromHashTree from hash tree
 func DocTreeFromHashTree(tree *models.HashTree) *DocumentTree {
 	docs := make([]*InternalDoc, 0)
+	methodDocs := make([]*InternalDoc, 0)
 	for _, d := range tree.Docs {
 		if d.Deleted {
 			continue
 		}
-
 		lastModified, err := models.ToTime(d.LastModified)
 		if err != nil {
 			log.Warn("incorrect lastmodified for: ", d.DocumentName, " value: ", d.LastModified, " ", err)
 		}
-		docs = append(docs, &InternalDoc{
+		ft := fileTypeFromDoc(d)
+		internalDoc := &InternalDoc{
 			ID:           d.EntryName,
 			Parent:       d.MetadataFile.Parent,
 			Name:         d.MetadataFile.DocumentName,
 			Type:         d.MetadataFile.CollectionType,
 			LastModified: lastModified,
-			FileType:     d.PayloadType,
+			FileType:     ft,
 			Size:         d.Size,
 			HasWritings:  d.HasWritings(),
-		})
+		}
+		if d.MetadataFile.Source == methodsSource {
+			methodDocs = append(methodDocs, internalDoc)
+			continue
+		}
+		docs = append(docs, internalDoc)
 	}
+	dt := DocTreeFromRawMetadata(docs)
+	dt.Methods = methodEntriesToDirectory(methodDocs)
+	return dt
+}
 
-	return DocTreeFromRawMetadata(docs)
+// methodEntriesToDirectory returns a single Directory (as []Entry) for method documents with type by extension.
+func methodEntriesToDirectory(methodDocs []*InternalDoc) []Entry {
+	children := make([]Entry, 0, len(methodDocs))
+	for _, d := range methodDocs {
+		children = append(children, makeDocument(d))
+	}
+	dir := &Directory{
+		ID:           "methods",
+		Name:         "rm Methods",
+		Entries:      children,
+		LastModified: time.Time{},
+		IsFolder:     true,
+	}
+	return []Entry{dir}
 }
 
 // DocTreeFromRawMetadata from raw metadata
@@ -180,8 +216,10 @@ func DocTreeFromRawMetadata(documents []*InternalDoc) *DocumentTree {
 	}
 
 	tree := DocumentTree{
-		Entries: rootEntries,
-		Trash:   trashEntries,
+		Entries:   rootEntries,
+		Trash:     trashEntries,
+		Templates: nil,
+		Methods:   nil,
 	}
 
 	return &tree
