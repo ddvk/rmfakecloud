@@ -95,10 +95,13 @@ const methodsSource = "com.remarkable.methods"
 // templateType is the collection type for Templates (device/synced templates).
 const templateType = common.EntryType("TemplateType")
 
-// fileTypeFromDoc returns document type by file extension; else "notebook" or payloadType.
+// fileTypeFromDoc returns document type by file extension, .content fileType (when size > 4), or "notebook".
 func fileTypeFromDoc(d *models.HashDoc) string {
 	if t := d.PayloadTypeFromFiles(); t != "" {
 		return t
+	}
+	if d.PayloadType != "" {
+		return d.PayloadType
 	}
 	return "notebook"
 }

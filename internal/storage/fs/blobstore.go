@@ -202,21 +202,28 @@ func (fs *FileSystemStorage) GetDocumentMetadata(uid, docid string) (docType str
 	hasWritings = doc.HasWritings()
 	for _, f := range doc.Files {
 		if strings.HasSuffix(strings.ToLower(f.EntryName), storage.ContentFileExt) {
-			rc, err := fs.BlobStorage(uid).GetReader(f.Hash)
-			if err != nil {
-				return docType, hasWritings, 0, err
+			if f.Size > 4 {
+				rc, err := fs.BlobStorage(uid).GetReader(f.Hash)
+				if err != nil {
+					return docType, hasWritings, 0, err
+				}
+				var content models.ContentFile
+				if err := json.NewDecoder(rc).Decode(&content); err != nil {
+					rc.Close()
+					return docType, hasWritings, 0, err
+				}
+				rc.Close()
+				if content.FileType != "" {
+					docType = content.FileType
+				}
+				if content.PageCount > 0 {
+					pageCount = content.PageCount
+				} else {
+					pageCount = len(content.Pages)
+				}
+				return docType, hasWritings, pageCount, nil
 			}
-			defer rc.Close()
-			var content models.ContentFile
-			if err := json.NewDecoder(rc).Decode(&content); err != nil {
-				return docType, hasWritings, 0, err
-			}
-			if content.PageCount > 0 {
-				pageCount = content.PageCount
-			} else {
-				pageCount = len(content.Pages)
-			}
-			return docType, hasWritings, pageCount, nil
+			break
 		}
 	}
 	return docType, hasWritings, pageCount, nil

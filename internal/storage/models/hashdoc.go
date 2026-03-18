@@ -198,7 +198,9 @@ func (d *HashDoc) readContent(hash string, r RemoteStorage) error {
 	if err != nil {
 		log.Printf("cannot read content %s %v", hash, err)
 	}
-	d.PayloadType = contentFile.FileType
+	if len(contentBytes) > 4 && contentFile.FileType != "" {
+		d.PayloadType = contentFile.FileType
+	}
 
 	if len(contentFile.SizeInBytes) > 0 {
 		d.Size, err = strconv.ParseInt(contentFile.SizeInBytes, 10, 64)
