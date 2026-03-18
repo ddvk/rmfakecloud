@@ -52,6 +52,7 @@ type blobHandler interface {
 	Export(uid, docid string) (io.ReadCloser, error)
 	GetTemplate(uid, docid string) (io.ReadCloser, error)
 	GetDocumentMetadata(uid, docid string) (docType string, hasWritings bool, pageCount int, err error)
+	GetDocumentOrientation(uid, docid string) (orientation string, err error)
 	ExportPagePNG(uid, docid string, pageNum int) (io.ReadCloser, error)
 	GetEpubManifest(uid, docid string) (*epub.Manifest, error)
 	GetEpubFile(uid, docid, filePath string) (io.ReadCloser, string, error)

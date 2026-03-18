@@ -221,6 +221,33 @@ func (fs *FileSystemStorage) GetDocumentMetadata(uid, docid string) (docType str
 	return docType, hasWritings, pageCount, nil
 }
 
+// GetDocumentOrientation returns the orientation from the document's .content file ("portrait", "landscape", or "").
+func (fs *FileSystemStorage) GetDocumentOrientation(uid, docid string) (string, error) {
+	tree, err := fs.GetCachedTree(uid)
+	if err != nil {
+		return "", err
+	}
+	doc, err := tree.FindDoc(docid)
+	if err != nil {
+		return "", err
+	}
+	for _, f := range doc.Files {
+		if strings.HasSuffix(strings.ToLower(f.EntryName), storage.ContentFileExt) {
+			rc, err := fs.BlobStorage(uid).GetReader(f.Hash)
+			if err != nil {
+				return "", err
+			}
+			defer rc.Close()
+			var content models.ContentFile
+			if err := json.NewDecoder(rc).Decode(&content); err != nil {
+				return "", err
+			}
+			return content.Orientation, nil
+		}
+	}
+	return "", nil
+}
+
 // ExportPagePNG exports a single page of the document as PNG (1-based page number).
 func (fs *FileSystemStorage) ExportPagePNG(uid, docid string, pageNum int) (io.ReadCloser, error) {
 	tree, err := fs.GetCachedTree(uid)

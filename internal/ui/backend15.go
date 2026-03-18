@@ -39,6 +39,21 @@ func (b *backend15) GetDocumentTree(uid string) (tree *viewmodel.DocumentTree, e
 		}
 	}
 	tree.Methods = []viewmodel.Entry{mDir}
+	// Enrich template/method documents with orientation from .content (builtins have no .content, stay empty)
+	for _, e := range tDir.Entries {
+		if doc, ok := e.(*viewmodel.Document); ok {
+			if o, err := b.blobHandler.GetDocumentOrientation(uid, doc.ID); err == nil {
+				doc.Orientation = o
+			}
+		}
+	}
+	for _, e := range mDir.Entries {
+		if doc, ok := e.(*viewmodel.Document); ok {
+			if o, err := b.blobHandler.GetDocumentOrientation(uid, doc.ID); err == nil {
+				doc.Orientation = o
+			}
+		}
+	}
 	return tree, nil
 }
 func (b *backend15) Export(uid, docid, exporttype string, opt storage.ExportOption) (r io.ReadCloser, err error) {

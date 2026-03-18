@@ -60,6 +60,7 @@ type InternalDoc struct {
 	Parent       string
 	Size         int64
 	HasWritings  bool
+	Orientation  string // from .content: "portrait", "landscape", or ""
 }
 
 func makeFolder(d *InternalDoc) (entry *Directory) {
@@ -81,6 +82,7 @@ func makeDocument(d *InternalDoc) (entry Entry) {
 		Collection:   d.Type,
 		Size:         d.Size,
 		HasWritings:  d.HasWritings,
+		Orientation:  d.Orientation,
 	}
 	return
 }
@@ -272,6 +274,7 @@ type Document struct {
 	LastModified time.Time          `json:"lastModified"`
 	Size         int64              `json:"size"`
 	HasWritings  bool               `json:"hasWritings"`
+	Orientation  string             `json:"orientation,omitempty"` // from .content: "portrait", "landscape", or empty if both/unspecified
 }
 
 // DocumentList is a list of documents

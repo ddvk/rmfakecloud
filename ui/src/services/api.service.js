@@ -105,7 +105,12 @@ class ApiServices {
     });
   }
 
+  _isDocumentId(id) {
+    return typeof id === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  }
+
   getTemplateUrl(id) {
+    if (this._isDocumentId(id)) return `${constants.ROOT_URL}/documents/${id}/template`;
     return `${constants.ROOT_URL}/templates/${id}`;
   }
 
@@ -120,6 +125,7 @@ class ApiServices {
   }
 
   getMethodUrl(id) {
+    if (this._isDocumentId(id)) return `${constants.ROOT_URL}/documents/${id}/template`;
     return `${constants.ROOT_URL}/methods/${id}`;
   }
 

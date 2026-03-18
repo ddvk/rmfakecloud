@@ -14,6 +14,8 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/storage/epub"
 	"github.com/ddvk/rmfakecloud/internal/model"
 	"github.com/ddvk/rmfakecloud/internal/storage"
+	"github.com/ddvk/rmfakecloud/internal/ui/methods"
+	"github.com/ddvk/rmfakecloud/internal/ui/templates"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
@@ -324,6 +326,30 @@ func (app *ReactAppWrapper) getTemplate(c *gin.Context) {
 	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%q", docid+storage.TemplateFileExt))
 	c.Header("X-Content-Type-Options", "nosniff")
 	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
+}
+
+func (app *ReactAppWrapper) getBuiltinTemplate(c *gin.Context) {
+	id := c.Param("id")
+	svg := templates.GetSVG(id)
+	if svg == "" {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	c.Header("Content-Type", "image/svg+xml")
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.String(http.StatusOK, svg)
+}
+
+func (app *ReactAppWrapper) getBuiltinMethod(c *gin.Context) {
+	id := c.Param("id")
+	svg := methods.GetSVG(id)
+	if svg == "" {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	c.Header("Content-Type", "image/svg+xml")
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.String(http.StatusOK, svg)
 }
 
 func (app *ReactAppWrapper) getDocumentMetadata(c *gin.Context) {

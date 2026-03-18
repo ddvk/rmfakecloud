@@ -63,6 +63,8 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	auth.GET("documents", app.listDocuments)
 	auth.GET("documents/:docid", app.getDocument)
 	auth.GET("documents/:docid/template", app.getTemplate)
+	auth.GET("templates/:id", app.getBuiltinTemplate)
+	auth.GET("methods/:id", app.getBuiltinMethod)
 	auth.POST("documents/upload", app.createDocument)
 
 	//move, rename
