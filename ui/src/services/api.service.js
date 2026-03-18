@@ -178,6 +178,34 @@ class ApiServices {
     });
   }
 
+  getDocumentMetadata(id) {
+    return fetch(`${constants.ROOT_URL}/documents/${id}/metadata`, {
+      method: "GET",
+      credentials: "same-origin",
+    }).then((r) => {
+      handleError(r);
+      return r.json();
+    });
+  }
+
+  getDocumentPageBackgroundUrl(id, pageNum) {
+    return `${constants.ROOT_URL}/documents/${id}/page/${pageNum}/background`;
+  }
+
+  getDocumentPageOverlayUrl(id, pageNum) {
+    return `${constants.ROOT_URL}/documents/${id}/page/${pageNum}/overlay.svg`;
+  }
+
+  getDocumentPageOverlaySvg(id, pageNum) {
+    return fetch(this.getDocumentPageOverlayUrl(id, pageNum), {
+      method: "GET",
+      credentials: "same-origin",
+    }).then((r) => {
+      handleError(r);
+      return r.text();
+    });
+  }
+
   createFolder(data) {
     return fetch(`${constants.ROOT_URL}/folders`, {
       method: "POST",

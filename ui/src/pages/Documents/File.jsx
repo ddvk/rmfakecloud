@@ -11,41 +11,17 @@ import NameTag from "../../components/NameTag"
 
 import { pdfjs, Document, Page } from "react-pdf";
 
-// View mode: "annotated" = PDF with reMarkable drawings (react-pdf), "original" = PDF only via Adobe Embed
-const VIEW_ANNOTATED = "annotated";
-const VIEW_ORIGINAL = "original";
-
-function useAdobeReady() {
-  const [ready, setReady] = useState(() => typeof window !== "undefined" && window.AdobeDC);
-  useEffect(() => {
-    if (window.AdobeDC) {
-      setReady(true);
-      return;
-    }
-    const onReady = () => setReady(true);
-    document.addEventListener("adobe_dc_view_sdk.ready", onReady);
-    return () => document.removeEventListener("adobe_dc_view_sdk.ready", onReady);
-  }, []);
-  return ready;
-}
-
 export default function FileViewer({ file, onSelect }) {
   const { data } = file;
 
   const downloadUrl = `${constants.ROOT_URL}/documents/${file.id}`;
-  const payloadPdfUrl = typeof window !== "undefined"
-    ? `${window.location.origin}${constants.ROOT_URL}/documents/${file.id}?type=pdf&annotations=0`
-    : "";
 
-  const [viewMode, setViewMode] = useState(VIEW_ANNOTATED);
+  const [hasWritings, setHasWritings] = useState(false);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [height, setHeight] = useState(100);
   const parent = useRef(null);
-  const adobeContainerRef = useRef(null);
-  const adobeViewRef = useRef(null);
-  const adobeReady = useAdobeReady();
-  const canShowOriginal = Boolean(constants.ADOBE_CLIENT_ID && adobeReady);
+  const [overlaySvg, setOverlaySvg] = useState(null);
 
   const onLoadSuccess = (pdf) => {
     setPage(1);
@@ -54,6 +30,18 @@ export default function FileViewer({ file, onSelect }) {
   const onPrev = () => setPage((p) => Math.max(p - 1, 1));
   const onNext = () => setPage((p) => Math.min(p + 1, pages));
 
+  // Determine if the PDF has handwriting (.rm files).
+  useEffect(() => {
+    if (!file || data?.type !== "pdf") return;
+    apiservice
+      .getDocumentMetadata(file.id)
+      .then((m) => {
+        setHasWritings(Boolean(m?.hasWritings));
+        if (typeof m?.pageCount === "number" && m.pageCount > 0) setPages(m.pageCount);
+      })
+      .catch(() => {});
+  }, [file?.id, data?.type]);
+
   useEffect(() => {
     if (!parent.current) return;
     const ro = new ResizeObserver((e) => setHeight(e[0].contentBoxSize[0].blockSize));
@@ -61,25 +49,15 @@ export default function FileViewer({ file, onSelect }) {
     return () => ro.disconnect();
   }, []);
 
-  // Adobe Embed: show original PDF (no drawings) when viewMode is VIEW_ORIGINAL
+  // For handwriting PDFs: fetch the vector overlay SVG for the current page.
   useEffect(() => {
-    if (viewMode !== VIEW_ORIGINAL || !canShowOriginal || !adobeContainerRef.current || !payloadPdfUrl) return;
-    const divId = "adobe-dc-view-" + file.id;
-    adobeContainerRef.current.id = divId;
-    const adobeDCView = new window.AdobeDC.View({
-      clientId: constants.ADOBE_CLIENT_ID,
-      divId,
-      downloadWithCredentials: true,
-    });
-    adobeViewRef.current = adobeDCView;
-    adobeDCView.previewFile({
-      content: { location: { url: payloadPdfUrl } },
-      metaData: { fileName: data.name || "document.pdf" },
-    });
-    return () => {
-      adobeViewRef.current = null;
-    };
-  }, [viewMode, canShowOriginal, file.id, payloadPdfUrl, data.name]);
+    if (!file || data?.type !== "pdf") return;
+    if (!hasWritings) return;
+    apiservice
+      .getDocumentPageOverlaySvg(file.id, page)
+      .then((t) => setOverlaySvg(t))
+      .catch(() => setOverlaySvg(null));
+  }, [file?.id, data?.type, hasWritings, page]);
 
   const triggerDownload = (blob, filename) => {
     const url = window.URL.createObjectURL(blob);
@@ -107,7 +85,6 @@ export default function FileViewer({ file, onSelect }) {
   const onOpenInNewTab = () => {
     const base = `${window.location.origin}/view-pdf/${file.id}`;
     const query = new URLSearchParams();
-    if (viewMode === VIEW_ORIGINAL) query.set("original", "1");
     if (data.name) query.set("name", data.name);
     const url = query.toString() ? `${base}?${query.toString()}` : base;
     window.open(url, "_blank", "noopener,noreferrer");
@@ -127,7 +104,7 @@ export default function FileViewer({ file, onSelect }) {
 
       <Navbar>
         <ButtonToolbar className="gap-2">
-          {viewMode === VIEW_ANNOTATED && pages > 1 && (
+          {data?.type === "pdf" && hasWritings && pages > 1 && (
             <ButtonGroup>
               <Button size="sm" variant="outline-secondary" onClick={onPrev}>
                 <FaChevronLeft />
@@ -136,22 +113,6 @@ export default function FileViewer({ file, onSelect }) {
                 <FaChevronRight />
               </Button>
               <span style={{ margin: "0 10px" }}>Page: {page} of {pages}</span>
-            </ButtonGroup>
-          )}
-          {canShowOriginal && (
-            <ButtonGroup size="sm">
-              <Button
-                variant={viewMode === VIEW_ANNOTATED ? "primary" : "outline-secondary"}
-                onClick={() => setViewMode(VIEW_ANNOTATED)}
-              >
-                With drawings
-              </Button>
-              <Button
-                variant={viewMode === VIEW_ORIGINAL ? "primary" : "outline-secondary"}
-                onClick={() => setViewMode(VIEW_ORIGINAL)}
-              >
-                Original PDF
-              </Button>
             </ButtonGroup>
           )}
         </ButtonToolbar>
@@ -176,7 +137,39 @@ export default function FileViewer({ file, onSelect }) {
         </Dropdown>
       </Navbar>
 
-      {file && viewMode === VIEW_ANNOTATED && (
+      {file && data?.type === "pdf" && !hasWritings && (
+        // Use the browser's PDF plugin (Adobe if installed) when there is no handwriting.
+        <div ref={parent} style={{ height: "95%" }}>
+          <object
+            data={downloadUrl}
+            type="application/pdf"
+            style={{ width: "100%", height: height, minHeight: 400 }}
+          >
+            <a href={downloadUrl}>Open PDF</a>
+          </object>
+        </div>
+      )}
+
+      {file && data?.type === "pdf" && hasWritings && (
+        // Handwriting present: background PNG + vector overlay as separate layer.
+        <div ref={parent} style={{ height: "95%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ position: "relative", height: height, maxWidth: "100%", maxHeight: "100%" }}>
+            <img
+              src={apiservice.getDocumentPageBackgroundUrl(file.id, page)}
+              alt={data.name}
+              style={{ height: "100%", width: "auto", maxWidth: "100%", display: "block" }}
+            />
+            {overlaySvg && (
+              <div
+                style={{ position: "absolute", inset: 0 }}
+                dangerouslySetInnerHTML={{ __html: overlaySvg }}
+              />
+            )}
+          </div>
+        </div>
+      )}
+
+      {file && data?.type !== "pdf" && (
         <div ref={parent} style={{ height: "95%" }}>
           <Document file={downloadUrl} onLoadSuccess={onLoadSuccess} options={options}>
             <Page
@@ -186,16 +179,6 @@ export default function FileViewer({ file, onSelect }) {
               renderTextLayer={false}
             />
           </Document>
-        </div>
-      )}
-
-      {file && viewMode === VIEW_ORIGINAL && canShowOriginal && (
-        <div ref={adobeContainerRef} style={{ height: "95%", minHeight: 400 }} />
-      )}
-
-      {file && viewMode === VIEW_ORIGINAL && !canShowOriginal && (
-        <div className="p-3 text-warning">
-          Set VITE_ADOBE_PDF_CLIENT_ID to use the Adobe viewer for the original PDF (no drawings).
         </div>
       )}
     </>

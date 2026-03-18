@@ -82,20 +82,21 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 		return nil, err
 	}
 	ls := fs.BlobStorage(uid)
-
-	archive, err := models.ArchiveFromHashDoc(doc, ls)
-	if err != nil {
-		return nil, err
-	}
 	reader, writer := io.Pipe()
 	go func() {
-		err = exporter.RenderRmapi(archive, writer)
-		if err != nil {
-			log.Error(err)
-			writer.Close()
+		rc, e := renderPDFRmtool(doc, ls)
+		if e != nil {
+			log.Error(e)
+			_ = writer.Close()
 			return
 		}
-		writer.Close()
+		defer rc.Close()
+		if _, err := io.Copy(writer, rc); err != nil {
+			log.Error(err)
+			_ = writer.Close()
+			return
+		}
+		_ = writer.Close()
 	}()
 	return reader, err
 }
@@ -264,6 +265,46 @@ func (fs *FileSystemStorage) ExportPagePNG(uid, docid string, pageNum int) (io.R
 		return nil, err
 	}
 	return exporter.RenderPagePNGReader(archive, pageNum)
+}
+
+// ExportPageBackgroundPNG renders the original payload (PDF) page as PNG (without handwriting).
+func (fs *FileSystemStorage) ExportPageBackgroundPNG(uid, docid string, pageNum int) (io.ReadCloser, error) {
+	tree, err := fs.GetCachedTree(uid)
+	if err != nil {
+		return nil, err
+	}
+	doc, err := tree.FindDoc(docid)
+	if err != nil {
+		return nil, err
+	}
+	ls := fs.BlobStorage(uid)
+	archive, err := models.ArchiveFromHashDoc(doc, ls)
+	if err != nil {
+		return nil, err
+	}
+	return exporter.RenderPayloadPagePNGReader(archive, pageNum)
+}
+
+// ExportPageOverlaySVG renders the handwriting (.rm) content for a page as SVG.
+func (fs *FileSystemStorage) ExportPageOverlaySVG(uid, docid string, pageNum int) (io.ReadCloser, error) {
+	tree, err := fs.GetCachedTree(uid)
+	if err != nil {
+		return nil, err
+	}
+	doc, err := tree.FindDoc(docid)
+	if err != nil {
+		return nil, err
+	}
+	ls := fs.BlobStorage(uid)
+	archive, err := models.ArchiveFromHashDoc(doc, ls)
+	if err != nil {
+		return nil, err
+	}
+	s, err := exporter.RenderPageAnnotationsSVG(archive, pageNum)
+	if err != nil {
+		return nil, err
+	}
+	return exporter.NewSeekCloser([]byte(s)), nil
 }
 
 // UpdateBlobDocument updates metadata

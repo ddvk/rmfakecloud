@@ -73,6 +73,8 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	auth.POST("folders", app.createFolder)
 	auth.GET("documents/:docid/metadata", app.getDocumentMetadata)
 	auth.GET("documents/:docid/page/:pagenum", app.getDocumentPage)
+	auth.GET("documents/:docid/page/:pagenum/background", app.getDocumentPageBackground)
+	auth.GET("documents/:docid/page/:pagenum/overlay.svg", app.getDocumentPageOverlay)
 	auth.GET("documents/:docid/epub/*path", app.getEpubPath)
 
 	// integrations

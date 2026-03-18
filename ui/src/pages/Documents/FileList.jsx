@@ -155,7 +155,7 @@ export default function FileListViewer({ listStyle, files, onSelect, counter, se
         className="filelist-checkbox"
       />
       <div className="filegrid-checkbox-spacer fileicon" onClick={() => onClickItem(file)}>
-        <FileIcon file={file.data} />
+        <FileIcon file={file.data} showThumbnail={true} />
       </div>
       <div className="filename">
         {file.data.name}

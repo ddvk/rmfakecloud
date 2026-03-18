@@ -73,6 +73,14 @@ func (b *backend15) ExportPagePNG(uid, docid string, pageNum int) (io.ReadCloser
 	return b.blobHandler.ExportPagePNG(uid, docid, pageNum)
 }
 
+func (b *backend15) ExportPageBackgroundPNG(uid, docid string, pageNum int) (io.ReadCloser, error) {
+	return b.blobHandler.ExportPageBackgroundPNG(uid, docid, pageNum)
+}
+
+func (b *backend15) ExportPageOverlaySVG(uid, docid string, pageNum int) (io.ReadCloser, error) {
+	return b.blobHandler.ExportPageOverlaySVG(uid, docid, pageNum)
+}
+
 func (b *backend15) GetEpubManifest(uid, docid string) (*epub.Manifest, error) {
 	return b.blobHandler.GetEpubManifest(uid, docid)
 }

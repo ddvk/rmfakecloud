@@ -407,6 +407,66 @@ func (app *ReactAppWrapper) getDocumentPage(c *gin.Context) {
 	c.DataFromReader(http.StatusOK, -1, "image/png", reader, nil)
 }
 
+func (app *ReactAppWrapper) getDocumentPageBackground(c *gin.Context) {
+	uid := userID(c)
+	docid := common.ParamS(docIDParam, c)
+	pagenumStr := c.Param("pagenum")
+	pagenum, err := strconv.Atoi(pagenumStr)
+	if err != nil || pagenum < 1 {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	type pageBackgroundExporter interface {
+		ExportPageBackgroundPNG(uid, docid string, pageNum int) (io.ReadCloser, error)
+	}
+	backend := app.getBackend(c)
+	pe, ok := backend.(pageBackgroundExporter)
+	if !ok {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	reader, err := pe.ExportPageBackgroundPNG(uid, docid, pagenum)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	defer reader.Close()
+	c.Header("Content-Type", "image/png")
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.DataFromReader(http.StatusOK, -1, "image/png", reader, nil)
+}
+
+func (app *ReactAppWrapper) getDocumentPageOverlay(c *gin.Context) {
+	uid := userID(c)
+	docid := common.ParamS(docIDParam, c)
+	pagenumStr := c.Param("pagenum")
+	pagenum, err := strconv.Atoi(pagenumStr)
+	if err != nil || pagenum < 1 {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	type pageOverlayExporter interface {
+		ExportPageOverlaySVG(uid, docid string, pageNum int) (io.ReadCloser, error)
+	}
+	backend := app.getBackend(c)
+	pe, ok := backend.(pageOverlayExporter)
+	if !ok {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	reader, err := pe.ExportPageOverlaySVG(uid, docid, pagenum)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	defer reader.Close()
+	c.Header("Content-Type", "image/svg+xml")
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.DataFromReader(http.StatusOK, -1, "image/svg+xml", reader, nil)
+}
+
 // getEpubPath handles GET /documents/:docid/epub/*path. Path "manifest" returns JSON manifest; otherwise serves the file from the EPUB.
 func (app *ReactAppWrapper) getEpubPath(c *gin.Context) {
 	uid := userID(c)

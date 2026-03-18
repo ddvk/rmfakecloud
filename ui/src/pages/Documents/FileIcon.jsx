@@ -1,6 +1,7 @@
 import { BsFilePdf, BsFolder, BsFileEarmark, BsFileEarmarkText, BsCloud, BsFile, BsTrash, BsGrid3X3, BsBook } from "react-icons/bs";
+import apiservice from "../../services/api.service";
 
-export default function FileIcon({ file }) {
+export default function FileIcon({ file, showThumbnail = false }) {
 
   const Icon = () => {
     if (!!file.icon) {
@@ -26,6 +27,22 @@ export default function FileIcon({ file }) {
     }
 
     if (file.type === "pdf") {
+      if (showThumbnail && file?.id) {
+        return (
+          <img
+            src={apiservice.getDocumentPageBackgroundUrl(file.id, 1)}
+            alt={file.name || "PDF"}
+            style={{
+              width: 34,
+              height: 44,
+              objectFit: "cover",
+              borderRadius: 3,
+              border: "1px solid #dee2e6",
+              background: "#fff",
+            }}
+          />
+        );
+      }
       return <BsFilePdf />
     }
 
