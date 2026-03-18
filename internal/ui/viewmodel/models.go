@@ -61,6 +61,7 @@ type InternalDoc struct {
 	Size         int64
 	HasWritings  bool
 	Orientation  string // from .content: "portrait", "landscape", or ""
+	Pinned       bool   // starred in metadata
 }
 
 func makeFolder(d *InternalDoc) (entry *Directory) {
@@ -83,6 +84,7 @@ func makeDocument(d *InternalDoc) (entry Entry) {
 		Size:         d.Size,
 		HasWritings:  d.HasWritings,
 		Orientation:  d.Orientation,
+		Pinned:       d.Pinned,
 	}
 	return
 }
@@ -124,6 +126,7 @@ func DocTreeFromHashTree(tree *models.HashTree) *DocumentTree {
 			FileType:     ft,
 			Size:         d.Size,
 			HasWritings:  d.HasWritings(),
+			Pinned:       d.MetadataFile.Pinned,
 		}
 		if d.MetadataFile.Source == methodsSource {
 			methodDocs = append(methodDocs, internalDoc)
@@ -275,6 +278,7 @@ type Document struct {
 	Size         int64              `json:"size"`
 	HasWritings  bool               `json:"hasWritings"`
 	Orientation  string             `json:"orientation,omitempty"` // from .content: "portrait", "landscape", or empty if both/unspecified
+	Pinned       bool               `json:"pinned,omitempty"`
 }
 
 // DocumentList is a list of documents

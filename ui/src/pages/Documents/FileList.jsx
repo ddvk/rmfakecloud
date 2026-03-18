@@ -20,6 +20,11 @@ function formatBytes(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
+function displayName(data) {
+  const name = data?.name || "";
+  return data?.pinned ? `${name} ★` : name;
+}
+
 export default function FileListViewer({ listStyle, files, onSelect, counter, selectedIds = [], onSelectItem }) {
   const onClickItem = (file) => {
     onSelect(file);
@@ -116,7 +121,7 @@ export default function FileListViewer({ listStyle, files, onSelect, counter, se
         header: 'Name',
         cell: ({ row }) => (
           <div className={isFolderClassName(row.original)}>
-            {row.original.data.name}
+            {displayName(row.original.data)}
           </div>
         ),
         sortingFn: (rowA, rowB) => {
@@ -187,7 +192,7 @@ export default function FileListViewer({ listStyle, files, onSelect, counter, se
       />
       <div className="filegrid-checkbox-spacer" onClick={() => onClickItem(file)}>
         <FileIcon file={file.data} />
-        {file.data.name}
+        {displayName(file.data)}
       </div>
     </div>
   );
@@ -205,7 +210,7 @@ export default function FileListViewer({ listStyle, files, onSelect, counter, se
         <FileIcon file={file.data} showThumbnail={true} />
       </div>
       <div className="filename">
-        {file.data.name}
+        {displayName(file.data)}
       </div>
       <div className="filegrid-metadata">
         <span>{formatBytes(file.data.size)}</span>

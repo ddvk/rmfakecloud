@@ -254,8 +254,9 @@ export default function TemplatesMethodsGrid({ templates, methods }) {
   const previewStyle = useMemo(() => {
     if (!hoverPreview?.rect || !hoverPreview?.preset) return null;
     const gap = 12;
-    const maxW = 260;
-    const maxH = 360;
+    // Pop-up should be 2x bigger than the thumbnail (thumbnail maxWidth is 240).
+    const maxW = 480;
+    const maxH = 720;
     const viewportW = window?.innerWidth ?? 0;
     const viewportH = window?.innerHeight ?? 0;
 
@@ -307,7 +308,7 @@ export default function TemplatesMethodsGrid({ templates, methods }) {
               style={{
                 aspectRatio: `${hoverPreview.preset.w} / ${hoverPreview.preset.h}`,
                 width: "100%",
-                maxHeight: 360,
+                maxHeight: 720,
                 background: "#f5f5f5",
                 borderRadius: 6,
                 overflow: "hidden",

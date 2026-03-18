@@ -277,12 +277,44 @@ func (fs *FileSystemStorage) ExportPageBackgroundPNG(uid, docid string, pageNum 
 	if err != nil {
 		return nil, err
 	}
+	// Cache key: pdf blob hash (changes when PDF payload changes)
+	pdfHash := ""
+	for _, f := range doc.Files {
+		if strings.EqualFold(f.EntryName, docid+storage.PdfFileExt) {
+			pdfHash = f.Hash
+			break
+		}
+	}
+	cacheDir := fs.getPathFromUser(uid, CacheDir)
+	_ = os.MkdirAll(cacheDir, 0700)
+	safeDoc := common.Sanitize(docid)
+	cachePath := path.Join(cacheDir, "renders", safeDoc, fmt.Sprintf("page-%d-bg-%s.png", pageNum, pdfHash))
+	if pdfHash != "" {
+		if r, err := os.Open(cachePath); err == nil {
+			return r, nil
+		}
+	}
 	ls := fs.BlobStorage(uid)
 	archive, err := models.ArchiveFromHashDoc(doc, ls)
 	if err != nil {
 		return nil, err
 	}
-	return exporter.RenderPayloadPagePNGReader(archive, pageNum)
+	rc, err := exporter.RenderPayloadPagePNGReader(archive, pageNum)
+	if err != nil {
+		return nil, err
+	}
+	if pdfHash == "" {
+		return rc, nil
+	}
+	// Best-effort write-through cache (regenerated automatically when hashes change).
+	_ = os.MkdirAll(path.Dir(cachePath), 0700)
+	b, readErr := io.ReadAll(rc)
+	_ = rc.Close()
+	if readErr != nil {
+		return exporter.NewSeekCloser(b), nil
+	}
+	_ = os.WriteFile(cachePath, b, 0600)
+	return exporter.NewSeekCloser(b), nil
 }
 
 // ExportPageOverlaySVG renders the handwriting (.rm) content for a page as SVG.
@@ -295,6 +327,49 @@ func (fs *FileSystemStorage) ExportPageOverlaySVG(uid, docid string, pageNum int
 	if err != nil {
 		return nil, err
 	}
+	// Cache key: per-page .rm blob hash (changes when a page drawing changes)
+	// Determine page UUID from .content pages array.
+	type contentPages struct {
+		Pages []string `json:"pages"`
+	}
+	var pageID string
+	contentHash := ""
+	for _, f := range doc.Files {
+		if strings.EqualFold(f.EntryName, docid+storage.ContentFileExt) {
+			contentHash = f.Hash
+			break
+		}
+	}
+	if contentHash != "" {
+		if rc, err := fs.BlobStorage(uid).GetReader(contentHash); err == nil {
+			var cp contentPages
+			if err := json.NewDecoder(rc).Decode(&cp); err == nil {
+				if pageNum >= 1 && pageNum <= len(cp.Pages) {
+					pageID = cp.Pages[pageNum-1]
+				}
+			}
+			_ = rc.Close()
+		}
+	}
+	rmHash := ""
+	if pageID != "" {
+		want := pageID + storage.RmFileExt
+		for _, f := range doc.Files {
+			if strings.EqualFold(f.EntryName, want) {
+				rmHash = f.Hash
+				break
+			}
+		}
+	}
+	cacheDir := fs.getPathFromUser(uid, CacheDir)
+	_ = os.MkdirAll(cacheDir, 0700)
+	safeDoc := common.Sanitize(docid)
+	cachePath := path.Join(cacheDir, "renders", safeDoc, fmt.Sprintf("page-%d-ov-%s.svg", pageNum, rmHash))
+	if rmHash != "" {
+		if r, err := os.Open(cachePath); err == nil {
+			return r, nil
+		}
+	}
 	ls := fs.BlobStorage(uid)
 	archive, err := models.ArchiveFromHashDoc(doc, ls)
 	if err != nil {
@@ -304,7 +379,12 @@ func (fs *FileSystemStorage) ExportPageOverlaySVG(uid, docid string, pageNum int
 	if err != nil {
 		return nil, err
 	}
-	return exporter.NewSeekCloser([]byte(s)), nil
+	b := []byte(s)
+	if rmHash != "" {
+		_ = os.MkdirAll(path.Dir(cachePath), 0700)
+		_ = os.WriteFile(cachePath, b, 0600)
+	}
+	return exporter.NewSeekCloser(b), nil
 }
 
 // UpdateBlobDocument updates metadata

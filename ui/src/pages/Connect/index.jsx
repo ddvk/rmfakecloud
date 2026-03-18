@@ -1,8 +1,6 @@
 import React, { useState, useLayoutEffect, useEffect, useRef } from "react";
 import apiservice from "../../services/api.service";
 import Stack from "react-bootstrap/Stack";
-import Button from "react-bootstrap/Button";
-import { FaRepeat } from "react-icons/fa6";
 
 const CODE_VALIDITY_SEC = 5 * 60; // 300 seconds, match backend
 
@@ -12,12 +10,13 @@ function ExpiryPie({ expiresAt }) {
     const t = setInterval(() => setNow(Math.floor(Date.now() / 1000)), 1000);
     return () => clearInterval(t);
   }, []);
+  const size = 240; // 3x bigger than original (80)
   if (!expiresAt || expiresAt <= now) {
     return (
       <div
         style={{
-          width: 80,
-          height: 80,
+          width: size,
+          height: size,
           borderRadius: "50%",
           background: "conic-gradient(#ccc 0deg 360deg)",
         }}
@@ -30,8 +29,8 @@ function ExpiryPie({ expiresAt }) {
   return (
     <div
       style={{
-        width: 80,
-        height: 80,
+        width: size,
+        height: size,
         borderRadius: "50%",
         background: `conic-gradient(#e9ecef 0deg ${elapsedDeg}deg, #28a745 ${elapsedDeg}deg 360deg)`,
       }}
@@ -92,11 +91,6 @@ export default function CodeGenerator() {
   return (
     <>
       <Stack gap={4} style={{ alignItems: "center", marginTop: "15vh" }}>
-        <div className="p-2">
-          <Button onClick={fetchCode}>
-            <FaRepeat />
-          </Button>
-        </div>
         <div className="p-2">
           <h1 style={{ letterSpacing: "10px", fontSize: "36pt" }}>{code}</h1>
         </div>
