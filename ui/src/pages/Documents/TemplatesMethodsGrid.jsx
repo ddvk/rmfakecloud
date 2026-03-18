@@ -73,6 +73,28 @@ function templateItemToSvgFragment(item) {
   return "";
 }
 
+/** Prefer iconData from .template (base64 SVG) for thumbnail; else build SVG from items. */
+function templateResponseToSvg(text) {
+  if (typeof text !== "string" || !text.trim()) return text;
+  const trimmed = text.trim();
+  if (trimmed.startsWith("<") || trimmed.startsWith("<?xml")) return text;
+  let obj;
+  try {
+    obj = JSON.parse(text);
+  } catch {
+    return templateJsonToSvg(text);
+  }
+  if (obj == null || typeof obj !== "object") return text;
+  if (typeof obj.iconData === "string" && obj.iconData.length > 0) {
+    try {
+      return atob(obj.iconData);
+    } catch {
+      // fall through to items-based SVG
+    }
+  }
+  return templateJsonToSvg(text);
+}
+
 function templateJsonToSvg(text) {
   if (typeof text !== "string" || !text.trim()) return text;
   const trimmed = text.trim();
@@ -149,7 +171,7 @@ function Card({ item, isTemplate, fetchSvg, onHoverChange }) {
     if (!item?.id || !fetchSvg) return;
     fetchSvg(item.id)
       .then((text) => {
-        const normalized = typeof text === "string" ? forceBlackSvg(templateJsonToSvg(text)) : null;
+        const normalized = typeof text === "string" ? forceBlackSvg(templateResponseToSvg(text)) : null;
         setDimensions(parseSvgDimensions(normalized));
         setSvgContent(normalized);
       })
