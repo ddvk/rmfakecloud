@@ -110,6 +110,37 @@ function svgToScaledInline(svgText) {
     .replace(/<\?xml[^>]*\?>/, "");
 }
 
+function forceBlackSvg(svgText) {
+  if (!svgText || !isSvgString(svgText)) return svgText;
+  let s = svgText;
+  // Force strokes to black (except none/transparent/currentColor)
+  s = s.replace(/stroke\s*=\s*"([^"]+)"/gi, (m, v) => {
+    const val = String(v).trim().toLowerCase();
+    if (!val || val === "none" || val === "transparent" || val === "currentcolor") return m;
+    return 'stroke="#000"';
+  });
+  s = s.replace(/stroke\s*=\s*'([^']+)'/gi, (m, v) => {
+    const val = String(v).trim().toLowerCase();
+    if (!val || val === "none" || val === "transparent" || val === "currentcolor") return m;
+    return "stroke=\"#000\"";
+  });
+
+  // Force fills to black (except none/transparent/white/currentColor)
+  s = s.replace(/fill\s*=\s*"([^"]+)"/gi, (m, v) => {
+    const val = String(v).trim().toLowerCase();
+    if (!val || val === "none" || val === "transparent" || val === "currentcolor") return m;
+    if (val === "white" || val === "#fff" || val === "#ffffff" || val === "rgb(255,255,255)") return m;
+    return 'fill="#000"';
+  });
+  s = s.replace(/fill\s*=\s*'([^']+)'/gi, (m, v) => {
+    const val = String(v).trim().toLowerCase();
+    if (!val || val === "none" || val === "transparent" || val === "currentcolor") return m;
+    if (val === "white" || val === "#fff" || val === "#ffffff" || val === "rgb(255,255,255)") return m;
+    return "fill=\"#000\"";
+  });
+  return s;
+}
+
 function Card({ item, isTemplate, fetchSvg }) {
   const [svgContent, setSvgContent] = useState(null);
   const [dimensions, setDimensions] = useState(null);
@@ -118,7 +149,7 @@ function Card({ item, isTemplate, fetchSvg }) {
     if (!item?.id || !fetchSvg) return;
     fetchSvg(item.id)
       .then((text) => {
-        const normalized = typeof text === "string" ? templateJsonToSvg(text) : null;
+        const normalized = typeof text === "string" ? forceBlackSvg(templateJsonToSvg(text)) : null;
         setDimensions(parseSvgDimensions(normalized));
         setSvgContent(normalized);
       })
@@ -139,7 +170,7 @@ function Card({ item, isTemplate, fetchSvg }) {
   return (
     <div
       style={{
-        border: isTemplate ? "2px solid #0d6efd" : "1px solid #dee2e6",
+        border: isTemplate ? "3px solid orange" : "1px solid #dee2e6",
         borderRadius: 8,
         padding: 8,
         background: "#fff",
@@ -184,9 +215,6 @@ function Card({ item, isTemplate, fetchSvg }) {
           </div>
         )}
         <div style={{ color: "#000", fontSize: 11 }}>{preset.label} ({preset.w}×{preset.h} in)</div>
-        {isTemplate && (
-          <div style={{ color: "#0d6efd", fontSize: 11 }}>Template</div>
-        )}
       </div>
     </div>
   );

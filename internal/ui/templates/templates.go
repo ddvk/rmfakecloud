@@ -46,7 +46,7 @@ func linedSVG() string {
 	lines := ""
 	step := 48
 	for y := step; y < height; y += step {
-		lines += fmt.Sprintf(`<line x1="0" y1="%d" x2="%d" y2="%d" stroke="#e0e0e0" stroke-width="1"/>`, y, width, y)
+		lines += fmt.Sprintf(`<line x1="0" y1="%d" x2="%d" y2="%d" stroke="#000" stroke-width="1"/>`, y, width, y)
 	}
 	return fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %d %d" width="%d" height="%d"><rect width="100%%" height="100%%" fill="white"/>%s</svg>`, width, height, width, height, lines)
 }
@@ -55,10 +55,10 @@ func gridSVG() string {
 	lines := ""
 	step := 36
 	for x := step; x < width; x += step {
-		lines += fmt.Sprintf(`<line x1="%d" y1="0" x2="%d" y2="%d" stroke="#e8e8e8" stroke-width="1"/>`, x, x, height)
+		lines += fmt.Sprintf(`<line x1="%d" y1="0" x2="%d" y2="%d" stroke="#000" stroke-width="1"/>`, x, x, height)
 	}
 	for y := step; y < height; y += step {
-		lines += fmt.Sprintf(`<line x1="0" y1="%d" x2="%d" y2="%d" stroke="#e8e8e8" stroke-width="1"/>`, y, width, y)
+		lines += fmt.Sprintf(`<line x1="0" y1="%d" x2="%d" y2="%d" stroke="#000" stroke-width="1"/>`, y, width, y)
 	}
 	return fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %d %d" width="%d" height="%d"><rect width="100%%" height="100%%" fill="white"/>%s</svg>`, width, height, width, height, lines)
 }
@@ -68,7 +68,7 @@ func dottedSVG() string {
 	step := 24
 	for y := step; y < height; y += step {
 		for x := step; x < width; x += step {
-			dots += fmt.Sprintf(`<circle cx="%d" cy="%d" r="1" fill="#d0d0d0"/>`, x, y)
+			dots += fmt.Sprintf(`<circle cx="%d" cy="%d" r="1" fill="#000"/>`, x, y)
 		}
 	}
 	return fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %d %d" width="%d" height="%d"><rect width="100%%" height="100%%" fill="white"/>%s</svg>`, width, height, width, height, dots)
