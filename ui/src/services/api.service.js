@@ -18,15 +18,27 @@ class ApiServices {
     return fetch(`${constants.ROOT_URL}/login`, {
       method: "POST",
       headers: this.header(),
+      credentials: "same-origin",
       body: JSON.stringify(loginData),
     })
-      .then((r) => {
+      .then(async (r) => {
+        const text = await r.text();
         if (!r.ok) {
-          throw new Error(r.statusText);
+          let msg = r.statusText;
+          try {
+            if (text && text.startsWith("{")) {
+              const j = JSON.parse(text);
+              if (j.error) msg = j.error;
+            }
+          } catch (_) {}
+          throw new Error(msg);
         }
-        return r.text();
+        return text;
       })
       .then((text) => {
+        if (!text || typeof text !== "string" || !/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/.test(text)) {
+          throw new Error("Invalid response from server. Check that the app URL and API are correct.");
+        }
         let user = jwtDecode(text);
         localStorage.setItem("currentUser", JSON.stringify(user));
         return user;
