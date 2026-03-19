@@ -1,3 +1,19 @@
+# Unreleased
+
+## Features
+
+- Document type from `.content` file when present and size > 4 bytes (pdf, epub, notebook).
+- Template thumbnails use `iconData` from `.template` file when available (base64 SVG).
+- EPUB table of contents (TOC) uses black font color.
+- PDF object fallback: "Alternative text: Download PDF" when plugin cannot render.
+
+## Changed
+
+- PDFs rendered solely as raw `application/pdf` via browser/Adobe plugin; removed react-pdf and PNG+overlay viewer.
+- Error boundary ("Something went wrong") adds meta refresh to `/` and link to home.
+
+---
+
 # 0.0.25
 
 ## Features
