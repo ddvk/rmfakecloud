@@ -96,9 +96,11 @@ export default function FileViewer({ file, onSelect }) {
           <object
             data={downloadUrl}
             type="application/pdf"
-            style={{ width: "100%", height: height, minHeight: 400 }}
+            width="100%"
+            height={height}
+            style={{ minHeight: 400 }}
           >
-            <a href={downloadUrl}>Open PDF</a>
+            <p>Alternative text: <a href={downloadUrl}>Download PDF</a></p>
           </object>
         </div>
       )}

@@ -68,12 +68,12 @@ export default function EpubViewer({ file, onSelect }) {
           background: "#fff",
         }}
       >
-        <div style={{ width: 280, borderRight: "1px solid #dee2e6", overflow: "auto", background: "#f8f9fa" }}>
-          <div style={{ padding: "10px 12px", fontWeight: 700, fontSize: 12, borderBottom: "1px solid #dee2e6" }}>
+        <div style={{ width: 280, borderRight: "1px solid #dee2e6", overflow: "auto", background: "#f8f9fa", color: "#000" }}>
+          <div style={{ padding: "10px 12px", fontWeight: 700, fontSize: 12, borderBottom: "1px solid #dee2e6", color: "#000" }}>
             Contents
           </div>
           {items.length === 0 && (
-            <div style={{ padding: 12, fontSize: 12, color: "#6c757d" }}>
+            <div style={{ padding: 12, fontSize: 12, color: "#000" }}>
               Loading…
             </div>
           )}
@@ -90,6 +90,7 @@ export default function EpubViewer({ file, onSelect }) {
                 background: it.path === currentPath ? "#e9ecef" : "transparent",
                 cursor: "pointer",
                 fontSize: 12,
+                color: "#000",
               }}
               title={it.path}
             >
