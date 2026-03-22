@@ -55,6 +55,10 @@ func (b *backend15) GetEpubFile(uid, docid, filePath string) (io.ReadCloser, str
 	return b.blobHandler.GetEpubFile(uid, docid, filePath)
 }
 
+func (b *backend15) GetEpubCoverThumb(uid, docid string) (io.ReadCloser, string, error) {
+	return b.blobHandler.GetEpubCoverThumb(uid, docid)
+}
+
 func (b *backend15) CreateDocument(uid, filename, parent string, stream io.Reader) (doc *storage.Document, err error) {
 	doc, err = b.blobHandler.CreateBlobDocument(uid, filename, parent, stream)
 	return

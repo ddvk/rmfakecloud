@@ -196,6 +196,11 @@ class ApiServices {
     return `${constants.ROOT_URL}/documents/${id}/page/${pageNum}`;
   }
 
+  /** Cover image URL for EPUB thumbnails (cover.htm/html/xhtml, or *0000.xhtml first img). */
+  getEpubCoverThumbUrl(id) {
+    return `${constants.ROOT_URL}/documents/${id}/epub/cover-thumb`;
+  }
+
   getDocumentPageOverlayUrl(id, pageNum) {
     return `${constants.ROOT_URL}/documents/${id}/page/${pageNum}/overlay.svg`;
   }

@@ -78,6 +78,18 @@ go run ./cmd/rmdoc2png -o ./out_pngs path/to/document.rmdoc
 - **v6**: `scripts/rmscene_v6_to_png.py` + `third_party/rmscene` + **Pillow**.
 - Default output directory is `<rmdoc_basename>_png` if `-o` is omitted.
 
+### Web UI notebook page PNGs (`GET /documents/:id/page/:n`)
+
+For **non-PDF** documents, the server renders each page’s `.rm` with **`EncodeRmPageToPNG`** (same pipeline as `rmdoc2png`):
+
+- **v3 / v5** — pure Go (`RenderWritingsPNG`).
+- **v6** — `python3` + `scripts/rmscene_v6_to_png.py` (needs **Pillow** and the **rmscene** path). Set either:
+
+  - **`RMFAKECLOUD_V6_PNG_SCRIPT`** — full path to `rmscene_v6_to_png.py`, or  
+  - **`RMFAKECLOUD_ROOT`** — repo root so the server can find `scripts/rmscene_v6_to_png.py`.
+
+If v6 tooling is missing or decoding fails, the server **falls back** to the legacy PDF→PNG raster path.
+
 ## References
 
 - [Older binary layout (v3)](https://plasma.ninja/blog/devices/remarkable/binary/format/2017/12/26/reMarkable-lines-file-format.html)

@@ -50,3 +50,15 @@ func RenderWritingsPNG(page *rm.Rm) ([]byte, error) {
 	}
 	return buf.Bytes(), nil
 }
+
+// RenderBlankNotebookPNG returns a white PNG at the standard notebook size (no strokes).
+func RenderBlankNotebookPNG() ([]byte, error) {
+	dc := gg.NewContext(PageWidthPt, PageHeightPt)
+	dc.SetRGB(1, 1, 1)
+	dc.Clear()
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, dc.Image()); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}

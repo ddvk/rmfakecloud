@@ -7,6 +7,7 @@ import constants from "../../common/constants";
 
 import apiservice from "../../services/api.service";
 import NameTag from "../../components/NameTag";
+import NotebookPageSvg from "../../components/NotebookPageSvg";
 
 export default function FileViewer({ file, onSelect }) {
   const { data } = file;
@@ -196,21 +197,11 @@ export default function FileViewer({ file, onSelect }) {
             Array.from({ length: notebookPageCount }, (_, i) => {
               const pageNum = i + 1;
               return (
-                <img
+                <NotebookPageSvg
                   key={pageNum}
-                  src={apiservice.getDocumentPagePngUrl(file.id, pageNum)}
-                  alt={`${data.name} page ${pageNum}`}
-                  loading="lazy"
-                  decoding="async"
-                  style={{
-                    width: "100%",
-                    maxWidth: 900,
-                    height: "auto",
-                    display: "block",
-                    margin: "0 auto 16px",
-                    border: "1px solid #ddd",
-                    borderRadius: 4,
-                  }}
+                  docId={file.id}
+                  pageNum={pageNum}
+                  label={`${data.name} page ${pageNum}`}
                 />
               );
             })

@@ -481,11 +481,26 @@ func (app *ReactAppWrapper) getEpubPath(c *gin.Context) {
 	type epubBackend interface {
 		GetEpubManifest(uid, docid string) (*epub.Manifest, error)
 		GetEpubFile(uid, docid, filePath string) (io.ReadCloser, string, error)
+		GetEpubCoverThumb(uid, docid string) (io.ReadCloser, string, error)
 	}
 	backend := app.getBackend(c)
 	eb, ok := backend.(epubBackend)
 	if !ok {
 		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	if pathParam == "cover-thumb" {
+		reader, contentType, err := eb.GetEpubCoverThumb(uid, docid)
+		if err != nil {
+			log.Debug("epub cover-thumb: ", err)
+			c.AbortWithStatus(http.StatusNotFound)
+			return
+		}
+		defer reader.Close()
+		c.Header("Content-Type", contentType)
+		c.Header("Cache-Control", "public, max-age=86400")
+		c.Header("X-Content-Type-Options", "nosniff")
+		c.DataFromReader(http.StatusOK, -1, contentType, reader, nil)
 		return
 	}
 	if pathParam == "manifest" {

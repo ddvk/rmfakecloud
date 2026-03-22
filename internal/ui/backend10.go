@@ -152,6 +152,13 @@ func (d *backend10) GetEpubFile(uid, docid, filePath string) (io.ReadCloser, str
 	return d.blobHandler.GetEpubFile(uid, docid, filePath)
 }
 
+func (d *backend10) GetEpubCoverThumb(uid, docid string) (io.ReadCloser, string, error) {
+	if d.blobHandler == nil {
+		return nil, "", errors.New("blob handler not configured")
+	}
+	return d.blobHandler.GetEpubCoverThumb(uid, docid)
+}
+
 func (d *backend10) GetTemplate(uid, docid string) (io.ReadCloser, error) {
 	if d.blobHandler == nil {
 		return nil, errors.New("blob handler not configured")

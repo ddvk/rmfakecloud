@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { BsFilePdf, BsFolder, BsFileEarmark, BsFileEarmarkText, BsCloud, BsFile, BsTrash, BsGrid3X3, BsBook } from "react-icons/bs";
 import apiservice from "../../services/api.service";
 
 export default function FileIcon({ file, showThumbnail = false }) {
+  const [epubThumbFailed, setEpubThumbFailed] = useState(false);
 
   const Icon = () => {
     if (!!file.icon) {
@@ -47,6 +49,23 @@ export default function FileIcon({ file, showThumbnail = false }) {
     }
 
     if (file.type === "epub" || (file.name && file.name.toLowerCase().endsWith(".epub"))) {
+      if (showThumbnail && file?.id && !epubThumbFailed) {
+        return (
+          <img
+            src={apiservice.getEpubCoverThumbUrl(file.id)}
+            alt={file.name || "EPUB"}
+            onError={() => setEpubThumbFailed(true)}
+            style={{
+              width: 68,
+              height: 88,
+              objectFit: "cover",
+              borderRadius: 3,
+              border: "1px solid #dee2e6",
+              background: "#fff",
+            }}
+          />
+        );
+      }
       return <BsBook />
     }
 

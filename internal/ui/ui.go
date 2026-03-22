@@ -59,6 +59,7 @@ type blobHandler interface {
 	ExportPageOverlaySVG(uid, docid string, pageNum int) (io.ReadCloser, error)
 	GetEpubManifest(uid, docid string) (*epub.Manifest, error)
 	GetEpubFile(uid, docid, filePath string) (io.ReadCloser, string, error)
+	GetEpubCoverThumb(uid, docid string) (io.ReadCloser, string, error)
 	PDFInlineFilename(uid, docid string) string
 }
 

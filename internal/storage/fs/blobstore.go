@@ -221,6 +221,28 @@ func (fs *FileSystemStorage) GetEpubFile(uid, docid, filePath string) (io.ReadCl
 	return f, contentType, nil
 }
 
+// GetEpubCoverThumb opens the EPUB, finds a cover image (see epub.FindCoverImagePath), and returns that file.
+func (fs *FileSystemStorage) GetEpubCoverThumb(uid, docid string) (io.ReadCloser, string, error) {
+	rc, err := fs.GetEpub(uid, docid)
+	if err != nil {
+		return nil, "", err
+	}
+	defer rc.Close()
+	b, err := io.ReadAll(rc)
+	if err != nil {
+		return nil, "", err
+	}
+	zr, err := zip.NewReader(bytes.NewReader(b), int64(len(b)))
+	if err != nil {
+		return nil, "", err
+	}
+	imgPath, err := epub.FindCoverImagePath(zr)
+	if err != nil {
+		return nil, "", err
+	}
+	return fs.GetEpubFile(uid, docid, imgPath)
+}
+
 // GetDocumentMetadata returns document type, hasWritings, and page count for the given doc.
 func (fs *FileSystemStorage) GetDocumentMetadata(uid, docid string) (docType string, hasWritings bool, pageCount int, err error) {
 	tree, err := fs.GetCachedTree(uid)
@@ -297,8 +319,9 @@ func (fs *FileSystemStorage) GetDocumentOrientation(uid, docid string) (string, 
 }
 
 // ExportPagePNG exports a single page of the document as PNG (1-based page number).
-// On cache hit, returns the stored PNG file bytes unchanged (no re-render). On miss, renders once,
-// writes the raw PNG to disk, then returns those bytes — same binary stream as the cached file.
+// - PDF documents: full composite (payload + strokes) via exporter PDF→PNG (cached as page-*-full-pdf-*).
+// - Notebooks / non-PDF: strokes rendered with rmdecode → raw PNG bytes (cached as page-*-rmdecode-*).
+// On cache hit, returns the stored PNG file unchanged.
 func (fs *FileSystemStorage) ExportPagePNG(uid, docid string, pageNum int) (io.ReadCloser, error) {
 	tree, err := fs.GetCachedTree(uid)
 	if err != nil {
@@ -312,28 +335,62 @@ func (fs *FileSystemStorage) ExportPagePNG(uid, docid string, pageNum int) (io.R
 	cacheDir := fs.getPathFromUser(uid, CacheDir)
 	_ = os.MkdirAll(cacheDir, 0700)
 	safeDoc := common.Sanitize(docid)
-	cachePath := path.Join(cacheDir, "renders", safeDoc, fmt.Sprintf("page-%d-full-%s.png", pageNum, docHash))
+
+	ls := fs.BlobStorage(uid)
+	payload := doc.PayloadTypeFromFiles()
+
+	var cachePath string
+	var gen func() ([]byte, error)
+
+	if payload == "pdf" {
+		cachePath = path.Join(cacheDir, "renders", safeDoc, fmt.Sprintf("page-%d-full-pdf-%s.png", pageNum, docHash))
+		gen = func() ([]byte, error) {
+			archive, e := models.ArchiveFromHashDoc(doc, ls)
+			if e != nil {
+				return nil, e
+			}
+			return exporter.RenderPagePNG(archive, pageNum)
+		}
+	} else {
+		// Notebook, template, or no payload: render .rm with rmdecode (raw PNG).
+		cachePath = path.Join(cacheDir, "renders", safeDoc, fmt.Sprintf("page-%d-rmdecode-%s.png", pageNum, docHash))
+		gen = func() ([]byte, error) {
+			return exportNotebookPagePNGWithRmdecode(doc, ls, docid, pageNum)
+		}
+	}
+
 	if docHash != "" {
 		if r, err := os.Open(cachePath); err == nil {
 			return r, nil
 		}
 	}
-	ls := fs.BlobStorage(uid)
-	archive, err := models.ArchiveFromHashDoc(doc, ls)
+
+	b, err := gen()
 	if err != nil {
-		return nil, err
-	}
-	rc, err := exporter.RenderPagePNGReader(archive, pageNum)
-	if err != nil {
-		return nil, err
+		// Fallback: legacy full-document PDF raster (slow, may include backgrounds).
+		log.Warn("ExportPagePNG rmdecode/pdf path failed, falling back to RenderPagePNG: ", err)
+		archive, e2 := models.ArchiveFromHashDoc(doc, ls)
+		if e2 != nil {
+			return nil, e2
+		}
+		rc, e3 := exporter.RenderPagePNGReader(archive, pageNum)
+		if e3 != nil {
+			return nil, e3
+		}
+		if docHash == "" {
+			return rc, nil
+		}
+		fb, e4 := io.ReadAll(rc)
+		_ = rc.Close()
+		if e4 != nil {
+			return nil, e4
+		}
+		_ = os.MkdirAll(path.Dir(cachePath), 0700)
+		_ = os.WriteFile(cachePath, fb, 0600)
+		return exporter.NewSeekCloser(fb), nil
 	}
 	if docHash == "" {
-		return rc, nil
-	}
-	b, readErr := io.ReadAll(rc)
-	_ = rc.Close()
-	if readErr != nil {
-		return nil, readErr
+		return exporter.NewSeekCloser(b), nil
 	}
 	_ = os.MkdirAll(path.Dir(cachePath), 0700)
 	_ = os.WriteFile(cachePath, b, 0600)
