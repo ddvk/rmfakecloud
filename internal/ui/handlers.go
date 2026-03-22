@@ -294,9 +294,9 @@ func (app *ReactAppWrapper) getDocument(c *gin.Context) {
 	}
 
 	defer reader.Close()
-	// Helpful for browser downloads / embedded PDF viewers.
-	// UI uses this endpoint both for inline viewing (react-pdf) and for downloads.
-	c.Header("Content-Disposition", fmt.Sprintf("inline; filename=%q", docid+"."+exportType))
+	// Raw PDF bytes; filename uses visible document name when available.
+	filename := backend.PDFInlineFilename(uid, docid)
+	c.Header("Content-Disposition", fmt.Sprintf("inline; filename=%q", filename))
 	c.Header("X-Content-Type-Options", "nosniff")
 	c.DataFromReader(http.StatusOK, -1, "application/pdf", reader, nil)
 }
@@ -403,6 +403,7 @@ func (app *ReactAppWrapper) getDocumentPage(c *gin.Context) {
 	}
 	defer reader.Close()
 	c.Header("Content-Type", "image/png")
+	c.Header("Content-Disposition", fmt.Sprintf("inline; filename=%q", fmt.Sprintf("page-%d.png", pagenum)))
 	c.Header("X-Content-Type-Options", "nosniff")
 	c.DataFromReader(http.StatusOK, -1, "image/png", reader, nil)
 }

@@ -192,6 +192,10 @@ class ApiServices {
     return `${constants.ROOT_URL}/documents/${id}/page/${pageNum}/background`;
   }
 
+  getDocumentPagePngUrl(id, pageNum) {
+    return `${constants.ROOT_URL}/documents/${id}/page/${pageNum}`;
+  }
+
   getDocumentPageOverlayUrl(id, pageNum) {
     return `${constants.ROOT_URL}/documents/${id}/page/${pageNum}/overlay.svg`;
   }

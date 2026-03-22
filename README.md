@@ -53,6 +53,22 @@ See the [documentation](https://ddvk.github.io/rmfakecloud/remarkable/setup/) fo
 
 run `./dev.sh` which should start the UI and backend
 
+### `.rm` page decoder (lines format)
+
+To inspect raw handwriting pages (`*.rm`), see **[internal/rmdecode/README.md](internal/rmdecode/README.md)**. It documents **v3/v5** (Go) vs **v6** (Python + [rmscene](https://github.com/ricklupton/rmscene)), and points to **[rmc](https://github.com/ricklupton/rmc)** for production-grade v6 SVG/PDF export from the ecosystem.
+
+The **rmscene** library is included as a git submodule at **`third_party/rmscene`**. After a fresh clone run: `git submodule update --init --recursive`.
+
+```bash
+go run ./cmd/rmdecode /path/to/page.rm
+go run ./cmd/rmdecode -o strokes.svg -format svg /path/to/page.rm
+go run ./cmd/rmdecode -o strokes.pdf /path/to/page.rm
+```
+
+v3/v5 SVG/PDF are rendered in Go; v6 SVG/PDF use the `rmc` CLI if installed.
+
+**`.rmdoc` → PNG (all pages, paged filenames):** `go run ./cmd/rmdoc2png -o outdir doc.rmdoc` — writes `001_name.png`, `002_…` for each `*.rm` (v3/v5 in Go; v6 needs Python + Pillow + vendored [rmscene](https://github.com/ricklupton/rmscene)). See `internal/rmdecode/README.md`.
+
 ### Caveats/ WARNING
 
 - (applies when you don't have security, version <= 0.0.3) connecting to the api will delete all your files, unless you mark them as not synced `synced:false` prior to syncing (advisable just to disconnect, reconnect the cloud)

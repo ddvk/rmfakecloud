@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"errors"
 	"io"
 	"time"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/storage"
+	"github.com/ddvk/rmfakecloud/internal/storage/epub"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
 	log "github.com/sirupsen/logrus"
 )
@@ -16,6 +18,7 @@ const webDevice = "web"
 
 type backend10 struct {
 	documentHandler documentHandler
+	blobHandler     blobHandler
 	hub             *hub.Hub
 }
 
@@ -59,6 +62,16 @@ func (d *backend10) CreateDocument(uid, filename, parent string, stream io.Reade
 }
 
 func (d *backend10) GetDocumentTree(uid string) (tree *viewmodel.DocumentTree, err error) {
+	// Prefer hash-tree metadata (same as sync 1.5) so document types and previews work.
+	if d.blobHandler != nil {
+		tree, err = documentTreeFromBlob(d.blobHandler, uid)
+		if err == nil && tree != nil {
+			return tree, nil
+		}
+		if err != nil {
+			log.Warn(uiLogger, ui10, " hash tree failed, falling back to legacy metadata: ", err)
+		}
+	}
 	documents, err := d.documentHandler.GetAllMetadata(uid)
 	if err != nil {
 		return nil, err
@@ -74,7 +87,7 @@ func (d *backend10) GetDocumentTree(uid string) (tree *viewmodel.DocumentTree, e
 			Parent:       d.Parent,
 			Name:         d.VissibleName,
 			Type:         d.Type,
-			FileType:     "TODO",
+			FileType:     "notebook",
 			LastModified: lastMod,
 		})
 
@@ -88,6 +101,62 @@ func (d *backend10) Export(uid, docID, exporttype string, opt storage.ExportOpti
 	}
 	log.Info(uiLogger, ui10, "Exported document id: ", docID)
 	return r, nil
+}
+
+func (d *backend10) PDFInlineFilename(uid, docid string) string {
+	if d.blobHandler != nil {
+		return d.blobHandler.PDFInlineFilename(uid, docid)
+	}
+	return docid + ".pdf"
+}
+
+func (d *backend10) GetDocumentMetadata(uid, docid string) (docType string, hasWritings bool, pageCount int, err error) {
+	if d.blobHandler == nil {
+		return "", false, 0, errors.New("blob handler not configured")
+	}
+	return d.blobHandler.GetDocumentMetadata(uid, docid)
+}
+
+func (d *backend10) ExportPagePNG(uid, docid string, pageNum int) (io.ReadCloser, error) {
+	if d.blobHandler == nil {
+		return nil, errors.New("blob handler not configured")
+	}
+	return d.blobHandler.ExportPagePNG(uid, docid, pageNum)
+}
+
+func (d *backend10) ExportPageBackgroundPNG(uid, docid string, pageNum int) (io.ReadCloser, error) {
+	if d.blobHandler == nil {
+		return nil, errors.New("blob handler not configured")
+	}
+	return d.blobHandler.ExportPageBackgroundPNG(uid, docid, pageNum)
+}
+
+func (d *backend10) ExportPageOverlaySVG(uid, docid string, pageNum int) (io.ReadCloser, error) {
+	if d.blobHandler == nil {
+		return nil, errors.New("blob handler not configured")
+	}
+	return d.blobHandler.ExportPageOverlaySVG(uid, docid, pageNum)
+}
+
+func (d *backend10) GetEpubManifest(uid, docid string) (*epub.Manifest, error) {
+	if d.blobHandler == nil {
+		return nil, errors.New("blob handler not configured")
+	}
+	return d.blobHandler.GetEpubManifest(uid, docid)
+}
+
+func (d *backend10) GetEpubFile(uid, docid, filePath string) (io.ReadCloser, string, error) {
+	if d.blobHandler == nil {
+		return nil, "", errors.New("blob handler not configured")
+	}
+	return d.blobHandler.GetEpubFile(uid, docid, filePath)
+}
+
+func (d *backend10) GetTemplate(uid, docid string) (io.ReadCloser, error) {
+	if d.blobHandler == nil {
+		return nil, errors.New("blob handler not configured")
+	}
+	return d.blobHandler.GetTemplate(uid, docid)
 }
 
 func (d *backend10) UpdateDocument(uid, docID, name, parent string) (err error) {

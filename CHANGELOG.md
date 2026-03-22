@@ -2,6 +2,8 @@
 
 ## Features
 
+- `.rm` lines decoder: `cmd/rmdecode` and `internal/rmdecode` — export all writings to **SVG** or **PDF** (`-format` / `-o`); v3/v5 in Go, v6 via `rmc`; v6 text summary via Python + `rmscene` (see `internal/rmdecode/README.md`).
+- **`cmd/rmdoc2png`**: extract every `*.rm` from a `.rmdoc` zip and write paginated PNGs (`001_….png`, …; v3/v5 in Go + gg; v6 via `scripts/rmscene_v6_to_png.py` + Pillow + vendored `third_party/rmscene`).
 - Document type from `.content` file when present and size > 4 bytes (pdf, epub, notebook).
 - Template thumbnails use `iconData` from `.template` file when available (base64 SVG).
 - EPUB table of contents (TOC) uses black font color.

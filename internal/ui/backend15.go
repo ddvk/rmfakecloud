@@ -6,8 +6,6 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/app/hub"
 	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/storage/epub"
-	"github.com/ddvk/rmfakecloud/internal/ui/methods"
-	"github.com/ddvk/rmfakecloud/internal/ui/templates"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
 	"github.com/google/uuid"
 )
@@ -18,47 +16,15 @@ type backend15 struct {
 }
 
 func (b *backend15) GetDocumentTree(uid string) (tree *viewmodel.DocumentTree, err error) {
-	hashTree, err := b.blobHandler.GetCachedTree(uid)
-	if err != nil {
-		return nil, err
-	}
-	tree = viewmodel.DocTreeFromHashTree(hashTree)
-	// Templates: merge builtin with synced (separate section in tree)
-	tDir := templates.BuiltinTemplatesDirectory()
-	if len(tree.Templates) > 0 {
-		if d, ok := tree.Templates[0].(*viewmodel.Directory); ok {
-			tDir.Entries = append(tDir.Entries, d.Entries...)
-		}
-	}
-	tree.Templates = []viewmodel.Entry{tDir}
-	// Methods: merge builtin with synced (separate section in tree)
-	mDir := methods.BuiltinMethodsDirectory()
-	if len(tree.Methods) > 0 {
-		if d, ok := tree.Methods[0].(*viewmodel.Directory); ok {
-			mDir.Entries = append(mDir.Entries, d.Entries...)
-		}
-	}
-	tree.Methods = []viewmodel.Entry{mDir}
-	// Enrich template/method documents with orientation from .content (builtins have no .content, stay empty)
-	for _, e := range tDir.Entries {
-		if doc, ok := e.(*viewmodel.Document); ok {
-			if o, err := b.blobHandler.GetDocumentOrientation(uid, doc.ID); err == nil {
-				doc.Orientation = o
-			}
-		}
-	}
-	for _, e := range mDir.Entries {
-		if doc, ok := e.(*viewmodel.Document); ok {
-			if o, err := b.blobHandler.GetDocumentOrientation(uid, doc.ID); err == nil {
-				doc.Orientation = o
-			}
-		}
-	}
-	return tree, nil
+	return documentTreeFromBlob(b.blobHandler, uid)
 }
 func (b *backend15) Export(uid, docid, exporttype string, opt storage.ExportOption) (r io.ReadCloser, err error) {
 	r, err = b.blobHandler.Export(uid, docid)
 	return
+}
+
+func (b *backend15) PDFInlineFilename(uid, docid string) string {
+	return b.blobHandler.PDFInlineFilename(uid, docid)
 }
 
 func (b *backend15) GetTemplate(uid, docid string) (r io.ReadCloser, err error) {

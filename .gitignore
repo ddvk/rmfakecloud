@@ -24,3 +24,9 @@ assets_vfsdata.go
 
 # mkdoc build
 site/
+
+# Local toolchains downloaded by scripts/download-go-node.sh
+.tools/
+
+# Ad-hoc binary built at repo root
+/rmdecode

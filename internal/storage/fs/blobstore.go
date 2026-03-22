@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -71,7 +72,9 @@ func (fs *FileSystemStorage) BlobStorage(uid string) *LocalBlobStorage {
 	}
 }
 
-// Export exports a document
+// Export exports a document.
+// For PDF-type documents, the original payload bytes are streamed unchanged (no re-render).
+// For notebooks and other types, the PDF is produced via rmtool render.
 func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err error) {
 	tree, err := fs.GetCachedTree(uid)
 	if err != nil {
@@ -82,6 +85,22 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 		return nil, err
 	}
 	ls := fs.BlobStorage(uid)
+
+	// PDF: send stored blob as-is (binary), no processing.
+	if doc.PayloadTypeFromFiles() == "pdf" {
+		for _, f := range doc.Files {
+			if strings.EqualFold(f.EntryName, docid+storage.PdfFileExt) {
+				return ls.GetReader(f.Hash)
+			}
+		}
+		for _, f := range doc.Files {
+			if strings.EqualFold(strings.ToLower(path.Ext(f.EntryName)), storage.PdfFileExt) {
+				return ls.GetReader(f.Hash)
+			}
+		}
+		return nil, fmt.Errorf("pdf payload not found for document %s", docid)
+	}
+
 	reader, writer := io.Pipe()
 	go func() {
 		rc, e := renderPDFRmtool(doc, ls)
@@ -99,6 +118,27 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 		_ = writer.Close()
 	}()
 	return reader, err
+}
+
+// PDFInlineFilename returns a safe filename for Content-Disposition (visible name + .pdf when possible).
+func (fs *FileSystemStorage) PDFInlineFilename(uid, docid string) string {
+	tree, err := fs.GetCachedTree(uid)
+	if err != nil {
+		return docid + ".pdf"
+	}
+	doc, err := tree.FindDoc(docid)
+	if err != nil {
+		return docid + ".pdf"
+	}
+	name := strings.TrimSpace(doc.DocumentName)
+	if name == "" {
+		return docid + ".pdf"
+	}
+	base := filepath.Base(name)
+	if strings.EqualFold(filepath.Ext(base), storage.PdfFileExt) {
+		return sanitizeFileName(base)
+	}
+	return sanitizeFileName(strings.TrimSuffix(base, filepath.Ext(base))) + storage.PdfFileExt
 }
 
 // GetTemplate returns the raw .template file for a given entry (if present).
@@ -257,6 +297,8 @@ func (fs *FileSystemStorage) GetDocumentOrientation(uid, docid string) (string, 
 }
 
 // ExportPagePNG exports a single page of the document as PNG (1-based page number).
+// On cache hit, returns the stored PNG file bytes unchanged (no re-render). On miss, renders once,
+// writes the raw PNG to disk, then returns those bytes — same binary stream as the cached file.
 func (fs *FileSystemStorage) ExportPagePNG(uid, docid string, pageNum int) (io.ReadCloser, error) {
 	tree, err := fs.GetCachedTree(uid)
 	if err != nil {
@@ -266,12 +308,36 @@ func (fs *FileSystemStorage) ExportPagePNG(uid, docid string, pageNum int) (io.R
 	if err != nil {
 		return nil, err
 	}
+	docHash := doc.Hash
+	cacheDir := fs.getPathFromUser(uid, CacheDir)
+	_ = os.MkdirAll(cacheDir, 0700)
+	safeDoc := common.Sanitize(docid)
+	cachePath := path.Join(cacheDir, "renders", safeDoc, fmt.Sprintf("page-%d-full-%s.png", pageNum, docHash))
+	if docHash != "" {
+		if r, err := os.Open(cachePath); err == nil {
+			return r, nil
+		}
+	}
 	ls := fs.BlobStorage(uid)
 	archive, err := models.ArchiveFromHashDoc(doc, ls)
 	if err != nil {
 		return nil, err
 	}
-	return exporter.RenderPagePNGReader(archive, pageNum)
+	rc, err := exporter.RenderPagePNGReader(archive, pageNum)
+	if err != nil {
+		return nil, err
+	}
+	if docHash == "" {
+		return rc, nil
+	}
+	b, readErr := io.ReadAll(rc)
+	_ = rc.Close()
+	if readErr != nil {
+		return nil, readErr
+	}
+	_ = os.MkdirAll(path.Dir(cachePath), 0700)
+	_ = os.WriteFile(cachePath, b, 0600)
+	return exporter.NewSeekCloser(b), nil
 }
 
 // ExportPageBackgroundPNG renders the original payload (PDF) page as PNG (without handwriting).

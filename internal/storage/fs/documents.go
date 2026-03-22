@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -69,28 +70,36 @@ func (fs *FileSystemStorage) ExportDocument(uid, id, outputType string, exportOp
 		return nil, fmt.Errorf("cant find raw document %v", err)
 	}
 
-	outputFilePath := path.Join(cacheDirPath, sanitizedID+"-annotated.pdf")
-	outStat, err := os.Stat(outputFilePath)
-
-	// exists and not older
-	if err == nil && !rawStat.ModTime().After(outStat.ModTime()) {
-		return os.Open(outputFilePath)
-	}
-
-	size := rawStat.Size()
-	arch := &exporter.MyArchive{}
 	zipFile, err := os.Open(zipFilePath)
 	if err != nil {
 		return nil, err
 	}
 	defer zipFile.Close()
-	err = arch.Read(zipFile, size)
+
+	arch := &exporter.MyArchive{}
+	err = arch.Read(zipFile, rawStat.Size())
 	if err != nil {
 		return nil, err
 	}
 
 	if arch.Payload != nil {
 		arch.PayloadReader = exporter.NewSeekCloser(arch.Payload)
+	}
+
+	// PDF: return original file bytes only (no annotation merge / re-render).
+	if strings.EqualFold(arch.Content.FileType, "pdf") && arch.PayloadReader != nil {
+		if _, err := arch.PayloadReader.Seek(0, io.SeekStart); err != nil {
+			return nil, err
+		}
+		return arch.PayloadReader, nil
+	}
+
+	outputFilePath := path.Join(cacheDirPath, sanitizedID+"-annotated.pdf")
+	outStat, err := os.Stat(outputFilePath)
+
+	// exists and not older
+	if err == nil && !rawStat.ModTime().After(outStat.ModTime()) {
+		return os.Open(outputFilePath)
 	}
 
 	outputFile, err := os.Create(outputFilePath)

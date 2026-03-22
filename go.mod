@@ -8,10 +8,12 @@ require (
 	github.com/akeil/rmtool v0.0.0-20210103130743-18a76adaa7d3
 	github.com/danjacques/gofslock v0.0.0-20240212154529-d899e02bfe22
 	github.com/dropbox/dropbox-sdk-go-unofficial/v6 v6.0.5
+	github.com/fogleman/gg v1.3.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.1
+	github.com/jung-kurt/gofpdf v1.16.2
 	github.com/juruen/rmapi v0.0.25
 	github.com/mochi-mqtt/server/v2 v2.7.9
 	github.com/poundifdef/go-remarkable2pdf v0.2.0
@@ -45,7 +47,6 @@ require (
 	github.com/hhrutter/lzw v0.0.0-20190829144645-6f07a24e8650 // indirect
 	github.com/hhrutter/tiff v0.0.0-20190829141212-736cae8d0bc7 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/jung-kurt/gofpdf v1.16.2 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/llgcode/draw2d v0.0.0-20260213073409-1c39bbefe083 // indirect

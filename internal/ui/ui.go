@@ -22,6 +22,7 @@ import (
 type backend interface {
 	GetDocumentTree(uid string) (tree *viewmodel.DocumentTree, err error)
 	Export(uid, doc, exporttype string, opt storage.ExportOption) (stream io.ReadCloser, err error)
+	PDFInlineFilename(uid, docid string) string
 	CreateDocument(uid, name, parent string, stream io.Reader) (doc *storage.Document, err error)
 	CreateFolder(uid, name, parent string) (doc *storage.Document, err error)
 	UpdateDocument(uid, docID, name, parent string) (err error)
@@ -58,6 +59,7 @@ type blobHandler interface {
 	ExportPageOverlaySVG(uid, docid string, pageNum int) (io.ReadCloser, error)
 	GetEpubManifest(uid, docid string) (*epub.Manifest, error)
 	GetEpubFile(uid, docid, filePath string) (io.ReadCloser, string, error)
+	PDFInlineFilename(uid, docid string) string
 }
 
 type notificationHub interface {
@@ -100,6 +102,7 @@ func New(cfg *config.Config,
 	}
 	backend10 := &backend10{
 		documentHandler: docHandler,
+		blobHandler:     blobHandler,
 		hub:             h,
 	}
 	staticWrapper := ReactAppWrapper{
