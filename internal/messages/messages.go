@@ -195,15 +195,16 @@ type Integration struct {
 }
 
 type IntegrationFile struct {
-	DateChanged      time.Time `json:"dateChanged"`
-	FileExtension    string    `json:"fileExtension"`
-	FileID           string    `json:"fileID"`
-	FileType         string    `json:"fileType"`
-	ID               string    `json:"id"`
-	Name             string    `json:"name"`
-	ProvidedFileType string    `json:"providedFileType"`
-	Size             int64     `json:"size"`
-	SourceFileType   string    `json:"sourceFileType"`
+	DateChanged        time.Time `json:"dateChanged"`
+	FileExtension      string    `json:"fileExtension"`
+	FileID             string    `json:"fileID"`
+	FileType           string    `json:"fileType"`
+	ID                 string    `json:"id"`
+	Name               string    `json:"name"`
+	ProvidedFileType   string    `json:"providedFileType"`
+	SupportedFileTypes []string  `json:"supportedFileTypes"`
+	Size               int64     `json:"size"`
+	SourceFileType     string    `json:"sourceFileType"`
 }
 
 func NewIntegrationFolder(id, name string) *IntegrationFolder {
