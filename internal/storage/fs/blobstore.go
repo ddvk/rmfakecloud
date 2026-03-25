@@ -705,7 +705,11 @@ func (fs *FileSystemStorage) StoreBlob(uid, id string, stream io.Reader, lastGen
 			currentGen = generationFromFileSize(fi.Size())
 		}
 
-		if currentGen != lastGen && currentGen > 0 {
+		blobPath := path.Join(fs.getUserBlobPath(uid), common.Sanitize(id))
+		_, blobErr := os.Stat(blobPath)
+		rootExists := blobErr == nil
+
+		if currentGen != lastGen && currentGen > 0 && rootExists {
 			log.Warnf("wrong generation, currentGen %d, lastGen %d", currentGen, lastGen)
 			return currentGen, ErrorWrongGeneration
 		}
