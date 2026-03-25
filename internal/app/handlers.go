@@ -12,6 +12,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/mail"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -1000,6 +1001,28 @@ func (app *App) integrationsSendMessage(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"id": id})
 }
 
+func (app *App) integrationsCalendarEvents(c *gin.Context) {
+	uid := userID(c)
+	integrationID := common.ParamS(integrationKey, c)
+
+	provider, err := integrations.GetCalendarIntegrationProvider(app.userStorer, uid, integrationID)
+	if err != nil {
+		log.Error(fmt.Errorf("can't get calendar integration, %v", err))
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	now := time.Now().UTC()
+	response, err := provider.ListEvents(now, now.Add(24*time.Hour))
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
 func (app *App) integrationsUpload(c *gin.Context) {
 	log.Info("uploading...")
 	uid := userID(c)
@@ -1088,8 +1111,32 @@ func (app *App) integrations(c *gin.Context) {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
+
+	if !supportsCalendarIntegration(c.GetHeader("User-Agent")) {
+		filtered := &messages.IntegrationsResponse{}
+		for _, intg := range response.Integrations {
+			if intg.ProviderType != "Calendar" {
+				filtered.Integrations = append(filtered.Integrations, intg)
+			}
+		}
+		response = filtered
+	}
+
 	c.JSON(http.StatusOK, response)
 }
+
+var xochitlVersionRe = regexp.MustCompile(`xochitl/(\d+)\.(\d+)`)
+
+func supportsCalendarIntegration(ua string) bool {
+	m := xochitlVersionRe.FindStringSubmatch(ua)
+	if m == nil {
+		return true
+	}
+	major, _ := strconv.Atoi(m[1])
+	minor, _ := strconv.Atoi(m[2])
+	return major > 3 || (major == 3 && minor >= 27)
+}
+
 func (app *App) uploadRequest(c *gin.Context) {
 	uid := userID(c)
 	var req []messages.UploadRequest

@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/storage"
@@ -21,6 +22,7 @@ const (
 	DropboxProvider = "dropbox"
 	GoogleProvider  = "google"
 	LocalfsProvider = "localfs"
+	IcsProvider     = "ics"
 )
 
 type IntegrationProvider interface{}
@@ -38,6 +40,12 @@ type StorageIntegrationProvider interface {
 type MessagingIntegrationProvider interface {
 	IntegrationProvider
 	SendMessage(data messages.IntegrationMessageData, img image.Image) (string, error)
+}
+
+// CalendarIntegrationProvider abstracts calendar integrations
+type CalendarIntegrationProvider interface {
+	IntegrationProvider
+	ListEvents(windowStart, windowEnd time.Time) (*messages.CalendarEventsResponse, error)
 }
 
 // getIntegrationProvider finds the integration provider for the user
@@ -61,9 +69,11 @@ func getIntegrationProvider(storer storage.UserStorer, uid, integrationid string
 			return newLocalFS(intg), nil
 		case WebdavProvider:
 			return newWebDav(intg), nil
+		case IcsProvider:
+			return newICS(intg), nil
 		}
 	}
-	return nil, fmt.Errorf("integration not found or no implmentation (only webdav) %s", integrationid)
+	return nil, fmt.Errorf("integration not found or no implementation %s", integrationid)
 
 }
 
@@ -95,6 +105,20 @@ func GetMessagingIntegrationProvider(storer storage.UserStorer, uid, integration
 	return sip, nil
 }
 
+func GetCalendarIntegrationProvider(storer storage.UserStorer, uid, integrationid string) (CalendarIntegrationProvider, error) {
+	provider, err := getIntegrationProvider(storer, uid, integrationid)
+	if err != nil {
+		return nil, err
+	}
+
+	cip, ok := provider.(CalendarIntegrationProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider %q is not a calendar provider", integrationid)
+	}
+
+	return cip, nil
+}
+
 // fix the name
 func fixProviderName(n string) string {
 	switch n {
@@ -110,6 +134,8 @@ func fixProviderName(n string) string {
 		fallthrough
 	case WebdavProvider:
 		return "GoogleDrive"
+	case IcsProvider:
+		return "IcsCalendar"
 	default:
 		return n
 	}
@@ -127,6 +153,8 @@ func ProviderType(n string) string {
 		fallthrough
 	case WebdavProvider:
 		return "Storage"
+	case IcsProvider:
+		return "Calendar"
 	default:
 		return n
 	}

@@ -98,6 +98,7 @@ export default function IntegrationModal(params) {
               <option value="ftp">FTP</option>
               <option value="dropbox">Dropbox</option>
               <option value="webhook">Messaging webhook</option>
+              <option value="ics">ICS Calendar</option>
             </Form.Control>
 
             <Form.Label>Name</Form.Label>
@@ -150,6 +151,24 @@ export default function IntegrationModal(params) {
                 onChange={({ target }) => setIntegrationForm({ ...integrationForm, [target.name]: target.checked })}
                 label="Use actives transfers"
               />
+            )}
+
+            {integrationForm.provider === "ics" && (
+              <>
+                <Form.Label>ICS URL</Form.Label>
+                <Form.Control
+                  placeholder="https://example.com/calendar.ics"
+                  value={integrationForm.address}
+                  name="address"
+                  onChange={handleChange}
+                />
+                <Form.Check
+                  name="insecure"
+                  checked={integrationForm.insecure}
+                  onChange={({ target }) => setIntegrationForm({ ...integrationForm, [target.name]: target.checked })}
+                  label="Ignore TLS certificate errors"
+                />
+              </>
             )}
 
             {integrationForm.provider === "localfs" && (

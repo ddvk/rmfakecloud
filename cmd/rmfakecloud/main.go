@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	_ "time/tzdata"
 
 	"github.com/ddvk/rmfakecloud/internal/app"
 	"github.com/ddvk/rmfakecloud/internal/cli"
