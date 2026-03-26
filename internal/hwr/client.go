@@ -14,7 +14,8 @@ import (
 )
 
 const (
-	url = "https://cloud.myscript.com/api/v4.0/iink/batch"
+	defaultHost = "https://cloud.myscript.com"
+	apiPath     = "/api/v4.0/iink/batch"
 
 	// JIIX jiix type
 	JIIX = "application/vnd.myscript.jiix"
@@ -67,7 +68,12 @@ func (hwr *HWRClient) SendRequest(data []byte) (body []byte, err error) {
 
 	client := http.Client{}
 
-	req, err := http.NewRequest("POST", url, bytes.NewReader(data))
+	host := defaultHost
+	if hwr.Cfg.HWRHost != "" {
+		host = hwr.Cfg.HWRHost
+	}
+
+	req, err := http.NewRequest("POST", host+apiPath, bytes.NewReader(data))
 	if err != nil {
 		return nil, err
 	}

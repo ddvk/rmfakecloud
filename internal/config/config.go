@@ -72,6 +72,7 @@ const (
 	envHwrHmac = "RMAPI_HWR_HMAC"
 	// envHwrLangOverride override the language specified in myScript requests
 	envHwrLangOverride = "RMAPI_HWR_LANG_OVERRIDE"
+	envHwrHost         = "RMAPI_HWR_HOST"
 	// EnvLogFile log file to use
 	EnvLogFile     = "RM_LOGFILE"
 	envHTTPSCookie = "RM_HTTPS_COOKIE"
@@ -99,6 +100,7 @@ type Config struct {
 	HWRApplicationKey string
 	HWRHmac           string
 	HWRLangOverride   string
+	HWRHost           string
 	HTTPSCookie       bool
 	TrustProxy        bool
 	MQTTPort          string
@@ -270,6 +272,7 @@ func FromEnv() *Config {
 		HWRApplicationKey: os.Getenv(envHwrApplicationKey),
 		HWRHmac:           os.Getenv(envHwrHmac),
 		HWRLangOverride:   os.Getenv(envHwrLangOverride),
+		HWRHost:           os.Getenv(envHwrHost),
 		HTTPSCookie:       httpsCookie,
 		TrustProxy:        trustProxy,
 		MQTTPort:          mqttPort,
@@ -320,6 +323,7 @@ myScript hwr (needs a developer account):
 	%s
 	%s
 	%s      override the language specified in myScript requests
+	%s      custom myScript host URL (default: https://cloud.myscript.com)
 `,
 		envJWTSecretKey,
 		EnvStorageURL,
@@ -351,5 +355,6 @@ myScript hwr (needs a developer account):
 		envHwrApplicationKey,
 		envHwrHmac,
 		envHwrLangOverride,
+		envHwrHost,
 	)
 }
