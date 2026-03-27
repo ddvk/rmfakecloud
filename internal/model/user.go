@@ -83,6 +83,16 @@ type IntegrationConfig struct {
 
 	// Webhook
 	Endpoint string `yaml:"endpoint,omitempty"`
+
+	// OPDS
+	FeedURL string         `yaml:"feedurl,omitempty"`
+	Headers []HeaderConfig `yaml:"headers,omitempty"`
+}
+
+// HeaderConfig stores HTTP header name/value pairs for authentication
+type HeaderConfig struct {
+	Name  string `yaml:"name"`
+	Value string `yaml:"value"`
 }
 
 // GenPassword generates a new random password
