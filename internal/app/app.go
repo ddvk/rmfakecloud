@@ -21,6 +21,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/ui"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v4"
 )
 
 const (
@@ -170,7 +171,18 @@ func NewApp(cfg *config.Config) App {
 
 	app.registerRoutes(router)
 
-	uiApp := ui.New(cfg, fsStorage, codeConnector, ntfHub, fsStorage, fsStorage)
+	issueDeviceToken := func(uid, deviceID, deviceDesc string) (string, error) {
+		claims := &DeviceClaims{
+			UserID:     uid,
+			DeviceID:   deviceID,
+			DeviceDesc: deviceDesc,
+			StandardClaims: jwt.StandardClaims{
+				Audience: APIUsage,
+			},
+		}
+		return common.SignClaims(claims, cfg.JWTSecretKey)
+	}
+	uiApp := ui.New(cfg, fsStorage, codeConnector, ntfHub, fsStorage, fsStorage, issueDeviceToken)
 	uiApp.RegisterRoutes(router)
 
 	storageapp := fs.NewApp(cfg, fsStorage)

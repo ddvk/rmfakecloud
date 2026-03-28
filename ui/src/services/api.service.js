@@ -170,6 +170,44 @@ class ApiServices {
     });
   }
 
+  reissueDeviceToken(deviceId, deviceDesc) {
+    const body = { deviceId };
+    if (deviceDesc) body.deviceDesc = deviceDesc;
+    return fetch(`${constants.ROOT_URL}/devices/reissue`, {
+      method: "POST",
+      headers: this.header(),
+      credentials: "same-origin",
+      body: JSON.stringify(body),
+    }).then(async (r) => {
+      if (!r.ok) {
+        if (r.status === 401) {
+          removeUser();
+          window.location.reload(true);
+          return;
+        }
+        let msg = r.statusText;
+        try {
+          const ct = r.headers.get("Content-Type");
+          if (ct && ct.includes("application/json")) {
+            const j = await r.json();
+            if (j.error) msg = j.error;
+          }
+        } catch (_) {}
+        throw new Error(msg);
+      }
+      return r.json();
+    });
+  }
+
+  triggerSync() {
+    return fetch(`${constants.ROOT_URL}/sync`, {
+      method: "GET",
+      credentials: "same-origin",
+    }).then((r) => {
+      handleError(r);
+    });
+  }
+
   deleteDocument(id) {
     return fetch(`${constants.ROOT_URL}/documents/${id}`, {
       method: "DELETE",

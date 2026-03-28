@@ -279,6 +279,45 @@ func (app *ReactAppWrapper) listRegisteredDevices(c *gin.Context) {
 	c.JSON(http.StatusOK, viewmodel.RegisteredDevicesResponse{Devices: out})
 }
 
+func (app *ReactAppWrapper) reissueRegisteredDevice(c *gin.Context) {
+	if app.issueDeviceToken == nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, viewmodel.NewErrorResponse("device token signing not configured"))
+		return
+	}
+	var req viewmodel.ReissueDeviceRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		badReq(c, err.Error())
+		return
+	}
+	uid := userID(c)
+	user, err := app.userStorer.GetUser(uid)
+	if err != nil || user == nil {
+		log.Error(uiLogger, "reissue device: ", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, viewmodel.NewErrorResponse("unable to load profile"))
+		return
+	}
+	reg, ok := user.GetRegisteredDevice(req.DeviceID)
+	if !ok {
+		c.AbortWithStatusJSON(http.StatusNotFound, viewmodel.NewErrorResponse("device not registered for this account"))
+		return
+	}
+	desc := reg.DeviceDesc
+	if strings.TrimSpace(req.DeviceDesc) != "" {
+		desc = strings.TrimSpace(req.DeviceDesc)
+	}
+	token, err := app.issueDeviceToken(uid, req.DeviceID, desc)
+	if err != nil {
+		log.Error(uiLogger, "reissue device token: ", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, viewmodel.NewErrorResponse("could not issue token"))
+		return
+	}
+	user.UpsertRegisteredDevice(req.DeviceID, desc)
+	if err := app.userStorer.UpdateUser(user); err != nil {
+		log.Warn(uiLogger, "reissue device persist: ", err)
+	}
+	c.JSON(http.StatusOK, viewmodel.ReissueDeviceResponse{Token: token})
+}
+
 func (app *ReactAppWrapper) getBackend(c *gin.Context) backend {
 	s, ok := c.Get(backendVersionKey)
 	if !ok {

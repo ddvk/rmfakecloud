@@ -54,6 +54,17 @@ type RegisteredDevicesResponse struct {
 	Devices []RegisteredDeviceEntry `json:"devices"`
 }
 
+// ReissueDeviceRequest asks for a new device JWT without a pairing code (web session only).
+type ReissueDeviceRequest struct {
+	DeviceID   string `json:"deviceId" binding:"required"`
+	DeviceDesc string `json:"deviceDesc"`
+}
+
+// ReissueDeviceResponse returns the raw device token for the tablet.
+type ReissueDeviceResponse struct {
+	Token string `json:"token"`
+}
+
 // DocumentTree a tree of documents
 type DocumentTree struct {
 	Entries   []Entry

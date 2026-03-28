@@ -70,15 +70,19 @@ type notificationHub interface {
 	Sync(uid string) error
 }
 
+// DeviceTokenIssuer signs a device API JWT (same claims as POST /token/json/2/device/new).
+type DeviceTokenIssuer func(uid, deviceID, deviceDesc string) (token string, err error)
+
 // ReactAppWrapper encapsulates an app
 type ReactAppWrapper struct {
-	fs            http.FileSystem
-	prefix        string
-	cfg           *config.Config
-	userStorer    storage.UserStorer
-	codeConnector codeGenerator
-	h             *hub.Hub
-	backends      map[common.SyncVersion]backend
+	fs               http.FileSystem
+	prefix           string
+	cfg              *config.Config
+	userStorer       storage.UserStorer
+	codeConnector    codeGenerator
+	h                *hub.Hub
+	backends         map[common.SyncVersion]backend
+	issueDeviceToken DeviceTokenIssuer
 }
 
 // hack for serving index.html on /
@@ -91,7 +95,8 @@ func New(cfg *config.Config,
 	codeConnector codeGenerator,
 	h *hub.Hub,
 	docHandler documentHandler,
-	blobHandler blobHandler) *ReactAppWrapper {
+	blobHandler blobHandler,
+	issueDeviceToken DeviceTokenIssuer) *ReactAppWrapper {
 
 	sub, err := fs.Sub(webui.Assets, jsBuildFolder)
 	if err != nil {
@@ -107,12 +112,13 @@ func New(cfg *config.Config,
 		hub:             h,
 	}
 	staticWrapper := ReactAppWrapper{
-		fs:            common.NewLastModifiedFS(http.FS(sub), time.Now()),
-		prefix:        "/assets",
-		cfg:           cfg,
-		userStorer:    userStorer,
-		codeConnector: codeConnector,
-		h:             h,
+		fs:               common.NewLastModifiedFS(http.FS(sub), time.Now()),
+		prefix:           "/assets",
+		cfg:              cfg,
+		userStorer:       userStorer,
+		codeConnector:    codeConnector,
+		h:                h,
+		issueDeviceToken: issueDeviceToken,
 		backends: map[common.SyncVersion]backend{
 			common.Sync10: backend10,
 			common.Sync15: backend15,

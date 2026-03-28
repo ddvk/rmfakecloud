@@ -87,6 +87,16 @@ func (u *User) UpsertRegisteredDevice(deviceID, desc string) {
 	u.UpdatedAt = now
 }
 
+// GetRegisteredDevice returns a stored device entry if present.
+func (u *User) GetRegisteredDevice(deviceID string) (RegisteredDevice, bool) {
+	for _, d := range u.RegisteredDevices {
+		if d.DeviceID == deviceID {
+			return d, true
+		}
+	}
+	return RegisteredDevice{}, false
+}
+
 // RemoveRegisteredDevice drops a device from the registry (e.g. tablet logout).
 func (u *User) RemoveRegisteredDevice(deviceID string) {
 	if deviceID == "" {
