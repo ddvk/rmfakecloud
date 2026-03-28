@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"path"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -248,6 +249,34 @@ func (app *ReactAppWrapper) newCodeStatus(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"valid": true, "expiresAt": expiresAt.Unix()})
+}
+
+func (app *ReactAppWrapper) listRegisteredDevices(c *gin.Context) {
+	uid := userID(c)
+	user, err := app.userStorer.GetUser(uid)
+	if err != nil || user == nil {
+		log.Error(uiLogger, "list devices: ", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, viewmodel.NewErrorResponse("unable to load profile"))
+		return
+	}
+	out := make([]viewmodel.RegisteredDeviceEntry, 0, len(user.RegisteredDevices))
+	for _, d := range user.RegisteredDevices {
+		e := viewmodel.RegisteredDeviceEntry{
+			DeviceID:   d.DeviceID,
+			DeviceDesc: d.DeviceDesc,
+		}
+		if !d.RegisteredAt.IsZero() {
+			e.RegisteredAt = d.RegisteredAt.UTC().Format(time.RFC3339)
+		}
+		if !d.LastSeen.IsZero() {
+			e.LastSeen = d.LastSeen.UTC().Format(time.RFC3339)
+		}
+		out = append(out, e)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		return out[i].LastSeen > out[j].LastSeen
+	})
+	c.JSON(http.StatusOK, viewmodel.RegisteredDevicesResponse{Devices: out})
 }
 
 func (app *ReactAppWrapper) getBackend(c *gin.Context) backend {

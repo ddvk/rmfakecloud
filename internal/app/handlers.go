@@ -111,6 +111,15 @@ func (app *App) newDevice(c *gin.Context) {
 		return
 	}
 
+	if user, err := app.userStorer.GetUser(uid); err == nil && user != nil {
+		user.UpsertRegisteredDevice(tokenRequest.DeviceID, tokenRequest.DeviceDesc)
+		if err := app.userStorer.UpdateUser(user); err != nil {
+			log.Warn("could not persist registered device: ", err)
+		}
+	} else if err != nil {
+		log.Warn("could not load user for device registration: ", err)
+	}
+
 	c.String(http.StatusOK, tokenString)
 }
 
@@ -122,6 +131,14 @@ func (app *App) deleteDevice(c *gin.Context) {
 		return
 	}
 	log.Info("Logging out: ", deviceToken.UserID)
+	if user, err := app.userStorer.GetUser(deviceToken.UserID); err == nil && user != nil {
+		user.RemoveRegisteredDevice(deviceToken.DeviceID)
+		if err := app.userStorer.UpdateUser(user); err != nil {
+			log.Warn("could not update user after device logout: ", err)
+		}
+	} else if err != nil {
+		log.Warn("could not load user on device logout: ", err)
+	}
 	c.Status(http.StatusNoContent)
 }
 

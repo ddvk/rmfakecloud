@@ -160,6 +160,16 @@ class ApiServices {
     });
   }
 
+  listRegisteredDevices() {
+    return fetch(`${constants.ROOT_URL}/devices`, {
+      method: "GET",
+      credentials: "same-origin",
+    }).then((r) => {
+      handleError(r);
+      return r.json();
+    });
+  }
+
   deleteDocument(id) {
     return fetch(`${constants.ROOT_URL}/documents/${id}`, {
       method: "DELETE",

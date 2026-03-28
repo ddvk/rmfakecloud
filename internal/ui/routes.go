@@ -56,6 +56,7 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 
 	auth.GET("newcode", app.newCode)
 	auth.GET("newcode/status", app.newCodeStatus)
+	auth.GET("devices", app.listRegisteredDevices)
 	// auth.GET("profile", app.newCode)
 	auth.POST("profile", app.changePassword)
 	// auth.POST("changeEmail", app.changePassword)

@@ -41,6 +41,19 @@ func NewErrorResponse(errormsg string) ErrorResponse {
 	}
 }
 
+// RegisteredDeviceEntry is a safe JSON view of a paired tablet (no secrets).
+type RegisteredDeviceEntry struct {
+	DeviceID     string `json:"deviceId"`
+	DeviceDesc   string `json:"deviceDesc"`
+	RegisteredAt string `json:"registeredAt,omitempty"`
+	LastSeen     string `json:"lastSeen,omitempty"`
+}
+
+// RegisteredDevicesResponse lists devices for the logged-in user.
+type RegisteredDevicesResponse struct {
+	Devices []RegisteredDeviceEntry `json:"devices"`
+}
+
 // DocumentTree a tree of documents
 type DocumentTree struct {
 	Entries   []Entry

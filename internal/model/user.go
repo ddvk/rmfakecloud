@@ -55,6 +55,52 @@ type User struct {
 	AdditionalScopes []string
 	// Integrations stores the list of "Integrations" as shown on the tablet.
 	Integrations []IntegrationConfig
+	// RegisteredDevices are reMarkable clients that completed pairing (see newDevice).
+	RegisteredDevices []RegisteredDevice `yaml:"registereddevices,omitempty"`
+}
+
+// RegisteredDevice is a tablet client that obtained a device token.
+type RegisteredDevice struct {
+	DeviceID     string    `yaml:"deviceid,omitempty"`
+	DeviceDesc   string    `yaml:"devicedesc,omitempty"`
+	RegisteredAt time.Time `yaml:"registeredat,omitempty"`
+	LastSeen     time.Time `yaml:"lastseen,omitempty"`
+}
+
+// UpsertRegisteredDevice records or updates a paired device for this user.
+func (u *User) UpsertRegisteredDevice(deviceID, desc string) {
+	now := time.Now()
+	for i := range u.RegisteredDevices {
+		if u.RegisteredDevices[i].DeviceID == deviceID {
+			u.RegisteredDevices[i].DeviceDesc = desc
+			u.RegisteredDevices[i].LastSeen = now
+			u.UpdatedAt = now
+			return
+		}
+	}
+	u.RegisteredDevices = append(u.RegisteredDevices, RegisteredDevice{
+		DeviceID:     deviceID,
+		DeviceDesc:   desc,
+		RegisteredAt: now,
+		LastSeen:     now,
+	})
+	u.UpdatedAt = now
+}
+
+// RemoveRegisteredDevice drops a device from the registry (e.g. tablet logout).
+func (u *User) RemoveRegisteredDevice(deviceID string) {
+	if deviceID == "" {
+		return
+	}
+	j := 0
+	for _, d := range u.RegisteredDevices {
+		if d.DeviceID != deviceID {
+			u.RegisteredDevices[j] = d
+			j++
+		}
+	}
+	u.RegisteredDevices = u.RegisteredDevices[:j]
+	u.UpdatedAt = time.Now()
 }
 
 // IntegrationConfig config for various integrations
