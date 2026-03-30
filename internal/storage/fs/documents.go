@@ -94,6 +94,12 @@ func (fs *FileSystemStorage) ExportDocument(uid, id, outputType string, exportOp
 		return arch.PayloadReader, nil
 	}
 
+	if strings.TrimSpace(fs.Cfg.RmrlPython) != "" {
+		if r, ok := tryExportPDFViaRmrl(fs.Cfg.RmrlPython, zipFilePath); ok {
+			return r, nil
+		}
+	}
+
 	outputFilePath := path.Join(cacheDirPath, sanitizedID+"-annotated.pdf")
 	outStat, err := os.Stat(outputFilePath)
 

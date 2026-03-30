@@ -101,6 +101,14 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 		return nil, fmt.Errorf("pdf payload not found for document %s", docid)
 	}
 
+	if strings.TrimSpace(fs.Cfg.RmrlPython) != "" {
+		rc, err := renderPDFRmrlFromHashDoc(fs.Cfg.RmrlPython, doc, ls)
+		if err == nil {
+			return rc, nil
+		}
+		log.Warn("rmrl PDF export failed, using rmtool: ", err)
+	}
+
 	reader, writer := io.Pipe()
 	go func() {
 		rc, e := renderPDFRmtool(doc, ls)

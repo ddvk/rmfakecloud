@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/ddvk/rmfakecloud/internal/email"
 	log "github.com/sirupsen/logrus"
@@ -80,6 +81,8 @@ const (
 	envMQTTPort          = "MQTT_PORT"
 	envICEServers        = "ICE_SERVERS"
 	envHashSchemaVersion = "HASH_SCHEMA_VERSION"
+	// envRmrlPython if set, path to a Python interpreter with the `rmrl` package installed; used for optional higher-fidelity notebook→PDF export (see rmrl).
+	envRmrlPython = "RMFAKECLOUD_RMRL_PYTHON"
 )
 
 // Config config
@@ -104,6 +107,8 @@ type Config struct {
 	MQTTPort          string
 	ICEServers        []interface{}
 	HashSchemaVersion string
+	// RmrlPython optional interpreter (e.g. /usr/bin/python3) to run `python -m rmrl` for PDF export of notebooks when compatible.
+	RmrlPython string
 }
 
 // Verify verify
@@ -139,6 +144,10 @@ func (cfg *Config) Verify() {
 		log.Infof("WebRTC configured with %d ICE server(s)", len(cfg.ICEServers))
 	} else {
 		log.Info("No ICE servers configured - screenshare will only work on local networks")
+	}
+
+	if strings.TrimSpace(cfg.RmrlPython) != "" {
+		log.Infof("rmrl PDF export enabled (%s=%q); install templates under XDG data rmrl/templates if needed", envRmrlPython, cfg.RmrlPython)
 	}
 }
 
@@ -275,6 +284,7 @@ func FromEnv() *Config {
 		MQTTPort:          mqttPort,
 		ICEServers:        iceServers,
 		HashSchemaVersion: hashSchemaVersion,
+		RmrlPython:        strings.TrimSpace(os.Getenv(envRmrlPython)),
 	}
 	return &cfg
 }
@@ -300,6 +310,9 @@ General:
 	%s Send auth cookie only via https
 	%s	Trust the proxy for X-Forwarded-For/X-Real-IP (set only if behind a proxy)
 	%s	Hash tree schema version: "3" or "4" (default: 3)
+
+Optional notebook PDF (rmrl, reMarkable-like rendering):
+	%s	Path to Python 3 with pip package "rmrl" installed. When set, notebook PDF download uses rmrl when possible (v3/v5 .rm), with fallback to the built-in renderer. Install line templates in XDG data dir (e.g. ~/.local/share/rmrl/templates).
 
 MQTT (for screenshare):
 	%s	MQTT TCP port (default: 8883)
@@ -336,6 +349,8 @@ myScript hwr (needs a developer account):
 		envHTTPSCookie,
 		envTrustProxy,
 		envHashSchemaVersion,
+
+		envRmrlPython,
 
 		envMQTTPort,
 		envICEServers,
