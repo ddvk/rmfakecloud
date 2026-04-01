@@ -511,14 +511,24 @@ func (fs *FileSystemStorage) ExportPageOverlaySVG(uid, docid string, pageNum int
 		}
 	}
 
+	// For v3 pages, optionally try lines-are-beautiful.
 	// For v6 pages, prefer rmc's SVG renderer when available.
-	// This gives better fidelity than the legacy stroke-only fallback.
+	// Both paths fall back to the legacy stroke-only renderer on failure.
 	if rmHash != "" {
 		if rc, err := ls.GetReader(rmHash); err == nil {
 			rmData, readErr := io.ReadAll(rc)
 			_ = rc.Close()
 			if readErr == nil {
-				if ver, vErr := rmdecode.ParseVersion(rmData); vErr == nil && ver == 6 {
+				if ver, vErr := rmdecode.ParseVersion(rmData); vErr == nil && ver == 3 {
+					if s, rErr := rmdecode.RenderV3SVGWithLines2SVG(rmData); rErr == nil {
+						b := []byte(s)
+						_ = os.MkdirAll(path.Dir(cachePath), 0700)
+						_ = os.WriteFile(cachePath, b, 0600)
+						return exporter.NewSeekCloser(b), nil
+					} else {
+						log.Warn("v3 overlay via lines2svg failed; falling back: ", rErr)
+					}
+				} else if vErr == nil && ver == 6 {
 					if s, rErr := rmdecode.RenderV6SVGWithRMC(rmData); rErr == nil {
 						b := []byte(s)
 						_ = os.MkdirAll(path.Dir(cachePath), 0700)

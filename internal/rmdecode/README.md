@@ -94,6 +94,7 @@ If v6 tooling is missing or decoding fails, the server **falls back** to the leg
 
 For page overlays, v3/v5 keep using the in-process Go renderer.  
 For **v6**, the server now tries **`rmc`** first for better fidelity, then falls back to the legacy stroke renderer.
+For **v3**, the server can optionally try **lines-are-beautiful** (`lines2svg`) first, then fall back.
 
 Configuration options for v6 overlay rendering:
 
@@ -101,6 +102,11 @@ Configuration options for v6 overlay rendering:
 - **`RMFAKECLOUD_RMC_SRC`** — optional `rmc` source `src` directory for module mode (`python3 -m rmc.cli`), e.g. `/home/aaron/Downloads/rmc-main/src`.
 - **`RMFAKECLOUD_RMSCENE_SRC`** — optional `rmscene` source import root; accepts either `.../src` or `.../src/rmscene`.
 - **`RMFAKECLOUD_ROOT`** — if set, module mode also adds `<root>/third_party/rmscene/src` to `PYTHONPATH`.
+
+Configuration option for v3 overlay rendering:
+
+- **`RMFAKECLOUD_LINES2SVG_BIN`** — full path to the `lines2svg` executable from [lines-are-beautiful](https://github.com/ax3l/lines-are-beautiful).  
+  If unset, `lines2svg` is resolved from `PATH`.
 
 ## References
 
