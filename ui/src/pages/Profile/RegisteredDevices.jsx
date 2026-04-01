@@ -86,6 +86,8 @@ export default function RegisteredDevices() {
     );
   }
 
+  const deviceDetails = (d) => d.model || d.deviceDesc || d.deviceId || "—";
+
   return (
     <>
       <h3 className="mt-4">Registered devices</h3>
@@ -116,11 +118,8 @@ export default function RegisteredDevices() {
         <Table responsive striped bordered hover size="sm" className="mt-2">
           <thead>
             <tr>
-              <th>Description</th>
+              <th>Details</th>
               <th>Device ID</th>
-              <th>Make</th>
-              <th>Model</th>
-              <th>Year</th>
               <th>Last seen</th>
               <th>Registered</th>
               <th style={{ width: "1%" }}>Actions</th>
@@ -129,13 +128,10 @@ export default function RegisteredDevices() {
           <tbody>
             {devices.map((d) => (
               <tr key={d.deviceId || d.deviceDesc}>
-                <td>{d.deviceDesc || "—"}</td>
+                <td>{deviceDetails(d)}</td>
                 <td>
                   <code className="small">{d.deviceId || "—"}</code>
                 </td>
-                <td>{d.make || "—"}</td>
-                <td>{d.model || "—"}</td>
-                <td>{d.year || "—"}</td>
                 <td>{formatWhen(d.lastSeen)}</td>
                 <td>{formatWhen(d.registeredAt)}</td>
                 <td className="text-nowrap">

@@ -5,14 +5,14 @@ This repo includes tooling to inspect raw page files (`.rm` / “lines” format
 - **v3 / v5** — decoded in **Go** via [`github.com/juruen/rmapi/encoding/rm`](https://github.com/juruen/rmapi) (`internal/rmdecode`, `cmd/rmdecode`).
 - **v6** (tablet OS 3.x) — summaries via **Python + [rmscene](https://github.com/ricklupton/rmscene)** (`scripts/rmdecode_v6_summary.py`). Upstream **rmscene** is vendored as a git submodule at **`third_party/rmscene`** (see below).
 
-Production-grade v6 tooling in the wider ecosystem is **[rmscene](https://github.com/ricklupton/rmscene) + [rmc](https://github.com/ricklupton/rmc)** (SVG/PDF export and other conversions). This repository wires **Go for v3/v5** and **Python + rmscene for v6 summaries**; use **rmc** separately when you need full SVG/PDF export from `.rm` files.
+Production-grade v6 tooling in the wider ecosystem is **[rmscene](https://github.com/ricklupton/rmscene) + [rmc](https://github.com/ricklupton/rmc)** (SVG/PDF/Markdown export and other conversions). This repository uses **rmc for v6 conversions** and **Go/legacy tools for v3/v5**.
 
 ## Versions
 
 | Header prefix | Decoder |
 |---------------|---------|
 | `version=3` / `version=5` | Go: `DecodeLegacy` → `github.com/juruen/rmapi/encoding/rm` |
-| `version=6` (tablet OS 3.x) | Tagged blocks / scene tree: [rmscene](https://github.com/ricklupton/rmscene) via `scripts/rmdecode_v6_summary.py`; for SVG/PDF use [rmc](https://github.com/ricklupton/rmc), which bundles rmscene. |
+| `version=6` (tablet OS 3.x) | Tagged blocks / scene tree via [rmscene](https://github.com/ricklupton/rmscene); conversions use [rmc](https://github.com/ricklupton/rmc) (SVG/PDF/Markdown). |
 
 ## CLI
 
@@ -31,8 +31,8 @@ go run ./cmd/rmdecode -format pdf -o out.pdf /path/to/page.rm
 go run ./cmd/rmdecode -o out.svg /path/to/page.rm
 ```
 
-- **v3 / v5**: SVG and PDF are generated in Go (`RenderWritingsSVG`, `RenderWritingsPDF`).
-- **v6**: SVG/PDF are produced by invoking **`rmc`** (`pipx install rmc` or `pip install rmc`). Text summary still uses Python + **rmscene** (`scripts/rmdecode_v6_summary.py`).
+- **v3 / v5**: SVG/PDF are generated in Go (`RenderWritingsSVG`, `RenderWritingsPDF`).
+- **v6**: Markdown/SVG/PDF are produced by invoking **`rmc`** (`pipx install rmc` or `pip install rmc`). Text summary remains available via Python + **rmscene** (`scripts/rmdecode_v6_summary.py`).
 
 ### Submodule `third_party/rmscene`
 
@@ -80,9 +80,10 @@ go run ./cmd/rmdoc2png -o ./out_pngs path/to/document.rmdoc
 
 ### Web UI notebook page PNGs (`GET /documents/:id/page/:n`)
 
-For **non-PDF** documents, the server renders each page’s `.rm` with **`EncodeRmPageToPNG`** (same pipeline as `rmdoc2png`):
+For **non-PDF** documents, the server renders each page’s `.rm` with **`EncodeRmPageToPNG`**:
 
-- **v3 / v5** — pure Go (`RenderWritingsPNG`).
+- **v3** — prefers `lines2png` (from lines-are-beautiful) when installed; falls back to Go (`RenderWritingsPNG`).
+- **v5** — pure Go (`RenderWritingsPNG`).
 - **v6** — `python3` + `scripts/rmscene_v6_to_png.py` (needs **Pillow** and the **rmscene** path). Set either:
 
   - **`RMFAKECLOUD_V6_PNG_SCRIPT`** — full path to `rmscene_v6_to_png.py`, or  
@@ -94,7 +95,7 @@ If v6 tooling is missing or decoding fails, the server **falls back** to the leg
 
 For page overlays, v3/v5 keep using the in-process Go renderer.  
 For **v6**, the server now tries **`rmc`** first for better fidelity, then falls back to the legacy stroke renderer.
-For **v3**, the server can optionally try **lines-are-beautiful** (`lines2svg`) first, then fall back.
+For **v3**, the server prefers `lines2svg` (from lines-are-beautiful) for stroke rendering when installed, then falls back to an embedded Go renderer.
 
 Configuration options for v6 overlay rendering:
 
@@ -103,10 +104,11 @@ Configuration options for v6 overlay rendering:
 - **`RMFAKECLOUD_RMSCENE_SRC`** — optional `rmscene` source import root; accepts either `.../src` or `.../src/rmscene`.
 - **`RMFAKECLOUD_ROOT`** — if set, module mode also adds `<root>/third_party/rmscene/src` to `PYTHONPATH`.
 
-Configuration option for v3 overlay rendering:
+Configuration options for v3 stroke rendering (lines-are-beautiful):
 
-- **`RMFAKECLOUD_LINES2SVG_BIN`** — full path to the `lines2svg` executable from [lines-are-beautiful](https://github.com/ax3l/lines-are-beautiful).  
-  If unset, `lines2svg` is resolved from `PATH`.
+- **`RMFAKECLOUD_LINES2SVG_BIN`** — full path to `lines2svg` (optional; otherwise PATH lookup).
+- **`RMFAKECLOUD_LINES2PNG_BIN`** — full path to `lines2png` (optional; otherwise PATH lookup).
+
 
 ## References
 

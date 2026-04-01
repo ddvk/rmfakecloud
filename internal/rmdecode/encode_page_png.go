@@ -26,7 +26,17 @@ func EncodeRmPageToPNG(data []byte) ([]byte, error) {
 		return nil, err
 	}
 	switch ver {
-	case 3, 5:
+	case 3:
+		// Prefer lines-are-beautiful for stroke-faithful v3 rendering when installed.
+		if png, err := RenderV3PNGWithLines2PNG(data); err == nil {
+			return png, nil
+		}
+		page, err := DecodeLegacy(data)
+		if err != nil {
+			return nil, err
+		}
+		return RenderWritingsPNG(page)
+	case 5:
 		page, err := DecodeLegacy(data)
 		if err != nil {
 			return nil, err

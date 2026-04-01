@@ -81,10 +81,10 @@ export default function UserList() {
   const renderDeviceSummary = (devices) => {
     if (!Array.isArray(devices) || devices.length === 0) return "—";
     return devices.map((d, idx) => {
-      const bits = [d.make, d.model, d.year].filter(Boolean).join(" ");
+      const details = d.model || d.deviceDesc || d.deviceId || "Device";
       return (
         <div key={`${d.deviceId || idx}`} className="small">
-          {bits || d.deviceDesc || d.deviceId || "Device"}
+          {details}
         </div>
       );
     });

@@ -111,7 +111,6 @@ func (app *App) Stop() {
 	}
 }
 
-
 // NewApp constructs an app
 func NewApp(cfg *config.Config) App {
 	debugMode := log.GetLevel() >= log.DebugLevel
@@ -148,6 +147,7 @@ func NewApp(cfg *config.Config) App {
 
 	// Register the middleware
 	// router.Use(cors.New(corsConfig))
+	router.Use(userAgentLoggerMiddleware())
 
 	if debugMode {
 		router.Use(requestLoggerMiddleware())

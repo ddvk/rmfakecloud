@@ -27,6 +27,7 @@ const (
 
 var emailWhiteList *regexp.Regexp
 var yearRegex *regexp.Regexp
+var serialLikeRegex *regexp.Regexp
 
 func init() {
 	var err error
@@ -35,6 +36,10 @@ func init() {
 		log.Fatal(err)
 	}
 	yearRegex, err = regexp.Compile(`\b(19|20)\d{2}\b`)
+	if err != nil {
+		log.Fatal(err)
+	}
+	serialLikeRegex, err = regexp.Compile(`\bRM[0-9A-Z]{3,}\b`)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -79,7 +84,7 @@ type RegisteredDevice struct {
 
 // UpsertRegisteredDevice records or updates a paired device for this user.
 func (u *User) UpsertRegisteredDevice(deviceID, desc, link string) {
-	make, model, year := inferDeviceInfo(desc, link)
+	make, model, year := inferDeviceInfo(deviceID, desc, link)
 	now := time.Now()
 	for i := range u.RegisteredDevices {
 		if u.RegisteredDevices[i].DeviceID == deviceID {
@@ -114,7 +119,7 @@ func (u *User) UpsertRegisteredDevice(deviceID, desc, link string) {
 	u.UpdatedAt = now
 }
 
-func inferDeviceInfo(desc, link string) (string, string, string) {
+func inferDeviceInfo(deviceID, desc, link string) (string, string, string) {
 	make := ""
 	model := ""
 	year := ""
@@ -149,12 +154,69 @@ func inferDeviceInfo(desc, link string) (string, string, string) {
 			year = v
 		}
 	}
+	for _, cand := range serialCandidates(deviceID, desc, link) {
+		if mapped, ok := modelFromSerial(cand); ok {
+			model = mapped
+			if make == "" {
+				make = "reMarkable"
+			}
+			break
+		}
+	}
 	if year == "" {
 		if m := yearRegex.FindString(ls); m != "" {
 			year = m
 		}
 	}
 	return make, model, year
+}
+
+func serialCandidates(deviceID, desc, link string) []string {
+	out := make([]string, 0, 8)
+	push := func(s string) {
+		s = strings.TrimSpace(s)
+		if s == "" {
+			return
+		}
+		out = append(out, s)
+	}
+	push(deviceID)
+	if u, err := url.Parse(link); err == nil {
+		q := u.Query()
+		for _, k := range []string{"serial", "serialNumber", "deviceSerial", "sn"} {
+			push(q.Get(k))
+		}
+	}
+	for _, m := range serialLikeRegex.FindAllString(strings.ToUpper(desc+" "+link), -1) {
+		push(m)
+	}
+	return out
+}
+
+func modelFromSerial(serial string) (string, bool) {
+	s := strings.ToUpper(strings.TrimSpace(serial))
+	s = strings.ReplaceAll(s, "-", "")
+	s = strings.ReplaceAll(s, " ", "")
+	prefix6 := s
+	if len(prefix6) > 6 {
+		prefix6 = prefix6[:6]
+	}
+	if len(prefix6) >= 5 {
+		key := prefix6[:5]
+		switch key {
+		case "RM02A":
+			return "reMarkable Paper Pro", true
+		case "RM03A":
+			return "reMarkable Paper Pro Move", true
+		case "RM110":
+			return "reMarkable 2", true
+		case "RM102":
+			return "reMarkable 1", true
+		case "RM12A":
+			return "TBA", true
+		}
+	}
+	return "", false
 }
 
 // GetRegisteredDevice returns a stored device entry if present.

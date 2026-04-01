@@ -1,11 +1,11 @@
-// Command rmdecode decodes a reMarkable .rm page file to text, SVG, or PDF.
+// Command rmdecode decodes a reMarkable .rm page file to text/markdown/SVG/PDF.
 //
 //	go run ./cmd/rmdecode page.rm
 //	go run ./cmd/rmdecode -format svg -o out.svg page.rm
 //	go run ./cmd/rmdecode -o out.pdf page.rm
 //
 // Version 3/5: decoded in Go (juruen/rmapi); SVG/PDF rendered in Go.
-// Version 6: text summary via scripts/rmdecode_v6_summary.py; SVG/PDF via `rmc` (pip install rmc / pipx install rmc).
+// Version 6: markdown/SVG/PDF via `rmc` (pip install rmc / pipx install rmc); optional text summary via scripts/rmdecode_v6_summary.py.
 package main
 
 import (
@@ -22,13 +22,13 @@ import (
 )
 
 func main() {
-	outPath := flag.String("o", "", "output file (default: stdout for text); extension .svg or .pdf selects format")
-	formatFlag := flag.String("format", "", "output type: text (default), svg, or pdf (optional if inferred from -o)")
+	outPath := flag.String("o", "", "output file (default: stdout for text); extension .svg/.pdf/.md selects format")
+	formatFlag := flag.String("format", "", "output type: text (default), markdown, svg, or pdf (optional if inferred from -o)")
 	v6Script := flag.String("v6-script", "", "path to rmdecode_v6_summary.py (default: ./scripts/rmdecode_v6_summary.py)")
 	flag.Parse()
 	args := flag.Args()
 	if len(args) != 1 {
-		fmt.Fprintln(os.Stderr, "usage: rmdecode [-format text|svg|pdf] [-o path] <file.rm>")
+		fmt.Fprintln(os.Stderr, "usage: rmdecode [-format text|markdown|svg|pdf] [-o path] <file.rm>")
 		os.Exit(1)
 	}
 	path := args[0]
@@ -52,6 +52,8 @@ func main() {
 			format = "svg"
 		case ".pdf":
 			format = "pdf"
+		case ".md", ".markdown":
+			format = "markdown"
 		case ".txt":
 			format = "text"
 		default:
@@ -63,15 +65,15 @@ func main() {
 	}
 
 	switch format {
-	case "text", "svg", "pdf":
+	case "text", "markdown", "svg", "pdf":
 	default:
-		fmt.Fprintf(os.Stderr, "invalid -format %q (use text, svg, or pdf)\n", format)
+		fmt.Fprintf(os.Stderr, "invalid -format %q (use text, markdown, svg, or pdf)\n", format)
 		os.Exit(1)
 	}
 
-	if format == "svg" || format == "pdf" {
+	if format == "svg" || format == "pdf" || format == "markdown" {
 		if *outPath == "" {
-			fmt.Fprintln(os.Stderr, "svg and pdf output require -o <file.svg|file.pdf> (or use -o - for stdout)")
+			fmt.Fprintln(os.Stderr, "markdown/svg/pdf output require -o <file> (or use -o - for stdout)")
 			os.Exit(1)
 		}
 	}
@@ -124,6 +126,8 @@ func writeLegacy(format string, page *rm.Rm, outPath string) error {
 			return err
 		}
 		return writeBytesOut(outPath, b)
+	case "markdown":
+		return fmt.Errorf("markdown is only supported for v6 via rmc")
 	}
 	return fmt.Errorf("unknown format %q", format)
 }
@@ -149,7 +153,7 @@ func writeV6(format, inPath, outPath, v6Script string) error {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		return cmd.Run()
-	case "svg", "pdf":
+	case "markdown", "svg", "pdf":
 		rmc, err := exec.LookPath("rmc")
 		if err != nil {
 			return fmt.Errorf("v6 %s: install the `rmc` tool (pip install rmc or pipx install rmc): %w", format, err)
