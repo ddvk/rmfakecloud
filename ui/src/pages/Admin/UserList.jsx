@@ -77,6 +77,18 @@ export default function UserList() {
       toast.error('Error:'+ e)
     }
   }
+
+  const renderDeviceSummary = (devices) => {
+    if (!Array.isArray(devices) || devices.length === 0) return "—";
+    return devices.map((d, idx) => {
+      const bits = [d.make, d.model, d.year].filter(Boolean).join(" ");
+      return (
+        <div key={`${d.deviceId || idx}`} className="small">
+          {bits || d.deviceDesc || d.deviceId || "Device"}
+        </div>
+      );
+    });
+  };
   // const handleSave = async e => {
   //   e.preventDefault()
   //   try {
@@ -108,6 +120,7 @@ export default function UserList() {
             <th>Email</th>
             <th>Name</th>
             <th>Role</th>
+            <th>Devices</th>
             <th>Created At</th>
             <th><Button onClick={newUser}>New User</Button></th>
           </tr>
@@ -120,6 +133,7 @@ export default function UserList() {
               <td>{x.email}</td>
               <td>{x.Name}</td>
               <td>{x.isAdmin && "admin"}</td>
+              <td>{renderDeviceSummary(x.registeredDevices)}</td>
               <td>{formatDate(x.CreatedAt)}</td>
               <td><Button variant="danger" onClick={(e) => remove(e,x.userid)}>Delete</Button></td>
             </tr>

@@ -54,6 +54,9 @@ func encodeV6RmToPNG(data []byte) ([]byte, error) {
 	}
 	cmd := exec.Command("python3", script, "-")
 	cmd.Stdin = bytes.NewReader(data)
+	if py := buildPythonPathForV6(""); py != "" {
+		cmd.Env = append(os.Environ(), "PYTHONPATH="+py)
+	}
 	out, err := cmd.Output()
 	if err != nil {
 		if x, ok := err.(*exec.ExitError); ok && len(x.Stderr) > 0 {

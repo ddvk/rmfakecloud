@@ -12,9 +12,9 @@ import (
 
 	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/integrations"
-	"github.com/ddvk/rmfakecloud/internal/storage/epub"
 	"github.com/ddvk/rmfakecloud/internal/model"
 	"github.com/ddvk/rmfakecloud/internal/storage"
+	"github.com/ddvk/rmfakecloud/internal/storage/epub"
 	"github.com/ddvk/rmfakecloud/internal/ui/methods"
 	"github.com/ddvk/rmfakecloud/internal/ui/templates"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
@@ -261,17 +261,7 @@ func (app *ReactAppWrapper) listRegisteredDevices(c *gin.Context) {
 	}
 	out := make([]viewmodel.RegisteredDeviceEntry, 0, len(user.RegisteredDevices))
 	for _, d := range user.RegisteredDevices {
-		e := viewmodel.RegisteredDeviceEntry{
-			DeviceID:   d.DeviceID,
-			DeviceDesc: d.DeviceDesc,
-		}
-		if !d.RegisteredAt.IsZero() {
-			e.RegisteredAt = d.RegisteredAt.UTC().Format(time.RFC3339)
-		}
-		if !d.LastSeen.IsZero() {
-			e.LastSeen = d.LastSeen.UTC().Format(time.RFC3339)
-		}
-		out = append(out, e)
+		out = append(out, toVMRegisteredDevice(d))
 	}
 	sort.Slice(out, func(i, j int) bool {
 		return out[i].LastSeen > out[j].LastSeen
@@ -311,11 +301,29 @@ func (app *ReactAppWrapper) reissueRegisteredDevice(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, viewmodel.NewErrorResponse("could not issue token"))
 		return
 	}
-	user.UpsertRegisteredDevice(req.DeviceID, desc)
+	user.UpsertRegisteredDevice(req.DeviceID, desc, req.DeviceLink)
 	if err := app.userStorer.UpdateUser(user); err != nil {
 		log.Warn(uiLogger, "reissue device persist: ", err)
 	}
 	c.JSON(http.StatusOK, viewmodel.ReissueDeviceResponse{Token: token})
+}
+
+func toVMRegisteredDevice(d model.RegisteredDevice) viewmodel.RegisteredDeviceEntry {
+	e := viewmodel.RegisteredDeviceEntry{
+		DeviceID:   d.DeviceID,
+		DeviceDesc: d.DeviceDesc,
+		DeviceLink: d.DeviceLink,
+		Make:       d.Make,
+		Model:      d.Model,
+		Year:       d.Year,
+	}
+	if !d.RegisteredAt.IsZero() {
+		e.RegisteredAt = d.RegisteredAt.UTC().Format(time.RFC3339)
+	}
+	if !d.LastSeen.IsZero() {
+		e.LastSeen = d.LastSeen.UTC().Format(time.RFC3339)
+	}
+	return e
 }
 
 func (app *ReactAppWrapper) getBackend(c *gin.Context) backend {
@@ -709,6 +717,9 @@ func (app *ReactAppWrapper) getAppUsers(c *gin.Context) {
 			CreatedAt: u.CreatedAt,
 			IsAdmin:   u.IsAdmin,
 		}
+		for _, d := range u.RegisteredDevices {
+			usr.RegisteredDevices = append(usr.RegisteredDevices, toVMRegisteredDevice(d))
+		}
 		uilist = append(uilist, usr)
 	}
 	c.JSON(http.StatusOK, uilist)
@@ -741,6 +752,9 @@ func (app *ReactAppWrapper) getUser(c *gin.Context) {
 		Email:     user.Email,
 		Name:      user.Name,
 		CreatedAt: user.CreatedAt,
+	}
+	for _, d := range user.RegisteredDevices {
+		vmUser.RegisteredDevices = append(vmUser.RegisteredDevices, toVMRegisteredDevice(d))
 	}
 	for _, i := range user.Integrations {
 		vmUser.Integrations = append(vmUser.Integrations, i.Name)

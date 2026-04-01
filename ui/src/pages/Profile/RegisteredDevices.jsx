@@ -118,6 +118,9 @@ export default function RegisteredDevices() {
             <tr>
               <th>Description</th>
               <th>Device ID</th>
+              <th>Make</th>
+              <th>Model</th>
+              <th>Year</th>
               <th>Last seen</th>
               <th>Registered</th>
               <th style={{ width: "1%" }}>Actions</th>
@@ -130,6 +133,9 @@ export default function RegisteredDevices() {
                 <td>
                   <code className="small">{d.deviceId || "—"}</code>
                 </td>
+                <td>{d.make || "—"}</td>
+                <td>{d.model || "—"}</td>
+                <td>{d.year || "—"}</td>
                 <td>{formatWhen(d.lastSeen)}</td>
                 <td>{formatWhen(d.registeredAt)}</td>
                 <td className="text-nowrap">

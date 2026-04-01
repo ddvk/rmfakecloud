@@ -112,7 +112,7 @@ func (app *App) newDevice(c *gin.Context) {
 	}
 
 	if user, err := app.userStorer.GetUser(uid); err == nil && user != nil {
-		user.UpsertRegisteredDevice(tokenRequest.DeviceID, tokenRequest.DeviceDesc)
+		user.UpsertRegisteredDevice(tokenRequest.DeviceID, tokenRequest.DeviceDesc, tokenRequest.DeviceLink)
 		if err := app.userStorer.UpdateUser(user); err != nil {
 			log.Warn("could not persist registered device: ", err)
 		}

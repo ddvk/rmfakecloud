@@ -90,6 +90,18 @@ For **non-PDF** documents, the server renders each page’s `.rm` with **`Encode
 
 If v6 tooling is missing or decoding fails, the server **falls back** to the legacy PDF→PNG raster path.
 
+### Web UI notebook page overlay SVGs (`GET /documents/:id/page/:n/overlay.svg`)
+
+For page overlays, v3/v5 keep using the in-process Go renderer.  
+For **v6**, the server now tries **`rmc`** first for better fidelity, then falls back to the legacy stroke renderer.
+
+Configuration options for v6 overlay rendering:
+
+- **`RMFAKECLOUD_RMC_BIN`** — full path to an `rmc` executable (or leave unset and use `rmc` from `PATH`).
+- **`RMFAKECLOUD_RMC_SRC`** — optional `rmc` source `src` directory for module mode (`python3 -m rmc.cli`), e.g. `/home/aaron/Downloads/rmc-main/src`.
+- **`RMFAKECLOUD_RMSCENE_SRC`** — optional `rmscene` source import root; accepts either `.../src` or `.../src/rmscene`.
+- **`RMFAKECLOUD_ROOT`** — if set, module mode also adds `<root>/third_party/rmscene/src` to `PYTHONPATH`.
+
 ## References
 
 - [Older binary layout (v3)](https://plasma.ninja/blog/devices/remarkable/binary/format/2017/12/26/reMarkable-lines-file-format.html)

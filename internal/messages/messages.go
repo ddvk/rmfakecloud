@@ -131,6 +131,7 @@ type DeviceTokenRequest struct {
 	Code       string `json:"code"`
 	DeviceDesc string `json:"deviceDesc"`
 	DeviceID   string `json:"deviceID"`
+	DeviceLink string `json:"link,omitempty"`
 }
 
 // SyncCompleted sync ended

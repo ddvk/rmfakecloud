@@ -18,6 +18,7 @@ import (
 	"github.com/danjacques/gofslock/fslock"
 	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/config"
+	"github.com/ddvk/rmfakecloud/internal/rmdecode"
 	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/storage/epub"
 	"github.com/ddvk/rmfakecloud/internal/storage/exporter"
@@ -489,6 +490,7 @@ func (fs *FileSystemStorage) ExportPageOverlaySVG(uid, docid string, pageNum int
 			_ = rc.Close()
 		}
 	}
+	ls := fs.BlobStorage(uid)
 	rmHash := ""
 	if pageID != "" {
 		want := pageID + storage.RmFileExt
@@ -508,7 +510,28 @@ func (fs *FileSystemStorage) ExportPageOverlaySVG(uid, docid string, pageNum int
 			return r, nil
 		}
 	}
-	ls := fs.BlobStorage(uid)
+
+	// For v6 pages, prefer rmc's SVG renderer when available.
+	// This gives better fidelity than the legacy stroke-only fallback.
+	if rmHash != "" {
+		if rc, err := ls.GetReader(rmHash); err == nil {
+			rmData, readErr := io.ReadAll(rc)
+			_ = rc.Close()
+			if readErr == nil {
+				if ver, vErr := rmdecode.ParseVersion(rmData); vErr == nil && ver == 6 {
+					if s, rErr := rmdecode.RenderV6SVGWithRMC(rmData); rErr == nil {
+						b := []byte(s)
+						_ = os.MkdirAll(path.Dir(cachePath), 0700)
+						_ = os.WriteFile(cachePath, b, 0600)
+						return exporter.NewSeekCloser(b), nil
+					} else {
+						log.Warn("v6 overlay via rmc failed; falling back: ", rErr)
+					}
+				}
+			}
+		}
+	}
+
 	archive, err := models.ArchiveFromHashDoc(doc, ls)
 	if err != nil {
 		return nil, err

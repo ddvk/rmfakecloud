@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -25,10 +26,15 @@ const (
 )
 
 var emailWhiteList *regexp.Regexp
+var yearRegex *regexp.Regexp
 
 func init() {
 	var err error
 	emailWhiteList, err = regexp.Compile("[^a-zA-Z0-9.@-_]+")
+	if err != nil {
+		log.Fatal(err)
+	}
+	yearRegex, err = regexp.Compile(`\b(19|20)\d{2}\b`)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -63,16 +69,33 @@ type User struct {
 type RegisteredDevice struct {
 	DeviceID     string    `yaml:"deviceid,omitempty"`
 	DeviceDesc   string    `yaml:"devicedesc,omitempty"`
+	DeviceLink   string    `yaml:"devicelink,omitempty"`
+	Make         string    `yaml:"make,omitempty"`
+	Model        string    `yaml:"model,omitempty"`
+	Year         string    `yaml:"year,omitempty"`
 	RegisteredAt time.Time `yaml:"registeredat,omitempty"`
 	LastSeen     time.Time `yaml:"lastseen,omitempty"`
 }
 
 // UpsertRegisteredDevice records or updates a paired device for this user.
-func (u *User) UpsertRegisteredDevice(deviceID, desc string) {
+func (u *User) UpsertRegisteredDevice(deviceID, desc, link string) {
+	make, model, year := inferDeviceInfo(desc, link)
 	now := time.Now()
 	for i := range u.RegisteredDevices {
 		if u.RegisteredDevices[i].DeviceID == deviceID {
 			u.RegisteredDevices[i].DeviceDesc = desc
+			if link != "" {
+				u.RegisteredDevices[i].DeviceLink = link
+			}
+			if make != "" {
+				u.RegisteredDevices[i].Make = make
+			}
+			if model != "" {
+				u.RegisteredDevices[i].Model = model
+			}
+			if year != "" {
+				u.RegisteredDevices[i].Year = year
+			}
 			u.RegisteredDevices[i].LastSeen = now
 			u.UpdatedAt = now
 			return
@@ -81,10 +104,57 @@ func (u *User) UpsertRegisteredDevice(deviceID, desc string) {
 	u.RegisteredDevices = append(u.RegisteredDevices, RegisteredDevice{
 		DeviceID:     deviceID,
 		DeviceDesc:   desc,
+		DeviceLink:   link,
+		Make:         make,
+		Model:        model,
+		Year:         year,
 		RegisteredAt: now,
 		LastSeen:     now,
 	})
 	u.UpdatedAt = now
+}
+
+func inferDeviceInfo(desc, link string) (string, string, string) {
+	make := ""
+	model := ""
+	year := ""
+
+	ls := strings.ToLower(desc + " " + link)
+	if strings.Contains(ls, "remarkable") || strings.Contains(ls, "re-markable") || strings.Contains(ls, "rm2") || strings.Contains(ls, "rm1") {
+		make = "reMarkable"
+	}
+	if strings.Contains(ls, "paper pro") || strings.Contains(ls, "paperpro") {
+		model = "Paper Pro"
+	} else if strings.Contains(ls, "remarkable 2") || strings.Contains(ls, "rm2") {
+		model = "2"
+	} else if strings.Contains(ls, "remarkable 1") || strings.Contains(ls, "rm1") {
+		model = "1"
+	}
+
+	if u, err := url.Parse(link); err == nil {
+		q := u.Query()
+		if v := strings.TrimSpace(q.Get("make")); v != "" {
+			make = v
+		}
+		if v := strings.TrimSpace(q.Get("manufacturer")); v != "" {
+			make = v
+		}
+		if v := strings.TrimSpace(q.Get("brand")); v != "" {
+			make = v
+		}
+		if v := strings.TrimSpace(q.Get("model")); v != "" {
+			model = v
+		}
+		if v := strings.TrimSpace(q.Get("year")); v != "" {
+			year = v
+		}
+	}
+	if year == "" {
+		if m := yearRegex.FindString(ls); m != "" {
+			year = m
+		}
+	}
+	return make, model, year
 }
 
 // GetRegisteredDevice returns a stored device entry if present.

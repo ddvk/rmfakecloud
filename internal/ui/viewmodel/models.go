@@ -35,8 +35,9 @@ type ChangeEmailForm struct {
 type ErrorResponse struct {
 	Error string `json:"error"`
 }
+
 func NewErrorResponse(errormsg string) ErrorResponse {
-	return ErrorResponse {
+	return ErrorResponse{
 		Error: errormsg,
 	}
 }
@@ -45,6 +46,10 @@ func NewErrorResponse(errormsg string) ErrorResponse {
 type RegisteredDeviceEntry struct {
 	DeviceID     string `json:"deviceId"`
 	DeviceDesc   string `json:"deviceDesc"`
+	DeviceLink   string `json:"deviceLink,omitempty"`
+	Make         string `json:"make,omitempty"`
+	Model        string `json:"model,omitempty"`
+	Year         string `json:"year,omitempty"`
 	RegisteredAt string `json:"registeredAt,omitempty"`
 	LastSeen     string `json:"lastSeen,omitempty"`
 }
@@ -58,6 +63,7 @@ type RegisteredDevicesResponse struct {
 type ReissueDeviceRequest struct {
 	DeviceID   string `json:"deviceId" binding:"required"`
 	DeviceDesc string `json:"deviceDesc"`
+	DeviceLink string `json:"deviceLink,omitempty"`
 }
 
 // ReissueDeviceResponse returns the raw device token for the tablet.
@@ -297,15 +303,15 @@ type Directory struct {
 
 // Document is a single document
 type Document struct {
-	ID           string             `json:"id"`
-	Name         string             `json:"name"`
-	DocumentType string             `json:"type"` // notebook, pdf, epub
-	Collection   common.EntryType   `json:"collectionType"`
-	LastModified time.Time          `json:"lastModified"`
-	Size         int64              `json:"size"`
-	HasWritings  bool               `json:"hasWritings"`
-	Orientation  string             `json:"orientation,omitempty"` // from .content: "portrait", "landscape", or empty if both/unspecified
-	Pinned       bool               `json:"pinned,omitempty"`
+	ID           string           `json:"id"`
+	Name         string           `json:"name"`
+	DocumentType string           `json:"type"` // notebook, pdf, epub
+	Collection   common.EntryType `json:"collectionType"`
+	LastModified time.Time        `json:"lastModified"`
+	Size         int64            `json:"size"`
+	HasWritings  bool             `json:"hasWritings"`
+	Orientation  string           `json:"orientation,omitempty"` // from .content: "portrait", "landscape", or empty if both/unspecified
+	Pinned       bool             `json:"pinned,omitempty"`
 }
 
 // DocumentList is a list of documents
@@ -315,13 +321,14 @@ type DocumentList struct {
 
 // User user model
 type User struct {
-	ID           string `json:"userid"`
-	Email        string `json:"email"`
-	Name         string `json:"name"`
-	NewPassword  string `json:"newpassword,omitempty"`
-	IsAdmin 	 bool `json:"isAdmin"`
-	CreatedAt    time.Time
-	Integrations []string `json:"integrations,omitempty"`
+	ID                string `json:"userid"`
+	Email             string `json:"email"`
+	Name              string `json:"name"`
+	NewPassword       string `json:"newpassword,omitempty"`
+	IsAdmin           bool   `json:"isAdmin"`
+	CreatedAt         time.Time
+	Integrations      []string                `json:"integrations,omitempty"`
+	RegisteredDevices []RegisteredDeviceEntry `json:"registeredDevices,omitempty"`
 }
 
 // NewUser new user creation

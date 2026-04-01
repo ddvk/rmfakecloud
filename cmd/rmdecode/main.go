@@ -143,6 +143,9 @@ func writeV6(format, inPath, outPath, v6Script string) error {
 			return fmt.Errorf("v6 text: script not found: %s (use -v6-script or run from repo root)", script)
 		}
 		cmd := exec.Command("python3", script, inPath)
+		if py := buildPythonPathForV6(); py != "" {
+			cmd.Env = append(os.Environ(), "PYTHONPATH="+py)
+		}
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		return cmd.Run()
@@ -155,10 +158,33 @@ func writeV6(format, inPath, outPath, v6Script string) error {
 			return fmt.Errorf("v6 %s: use a file path with -o (rmc does not stream to stdout here)", format)
 		}
 		cmd := exec.Command(rmc, "-t", format, "-o", outPath, inPath)
+		if py := buildPythonPathForV6(); py != "" {
+			cmd.Env = append(os.Environ(), "PYTHONPATH="+py)
+		}
 		cmd.Stderr = os.Stderr
 		return cmd.Run()
 	}
 	return fmt.Errorf("unknown format %q", format)
+}
+
+func buildPythonPathForV6() string {
+	parts := make([]string, 0, 3)
+	if p := strings.TrimSpace(os.Getenv("RMFAKECLOUD_RMSCENE_SRC")); p != "" {
+		if filepath.Base(p) == "rmscene" {
+			p = filepath.Dir(p)
+		}
+		parts = append(parts, p)
+	}
+	if root := strings.TrimSpace(os.Getenv("RMFAKECLOUD_ROOT")); root != "" {
+		parts = append(parts, filepath.Join(root, "third_party", "rmscene", "src"))
+	}
+	if existing := strings.TrimSpace(os.Getenv("PYTHONPATH")); existing != "" {
+		parts = append(parts, existing)
+	}
+	if len(parts) == 0 {
+		return ""
+	}
+	return strings.Join(parts, string(os.PathListSeparator))
 }
 
 func writeStringOut(outPath, s string) error {
