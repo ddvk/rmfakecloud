@@ -45,7 +45,9 @@ func (fs *FileSystemStorage) GetBlobURL(uid, blobid string, write bool) (docurl 
 
 // LoadBlob Opens a blob by id
 func (fs *FileSystemStorage) LoadBlob(uid, blobid string) (reader io.ReadCloser, size int64, hash string, err error) {
-	blobPath := path.Join(fs.getUserBlobPath(uid), common.Sanitize(blobid))
+	uid = common.SanitizeUid(uid)
+	blobid = common.Sanitize(blobid)
+	blobPath := path.Join(fs.getUserBlobPath(uid), blobid)
 	log.Debugln("Fullpath:", blobPath)
 
 	fi, err := os.Stat(blobPath)
@@ -77,7 +79,9 @@ func (fs *FileSystemStorage) LoadBlob(uid, blobid string) (reader io.ReadCloser,
 func (fs *FileSystemStorage) StoreBlob(uid, id string, fileName string, hash string, stream io.Reader) error {
 	log.Debugf("TODO: check/save etc. write file '%s', hash '%s'", fileName, hash)
 
-	blobPath := path.Join(fs.getUserBlobPath(uid), common.Sanitize(id))
+	uid = common.SanitizeUid(uid)
+	id = common.Sanitize(id)
+	blobPath := path.Join(fs.getUserBlobPath(uid), id)
 	log.Info("Write: ", blobPath)
 	file, err := os.Create(blobPath)
 	if err != nil {

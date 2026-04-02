@@ -54,6 +54,7 @@ func readRootIndex(historyPath string) (string, int64, error) {
 }
 
 func (fs *FileSystemStorage) GetRootIndex(uid string) (string, int64, error) {
+	uid = common.SanitizeUid(uid)
 	historyPath := fs.getPathFromUser(uid, historyFile)
 
 	lock, err := fslock.Lock(historyPath)
@@ -67,6 +68,7 @@ func (fs *FileSystemStorage) GetRootIndex(uid string) (string, int64, error) {
 }
 
 func (fs *FileSystemStorage) UpdateRoot(uid string, stream io.Reader, lastGen int64) (int64, error) {
+	uid = common.SanitizeUid(uid)
 	historyPath := fs.getPathFromUser(uid, historyFile)
 
 	lock, err := fslock.Lock(historyPath)
@@ -86,7 +88,8 @@ func (fs *FileSystemStorage) UpdateRoot(uid string, stream io.Reader, lastGen in
 	if currentGen > 0 {
 		rootHash, _, rootErr := readRootIndex(historyPath)
 		if rootErr == nil && rootHash != "" {
-			blobPath := path.Join(fs.getUserBlobPath(uid), common.Sanitize(rootHash))
+			rootHash = common.Sanitize(rootHash)
+			blobPath := path.Join(fs.getUserBlobPath(uid), rootHash)
 			_, blobErr := os.Stat(blobPath)
 			rootExists = blobErr == nil
 		}

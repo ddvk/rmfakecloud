@@ -222,9 +222,7 @@ type metapayload struct {
 }
 
 func userID(c *gin.Context) string {
-	//TODO: suppress the warning
-	//codeql[go/path-injection]
-	return c.GetString(userIDKey)
+	return common.SanitizeUid(c.GetString(userIDKey))
 }
 
 func extFromContentType(contentType string) (string, error) {

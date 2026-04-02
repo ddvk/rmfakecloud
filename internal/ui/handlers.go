@@ -32,9 +32,7 @@ const (
 )
 
 func userID(c *gin.Context) string {
-	//TODO: suppress the warning
-	//codeql[go/path-injection]
-	return c.GetString(userIDContextKey)
+	return common.SanitizeUid(c.GetString(userIDContextKey))
 }
 
 func (app *ReactAppWrapper) register(c *gin.Context) {
