@@ -100,11 +100,13 @@ func (fs *FileSystemStorage) ExportDocument(uid, id, outputType string, exportOp
 
 	err = exporter.RenderRmapi(arch, outputFile)
 	if err != nil {
+		outputFile.Close()
 		return nil, err
 	}
 
 	_, err = outputFile.Seek(0, 0)
 	if err != nil {
+		outputFile.Close()
 		return nil, err
 	}
 
