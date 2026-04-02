@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import Form from "react-bootstrap/Form";
 import { Button, Card } from "react-bootstrap";
 import apiService from "../../services/api.service";
+import { formatDate } from "../../common/date";
 
 import { Alert } from "react-bootstrap";
 
@@ -12,6 +13,7 @@ export default function UserProfileModal(params) {
   const [resetPasswordForm, setResetPasswordForm] = useState({
     newPassword: "",
     email: user?.email,
+    quotaGb: user?.quotaBytes ? (Number(user.quotaBytes) / (1024 ** 3)).toFixed(2) : "0",
   });
 
   function handleChange({ target }) {
@@ -25,6 +27,10 @@ export default function UserProfileModal(params) {
     //   _errors.error = "newPassword is required";
     //
     if (!resetPasswordForm.email) _errors.error = "email is required";
+    const quotaGb = Number(resetPasswordForm.quotaGb);
+    if (!Number.isFinite(quotaGb) || quotaGb < 0) {
+      _errors.error = "Quota must be a number >= 0";
+    }
 
     setFormErrors(_errors);
 
@@ -37,10 +43,12 @@ export default function UserProfileModal(params) {
     if (!formIsValid()) return;
 
     try {
+      const quotaBytes = Math.round(Number(resetPasswordForm.quotaGb) * (1024 ** 3));
       await apiService.updateuser({
         userid: user.userid,
         email: resetPasswordForm.email,
         newPassword: resetPasswordForm.newPassword,
+        quotaBytes,
       });
       onSave();
     } catch (e) {
@@ -83,6 +91,25 @@ export default function UserProfileModal(params) {
                 onChange={handleChange}
               />
             </Form.Group>
+            <Form.Group controlId="formQuotaGb" className="form-wrapper">
+              <Form.Label>Quota (GB)</Form.Label>
+              <Form.Control
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0 = Unlimited"
+                value={resetPasswordForm.quotaGb}
+                name="quotaGb"
+                onChange={handleChange}
+              />
+              <Form.Text muted>Set to 0 for unlimited storage.</Form.Text>
+            </Form.Group>
+            <Form.Label>Password Changed</Form.Label>
+            <Form.Control
+              className="font-weight-bold"
+              value={user.PasswordChangedAt ? formatDate(user.PasswordChangedAt) : "—"}
+              disabled
+            />
 
             <Alert variant="danger" hidden={!formErrors.error}>
               <Alert.Heading>An Error Occurred</Alert.Heading>

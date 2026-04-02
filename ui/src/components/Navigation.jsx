@@ -51,13 +51,6 @@ const NavigationBar = () => {
 					  </Nav.Link>
 					</Nav.Item>
 				}
-				{ isAdmin() &&
-					<Nav.Item>
-					  <Nav.Link as={NavLink} to="/sudo">
-						Sudo
-					  </Nav.Link>
-					</Nav.Item>
-				}
               </Nav>
               <Nav className="ms-auto">
                 <NavDropdown id="userMenu" title={user.UserID} align="end">

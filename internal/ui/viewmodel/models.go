@@ -327,6 +327,10 @@ type User struct {
 	NewPassword       string `json:"newpassword,omitempty"`
 	IsAdmin           bool   `json:"isAdmin"`
 	CreatedAt         time.Time
+	PasswordChangedAt time.Time
+	LastLoginAt       time.Time
+	FileUsageBytes    int64
+	QuotaBytes        *int64                 `json:"quotaBytes,omitempty"`
 	Integrations      []string                `json:"integrations,omitempty"`
 	RegisteredDevices []RegisteredDeviceEntry `json:"registeredDevices,omitempty"`
 }
@@ -338,8 +342,8 @@ type NewUser struct {
 	NewPassword string `json:"newpassword" binding:"required"`
 }
 
-// SudoRequest asks server to issue a web token for target user.
-type SudoRequest struct {
+// SuRequest asks server to issue a web token for target user.
+type SuRequest struct {
 	UserID string `json:"userid" binding:"required"`
 }
 

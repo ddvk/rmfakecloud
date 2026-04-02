@@ -48,16 +48,19 @@ func init() {
 
 // User holds the user profile
 type User struct {
-	ID            string
-	Email         string
-	EmailVerified bool
-	Password      string
-	Name          string
-	Nickname      string
-	GivenName     string
-	FamilyName    string
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	ID                string
+	Email             string
+	EmailVerified     bool
+	Password          string
+	PasswordChangedAt time.Time `yaml:"passwordchangedat,omitempty"`
+	LastLoginAt       time.Time `yaml:"lastloginat,omitempty"`
+	QuotaBytes        int64     `yaml:"quotabytes,omitempty"`
+	Name              string
+	Nickname          string
+	GivenName         string
+	FamilyName        string
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 	// IsAdmin indicates if the user can managed others users in this instance.
 	IsAdmin bool
 	// Sync15 if the user should use this sync type (which uses a lot less bandwidth).
@@ -322,13 +325,14 @@ func NewUser(userID string, rawPassword string) (*User, error) {
 
 	sanitizedID := sanitizeEmail(userID)
 	return &User{
-		ID:            sanitizedID,
-		Email:         sanitizedID,
-		EmailVerified: true,
-		Password:      password,
-		CreatedAt:     time.Now(),
-		UpdatedAt:     time.Now(),
-		Sync15:        true,
+		ID:                sanitizedID,
+		Email:             sanitizedID,
+		EmailVerified:     true,
+		Password:          password,
+		PasswordChangedAt: time.Now(),
+		CreatedAt:         time.Now(),
+		UpdatedAt:         time.Now(),
+		Sync15:            true,
 	}, nil
 }
 
@@ -340,6 +344,10 @@ func (u *User) GenID() (err error) {
 // SetPassword sets the user password (and hashes it)
 func (u *User) SetPassword(raw string) (err error) {
 	u.Password, err = hashPassword(raw)
+	if err == nil {
+		u.PasswordChangedAt = time.Now()
+		u.UpdatedAt = time.Now()
+	}
 	return
 }
 

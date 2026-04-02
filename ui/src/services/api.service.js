@@ -45,34 +45,12 @@ class ApiServices {
     localStorage.setItem("currentUser", JSON.stringify(user));
     return user;
   }
-  sudoAs(userid) {
-    return fetch(`${constants.ROOT_URL}/sudo`, {
+  suAs(userid) {
+    return fetch(`${constants.ROOT_URL}/su`, {
       method: "POST",
       headers: this.header(),
       credentials: "same-origin",
       body: JSON.stringify({ userid }),
-    })
-      .then(async (r) => {
-        const text = await r.text();
-        if (!r.ok) {
-          let msg = r.statusText;
-          try {
-            if (text && text.startsWith("{")) {
-              const j = JSON.parse(text);
-              if (j.error) msg = j.error;
-            }
-          } catch (_) {}
-          throw new Error(msg);
-        }
-        return text;
-      })
-      .then((text) => this.consumeWebToken(text));
-  }
-  returnFromSudo() {
-    return fetch(`${constants.ROOT_URL}/sudo/return`, {
-      method: "POST",
-      headers: this.header(),
-      credentials: "same-origin",
     })
       .then(async (r) => {
         const text = await r.text();

@@ -67,9 +67,6 @@ func (app *ReactAppWrapper) authMiddleware() gin.HandlerFunc {
 
 		uid := common.SanitizeUid(claims.UserID)
 		c.Set(userIDContextKey, uid)
-		if claims.SudoBy != "" {
-			c.Set(sudoByContextKey, common.SanitizeUid(claims.SudoBy))
-		}
 
 		brid := claims.BrowserID
 		c.Set(browserIDContextKey, brid)

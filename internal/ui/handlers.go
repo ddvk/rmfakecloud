@@ -28,7 +28,6 @@ import (
 const (
 	userIDContextKey    = "userID"
 	browserIDContextKey = "browserID"
-	sudoByContextKey    = "sudoBy"
 	isSync15Key         = "sync15"
 	docIDParam          = "docid"
 	intIDParam          = "intid"
@@ -42,10 +41,6 @@ func userID(c *gin.Context) string {
 	//TODO: suppress the warning
 	//codeql[go/path-injection]
 	return c.GetString(userIDContextKey)
-}
-
-func sudoBy(c *gin.Context) string {
-	return c.GetString(sudoByContextKey)
 }
 
 func (app *ReactAppWrapper) register(c *gin.Context) {
@@ -139,8 +134,12 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
+	user.LastLoginAt = time.Now()
+	if err := app.userStorer.UpdateUser(user); err != nil {
+		log.Warn(uiLogger, "persist last login: ", err)
+	}
 
-	tokenString, expiresAfter, err := app.issueWebTokenForUser(user, "", uuid.NewString())
+	tokenString, expiresAfter, err := app.issueWebTokenForUser(user, uuid.NewString(), false)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -153,7 +152,7 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 	c.String(http.StatusOK, tokenString)
 }
 
-func (app *ReactAppWrapper) issueWebTokenForUser(user *model.User, sudoByUserID, browserID string) (string, time.Duration, error) {
+func (app *ReactAppWrapper) issueWebTokenForUser(user *model.User, browserID string, keepAdmin bool) (string, time.Duration, error) {
 	if user == nil {
 		return "", 0, fmt.Errorf("user is nil")
 	}
@@ -166,7 +165,6 @@ func (app *ReactAppWrapper) issueWebTokenForUser(user *model.User, sudoByUserID,
 	claims := &WebUserClaims{
 		UserID:    user.ID,
 		BrowserID: browserID,
-		SudoBy:    sudoByUserID,
 		Email:     user.Email,
 		Scopes:    scopes,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -175,8 +173,9 @@ func (app *ReactAppWrapper) issueWebTokenForUser(user *model.User, sudoByUserID,
 			Audience:  []string{WebUsage},
 		},
 	}
-	if user.IsAdmin {
-		claims.Roles = []string{AdminRole}
+	if user.IsAdmin || keepAdmin {
+		// Keep Admin first to satisfy the current frontend role guard.
+		claims.Roles = []string{AdminRole, "User"}
 	} else {
 		claims.Roles = []string{"User"}
 	}
@@ -726,12 +725,16 @@ func (app *ReactAppWrapper) getAppUsers(c *gin.Context) {
 	uilist := make([]viewmodel.User, 0)
 	for _, u := range users {
 		usr := viewmodel.User{
-			ID:        u.ID,
-			Email:     u.Email,
-			Name:      u.Name,
-			CreatedAt: u.CreatedAt,
-			IsAdmin:   u.IsAdmin,
+			ID:                u.ID,
+			Email:             u.Email,
+			Name:              u.Name,
+			CreatedAt:         u.CreatedAt,
+			PasswordChangedAt: u.PasswordChangedAt,
+			LastLoginAt:       u.LastLoginAt,
+			QuotaBytes:        ptrInt64(u.QuotaBytes),
+			IsAdmin:           u.IsAdmin,
 		}
+		usr.FileUsageBytes = app.userFileUsageBytes(u)
 		for _, d := range u.RegisteredDevices {
 			usr.RegisteredDevices = append(usr.RegisteredDevices, toVMRegisteredDevice(d))
 		}
@@ -763,11 +766,15 @@ func (app *ReactAppWrapper) getUser(c *gin.Context) {
 	}
 
 	vmUser := &viewmodel.User{
-		ID:        user.ID,
-		Email:     user.Email,
-		Name:      user.Name,
-		CreatedAt: user.CreatedAt,
+		ID:                user.ID,
+		Email:             user.Email,
+		Name:              user.Name,
+		CreatedAt:         user.CreatedAt,
+		PasswordChangedAt: user.PasswordChangedAt,
+		LastLoginAt:       user.LastLoginAt,
+		QuotaBytes:        ptrInt64(user.QuotaBytes),
 	}
+	vmUser.FileUsageBytes = app.userFileUsageBytes(user)
 	for _, d := range user.RegisteredDevices {
 		vmUser.RegisteredDevices = append(vmUser.RegisteredDevices, toVMRegisteredDevice(d))
 	}
@@ -776,6 +783,47 @@ func (app *ReactAppWrapper) getUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, vmUser)
+}
+
+func (app *ReactAppWrapper) userFileUsageBytes(user *model.User) int64 {
+	if user == nil {
+		return 0
+	}
+	backend, ok := app.backends[userSyncVersion(user)]
+	if !ok || backend == nil {
+		return 0
+	}
+	tree, err := backend.GetDocumentTree(user.ID)
+	if err != nil || tree == nil {
+		if err != nil {
+			log.Warn(uiLogger, "file usage: ", user.ID, ": ", err)
+		}
+		return 0
+	}
+	total := int64(0)
+	total += sumEntrySizes(tree.Entries)
+	total += sumEntrySizes(tree.Trash)
+	return total
+}
+
+func userSyncVersion(user *model.User) common.SyncVersion {
+	if user != nil && user.Sync15 {
+		return common.Sync15
+	}
+	return common.Sync10
+}
+
+func sumEntrySizes(entries []viewmodel.Entry) int64 {
+	total := int64(0)
+	for _, entry := range entries {
+		switch x := entry.(type) {
+		case *viewmodel.Document:
+			total += x.Size
+		case *viewmodel.Directory:
+			total += sumEntrySizes(x.Entries)
+		}
+	}
+	return total
 }
 
 func (app *ReactAppWrapper) updateUser(c *gin.Context) {
@@ -803,6 +851,13 @@ func (app *ReactAppWrapper) updateUser(c *gin.Context) {
 	if req.Email != "" {
 		user.Email = req.Email
 	}
+	if req.QuotaBytes != nil {
+		if *req.QuotaBytes < 0 {
+			badReq(c, "quotaBytes must be >= 0")
+			return
+		}
+		user.QuotaBytes = *req.QuotaBytes
+	}
 
 	err = app.userStorer.UpdateUser(user)
 	if err != nil {
@@ -812,8 +867,12 @@ func (app *ReactAppWrapper) updateUser(c *gin.Context) {
 	c.Status(http.StatusAccepted)
 }
 
-func (app *ReactAppWrapper) sudoUser(c *gin.Context) {
-	var req viewmodel.SudoRequest
+func ptrInt64(v int64) *int64 {
+	return &v
+}
+
+func (app *ReactAppWrapper) suUser(c *gin.Context) {
+	var req viewmodel.SuRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		badReq(c, err.Error())
 		return
@@ -824,43 +883,13 @@ func (app *ReactAppWrapper) sudoUser(c *gin.Context) {
 		return
 	}
 
-	current := userID(c)
-	rootAdmin := current
-	if prior := sudoBy(c); prior != "" {
-		rootAdmin = prior
+	// su switches document context to target user while preserving admin powers
+	// so admins can continue switching across users to inspect files.
+	target.LastLoginAt = time.Now()
+	if err := app.userStorer.UpdateUser(target); err != nil {
+		log.Warn(uiLogger, "persist su last login: ", err)
 	}
-	sudoByUserID := ""
-	if target.ID != rootAdmin {
-		sudoByUserID = rootAdmin
-	}
-
-	tokenString, expiresAfter, err := app.issueWebTokenForUser(target, sudoByUserID, uuid.NewString())
-	if err != nil {
-		log.Error(err)
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-	c.SetSameSite(http.SameSiteStrictMode)
-	c.SetCookie(cookieName, tokenString, int(expiresAfter.Seconds()), "/", "", app.cfg.HTTPSCookie, true)
-	c.String(http.StatusOK, tokenString)
-}
-
-func (app *ReactAppWrapper) returnFromSudo(c *gin.Context) {
-	rootAdmin := sudoBy(c)
-	if rootAdmin == "" {
-		c.AbortWithStatusJSON(http.StatusBadRequest, viewmodel.NewErrorResponse("not in sudo session"))
-		return
-	}
-	user, err := app.userStorer.GetUser(rootAdmin)
-	if err != nil || user == nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, viewmodel.NewErrorResponse("original admin not found"))
-		return
-	}
-	if !user.IsAdmin {
-		c.AbortWithStatusJSON(http.StatusForbidden, viewmodel.NewErrorResponse("original account is not admin"))
-		return
-	}
-	tokenString, expiresAfter, err := app.issueWebTokenForUser(user, "", uuid.NewString())
+	tokenString, expiresAfter, err := app.issueWebTokenForUser(target, uuid.NewString(), true)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
