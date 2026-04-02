@@ -35,14 +35,60 @@ class ApiServices {
         }
         return text;
       })
-      .then((text) => {
-        if (!text || typeof text !== "string" || !/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/.test(text)) {
-          throw new Error("Invalid response from server. Check that the app URL and API are correct.");
+      .then((text) => this.consumeWebToken(text));
+  }
+  consumeWebToken(text) {
+    if (!text || typeof text !== "string" || !/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/.test(text)) {
+      throw new Error("Invalid response from server. Check that the app URL and API are correct.");
+    }
+    const user = jwtDecode(text);
+    localStorage.setItem("currentUser", JSON.stringify(user));
+    return user;
+  }
+  sudoAs(userid) {
+    return fetch(`${constants.ROOT_URL}/sudo`, {
+      method: "POST",
+      headers: this.header(),
+      credentials: "same-origin",
+      body: JSON.stringify({ userid }),
+    })
+      .then(async (r) => {
+        const text = await r.text();
+        if (!r.ok) {
+          let msg = r.statusText;
+          try {
+            if (text && text.startsWith("{")) {
+              const j = JSON.parse(text);
+              if (j.error) msg = j.error;
+            }
+          } catch (_) {}
+          throw new Error(msg);
         }
-        let user = jwtDecode(text);
-        localStorage.setItem("currentUser", JSON.stringify(user));
-        return user;
-      });
+        return text;
+      })
+      .then((text) => this.consumeWebToken(text));
+  }
+  returnFromSudo() {
+    return fetch(`${constants.ROOT_URL}/sudo/return`, {
+      method: "POST",
+      headers: this.header(),
+      credentials: "same-origin",
+    })
+      .then(async (r) => {
+        const text = await r.text();
+        if (!r.ok) {
+          let msg = r.statusText;
+          try {
+            if (text && text.startsWith("{")) {
+              const j = JSON.parse(text);
+              if (j.error) msg = j.error;
+            }
+          } catch (_) {}
+          throw new Error(msg);
+        }
+        return text;
+      })
+      .then((text) => this.consumeWebToken(text));
   }
   logout() {
     removeUser();

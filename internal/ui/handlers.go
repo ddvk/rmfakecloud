@@ -28,6 +28,7 @@ import (
 const (
 	userIDContextKey    = "userID"
 	browserIDContextKey = "browserID"
+	sudoByContextKey    = "sudoBy"
 	isSync15Key         = "sync15"
 	docIDParam          = "docid"
 	intIDParam          = "intid"
@@ -41,6 +42,10 @@ func userID(c *gin.Context) string {
 	//TODO: suppress the warning
 	//codeql[go/path-injection]
 	return c.GetString(userIDContextKey)
+}
+
+func sudoBy(c *gin.Context) string {
+	return c.GetString(sudoByContextKey)
 }
 
 func (app *ReactAppWrapper) register(c *gin.Context) {
@@ -135,6 +140,23 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 		return
 	}
 
+	tokenString, expiresAfter, err := app.issueWebTokenForUser(user, "", uuid.NewString())
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	log.Debug("cookie expires after: ", expiresAfter)
+	c.SetSameSite(http.SameSiteStrictMode)
+	c.SetCookie(cookieName, tokenString, int(expiresAfter.Seconds()), "/", "", app.cfg.HTTPSCookie, true)
+
+	c.String(http.StatusOK, tokenString)
+}
+
+func (app *ReactAppWrapper) issueWebTokenForUser(user *model.User, sudoByUserID, browserID string) (string, time.Duration, error) {
+	if user == nil {
+		return "", 0, fmt.Errorf("user is nil")
+	}
 	scopes := ""
 	if user.Sync15 {
 		scopes = isSync15Key
@@ -143,7 +165,8 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 	expires := time.Now().Add(expiresAfter)
 	claims := &WebUserClaims{
 		UserID:    user.ID,
-		BrowserID: uuid.NewString(),
+		BrowserID: browserID,
+		SudoBy:    sudoByUserID,
 		Email:     user.Email,
 		Scopes:    scopes,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -157,19 +180,11 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 	} else {
 		claims.Roles = []string{"User"}
 	}
-
 	tokenString, err := common.SignClaims(claims, app.cfg.JWTSecretKey)
-
 	if err != nil {
-		log.Error(err)
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
+		return "", 0, err
 	}
-	log.Debug("cookie expires after: ", expiresAfter)
-	c.SetSameSite(http.SameSiteStrictMode)
-	c.SetCookie(cookieName, tokenString, int(expiresAfter.Seconds()), "/", "", app.cfg.HTTPSCookie, true)
-
-	c.String(http.StatusOK, tokenString)
+	return tokenString, expiresAfter, nil
 }
 
 func (app *ReactAppWrapper) changePassword(c *gin.Context) {
@@ -796,6 +811,66 @@ func (app *ReactAppWrapper) updateUser(c *gin.Context) {
 	}
 	c.Status(http.StatusAccepted)
 }
+
+func (app *ReactAppWrapper) sudoUser(c *gin.Context) {
+	var req viewmodel.SudoRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		badReq(c, err.Error())
+		return
+	}
+	target, err := app.userStorer.GetUser(req.UserID)
+	if err != nil || target == nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, viewmodel.NewErrorResponse("target user not found"))
+		return
+	}
+
+	current := userID(c)
+	rootAdmin := current
+	if prior := sudoBy(c); prior != "" {
+		rootAdmin = prior
+	}
+	sudoByUserID := ""
+	if target.ID != rootAdmin {
+		sudoByUserID = rootAdmin
+	}
+
+	tokenString, expiresAfter, err := app.issueWebTokenForUser(target, sudoByUserID, uuid.NewString())
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.SetSameSite(http.SameSiteStrictMode)
+	c.SetCookie(cookieName, tokenString, int(expiresAfter.Seconds()), "/", "", app.cfg.HTTPSCookie, true)
+	c.String(http.StatusOK, tokenString)
+}
+
+func (app *ReactAppWrapper) returnFromSudo(c *gin.Context) {
+	rootAdmin := sudoBy(c)
+	if rootAdmin == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, viewmodel.NewErrorResponse("not in sudo session"))
+		return
+	}
+	user, err := app.userStorer.GetUser(rootAdmin)
+	if err != nil || user == nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, viewmodel.NewErrorResponse("original admin not found"))
+		return
+	}
+	if !user.IsAdmin {
+		c.AbortWithStatusJSON(http.StatusForbidden, viewmodel.NewErrorResponse("original account is not admin"))
+		return
+	}
+	tokenString, expiresAfter, err := app.issueWebTokenForUser(user, "", uuid.NewString())
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.SetSameSite(http.SameSiteStrictMode)
+	c.SetCookie(cookieName, tokenString, int(expiresAfter.Seconds()), "/", "", app.cfg.HTTPSCookie, true)
+	c.String(http.StatusOK, tokenString)
+}
+
 func (app *ReactAppWrapper) deleteUser(c *gin.Context) {
 	uid := c.Param(useridParam)
 	if uid == userID(c) {

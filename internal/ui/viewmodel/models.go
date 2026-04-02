@@ -338,6 +338,11 @@ type NewUser struct {
 	NewPassword string `json:"newpassword" binding:"required"`
 }
 
+// SudoRequest asks server to issue a web token for target user.
+type SudoRequest struct {
+	UserID string `json:"userid" binding:"required"`
+}
+
 // UpdateDoc with somethin
 type UpdateDoc struct {
 	DocumentID string `json:"documentId" binding:"required"`

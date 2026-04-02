@@ -6,6 +6,7 @@ import "github.com/golang-jwt/jwt/v4"
 type WebUserClaims struct {
 	UserID    string `json:"UserID"`
 	BrowserID string `json:"BrowserID"`
+	SudoBy    string `json:"SudoBy,omitempty"`
 	Email     string
 	Scopes    string `json:"scopes,omitempty"`
 	Roles     []string
