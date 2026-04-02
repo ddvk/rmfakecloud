@@ -21,6 +21,8 @@ export default function IntegrationModal(params) {
     accesstoken: integration?.Accesstoken,
     path: integration?.Path,
     endpoint: integration?.Endpoint,
+    shared: !!integration?.Shared,
+    readOnly: !!integration?.ReadOnly,
   });
 
   function handleChange({ target }) {
@@ -47,6 +49,8 @@ export default function IntegrationModal(params) {
         id: integration.ID,
         name: integrationForm.name,
         provider: integrationForm.provider,
+        shared: integrationForm.shared,
+        readOnly: integrationForm.readOnly,
         username: integrationForm.username,
         password: integrationForm.password,
         address: integrationForm.address,
@@ -106,6 +110,20 @@ export default function IntegrationModal(params) {
               value={integrationForm.name}
               name="name"
               onChange={handleChange}
+            />
+            <Form.Check
+              className="mt-2"
+              name="shared"
+              checked={!!integrationForm.shared}
+              onChange={({ target }) => setIntegrationForm({ ...integrationForm, [target.name]: target.checked })}
+              label="Share with all users (admin folder)"
+            />
+            <Form.Check
+              className="mt-2"
+              name="readOnly"
+              checked={!!integrationForm.readOnly}
+              onChange={({ target }) => setIntegrationForm({ ...integrationForm, [target.name]: target.checked })}
+              label="Mark folder as read-only"
             />
 
             {(integrationForm.provider === "webdav" || integrationForm.provider === "ftp") && (

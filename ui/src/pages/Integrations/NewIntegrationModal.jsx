@@ -13,6 +13,8 @@ export default function IntegrationProfileModal(params) {
   const [integrationForm, setIntegrationForm] = useState({
     name: "",
     provider: "localfs",
+    shared: false,
+    readOnly: false,
   });
 
   function handleChange({ target }) {
@@ -86,6 +88,20 @@ export default function IntegrationProfileModal(params) {
             <option value="dropbox">Dropbox</option>
             <option value="webhook">Messaging webhook</option>
           </Form.Select>
+          <Form.Check
+            className="mb-2"
+            name="shared"
+            checked={!!integrationForm.shared}
+            onChange={({ target }) => setIntegrationForm({ ...integrationForm, [target.name]: target.checked })}
+            label="Share with all users (admin folder)"
+          />
+          <Form.Check
+            className="mb-2"
+            name="readOnly"
+            checked={!!integrationForm.readOnly}
+            onChange={({ target }) => setIntegrationForm({ ...integrationForm, [target.name]: target.checked })}
+            label="Mark folder as read-only"
+          />
 
           {(integrationForm.provider === "webdav" || integrationForm.provider === "ftp") && (
             <>

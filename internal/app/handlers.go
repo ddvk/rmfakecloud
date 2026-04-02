@@ -1032,6 +1032,17 @@ func (app *App) integrationsUpload(c *gin.Context) {
 	name := common.QueryS("name", c)
 	fileType := common.QueryS("fileType", c)
 
+	ro, err := integrations.IsReadOnly(app.userStorer, uid, integrationID)
+	if err != nil {
+		log.Error(fmt.Errorf("can't check integration mode, %v", err))
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	if ro {
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "integration folder is read-only"})
+		return
+	}
+
 	integrationProvider, err := integrations.GetStorageIntegrationProvider(app.userStorer, uid, integrationID)
 
 	if err != nil {

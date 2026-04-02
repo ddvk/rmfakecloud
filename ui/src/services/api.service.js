@@ -68,9 +68,35 @@ class ApiServices {
       })
       .then((text) => this.consumeWebToken(text));
   }
+  leaveSu() {
+    return fetch(`${constants.ROOT_URL}/su/leave`, {
+      method: "POST",
+      headers: this.header(),
+      credentials: "same-origin",
+    })
+      .then(async (r) => {
+        const text = await r.text();
+        if (!r.ok) {
+          let msg = r.statusText;
+          try {
+            if (text && text.startsWith("{")) {
+              const j = JSON.parse(text);
+              if (j.error) msg = j.error;
+            }
+          } catch (_) {}
+          throw new Error(msg);
+        }
+        return text;
+      })
+      .then((text) => this.consumeWebToken(text));
+  }
   logout() {
     removeUser();
-    fetch(`${constants.ROOT_URL}/logout`);
+    return fetch(`${constants.ROOT_URL}/logout`, {
+      method: "POST",
+      headers: this.header(),
+      credentials: "same-origin",
+    }).catch(() => {});
   }
 
   upload(parent, files) {
@@ -359,7 +385,8 @@ function handleError(r) {
       window.location.reload(true);
       return
     }
-    if (r.headers.get("Content-Type").startsWith("application/json")) {
+    const ct = r.headers.get("Content-Type") || "";
+    if (ct.startsWith("application/json")) {
       return r.json().then(d => {throw new Error(d.error)});
     }
     if (r.status === 400) {

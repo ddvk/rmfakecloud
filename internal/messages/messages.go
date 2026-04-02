@@ -193,6 +193,8 @@ type Integration struct {
 	Provider     string    `json:"provider"`
 	ProviderType string    `json:"providerType"`
 	UserID       string    `json:"userID"`
+	Shared       bool      `json:"shared,omitempty"`
+	ReadOnly     bool      `json:"readOnly,omitempty"`
 }
 
 type IntegrationFile struct {

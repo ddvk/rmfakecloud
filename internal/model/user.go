@@ -69,6 +69,8 @@ type User struct {
 	AdditionalScopes []string
 	// Integrations stores the list of "Integrations" as shown on the tablet.
 	Integrations []IntegrationConfig
+	// SharedIntegrations are admin-managed integrations visible to non-admin users.
+	SharedIntegrations []IntegrationConfig `yaml:"sharedintegrations,omitempty"`
 	// RegisteredDevices are reMarkable clients that completed pairing (see newDevice).
 	RegisteredDevices []RegisteredDevice `yaml:"registereddevices,omitempty"`
 }
@@ -253,6 +255,10 @@ type IntegrationConfig struct {
 	ID       string
 	Provider string
 	Name     string
+	// Shared marks this integration as admin-managed and visible to non-admin users.
+	Shared bool `yaml:"shared,omitempty" json:"shared,omitempty"`
+	// ReadOnly marks this integration folder as non-writable.
+	ReadOnly bool `yaml:"readonly,omitempty" json:"readOnly,omitempty"`
 
 	// WebDav // FTP
 	Username string `yaml:"username,omitempty"`

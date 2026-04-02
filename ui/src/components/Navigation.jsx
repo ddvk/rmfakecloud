@@ -1,15 +1,10 @@
 import React from "react";
-import { Nav, Navbar, Button, NavDropdown, Container } from "react-bootstrap";
-import { logout } from "../common/actions";
+import { Nav, Navbar, NavDropdown, Container } from "react-bootstrap";
 import { useAuthState } from "../common/useAuthContext";
 import { NavLink } from "react-router-dom";
 
 const NavigationBar = () => {
-  const { state:{user}, dispatch } = useAuthState();
-
-  function handleLogout(e) {
-    logout(dispatch);
-  }
+  const { state:{user} } = useAuthState();
 
   function isAdmin() {
     return user && user.Roles && user.Roles[0] === "Admin";
@@ -56,7 +51,7 @@ const NavigationBar = () => {
                 <NavDropdown id="userMenu" title={user.UserID} align="end">
                   <NavDropdown.Item as={NavLink} to="/profile">Profile</NavDropdown.Item>
                   <NavDropdown.Divider />
-                  <NavDropdown.Item as={Button} onClick={handleLogout}>Log out</NavDropdown.Item>
+                  <NavDropdown.Item as={NavLink} to="/logout">Log out</NavDropdown.Item>
                 </NavDropdown>
               </Nav>
             </Navbar.Collapse>

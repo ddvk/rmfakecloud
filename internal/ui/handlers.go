@@ -28,6 +28,7 @@ import (
 const (
 	userIDContextKey    = "userID"
 	browserIDContextKey = "browserID"
+	suByContextKey      = "suBy"
 	isSync15Key         = "sync15"
 	docIDParam          = "docid"
 	intIDParam          = "intid"
@@ -41,6 +42,10 @@ func userID(c *gin.Context) string {
 	//TODO: suppress the warning
 	//codeql[go/path-injection]
 	return c.GetString(userIDContextKey)
+}
+
+func suBy(c *gin.Context) string {
+	return c.GetString(suByContextKey)
 }
 
 func (app *ReactAppWrapper) register(c *gin.Context) {
@@ -139,7 +144,7 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 		log.Warn(uiLogger, "persist last login: ", err)
 	}
 
-	tokenString, expiresAfter, err := app.issueWebTokenForUser(user, uuid.NewString(), false)
+	tokenString, expiresAfter, err := app.issueWebTokenForUser(user, uuid.NewString(), false, "")
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -152,7 +157,7 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 	c.String(http.StatusOK, tokenString)
 }
 
-func (app *ReactAppWrapper) issueWebTokenForUser(user *model.User, browserID string, keepAdmin bool) (string, time.Duration, error) {
+func (app *ReactAppWrapper) issueWebTokenForUser(user *model.User, browserID string, keepAdmin bool, suByUserID string) (string, time.Duration, error) {
 	if user == nil {
 		return "", 0, fmt.Errorf("user is nil")
 	}
@@ -165,6 +170,7 @@ func (app *ReactAppWrapper) issueWebTokenForUser(user *model.User, browserID str
 	claims := &WebUserClaims{
 		UserID:    user.ID,
 		BrowserID: browserID,
+		SuBy:      suByUserID,
 		Email:     user.Email,
 		Scopes:    scopes,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -889,7 +895,37 @@ func (app *ReactAppWrapper) suUser(c *gin.Context) {
 	if err := app.userStorer.UpdateUser(target); err != nil {
 		log.Warn(uiLogger, "persist su last login: ", err)
 	}
-	tokenString, expiresAfter, err := app.issueWebTokenForUser(target, uuid.NewString(), true)
+	rootAdmin := userID(c)
+	if prior := suBy(c); prior != "" {
+		rootAdmin = prior
+	}
+	suByUserID := ""
+	if target.ID != rootAdmin {
+		suByUserID = rootAdmin
+	}
+	tokenString, expiresAfter, err := app.issueWebTokenForUser(target, uuid.NewString(), true, suByUserID)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.SetSameSite(http.SameSiteStrictMode)
+	c.SetCookie(cookieName, tokenString, int(expiresAfter.Seconds()), "/", "", app.cfg.HTTPSCookie, true)
+	c.String(http.StatusOK, tokenString)
+}
+
+func (app *ReactAppWrapper) leaveSu(c *gin.Context) {
+	rootAdmin := suBy(c)
+	if rootAdmin == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, viewmodel.NewErrorResponse("not in su session"))
+		return
+	}
+	adminUser, err := app.userStorer.GetUser(rootAdmin)
+	if err != nil || adminUser == nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, viewmodel.NewErrorResponse("original admin not found"))
+		return
+	}
+	tokenString, expiresAfter, err := app.issueWebTokenForUser(adminUser, uuid.NewString(), false, "")
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -952,7 +988,7 @@ func (app *ReactAppWrapper) listIntegrations(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, user.Integrations)
+	c.JSON(http.StatusOK, app.effectiveIntegrationsForUser(user))
 }
 
 func warnLocalfsEdition(c *gin.Context, int *model.IntegrationConfig) {
@@ -973,6 +1009,10 @@ func (app *ReactAppWrapper) createIntegration(c *gin.Context) {
 		badReq(c, err.Error())
 		return
 	}
+	if int.Shared && !IsAdmin(c) {
+		c.AbortWithStatusJSON(http.StatusForbidden, viewmodel.NewErrorResponse("only admins can create shared integrations"))
+		return
+	}
 
 	if int.Provider == integrations.LocalfsProvider {
 		int.ID = uuid.NewString()
@@ -990,7 +1030,11 @@ func (app *ReactAppWrapper) createIntegration(c *gin.Context) {
 	}
 
 	int.ID = uuid.NewString()
-	user.Integrations = append(user.Integrations, int)
+	if int.Shared {
+		user.SharedIntegrations = append(user.SharedIntegrations, int)
+	} else {
+		user.Integrations = append(user.Integrations, int)
+	}
 
 	err = app.userStorer.UpdateUser(user)
 
@@ -1015,7 +1059,7 @@ func (app *ReactAppWrapper) getIntegration(c *gin.Context) {
 		return
 	}
 
-	for _, integration := range user.Integrations {
+	for _, integration := range app.effectiveIntegrationsForUser(user) {
 		if integration.ID == intid {
 			c.JSON(http.StatusOK, integration)
 			return
@@ -1052,6 +1096,7 @@ func (app *ReactAppWrapper) updateIntegration(c *gin.Context) {
 	for idx, integration := range user.Integrations {
 		if integration.ID == intid {
 			int.ID = integration.ID
+			int.Shared = false
 			user.Integrations[idx] = int
 
 			err = app.userStorer.UpdateUser(user)
@@ -1064,6 +1109,23 @@ func (app *ReactAppWrapper) updateIntegration(c *gin.Context) {
 
 			c.JSON(http.StatusOK, int)
 			return
+		}
+	}
+	if IsAdmin(c) {
+		for idx, integration := range user.SharedIntegrations {
+			if integration.ID == intid {
+				int.ID = integration.ID
+				int.Shared = true
+				user.SharedIntegrations[idx] = int
+				err = app.userStorer.UpdateUser(user)
+				if err != nil {
+					log.Error("error updating user", err)
+					c.AbortWithStatus(http.StatusInternalServerError)
+					return
+				}
+				c.JSON(http.StatusOK, int)
+				return
+			}
 		}
 	}
 
@@ -1098,8 +1160,53 @@ func (app *ReactAppWrapper) deleteIntegration(c *gin.Context) {
 			return
 		}
 	}
+	if IsAdmin(c) {
+		for idx, integration := range user.SharedIntegrations {
+			if integration.ID == intid {
+				user.SharedIntegrations = append(user.SharedIntegrations[:idx], user.SharedIntegrations[idx+1:]...)
+				err = app.userStorer.UpdateUser(user)
+				if err != nil {
+					log.Error("error updating user", err)
+					c.AbortWithStatus(http.StatusInternalServerError)
+					return
+				}
+				c.Status(http.StatusAccepted)
+				return
+			}
+		}
+	}
 
 	c.AbortWithStatus(http.StatusNotFound)
+}
+
+func (app *ReactAppWrapper) effectiveIntegrationsForUser(user *model.User) []model.IntegrationConfig {
+	if user == nil {
+		return nil
+	}
+	out := make([]model.IntegrationConfig, 0, len(user.Integrations)+len(user.SharedIntegrations))
+	for _, cfg := range user.Integrations {
+		cfg.Shared = false
+		out = append(out, cfg)
+	}
+	users, err := app.userStorer.GetUsers()
+	if err != nil {
+		return out
+	}
+	for _, u := range users {
+		if u == nil || !u.IsAdmin {
+			continue
+		}
+		for _, cfg := range u.SharedIntegrations {
+			cfg.Shared = true
+			if user.IsAdmin && u.ID == user.ID {
+				cfg.ReadOnly = cfg.ReadOnly
+			} else {
+				cfg.ReadOnly = true
+			}
+			out = append(out, cfg)
+		}
+	}
+	return out
 }
 
 func (app *ReactAppWrapper) exploreIntegration(c *gin.Context) {

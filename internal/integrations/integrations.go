@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/ddvk/rmfakecloud/internal/messages"
+	"github.com/ddvk/rmfakecloud/internal/model"
 	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/sirupsen/logrus"
 )
@@ -24,6 +25,13 @@ const (
 )
 
 type IntegrationProvider interface{}
+
+type scopedIntegration struct {
+	cfg       model.IntegrationConfig
+	shared    bool
+	readOnly  bool
+	ownerUser string
+}
 
 // StorageIntegrationProvider abstracts 3rd party integrations
 type StorageIntegrationProvider interface {
@@ -42,25 +50,25 @@ type MessagingIntegrationProvider interface {
 
 // getIntegrationProvider finds the integration provider for the user
 func getIntegrationProvider(storer storage.UserStorer, uid, integrationid string) (IntegrationProvider, error) {
-	usr, err := storer.GetUser(uid)
+	effective, err := effectiveIntegrations(storer, uid)
 	if err != nil {
 		return nil, err
 	}
-	for _, intg := range usr.Integrations {
-		if intg.ID != integrationid {
+	for _, intg := range effective {
+		if intg.cfg.ID != integrationid {
 			continue
 		}
-		switch intg.Provider {
+		switch intg.cfg.Provider {
 		case WebhookProvider:
-			return newWebhook(intg), nil
+			return newWebhook(intg.cfg), nil
 		case DropboxProvider:
-			return newDropbox(intg), nil
+			return newDropbox(intg.cfg), nil
 		case FtpProvider:
-			return newFTP(intg), nil
+			return newFTP(intg.cfg), nil
 		case LocalfsProvider:
-			return newLocalFS(intg), nil
+			return newLocalFS(intg.cfg), nil
 		case WebdavProvider:
-			return newWebDav(intg), nil
+			return newWebDav(intg.cfg), nil
 		}
 	}
 	return nil, fmt.Errorf("integration not found or no implmentation (only webdav) %s", integrationid)
@@ -134,25 +142,89 @@ func ProviderType(n string) string {
 
 // List lists the integrations
 func List(userstorer storage.UserStorer, uid string) (*messages.IntegrationsResponse, error) {
-	user, err := userstorer.GetUser(uid)
+	effective, err := effectiveIntegrations(userstorer, uid)
 	if err != nil {
 		return nil, err
 	}
 
 	res := &messages.IntegrationsResponse{}
-	for _, userIntg := range user.Integrations {
+	for _, entry := range effective {
+		userIntg := entry.cfg
 		resIntg := messages.Integration{
 			ID:           userIntg.ID,
 			Name:         userIntg.Name,
 			Provider:     fixProviderName(userIntg.Provider),
 			ProviderType: ProviderType(userIntg.Provider),
-			UserID:       uid,
+			UserID:       entry.ownerUser,
+			Shared:       entry.shared,
+			ReadOnly:     entry.readOnly,
 		}
 
 		res.Integrations = append(res.Integrations, resIntg)
 	}
 
 	return res, nil
+}
+
+func effectiveIntegrations(storer storage.UserStorer, uid string) ([]scopedIntegration, error) {
+	user, err := storer.GetUser(uid)
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, fmt.Errorf("user not found: %s", uid)
+	}
+	out := make([]scopedIntegration, 0, len(user.Integrations)+len(user.SharedIntegrations))
+	for _, cfg := range user.Integrations {
+		cfg.Shared = false
+		out = append(out, scopedIntegration{
+			cfg:       cfg,
+			shared:    false,
+			readOnly:  cfg.ReadOnly,
+			ownerUser: user.ID,
+		})
+	}
+	users, err := storer.GetUsers()
+	if err != nil {
+		return out, nil
+	}
+	for _, u := range users {
+		if u == nil || !u.IsAdmin {
+			continue
+		}
+		for _, cfg := range u.SharedIntegrations {
+			readOnly := cfg.ReadOnly
+			if user.IsAdmin && u.ID == user.ID {
+				readOnly = cfg.ReadOnly
+			} else {
+				// Shared integrations are always non-writable for other users.
+				readOnly = true
+			}
+			cfg.Shared = true
+			cfg.ReadOnly = readOnly
+			out = append(out, scopedIntegration{
+				cfg:       cfg,
+				shared:    true,
+				readOnly:  readOnly,
+				ownerUser: u.ID,
+			})
+		}
+	}
+	return out, nil
+}
+
+// IsReadOnly reports whether the integration should be treated as read-only for this user.
+func IsReadOnly(storer storage.UserStorer, uid, integrationID string) (bool, error) {
+	effective, err := effectiveIntegrations(storer, uid)
+	if err != nil {
+		return false, err
+	}
+	for _, intg := range effective {
+		if intg.cfg.ID == integrationID {
+			return intg.readOnly, nil
+		}
+	}
+	return false, fmt.Errorf("integration not found: %s", integrationID)
 }
 
 func visitDir(root, currentPath string, depth int, parentFolder *messages.IntegrationFolder,

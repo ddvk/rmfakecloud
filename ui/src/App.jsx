@@ -7,6 +7,7 @@ import { AuthProvider } from "./common/useAuthContext";
 import Role from "./common/Role";
 import { PrivateRoute } from "./components/PrivateRoute";
 import Navigationbar from "./components/Navigation";
+import SuBanner from "./components/SuBanner";
 
 import Login from "./pages/Login";
 import Home from "./pages/Home";
@@ -16,6 +17,7 @@ import ViewPdf from "./pages/ViewPdf";
 import Integrations from "./pages/Integrations";
 import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
+import Logout from "./pages/Logout";
 import NoMatch from "./pages/404";
 
 import "react-toastify/dist/ReactToastify.css";
@@ -34,6 +36,7 @@ export default function App() {
         <Router>
           <div style={{display: "flex", flexDirection: "column", height: "100%"}}>
             <Navigationbar />
+            <SuBanner />
             <div style={{flex: "1 1 auto", minHeight: 0, overflow: "hidden"}}>
               <Switch>
                 <PrivateRoute exact path="/" component={Home} />
@@ -45,6 +48,7 @@ export default function App() {
                 <PrivateRoute path="/integrations" component={Integrations} />
                 <PrivateRoute path="/profile" component={Profile} />
                 <PrivateRoute path="/admin" roles={[Role.Admin]} component={Admin} />
+                <Route path="/logout" component={Logout} />
 
                 <Route path="/login" component={Login} />
                 <Route component={NoMatch} />
