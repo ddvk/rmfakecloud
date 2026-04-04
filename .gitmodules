@@ -1,3 +1,6 @@
 [submodule "third_party/rmscene"]
 	path = third_party/rmscene
 	url = https://github.com/ricklupton/rmscene.git
+[submodule "ui/extra/simplerenderer/librm_lines"]
+	path = ui/extra/simplerenderer/librm_lines
+	url = https://github.com/RedTTGMoss/librm_lines

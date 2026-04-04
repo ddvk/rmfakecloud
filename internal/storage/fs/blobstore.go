@@ -662,6 +662,10 @@ func (fs *FileSystemStorage) CreateBlobFolder(uid, foldername, parent string) (d
 	}
 
 	metadataReader, metahash, size, err := createMetadataFile(metadata)
+	if err != nil {
+		return nil, err
+	}
+
 	log.Info("meta hash: ", metahash)
 	err = blobStorage.Write(metahash, metadataReader)
 	if err != nil {
@@ -1291,6 +1295,29 @@ func (fs *FileSystemStorage) LoadBlob(uid, blobid string) (reader io.ReadCloser,
 	}
 	reader = osFile
 	return reader, generation, fi.Size(), "crc32c=" + hash, err
+}
+
+// GetRawBlob reads a raw blob (returns just the reader and error - wrapper around LoadBlob)
+func (fs *FileSystemStorage) GetRawBlob(uid, hash string) (stream io.ReadCloser, err error) {
+	reader, _, _, _, err := fs.LoadBlob(uid, hash)
+	return reader, err
+}
+
+func (fs *FileSystemStorage) GetBlobDocumentTree(uid, docid string) (m map[string]string, err error) {
+	tree, err := fs.GetCachedTree(uid)
+	if err != nil {
+		return nil, err
+	}
+	doc, err := tree.FindDoc(docid)
+	if err != nil {
+		return nil, err
+	}
+	output := make(map[string]string, len(doc.Files))
+	for _, entry := range doc.Files {
+		output[entry.EntryName] = entry.Hash
+	}
+
+	return output, nil
 }
 
 // StoreBlob stores a document

@@ -31,6 +31,7 @@ const (
 	suByContextKey      = "suBy"
 	isSync15Key         = "sync15"
 	docIDParam          = "docid"
+	blobIDParam         = "blobid"
 	intIDParam          = "intid"
 	uiLogger            = "[ui] "
 	ui10                = " [10] "
@@ -619,6 +620,33 @@ func (app *ReactAppWrapper) getEpubPath(c *gin.Context) {
 	c.Header("Content-Type", contentType)
 	c.Header("X-Content-Type-Options", "nosniff")
 	c.DataFromReader(http.StatusOK, -1, contentType, reader, nil)
+}
+
+func (app *ReactAppWrapper) getRawBlob(c *gin.Context) {
+	uid := userID(c)
+	blobid := common.ParamS(blobIDParam, c)
+	backend := app.getBackend(c)
+	reader, err := backend.GetRawBlob(uid, blobid)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	defer reader.Close()
+	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
+}
+
+func (app *ReactAppWrapper) getBlobTree(c *gin.Context) {
+	uid := userID(c)
+	docid := common.ParamS(docIDParam, c)
+	backend := app.getBackend(c)
+	files, err := backend.GetBlobDocumentTree(uid, docid)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.JSON(http.StatusOK, files)
 }
 
 // move rename

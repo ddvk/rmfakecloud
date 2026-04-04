@@ -28,6 +28,8 @@ type backend interface {
 	UpdateDocument(uid, docID, name, parent string) (err error)
 	DeleteDocument(uid, docID string) (err error)
 	Sync(uid string)
+	GetRawBlob(uid, hash string) (stream io.ReadCloser, err error)
+	GetBlobDocumentTree(uid, docid string) (m map[string]string, err error)
 }
 type codeGenerator interface {
 	NewCode(string) (string, error)
@@ -61,6 +63,8 @@ type blobHandler interface {
 	GetEpubFile(uid, docid, filePath string) (io.ReadCloser, string, error)
 	GetEpubCoverThumb(uid, docid string) (io.ReadCloser, string, error)
 	PDFInlineFilename(uid, docid string) string
+	GetRawBlob(uid, hash string) (stream io.ReadCloser, err error)
+	GetBlobDocumentTree(uid, docid string) (m map[string]string, err error)
 }
 
 type notificationHub interface {

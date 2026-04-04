@@ -78,3 +78,11 @@ func (b *backend15) DeleteDocument(uid, docID string) (err error) {
 func (b *backend15) Sync(uid string) {
 	b.h.NotifySync(uid, uuid.NewString())
 }
+
+func (b *backend15) GetRawBlob(uid, hash string) (stream io.ReadCloser, err error) {
+	return b.blobHandler.GetRawBlob(uid, hash)
+}
+
+func (b *backend15) GetBlobDocumentTree(uid, docid string) (m map[string]string, err error) {
+	return b.blobHandler.GetBlobDocumentTree(uid, docid)
+}
