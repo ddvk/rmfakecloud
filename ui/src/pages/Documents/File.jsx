@@ -1,13 +1,16 @@
 import { useRef, useEffect, useState } from "react";
-import { Button, Dropdown, ButtonToolbar } from "react-bootstrap";
+import { Button, ButtonGroup, Dropdown, ButtonToolbar } from "react-bootstrap";
 import Navbar from "react-bootstrap/Navbar";
 import { AiOutlineDownload } from "react-icons/ai";
 import { BsBoxArrowUpRight } from "react-icons/bs";
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa6";
 import constants from "../../common/constants";
 
 import apiservice from "../../services/api.service";
 import NameTag from "../../components/NameTag";
 import NotebookPageSvg from "../../components/NotebookPageSvg";
+import { RmLinesRenderer } from "../../components/RmLinesRenderer";
+import { tryDocumentEnvironment } from "../../common/blobapi";
 
 export default function FileViewer({ file, onSelect }) {
   const { data } = file;
@@ -19,6 +22,11 @@ export default function FileViewer({ file, onSelect }) {
   const [pdfBlobUrl, setPdfBlobUrl] = useState(null);
   const [pdfLoadError, setPdfLoadError] = useState(false);
   const pdfContainerRef = useRef(null);
+
+  /** Sync 1.5+ blob tree: client-side librm_lines when available */
+  const [rmLinesEnv, setRmLinesEnv] = useState(null);
+  const [rmLinesChecked, setRmLinesChecked] = useState(false);
+  const [rmPage, setRmPage] = useState(1);
 
   useEffect(() => {
     if (data?.type !== "pdf" || !pdfContainerRef.current) return;
@@ -68,6 +76,12 @@ export default function FileViewer({ file, onSelect }) {
     };
   }, [data?.type, file?.id, downloadUrl]);
 
+  const isPdfView = data?.type === "pdf";
+  const isNotebookView =
+    data?.type === "notebook" ||
+    data?.type === "TODO" ||
+    (data?.hasWritings && data?.type !== "pdf" && data?.type !== "epub");
+
   useEffect(() => {
     const needsMeta =
       file?.id &&
@@ -83,6 +97,30 @@ export default function FileViewer({ file, onSelect }) {
       setNotebookMeta(null);
     }
   }, [file?.id, data?.type, data?.hasWritings]);
+
+  useEffect(() => {
+    setRmPage(1);
+  }, [file?.id]);
+
+  useEffect(() => {
+    if (!isNotebookView || !file?.id) {
+      setRmLinesEnv(null);
+      setRmLinesChecked(false);
+      return;
+    }
+    let cancelled = false;
+    setRmLinesChecked(false);
+    setRmLinesEnv(null);
+    (async () => {
+      const env = await tryDocumentEnvironment(file.id);
+      if (cancelled) return;
+      setRmLinesEnv(env);
+      setRmLinesChecked(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isNotebookView, file?.id]);
 
   const triggerDownload = (blob, filename) => {
     const url = window.URL.createObjectURL(blob);
@@ -108,15 +146,8 @@ export default function FileViewer({ file, onSelect }) {
   };
 
   const onOpenInNewTab = () => {
-    // Open the PDF stream directly (same URL as inline preview), not /view-pdf/ wrapper.
     window.open(`${window.location.origin}${downloadUrl}`, "_blank", "noopener,noreferrer");
   };
-
-  const isPdfView = data?.type === "pdf";
-  const isNotebookView =
-    data?.type === "notebook" ||
-    data?.type === "TODO" ||
-    (data?.hasWritings && data?.type !== "pdf" && data?.type !== "epub");
 
   const notebookPageCount =
     notebookMeta &&
@@ -125,6 +156,20 @@ export default function FileViewer({ file, onSelect }) {
       : notebookMeta.hasWritings
         ? 1
         : 0);
+
+  /** Prefer server metadata; before it loads, blob tree .rm count is a usable fallback for librm_lines. */
+  const pageTotalForNotebook =
+    (notebookMeta &&
+      (notebookMeta.pageCount > 0
+        ? notebookMeta.pageCount
+        : notebookMeta.hasWritings
+          ? 1
+          : 0)) ||
+    rmLinesEnv?.pageCount ||
+    0;
+
+  const useRmLines = rmLinesChecked && rmLinesEnv !== null;
+  const showRmPager = useRmLines && pageTotalForNotebook > 0;
 
   return (
     <>
@@ -137,8 +182,33 @@ export default function FileViewer({ file, onSelect }) {
       </Navbar>
 
       <Navbar>
-        <ButtonToolbar className="gap-2">
-          <div style={{ flex: 1 }} />
+        <ButtonToolbar className="gap-2 w-100 align-items-center">
+          {showRmPager && (
+            <ButtonGroup aria-label="Notebook page">
+              <Button
+                size="sm"
+                variant="outline-secondary"
+                disabled={rmPage <= 1}
+                onClick={() => setRmPage((p) => Math.max(1, p - 1))}
+              >
+                <FaChevronLeft />
+              </Button>
+              <Button
+                size="sm"
+                variant="outline-secondary"
+                disabled={rmPage >= pageTotalForNotebook}
+                onClick={() => setRmPage((p) => Math.min(pageTotalForNotebook, p + 1))}
+              >
+                <FaChevronRight />
+              </Button>
+            </ButtonGroup>
+          )}
+          {showRmPager && (
+            <span className="text-muted small me-2">
+              Page {rmPage} of {notebookPageCount}
+            </span>
+          )}
+          <div className="flex-spacer" />
           {isPdfView && (
             <Button
               size="sm"
@@ -193,7 +263,25 @@ export default function FileViewer({ file, onSelect }) {
             padding: "0 8px",
           }}
         >
-          {notebookMeta && notebookPageCount > 0 ? (
+          {!rmLinesChecked && (
+            <p style={{ padding: 16 }} className="text-muted">
+              Loading notebook preview…
+            </p>
+          )}
+          {rmLinesChecked && useRmLines && pageTotalForNotebook > 0 && (
+            <RmLinesRenderer environment={rmLinesEnv} page={rmPage - 1} />
+          )}
+          {rmLinesChecked && useRmLines && pageTotalForNotebook <= 0 && notebookMeta && (
+            <p style={{ padding: 16 }} className="text-muted">
+              No pages to preview.
+            </p>
+          )}
+          {rmLinesChecked && !useRmLines && notebookMeta === null && (
+            <p style={{ padding: 16 }} className="text-muted">
+              Loading notebook preview…
+            </p>
+          )}
+          {rmLinesChecked && !useRmLines && notebookMeta && notebookPageCount > 0 && (
             Array.from({ length: notebookPageCount }, (_, i) => {
               const pageNum = i + 1;
               return (
@@ -205,11 +293,10 @@ export default function FileViewer({ file, onSelect }) {
                 />
               );
             })
-          ) : (
-            <p style={{ padding: 16 }}>
-              {notebookMeta
-                ? "No pages to preview."
-                : "Loading notebook preview…"}
+          )}
+          {rmLinesChecked && !useRmLines && notebookMeta && notebookPageCount <= 0 && (
+            <p style={{ padding: 16 }} className="text-muted">
+              No pages to preview.
             </p>
           )}
         </div>
