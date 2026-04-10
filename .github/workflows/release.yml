@@ -35,5 +35,3 @@ jobs:
         with:
           files: dist/*
           generate_release_notes: true
-          body_path: CHANGELOG.md
-          append_body: true
