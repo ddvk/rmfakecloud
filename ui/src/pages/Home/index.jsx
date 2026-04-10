@@ -20,9 +20,9 @@ const Home = () => {
         <ul>
           <li>
             <p>
-              You can use <a href="https://github.com/juruen/rmapi">rmapi</a> for managing files,
+              You can use <a href="https://github.com/ddvk/rmapi">rmapi</a> for managing files,
               just specify the URL of your instance with the RMAPI_HOST variable like
-              so: <code>RMAPI_HOST=https//rmfakeclud.example.com rmapi</code>
+              so: <code>RMAPI_HOST=https://rmfakecloud.example.com rmapi</code>
             </p>
             <ul>
               <li>
