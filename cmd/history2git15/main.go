@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ddvk/rmfakecloud/internal/config"
+	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/storage/fs"
 	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
@@ -86,14 +87,14 @@ func main() {
 			cfg.DataDir = path.Dir(path.Dir(userdirectory))
 
 			filesystem := fs.NewStorage(cfg)
-			lbs := filesystem.BlobStorage(userdirectory)
+			lbs := storage.NewBlobStorer(filesystem, filesystem)
 
 			if tail != 0 && len(history) > tail {
 				history = history[len(history)-tail:]
 			}
 
 			for _, h := range history {
-				tree, err := h.GetHashTree(lbs)
+				tree, err := h.GetHashTree(lbs.RemoteStorage(path.Base(userdirectory)))
 				if err != nil {
 					log.Fatalf("%s: %s: %s", arg, h.Hash, err.Error())
 				}

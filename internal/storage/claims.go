@@ -1,4 +1,4 @@
-package fs
+package storage
 
 import "github.com/golang-jwt/jwt/v4"
 

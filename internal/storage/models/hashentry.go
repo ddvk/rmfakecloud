@@ -3,8 +3,6 @@ package models
 import (
 	"strconv"
 	"strings"
-
-	"github.com/ddvk/rmfakecloud/internal/storage"
 )
 
 // NewHashEntry blah
@@ -28,10 +26,10 @@ type HashEntry struct {
 
 // IsMetadata if this entry points to a metadata blob
 func (h *HashEntry) IsMetadata() bool {
-	return strings.HasSuffix(h.EntryName, storage.MetadataFileExt)
+	return strings.HasSuffix(h.EntryName, MetadataFileExt)
 }
 func (h *HashEntry) IsContent() bool {
-	return strings.HasSuffix(h.EntryName, storage.ContentFileExt)
+	return strings.HasSuffix(h.EntryName, ContentFileExt)
 }
 
 // Line a line in the index file
