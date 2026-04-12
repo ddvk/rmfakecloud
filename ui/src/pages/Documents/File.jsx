@@ -205,7 +205,7 @@ export default function FileViewer({ file, onSelect }) {
           )}
           {showRmPager && (
             <span className="text-muted small me-2">
-              Page {rmPage} of {notebookPageCount}
+              Page {rmPage} of {pageTotalForNotebook}
             </span>
           )}
           <div className="flex-spacer" />

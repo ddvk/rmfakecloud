@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { BsFilePdf, BsFolder, BsFileEarmark, BsFileEarmarkText, BsCloud, BsFile, BsTrash, BsGrid3X3, BsBook } from "react-icons/bs";
 import apiservice from "../../services/api.service";
+import DocumentPageThumb from "../../components/DocumentPageThumb";
 
 export default function FileIcon({ file, showThumbnail = false }) {
   const [epubThumbFailed, setEpubThumbFailed] = useState(false);
@@ -30,10 +31,23 @@ export default function FileIcon({ file, showThumbnail = false }) {
 
     if (file.type === "pdf") {
       if (showThumbnail && file?.id) {
+        if (file.hasWritings) {
+          return (
+            <DocumentPageThumb
+              docId={file.id}
+              pageNum={1}
+              alt={file.name || "PDF"}
+              layered
+              fallback={<BsFilePdf />}
+            />
+          );
+        }
         return (
           <img
             src={apiservice.getDocumentPageBackgroundUrl(file.id, 1)}
             alt={file.name || "PDF"}
+            loading="lazy"
+            decoding="async"
             style={{
               width: 68,
               height: 88,
@@ -69,7 +83,18 @@ export default function FileIcon({ file, showThumbnail = false }) {
       return <BsBook />
     }
 
-    if (file.type === "notebook") {
+    if (file.type === "notebook" || file.type === "TODO") {
+      if (showThumbnail && file?.id) {
+        return (
+          <DocumentPageThumb
+            docId={file.id}
+            pageNum={1}
+            alt={file.name || "Notebook"}
+            layered
+            fallback={<BsFileEarmarkText />}
+          />
+        );
+      }
       return <BsFileEarmarkText />
     }
 
