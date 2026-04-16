@@ -18,6 +18,9 @@ const (
 
 	//SyncCompletedEvent sync completed sync15
 	SyncCompletedEvent NotificationType = "SyncComplete"
+
+	// PasscodeResetApprovedEvent passcode reset approved by the user
+	PasscodeResetApprovedEvent NotificationType = "PasscodeResetApproved"
 )
 
 // BlobStorageRequest else
@@ -53,6 +56,7 @@ type WsMessage struct {
 // NotificationMessage child object
 type NotificationMessage struct {
 	Attributes   Attributes `json:"attributes"`
+	Data         string     `json:"data,omitempty"`
 	MessageID    string     `json:"messageId,omitempty"`
 	MessageID2   string     `json:"message_id,omitempty"`
 	MessageID3   string     `json:"messageid,omitempty"`
@@ -64,6 +68,8 @@ type NotificationMessage struct {
 type Attributes struct {
 	Auth0UserID      string           `json:"auth0UserID"`
 	Bookmarked       bool             `json:"bookmarked,omitempty"`
+	DeviceID         string           `json:"deviceID,omitempty"`
+	DeviceName       string           `json:"deviceName,omitempty"`
 	Event            NotificationType `json:"event"`
 	ID               string           `json:"id,omitempty"`
 	Parent           string           `json:"parent,omitempty"`
@@ -124,6 +130,16 @@ type EndpointsResponse struct {
 type HostResponse struct {
 	Host   string `json:"Host"`
 	Status string `json:"Status"`
+}
+
+// PasscodeReset is the tablet-facing representation of a passcode reset request.
+type PasscodeReset struct {
+	DeviceID   string    `json:"DeviceID"`
+	DeviceName string    `json:"DeviceName"`
+	RequestID  string    `json:"RequestID"`
+	Created    time.Time `json:"Created"`
+	Expires    time.Time `json:"Expires"`
+	Approved   bool      `json:"Approved"`
 }
 
 // DeviceTokenRequest give me token
