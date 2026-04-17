@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ddvk/rmfakecloud/internal/app/hub"
+	"github.com/ddvk/rmfakecloud/internal/app/passcodestore"
 	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/messages"
@@ -66,6 +67,7 @@ type ReactAppWrapper struct {
 	userStorer    storage.UserStorer
 	codeConnector codeGenerator
 	h             *hub.Hub
+	passcodeStore passcodestore.Store
 	backends      map[common.SyncVersion]backend
 }
 
@@ -78,6 +80,7 @@ func New(cfg *config.Config,
 	userStorer storage.UserStorer,
 	codeConnector codeGenerator,
 	h *hub.Hub,
+	pcStore passcodestore.Store,
 	docHandler documentHandler,
 	blobHandler blobHandler) *ReactAppWrapper {
 
@@ -100,6 +103,7 @@ func New(cfg *config.Config,
 		userStorer:    userStorer,
 		codeConnector: codeConnector,
 		h:             h,
+		passcodeStore: pcStore,
 		backends: map[common.SyncVersion]backend{
 			common.Sync10: backend10,
 			common.Sync15: backend15,

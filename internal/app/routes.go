@@ -90,6 +90,10 @@ func (app *App) registerRoutes(router *gin.Engine) {
 		// document notifications
 		authRoutes.GET("/notifications/ws/json/1", app.connectWebSocket)
 
+		// passcode (PIN) reset flow
+		authRoutes.POST("/passcode/v1/resets/:uuid", app.passcodeReset)
+		authRoutes.GET("/passcode/v1/resets/:uuid", app.getPasscodeReset)
+
 		authRoutes.PUT("/document-storage/json/2/upload/request", app.uploadRequest)
 
 		authRoutes.PUT("/document-storage/json/2/upload/update-status", app.updateStatus)

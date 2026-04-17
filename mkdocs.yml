@@ -35,4 +35,5 @@ nav:
       - User Profile: usage/userprofile.md
       - Integrations: usage/integrations.md
       - Diff Sync: usage/diff-sync.md
+      - Passcode Reset: usage/passcode-reset.md
   - Browser Extension: browser-extension.md

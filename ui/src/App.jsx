@@ -7,6 +7,7 @@ import { AuthProvider } from "./common/useAuthContext";
 import Role from "./common/Role";
 import { PrivateRoute } from "./components/PrivateRoute";
 import Navigationbar from "./components/Navigation";
+import PasscodeResets from "./components/PasscodeResets";
 
 import Login from "./pages/Login";
 import Home from "./pages/Home";
@@ -39,6 +40,7 @@ export default function App() {
         <Router>
           <div style={{display: "flex", flexDirection: "column", height: "100%"}}>
             <Navigationbar />
+            <PasscodeResets />
             <div style={{flex: "1 1 auto", minHeight: 0, overflow: "hidden"}}>
               <Switch>
                 <PrivateRoute exact path="/" component={Home} />

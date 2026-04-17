@@ -9,6 +9,7 @@ rmfakecloud is a clone of the cloud sync the remarkable tablet is using, in case
 * Send document by email
 * Handwriting recognition
 * Screen sharing
+* Passcode (PIN) reset approval (reMarkable 1 / reMarkable 2 only)
 
 It comes with a very basic web interface that let you:
 

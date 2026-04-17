@@ -55,6 +55,12 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	})
 
 	auth.GET("newcode", app.newCode)
+
+	// passcode (PIN) reset approval
+	auth.GET("passcode/resets", app.listPasscodeResets)
+	auth.POST("passcode/resets/:uuid/approve", app.approvePasscodeReset)
+	auth.DELETE("passcode/resets/:uuid", app.dismissPasscodeReset)
+
 	// auth.GET("profile", app.newCode)
 	auth.POST("profile", app.changePassword)
 	// auth.POST("changeEmail", app.changePassword)

@@ -1,6 +1,7 @@
 package hub
 
 import (
+	"encoding/base64"
 	"strconv"
 	"time"
 
@@ -93,6 +94,29 @@ func (h *Hub) Notify(uid, deviceID string, doc DocumentNotification, eventType m
 		msg:  &msg,
 	}
 }
+// NotifyPasscodeReset pushes a PasscodeResetApproved event to every client of uid.
+func (h *Hub) NotifyPasscodeReset(uid, deviceID, deviceName, requestID string) {
+	msgid := strconv.Itoa(int(time.Now().UnixNano()))
+	msg := messages.WsMessage{
+		Message: messages.NotificationMessage{
+			MessageID3: msgid,
+			Data:       base64.StdEncoding.EncodeToString([]byte(messages.PasscodeResetApprovedEvent)),
+			Attributes: messages.Attributes{
+				Auth0UserID: uid,
+				DeviceID:    deviceID,
+				DeviceName:  deviceName,
+				Event:       messages.PasscodeResetApprovedEvent,
+				ID:          requestID,
+				Version:     "1",
+			},
+		},
+	}
+	h.notifications <- notification{
+		uid: uid,
+		msg: &msg,
+	}
+}
+
 func (h *Hub) send(n notification) {
 	uid := n.uid
 	msg := n.msg
