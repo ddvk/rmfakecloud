@@ -607,7 +607,8 @@ func (fs *FileSystemStorage) LoadBlob(uid, blobid string) (reader io.ReadCloser,
 	log.Debugln("Fullpath:", blobPath)
 	if blobid == rootBlob {
 		historyPath := path.Join(fs.getUserBlobPath(uid), historyFile)
-		lock, err := fslock.Lock(historyPath)
+		lock := fslock.New(historyPath)
+		err := lock.LockWithTimeout(time.Duration(time.Second * 5))
 		if err != nil {
 			log.Error("cannot obtain lock")
 			return nil, 0, 0, "", err
@@ -652,11 +653,10 @@ func (fs *FileSystemStorage) StoreBlob(uid, id string, stream io.Reader, lastGen
 	reader := stream
 	if id == rootBlob {
 		historyPath := path.Join(fs.getUserBlobPath(uid), historyFile)
-		var lock fslock.Handle
-		lock, err = fslock.Lock(historyPath)
+		lock := fslock.New(historyPath)
+		err = lock.LockWithTimeout(time.Duration(time.Second * 5))
 		if err != nil {
 			log.Error("cannot obtain lock")
-			return 0, err
 		}
 		defer lock.Unlock()
 
