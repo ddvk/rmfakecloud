@@ -171,6 +171,7 @@ func (fs *FileSystemStorage) GetDocument(uid, id string) (io.ReadCloser, error) 
 
 // RemoveDocument removes document (moves it to trash)
 func (fs *FileSystemStorage) RemoveDocument(uid, id string) error {
+	sanitizedID := common.Sanitize(id)
 
 	trashDir := fs.getPathFromUser(uid, DefaultTrashDir)
 	err := os.MkdirAll(trashDir, 0700)
@@ -179,14 +180,14 @@ func (fs *FileSystemStorage) RemoveDocument(uid, id string) error {
 	}
 	//do not delete, move to trash
 	log.Info(trashDir)
-	meta := filepath.Base(id + storage.MetadataFileExt)
+	meta := sanitizedID + storage.MetadataFileExt
 	fullPath := fs.getPathFromUser(uid, meta)
 	err = os.Rename(fullPath, filepath.Join(trashDir, meta))
 	if err != nil {
 		return err
 	}
 
-	zipfile := filepath.Base(id + storage.ZipFileExt)
+	zipfile := sanitizedID + storage.ZipFileExt
 	fullPath = fs.getPathFromUser(uid, zipfile)
 	err = os.Rename(fullPath, filepath.Join(trashDir, zipfile))
 	if err != nil {
