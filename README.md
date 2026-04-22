@@ -13,7 +13,7 @@ See the [project documentation](https://ddvk.github.io/rmfakecloud/) for setup a
 | reMarkable Paper Pro | ✅           |
 | reMarkable Paper Pro Move | ✅           |
 
-The current release of rmfakecloud supports file synchronization up to **reMarkable software 3.22.0**. Newer releases have not been tested yet.
+The current release of rmfakecloud supports file synchronization up to **reMarkable software 3.26.0**. Newer releases have not been tested yet.
 
 See the [documentation](https://ddvk.github.io/rmfakecloud/remarkable/setup/) for how to setup your device to use rmfakecloud.
 
@@ -38,6 +38,7 @@ See the [documentation](https://ddvk.github.io/rmfakecloud/remarkable/setup/) fo
 | [Messaging integration through webhook](https://ddvk.github.io/rmfakecloud/usage/integrations/#messaging-webhook) | ✅ |  |
 | Messaging integration to Slack | 🟡 | Not directly, use a webhook with zapier/make/n8n |
 | Archive document to cloud | 🟡 | It works but the information is not saved |
+| [Passcode (PIN) reset](https://ddvk.github.io/rmfakecloud/usage/passcode-reset/) | ✅ | reMarkable 1 / reMarkable 2 only |
 | Document rendering in web interface | ✅ |  |
 | v6 file format support (software 3.0+) | ✅ | Native in-process rendering with rmc-go |
 

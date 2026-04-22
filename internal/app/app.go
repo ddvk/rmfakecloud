@@ -11,6 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ddvk/rmfakecloud/internal/app/hub"
+	"github.com/ddvk/rmfakecloud/internal/app/passcodestore"
 	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/hwr"
@@ -39,6 +40,7 @@ type App struct {
 	metaStorer    storage.MetadataStorer
 	blobStorer    storage.BlobStorage
 	hub           *hub.Hub
+	passcodeStore passcodestore.Store
 	codeConnector CodeConnector
 	hwrClient     *hwr.HWRClient
 	mqttBroker    *mqtt.Broker
@@ -131,6 +133,7 @@ func NewApp(cfg *config.Config) App {
 		cfg.CreateFirstUser = true
 	}
 	ntfHub := hub.NewHub()
+	pcStore := passcodestore.NewInMemory()
 	codeConnector := NewCodeConnector()
 	router := gin.Default()
 
@@ -160,6 +163,7 @@ func NewApp(cfg *config.Config) App {
 		metaStorer:    fsStorage,
 		blobStorer:    fsStorage,
 		hub:           ntfHub,
+		passcodeStore: pcStore,
 		codeConnector: codeConnector,
 		hwrClient: &hwr.HWRClient{
 			Cfg: cfg,
@@ -170,7 +174,7 @@ func NewApp(cfg *config.Config) App {
 
 	app.registerRoutes(router)
 
-	uiApp := ui.New(cfg, fsStorage, codeConnector, ntfHub, fsStorage, fsStorage)
+	uiApp := ui.New(cfg, fsStorage, codeConnector, ntfHub, pcStore, fsStorage, fsStorage)
 	uiApp.RegisterRoutes(router)
 
 	storageapp := fs.NewApp(cfg, fsStorage)

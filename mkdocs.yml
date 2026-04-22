@@ -27,6 +27,7 @@ nav:
           - Nginx: install/reverse-proxy/nginx.md
           - Traefik: install/reverse-proxy/traefik.md
       - Fail2ban: install/fail2ban.md
+      - External access: install/external-access.md
   - Device Setup:
       - Device: remarkable/setup.md
       - HTTPS: remarkable/https.md
@@ -34,4 +35,5 @@ nav:
       - User Profile: usage/userprofile.md
       - Integrations: usage/integrations.md
       - Diff Sync: usage/diff-sync.md
+      - Passcode Reset: usage/passcode-reset.md
   - Browser Extension: browser-extension.md

@@ -196,15 +196,16 @@ func visitDir(root, currentPath string, depth int, parentFolder *messages.Integr
 			extension := strings.TrimPrefix(ext, ".")
 
 			file := &messages.IntegrationFile{
-				ProvidedFileType: contentType,
-				DateChanged:      d.ModTime(),
-				FileExtension:    extension,
-				FileType:         extension,
-				ID:               encodedPath,
-				FileID:           encodedPath,
-				Name:             docName,
-				Size:             d.Size(),
-				SourceFileType:   contentType,
+				ProvidedFileType:   contentType,
+				SupportedFileTypes: []string{contentType},
+				DateChanged:        d.ModTime(),
+				FileExtension:      extension,
+				FileType:           extension,
+				ID:                 encodedPath,
+				FileID:             encodedPath,
+				Name:               docName,
+				Size:               d.Size(),
+				SourceFileType:     contentType,
 			}
 
 			parentFolder.Files = append(parentFolder.Files, file)

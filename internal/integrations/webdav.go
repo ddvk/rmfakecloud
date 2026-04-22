@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"path"
+	"strings"
 
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/model"
@@ -120,7 +121,7 @@ func (w *WebDavIntegration) GetMetadata(fileID string) (*messages.IntegrationMet
 		Thumbnail:        []byte{},
 		SourceFileType:   contentType,
 		ProvidedFileType: contentType,
-		FileType:         ext,
+		FileType:         strings.TrimPrefix(ext, "."),
 	}, nil
 }
 

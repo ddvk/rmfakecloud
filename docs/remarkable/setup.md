@@ -42,12 +42,6 @@ chmod +x ./installer-rmpro.sh
 ./installer-rmpro.sh install
 ```
 
-the automagic script doesn't work anymore, because of the busybox wget tls
-
-```commandline
-sh -c "$(wget https://raw.githubusercontent.com/ddvk/rmfakecloud/master/scripts/device/automagic.sh -O-)"
-```
-
 ## Manual
 
 ### Installing a proxy on devices
@@ -136,28 +130,7 @@ Same as [the previous method](#modify-device-etchosts), but instead of modifying
 
 ## Reenabling after a system update
 
-Navigate to whatever directory the proxy was downloaded to on your device.
-
-- If you installed using the rmfakecloud-proxy script, this will likely be
-  `~/rmfakecloud/`.
-
-Run the below commands to reinstall the proxy service, which should reenable
-your cloud connection.
-
-```
-# stop services
-systemctl stop xochitl
-systemctl stop proxy
-
-# reinstall the proxy service
-./installer.sh uninstall
-./installer.sh install
-
-# restart services
-systemctl daemon-reload
-systemctl start proxy
-systemctl start xochitl
-```
+After a system update, you'll need to go through the steps to setup your device again, as any changes you made to it's configuration will have been lost.
 
 # Login
 
