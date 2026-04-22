@@ -3,7 +3,6 @@ module github.com/ddvk/rmfakecloud
 go 1.25.1
 
 require (
-	github.com/danjacques/gofslock v0.0.0-20240212154529-d899e02bfe22
 	github.com/dropbox/dropbox-sdk-go-unofficial/v6 v6.0.5
 	github.com/gin-gonic/gin v1.9.1
 	github.com/golang-jwt/jwt/v4 v4.5.2
@@ -54,7 +53,6 @@ require (
 	github.com/rs/xid v1.4.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
-	github.com/ungerik/go-cairo v0.0.0-20240304075741-47de8851d267 // indirect
 	golang.org/x/arch v0.7.0 // indirect
 	golang.org/x/image v0.32.0 // indirect
 	golang.org/x/net v0.45.0 // indirect
