@@ -6,8 +6,8 @@ import (
 	"io"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
+	"sort"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -69,7 +69,7 @@ func (fs *FileSystemStorage) ExportDocument(uid, id, outputType string, exportOp
 		return nil, fmt.Errorf("cant find raw document %v", err)
 	}
 
-	outputFilePath := path.Join(cacheDirPath, sanitizedID+"-annotated.pdf")
+	outputFilePath := filepath.Join(cacheDirPath, sanitizedID+"-annotated.pdf")
 	outStat, err := os.Stat(outputFilePath)
 
 	// exists and not older
@@ -93,14 +93,63 @@ func (fs *FileSystemStorage) ExportDocument(uid, id, outputType string, exportOp
 		arch.PayloadReader = exporter.NewSeekCloser(arch.Payload)
 	}
 
+	// Detect version from first .rm file in archive
+	version := exporter.VersionUnknown
+	if len(arch.Pages) > 0 {
+		version, err = exporter.DetectArchiveVersion(arch)
+		if err != nil {
+			log.Warnf("Could not detect version for doc %s: %v, assuming v5", sanitizedID, err)
+			version = exporter.VersionV5
+		}
+	}
+
+	log.Debugf("Detected format %s for doc %s", version.String(), sanitizedID)
+
 	outputFile, err := os.Create(outputFilePath)
 	if err != nil {
 		return nil, err
 	}
+	defer outputFile.Close()
 
-	err = exporter.RenderRmapi(arch, outputFile)
-	if err != nil {
-		return nil, err
+	// Route to appropriate renderer based on version
+	if version == exporter.VersionV6 {
+		log.Infof("Using native rmc-go for v6 format doc %s", sanitizedID)
+
+		// Use native rmc-go library (Cairo renderer)
+		if len(arch.V6PageData) > 0 {
+			// Collect all v6 pages in the correct order
+			// Get sorted page indices to ensure correct order
+			pageIndices := make([]int, 0, len(arch.V6PageData))
+			for idx := range arch.V6PageData {
+				pageIndices = append(pageIndices, idx)
+			}
+			sort.Ints(pageIndices)
+
+			// Collect pages in sorted order
+			var pages [][]byte
+			for _, idx := range pageIndices {
+				pages = append(pages, arch.V6PageData[idx])
+			}
+
+			if len(pages) == 0 {
+				return nil, fmt.Errorf("no v6 page data found in archive")
+			}
+
+			// Use multipage export function
+			err = exporter.ExportV6MultiPageToPdfNative(pages, outputFile)
+			if err != nil {
+				return nil, fmt.Errorf("v6 native multipage export failed: %w", err)
+			}
+		} else {
+			return nil, fmt.Errorf("no v6 pages in archive")
+		}
+	} else {
+		// Use existing v5 rendering
+		log.Debugf("Using rmapi for v5 format doc %s", sanitizedID)
+		err = exporter.RenderRmapi(arch, outputFile)
+		if err != nil {
+			return nil, fmt.Errorf("v5 export failed: %w", err)
+		}
 	}
 
 	_, err = outputFile.Seek(0, 0)
@@ -132,14 +181,14 @@ func (fs *FileSystemStorage) RemoveDocument(uid, id string) error {
 	log.Info(trashDir)
 	meta := filepath.Base(id + storage.MetadataFileExt)
 	fullPath := fs.getPathFromUser(uid, meta)
-	err = os.Rename(fullPath, path.Join(trashDir, meta))
+	err = os.Rename(fullPath, filepath.Join(trashDir, meta))
 	if err != nil {
 		return err
 	}
 
 	zipfile := filepath.Base(id + storage.ZipFileExt)
 	fullPath = fs.getPathFromUser(uid, zipfile)
-	err = os.Rename(fullPath, path.Join(trashDir, zipfile))
+	err = os.Rename(fullPath, filepath.Join(trashDir, zipfile))
 	if err != nil {
 		return err
 	}
@@ -179,3 +228,4 @@ func (fs *FileSystemStorage) GetStorageURL(uid, id string) (docurl string, expir
 
 	return fmt.Sprintf("%s%s/%s", uploadRL, routeStorage, url.QueryEscape(signedToken)), exp, nil
 }
+

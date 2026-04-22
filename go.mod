@@ -1,8 +1,6 @@
 module github.com/ddvk/rmfakecloud
 
-go 1.23.3
-
-toolchain go1.24.1
+go 1.25.1
 
 require (
 	github.com/danjacques/gofslock v0.0.0-20240212154529-d899e02bfe22
@@ -11,6 +9,8 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.1
+	github.com/joagonca/rmc-go v1.1.1
+	github.com/juju/fslock v0.0.0-20160525022230-4d5c94c67b4b
 	github.com/juruen/rmapi v0.0.25
 	github.com/mochi-mqtt/server/v2 v2.7.9
 	github.com/poundifdef/go-remarkable2pdf v0.2.0
@@ -54,6 +54,7 @@ require (
 	github.com/rs/xid v1.4.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
+	github.com/ungerik/go-cairo v0.0.0-20240304075741-47de8851d267 // indirect
 	github.com/unidoc/freetype v0.2.3 // indirect
 	github.com/unidoc/pkcs7 v0.2.0 // indirect
 	github.com/unidoc/timestamp v0.0.0-20200412005513-91597fd3793a // indirect
