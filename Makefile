@@ -3,7 +3,8 @@ LDFLAGS := "-s -w -X main.version=$(VERSION)"
 OUT_DIR := dist
 CMD := ./cmd/rmfakecloud
 BINARY := rmfakecloud
-BUILD = go build -ldflags $(LDFLAGS) -o $(@) $(CMD) 
+BUILD = CGO_ENABLED=1 go build -tags cairo -ldflags $(LDFLAGS) -o $(@) $(CMD)
+BUILD_CAIRO = $(BUILD)
 ASSETS = ui/dist
 GOFILES := $(shell find . -iname '*.go' ! -iname "*_test.go")
 GOFILES += $(ASSETS)
@@ -13,9 +14,11 @@ UIFILES += ui/package.json
 TARGETS := $(addprefix $(OUT_DIR)/$(BINARY)-, x64 armv6 armv7 arm64 win64 docker)
 PNPM	= cd ui; pnpm
 
-.PHONY: all run runui clean test testgo testui
+.PHONY: all run runui clean test testgo testui build-cairo
 
 build: $(OUT_DIR)/$(BINARY)-x64
+
+build-cairo: $(OUT_DIR)/$(BINARY)-cairo-x64
 
 all: $(TARGETS)
 
@@ -35,13 +38,20 @@ $(OUT_DIR)/$(BINARY)-arm64:$(GOFILES)
 	GOARCH=arm64 $(BUILD)
 
 $(OUT_DIR)/$(BINARY)-docker:$(GOFILES)
-	CGO_ENABLED=0 $(BUILD)
+	$(BUILD)
+
+# Cairo-enabled builds (native rmc-go support)
+$(OUT_DIR)/$(BINARY)-cairo-x64:$(GOFILES)
+	GOOS=linux $(BUILD_CAIRO)
+
+$(OUT_DIR)/$(BINARY)-cairo-arm64:$(GOFILES)
+	GOOS=linux GOARCH=arm64 $(BUILD_CAIRO)
 
 container: $(OUT_DIR)/$(BINARY)-docker
 	docker build -t rmfakecloud -f Dockerfile.make .
 	
 run: $(ASSETS)
-	go run $(CMD) $(ARG)
+	go run -tags cairo $(CMD) $(ARG)
 
 $(ASSETS): $(UIFILES) ui/pnpm-lock.yaml
 	#@cp ui/node_modules/pdfjs-dist/build/pdf.worker.js ui/public/
@@ -70,5 +80,5 @@ testui:
 	#CI=true $(PNPM) test
 
 testgo:
-	go test ./...
+	go test -tags cairo ./...
 
