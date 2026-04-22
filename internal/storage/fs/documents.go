@@ -144,9 +144,9 @@ func (fs *FileSystemStorage) ExportDocument(uid, id, outputType string, exportOp
 			return nil, fmt.Errorf("no v6 pages in archive")
 		}
 	} else {
-		// Use existing v5 rendering
-		log.Debugf("Using rmapi for v5 format doc %s", sanitizedID)
-		err = exporter.RenderRmapi(arch, outputFile)
+		// Use Cairo PDF renderer for v5
+		log.Debugf("Using Cairo PDF renderer for v5 format doc %s", sanitizedID)
+		err = exporter.RenderPDF(arch, outputFile)
 		if err != nil {
 			return nil, fmt.Errorf("v5 export failed: %w", err)
 		}

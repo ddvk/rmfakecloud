@@ -6,10 +6,10 @@ import (
 	"path"
 	"strings"
 
+	"github.com/ddvk/rmfakecloud/internal/archive"
+	"github.com/ddvk/rmfakecloud/internal/encoding/rm"
 	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/storage/exporter"
-	"github.com/juruen/rmapi/archive"
-	"github.com/juruen/rmapi/encoding/rm"
 	log "github.com/sirupsen/logrus"
 )
 

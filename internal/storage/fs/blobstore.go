@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/danjacques/gofslock/fslock"
+	"github.com/ddvk/rmfakecloud/internal/archive"
 	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/storage"
@@ -22,7 +22,6 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	"github.com/google/uuid"
 	"github.com/juju/fslock"
-	"github.com/juruen/rmapi/archive"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -223,7 +222,7 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 		}()
 	} else {
 		// Use existing v5 rendering
-		log.Debugf("Using rmapi for v5 format blob doc %s", docid)
+		log.Debugf("Using Cairo PDF renderer for v5 format blob doc %s", docid)
 
 		archive, err := models.ArchiveFromHashDoc(doc, ls)
 		if err != nil {
@@ -232,7 +231,7 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 		}
 
 		go func() {
-			err = exporter.RenderRmapi(archive, writer)
+			err = exporter.RenderPDF(archive, writer)
 			if err != nil {
 				log.Error(err)
 				writer.Close()

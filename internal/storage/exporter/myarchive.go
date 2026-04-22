@@ -3,14 +3,8 @@ package exporter
 import (
 	"io"
 
-	"github.com/juruen/rmapi/archive"
-	"github.com/juruen/rmapi/log"
+	"github.com/ddvk/rmfakecloud/internal/archive"
 )
-
-// rmapi's logging stuff
-func init() {
-	log.InitLog()
-}
 
 // MyArchive but having the payload reader
 type MyArchive struct {

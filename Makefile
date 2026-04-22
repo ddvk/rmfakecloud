@@ -3,8 +3,8 @@ LDFLAGS := "-s -w -X main.version=$(VERSION)"
 OUT_DIR := dist
 CMD := ./cmd/rmfakecloud
 BINARY := rmfakecloud
-BUILD = go build -ldflags $(LDFLAGS) -o $(@) $(CMD)
-BUILD_CAIRO = CGO_ENABLED=1 go build -tags cairo -ldflags $(LDFLAGS) -o $(@) $(CMD)
+BUILD = CGO_ENABLED=1 go build -tags cairo -ldflags $(LDFLAGS) -o $(@) $(CMD)
+BUILD_CAIRO = $(BUILD)
 ASSETS = ui/dist
 GOFILES := $(shell find . -iname '*.go' ! -iname "*_test.go")
 GOFILES += $(ASSETS)
@@ -38,7 +38,7 @@ $(OUT_DIR)/$(BINARY)-arm64:$(GOFILES)
 	GOARCH=arm64 $(BUILD)
 
 $(OUT_DIR)/$(BINARY)-docker:$(GOFILES)
-	CGO_ENABLED=0 $(BUILD)
+	$(BUILD)
 
 # Cairo-enabled builds (native rmc-go support)
 $(OUT_DIR)/$(BINARY)-cairo-x64:$(GOFILES)
@@ -51,7 +51,7 @@ container: $(OUT_DIR)/$(BINARY)-docker
 	docker build -t rmfakecloud -f Dockerfile.make .
 	
 run: $(ASSETS)
-	go run $(CMD) $(ARG)
+	go run -tags cairo $(CMD) $(ARG)
 
 $(ASSETS): $(UIFILES) ui/pnpm-lock.yaml
 	#@cp ui/node_modules/pdfjs-dist/build/pdf.worker.js ui/public/
@@ -80,5 +80,5 @@ testui:
 	#CI=true $(PNPM) test
 
 testgo:
-	go test ./...
+	go test -tags cairo ./...
 
