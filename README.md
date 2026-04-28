@@ -36,6 +36,7 @@ See the [documentation](https://ddvk.github.io/rmfakecloud/remarkable/setup/) fo
 | Integration with FTP | ✅ |  |
 | Messaging integrations | ✅ |  |
 | [Messaging integration through webhook](https://ddvk.github.io/rmfakecloud/usage/integrations/#messaging-webhook) | ✅ |  |
+| Calendar integration | ✅ | ICS currently supported
 | Messaging integration to Slack | 🟡 | Not directly, use a webhook with zapier/make/n8n |
 | Archive document to cloud | 🟡 | It works but the information is not saved |
 | [Passcode (PIN) reset](https://ddvk.github.io/rmfakecloud/usage/passcode-reset/) | ✅ | reMarkable 1 / reMarkable 2 only |

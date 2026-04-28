@@ -131,6 +131,7 @@ func (app *App) registerRoutes(router *gin.Engine) {
 		authRoutes.GET("/integrations/v2/storage/:"+integrationKey+"/files/:"+fileKey+"/metadata", app.integrationsGetMetadata)
 		authRoutes.POST("/integrations/v2/storage/:"+integrationKey+"/files/:"+folderKey, app.integrationsUpload)
 		authRoutes.POST("/integrations/v2/messaging/:"+integrationKey+"/message", app.integrationsSendMessage)
+		authRoutes.GET("/integrations/v2/calendars/:"+integrationKey+"/events", app.integrationsCalendarEvents)
 
 		// sync15
 		authRoutes.POST("/api/v1/signed-urls/downloads", app.blobStorageDownload)
