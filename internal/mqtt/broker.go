@@ -3,10 +3,15 @@ package mqtt
 import (
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
+	"net"
 	"strings"
-	"sync"
 
+	"github.com/ddvk/rmfakecloud/internal/screenshare"
+
+	"github.com/gorilla/websocket"
 	mqtt "github.com/mochi-mqtt/server/v2"
 	"github.com/mochi-mqtt/server/v2/listeners"
 	"github.com/mochi-mqtt/server/v2/packets"
@@ -14,19 +19,25 @@ import (
 )
 
 type Broker struct {
-	server    *mqtt.Server
-	port      string
-	tlsConfig *tls.Config
-	authHook  *AuthHook
-	aclHook   *ACLHook
+	server      *mqtt.Server
+	port        string
+	tlsConfig   *tls.Config
+	authHook    *AuthHook
+	aclHook     *ACLHook
+	RoomManager *screenshare.RoomManager
+}
+
+type NotificationHub interface {
+	NotifyScreenshare(uid, fromClientID string, payload interface{})
 }
 
 type AuthHook struct {
 	mqtt.HookBase
 	validateToken func(token string) (userID string, err error)
 	server        *mqtt.Server
-	roomManager   *RoomManager
+	roomManager   *screenshare.RoomManager
 	iceServers    []interface{}
+	hub           NotificationHub
 }
 
 type ACLHook struct {
@@ -35,22 +46,10 @@ type ACLHook struct {
 
 type ConnectionHook struct {
 	mqtt.HookBase
-	roomManager *RoomManager
+	roomManager *screenshare.RoomManager
 }
 
-type RoomManager struct {
-	mu    sync.RWMutex
-	rooms map[string]*ScreenshareRoom
-}
-
-type ScreenshareRoom struct {
-	name          string
-	participants  map[string]*Participant
-	creatorUserID string
-	creatorDeviceID string
-}
-
-type Participant struct {
+type participant struct {
 	clientID string
 	userID   string
 }
@@ -66,109 +65,13 @@ type SignalingMessage struct {
 	IceServers  map[string]interface{} `json:"iceServers"`
 }
 
-func NewRoomManager() *RoomManager {
-	return &RoomManager{
-		rooms: make(map[string]*ScreenshareRoom),
-	}
-}
-
-func (rm *RoomManager) GetOrCreateRoom(roomName, userID, deviceID string) *ScreenshareRoom {
-	rm.mu.Lock()
-	defer rm.mu.Unlock()
-
-	room, exists := rm.rooms[roomName]
-	if !exists {
-		room = &ScreenshareRoom{
-			name:            roomName,
-			participants:    make(map[string]*Participant),
-			creatorUserID:   userID,
-			creatorDeviceID: deviceID,
-		}
-		rm.rooms[roomName] = room
-		log.Infof("MQTT: Created new screenshare room=%s user_id=%s device_id=%s", roomName, userID, deviceID)
-	}
-	return room
-}
-
-func (rm *RoomManager) AddParticipant(roomName, clientID, userID string) bool {
-	room := rm.GetOrCreateRoom(roomName, userID, clientID)
-	wasNew := len(room.participants) == 0
-	room.participants[clientID] = &Participant{
-		clientID: clientID,
-		userID:   userID,
-	}
-	log.Debugf("MQTT: Added participant to room=%s client_id=%s user_id=%s total_participants=%d",
-		roomName, clientID, userID, len(room.participants))
-	return wasNew
-}
-
-func (rm *RoomManager) RemoveParticipant(clientID string) (roomName, creatorUserID, creatorDeviceID string, wasLastParticipant bool) {
-	rm.mu.Lock()
-	defer rm.mu.Unlock()
-
-	for rName, room := range rm.rooms {
-		if _, exists := room.participants[clientID]; exists {
-			delete(room.participants, clientID)
-			log.Debugf("MQTT: Removed participant from room=%s client_id=%s remaining=%d",
-				rName, clientID, len(room.participants))
-
-			if len(room.participants) == 0 {
-				roomName = rName
-				creatorUserID = room.creatorUserID
-				creatorDeviceID = room.creatorDeviceID
-				wasLastParticipant = true
-				delete(rm.rooms, rName)
-				log.Infof("MQTT: Removed empty room=%s", rName)
-			}
-			return
-		}
-	}
-	return
-}
-
-func (rm *RoomManager) GetPeers(roomName, senderClientID string) []Participant {
-	rm.mu.RLock()
-	defer rm.mu.RUnlock()
-
-	room, exists := rm.rooms[roomName]
-	if !exists {
-		return nil
-	}
-
-	var peers []Participant
-	for clientID, participant := range room.participants {
-		if clientID != senderClientID {
-			peers = append(peers, *participant)
-		}
-	}
-	return peers
-}
-
-func (rm *RoomManager) FindActiveRoom(userID string) string {
-	rm.mu.RLock()
-	defer rm.mu.RUnlock()
-
-	for roomName := range rm.rooms {
-		return roomName
-	}
-	return ""
-}
-
-func (rm *RoomManager) RoomExists(roomName string) bool {
-	rm.mu.RLock()
-	defer rm.mu.RUnlock()
-
-	_, exists := rm.rooms[roomName]
-	return exists
-}
-
-func NewBroker(port string, tlsConfig *tls.Config, validateToken func(token string) (string, error), iceServers []interface{}) *Broker {
-	roomManager := NewRoomManager()
+func NewBroker(port string, tlsConfig *tls.Config, validateToken func(token string) (string, error), iceServers []interface{}, roomManager *screenshare.RoomManager, hub NotificationHub) *Broker {
 	return &Broker{
-		port:      port,
-		tlsConfig: tlsConfig,
-		authHook:  &AuthHook{validateToken: validateToken, roomManager: roomManager, iceServers: iceServers},
-		aclHook:   &ACLHook{},
+		port:        port,
+		tlsConfig:   tlsConfig,
+		authHook:    &AuthHook{validateToken: validateToken, roomManager: roomManager, iceServers: iceServers, hub: hub},
+		aclHook:     &ACLHook{},
+		RoomManager: roomManager,
 	}
 }
 
@@ -196,6 +99,11 @@ func (h *ConnectionHook) OnPacketRead(cl *mqtt.Client, pk packets.Packet) (packe
 		packetType = "SUBSCRIBE"
 	case packets.Pingreq:
 		packetType = "PINGREQ"
+		if h.roomManager != nil {
+			if roomID := h.roomManager.FindActiveRoom(string(cl.Properties.Username)); roomID != "" {
+				h.roomManager.Keepalive(roomID)
+			}
+		}
 	case packets.Disconnect:
 		packetType = "DISCONNECT"
 	}
@@ -227,6 +135,10 @@ func (h *ConnectionHook) OnDisconnect(cl *mqtt.Client, err error, expire bool) {
 	}
 }
 
+func (b *Broker) SetTLSConfig(tlsConfig *tls.Config) {
+	b.tlsConfig = tlsConfig
+}
+
 func (b *Broker) Start() error {
 	b.server = mqtt.New(&mqtt.Options{
 		InlineClient: true,
@@ -234,7 +146,7 @@ func (b *Broker) Start() error {
 
 	b.authHook.server = b.server
 
-	connHook := &ConnectionHook{roomManager: b.authHook.roomManager}
+	connHook := &ConnectionHook{roomManager: b.RoomManager}
 	if err := b.server.AddHook(connHook, nil); err != nil {
 		return fmt.Errorf("failed to add connection hook: %w", err)
 	}
@@ -306,6 +218,88 @@ func (b *Broker) Stop() error {
 		return b.server.Close()
 	}
 	return nil
+}
+
+func (b *Broker) PublishSignaling(userID, clientID string, payload []byte) {
+	if b.server == nil {
+		return
+	}
+	topic := fmt.Sprintf("user/%s/client/%s/signaling/screenshare", userID, clientID)
+	b.server.Publish(topic, payload, false, 1)
+}
+
+func (b *Broker) HasConnectedClient(userID string) bool {
+	if b.server == nil {
+		return false
+	}
+	prefix := userID + "-"
+	for _, cl := range b.server.Clients.GetAll() {
+		if string(cl.Properties.Username) == userID || strings.HasPrefix(cl.ID, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+func (b *Broker) EstablishConnection(listenerID string, conn net.Conn) error {
+	if b.server == nil {
+		conn.Close()
+		return fmt.Errorf("MQTT broker not started")
+	}
+	return b.server.EstablishConnection(listenerID, conn)
+}
+
+var ErrInvalidMessage = errors.New("message type not binary")
+
+type WsConn struct {
+	net.Conn
+	C *websocket.Conn
+	r io.Reader
+}
+
+func NewWsConn(wsConn *websocket.Conn) *WsConn {
+	return &WsConn{Conn: wsConn.UnderlyingConn(), C: wsConn}
+}
+
+func (ws *WsConn) Read(p []byte) (int, error) {
+	if ws.r == nil {
+		op, r, err := ws.C.NextReader()
+		if err != nil {
+			return 0, err
+		}
+		if op != websocket.BinaryMessage {
+			return 0, ErrInvalidMessage
+		}
+		ws.r = r
+	}
+
+	var n int
+	for {
+		if n == len(p) {
+			return n, nil
+		}
+		br, err := ws.r.Read(p[n:])
+		n += br
+		if err != nil {
+			ws.r = nil
+			if errors.Is(err, io.EOF) {
+				err = nil
+			}
+			return n, err
+		}
+	}
+}
+
+func (ws *WsConn) Write(p []byte) (int, error) {
+	err := ws.C.WriteMessage(websocket.BinaryMessage, p)
+	if err != nil {
+		return 0, err
+	}
+	return len(p), nil
+}
+
+func (ws *WsConn) Close() error {
+	return ws.Conn.Close()
 }
 
 func (h *AuthHook) ID() string {
@@ -406,69 +400,65 @@ func (h *AuthHook) handleSignalingMessage(senderClientID, userID string, msg *Si
 }
 
 func (h *AuthHook) handleCreateRoom(senderClientID, userID string, msg *SignalingMessage, qos byte) {
-	roomName := msg.Room
-	if roomName == "" {
-		roomName = "screenshare"
+	if h.roomManager == nil {
+		return
 	}
 
-	if h.roomManager != nil {
-		h.roomManager.AddParticipant(roomName, senderClientID, userID)
+	// Only create MQTT room if no REST room exists (avoid duplicates on DualBroker)
+	if existing := h.roomManager.FindActiveRoom(userID); existing != "" {
+		log.Debugf("MQTT: skipping room creation, REST room already exists for user=%s", userID)
+		// Still send room-created response so MQTT side is happy
+		response := SignalingMessage{Type: "room-created", RoomId: existing}
+		responseBytes, _ := json.Marshal(response)
+		broadcastTopic := fmt.Sprintf("user/%s/signaling", userID)
+		if h.server != nil {
+			h.server.Publish(broadcastTopic, responseBytes, false, qos)
+		}
+		return
 	}
+
+	room := h.roomManager.CreateRoom(userID, senderClientID)
 
 	response := SignalingMessage{
 		Type:   "room-created",
-		RoomId: roomName,
+		RoomId: room.RoomID,
 	}
 
 	broadcastTopic := fmt.Sprintf("user/%s/signaling", userID)
 
 	responseBytes, err := json.Marshal(response)
 	if err != nil {
-		log.Errorf("MQTT: Failed to marshal room-created response error=%v", err)
+		log.Errorf("MQTT: failed to marshal room-created: %v", err)
 		return
 	}
 
-	log.Debugf("MQTT: Broadcasting room-created to all clients topic=%s room=%s", broadcastTopic, roomName)
-
 	if h.server != nil {
-		err := h.server.Publish(broadcastTopic, responseBytes, false, qos)
-		if err != nil {
-			log.Errorf("MQTT: Failed to broadcast room-created error=%v", err)
-		}
+		h.server.Publish(broadcastTopic, responseBytes, false, qos)
 	}
 }
 
 func (h *AuthHook) handleJoinRoom(senderClientID, userID string, msg *SignalingMessage, qos byte) {
-	roomName := msg.Room
-	if roomName == "" {
-		if h.roomManager != nil {
-			roomName = h.roomManager.FindActiveRoom(userID)
-		}
-		if roomName == "" {
-			roomName = "screenshare"
-		}
+	if h.roomManager == nil {
+		return
 	}
 
-	if h.roomManager == nil || !h.roomManager.RoomExists(roomName) {
-		log.Infof("MQTT: Join room failed, room does not exist room=%s client_id=%s", roomName, senderClientID)
+	roomID := msg.RoomId
+	if roomID == "" {
+		roomID = h.roomManager.FindActiveRoom(userID)
+	}
 
-		response := SignalingMessage{
-			Type: "room-not-found",
-		}
-		responseBytes, err := json.Marshal(response)
-		if err != nil {
-			log.Errorf("MQTT: Failed to marshal room-not-found response error=%v", err)
-			return
-		}
-
-		responseTopic := fmt.Sprintf("user/%s/client/%s/signaling/%s", userID, senderClientID, roomName)
+	if roomID == "" || !h.roomManager.RoomExists(roomID) {
+		log.Infof("MQTT: room not found for join client=%s", senderClientID)
+		response := SignalingMessage{Type: "room-not-found"}
+		responseBytes, _ := json.Marshal(response)
+		responseTopic := fmt.Sprintf("user/%s/client/%s/signaling/%s", userID, senderClientID, roomID)
 		if h.server != nil {
 			h.server.Publish(responseTopic, responseBytes, false, qos)
 		}
 		return
 	}
 
-	h.roomManager.AddParticipant(roomName, senderClientID, userID)
+	h.roomManager.AddParticipant(roomID, senderClientID, userID)
 
 	iceServers := h.iceServers
 	if iceServers == nil {
@@ -477,26 +467,36 @@ func (h *AuthHook) handleJoinRoom(senderClientID, userID string, msg *SignalingM
 
 	response := SignalingMessage{
 		Type:   "room-joined",
-		RoomId: roomName,
+		RoomId: roomID,
 		IceServers: map[string]interface{}{
-			"iceServers": iceServers,
+			"ice_servers": iceServers,
 		},
 	}
-	h.sendResponse(senderClientID, userID, roomName, &response, qos)
+	h.sendResponse(senderClientID, userID, roomID, &response, qos)
+}
+
+func (h *AuthHook) getPeers(roomID, senderClientID string) []participant {
+	clients := h.roomManager.GetClients(roomID)
+	var peers []participant
+	for _, c := range clients {
+		if c.ClientID != senderClientID {
+			peers = append(peers, participant{clientID: c.ClientID, userID: c.UserID})
+		}
+	}
+	return peers
 }
 
 func (h *AuthHook) handleBroadcast(senderClientID, userID string, msg *SignalingMessage, qos byte) {
-	roomName := msg.Room
-	if roomName == "" {
-		if h.roomManager != nil {
-			roomName = h.roomManager.FindActiveRoom(userID)
-		}
+	if h.roomManager == nil {
+		return
 	}
 
-	var peers []Participant
-	if h.roomManager != nil {
-		peers = h.roomManager.GetPeers(roomName, senderClientID)
+	roomID := msg.RoomId
+	if roomID == "" {
+		roomID = h.roomManager.FindActiveRoom(userID)
 	}
+
+	peers := h.getPeers(roomID, senderClientID)
 
 	broadcastMsg := map[string]interface{}{
 		"type":     "broadcast",
@@ -506,38 +506,34 @@ func (h *AuthHook) handleBroadcast(senderClientID, userID string, msg *Signaling
 
 	msgBytes, err := json.Marshal(broadcastMsg)
 	if err != nil {
-		log.Errorf("MQTT: Failed to marshal broadcast message error=%v", err)
+		log.Errorf("MQTT: failed to marshal broadcast: %v", err)
 		return
 	}
 
-	log.Debugf("MQTT: Broadcasting message from client_id=%s to %d peers in room=%s",
-		senderClientID, len(peers), roomName)
-
 	for _, peer := range peers {
-		peerTopic := fmt.Sprintf("user/%s/client/%s/signaling/%s", peer.userID, peer.clientID, roomName)
+		peerTopic := fmt.Sprintf("user/%s/client/%s/signaling/%s", peer.userID, peer.clientID, roomID)
 		if h.server != nil {
-			err := h.server.Publish(peerTopic, msgBytes, false, qos)
-			if err != nil {
-				log.Errorf("MQTT: Failed to broadcast to peer=%s error=%v", peer.clientID, err)
-			} else {
-				log.Debugf("MQTT: Broadcast sent to peer=%s", peer.clientID)
-			}
+			h.server.Publish(peerTopic, msgBytes, false, qos)
 		}
+	}
+
+
+	if roomID != "" {
+		payloadBytes, _ := json.Marshal(msg.Payload)
+		h.roomManager.AddBroadcast(roomID, senderClientID, payloadBytes)
 	}
 }
 
 func (h *AuthHook) handleDirect(senderClientID, userID string, msg *SignalingMessage, qos byte) {
 	targetClientID := msg.ClientId
 	if targetClientID == "" {
-		log.Warnf("MQTT: Direct message missing clientId from sender=%s", senderClientID)
+		log.Warnf("MQTT: direct message missing clientId from sender=%s", senderClientID)
 		return
 	}
 
-	roomName := msg.Room
-	if roomName == "" {
-		if h.roomManager != nil {
-			roomName = h.roomManager.FindActiveRoom(userID)
-		}
+	roomID := msg.RoomId
+	if roomID == "" && h.roomManager != nil {
+		roomID = h.roomManager.FindActiveRoom(userID)
 	}
 
 	directMsg := map[string]interface{}{
@@ -548,44 +544,32 @@ func (h *AuthHook) handleDirect(senderClientID, userID string, msg *SignalingMes
 
 	msgBytes, err := json.Marshal(directMsg)
 	if err != nil {
-		log.Errorf("MQTT: Failed to marshal direct message error=%v", err)
+		log.Errorf("MQTT: failed to marshal direct message: %v", err)
 		return
 	}
 
-	peerTopic := fmt.Sprintf("user/%s/client/%s/signaling/%s", userID, targetClientID, roomName)
-
-	log.Debugf("MQTT: Sending direct message from client_id=%s to peer=%s room=%s",
-		senderClientID, targetClientID, roomName)
-
+	peerTopic := fmt.Sprintf("user/%s/client/%s/signaling/%s", userID, targetClientID, roomID)
 	if h.server != nil {
-		err := h.server.Publish(peerTopic, msgBytes, false, qos)
-		if err != nil {
-			log.Errorf("MQTT: Failed to send direct message to peer=%s error=%v", targetClientID, err)
-		} else {
-			log.Debugf("MQTT: Direct message sent to peer=%s", targetClientID)
-		}
+		h.server.Publish(peerTopic, msgBytes, false, qos)
+	}
+
+
+	if roomID != "" && h.roomManager != nil {
+		payloadBytes, _ := json.Marshal(msg.Payload)
+		h.roomManager.AddDirect(roomID, senderClientID, targetClientID, payloadBytes)
 	}
 }
 
-func (h *AuthHook) sendResponse(clientID, userID, roomName string, response *SignalingMessage, qos byte) {
+func (h *AuthHook) sendResponse(clientID, userID, roomID string, response *SignalingMessage, qos byte) {
 	responseBytes, err := json.Marshal(response)
 	if err != nil {
-		log.Errorf("MQTT: Failed to marshal response error=%v", err)
+		log.Errorf("MQTT: failed to marshal response: %v", err)
 		return
 	}
 
-	responseTopic := fmt.Sprintf("user/%s/client/%s/signaling/%s", userID, clientID, roomName)
-
-	log.Debugf("MQTT: Sending response type=%s to client_id=%s topic=%s",
-		response.Type, clientID, responseTopic)
-
+	responseTopic := fmt.Sprintf("user/%s/client/%s/signaling/room/%s", userID, clientID, roomID)
 	if h.server != nil {
-		err := h.server.Publish(responseTopic, responseBytes, false, qos)
-		if err != nil {
-			log.Errorf("MQTT: Failed to send response to client=%s error=%v", clientID, err)
-		} else {
-			log.Debugf("MQTT: Response sent successfully to client=%s", clientID)
-		}
+		h.server.Publish(responseTopic, responseBytes, false, qos)
 	}
 }
 
@@ -599,7 +583,11 @@ func (h *AuthHook) OnPublish(cl *mqtt.Client, pk packets.Packet) (packets.Packet
 		log.Debugf("MQTT: Publish payload: %s", string(pk.Payload))
 	}
 
-	// Pattern: remarkable/screenshare/signaling/user/{userId}/client/{clientId}
+
+	if roomID := h.roomManager.FindActiveRoom(userID); roomID != "" {
+		h.roomManager.Keepalive(roomID)
+	}
+
 	if strings.HasPrefix(pk.TopicName, "remarkable/screenshare/signaling/user/") {
 		parts := strings.Split(pk.TopicName, "/")
 		if len(parts) >= 7 {
@@ -616,6 +604,32 @@ func (h *AuthHook) OnPublish(cl *mqtt.Client, pk packets.Packet) (packets.Packet
 				senderClientID, topicUserID, msg.Type, msg.Room)
 
 			h.handleSignalingMessage(senderClientID, topicUserID, &msg, pk.FixedHeader.Qos)
+		}
+	}
+
+	// Only process messages from real MQTT clients (not inline), store only, don't re-publish.
+	if cl.ID != "inline" && strings.HasPrefix(pk.TopicName, "user/") && strings.Contains(pk.TopicName, "/signaling") {
+		var msg SignalingMessage
+		if err := json.Unmarshal(pk.Payload, &msg); err == nil && (msg.Type == "direct" || msg.Type == "broadcast") {
+			senderClientID := msg.ClientId
+			if senderClientID == "" {
+				senderClientID = cl.ID
+			}
+			roomID := h.roomManager.FindActiveRoom(userID)
+			if roomID != "" {
+				payloadBytes, _ := json.Marshal(msg.Payload)
+				if msg.Type == "direct" {
+					targetClientID := msg.ClientId
+	
+					parts := strings.Split(pk.TopicName, "/")
+					if len(parts) >= 4 {
+						targetClientID = parts[3]
+					}
+					h.roomManager.AddDirect(roomID, senderClientID, targetClientID, payloadBytes)
+				} else {
+					h.roomManager.AddBroadcast(roomID, senderClientID, payloadBytes)
+				}
+			}
 		}
 	}
 

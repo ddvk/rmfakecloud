@@ -2,6 +2,7 @@ package hub
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"strconv"
 	"time"
 
@@ -94,7 +95,6 @@ func (h *Hub) Notify(uid, deviceID string, doc DocumentNotification, eventType m
 		msg:  &msg,
 	}
 }
-// NotifyPasscodeReset pushes a PasscodeResetApproved event to every client of uid.
 func (h *Hub) NotifyPasscodeReset(uid, deviceID, deviceName, requestID string) {
 	msgid := strconv.Itoa(int(time.Now().UnixNano()))
 	msg := messages.WsMessage{
@@ -114,6 +114,40 @@ func (h *Hub) NotifyPasscodeReset(uid, deviceID, deviceName, requestID string) {
 	h.notifications <- notification{
 		uid: uid,
 		msg: &msg,
+	}
+}
+
+func (h *Hub) NotifyScreenshare(uid, fromClientID string, payload interface{}) {
+	payloadJSON, err := json.Marshal(payload)
+	if err != nil {
+		log.Errorf("hub: failed to marshal screenshare payload: %v", err)
+		return
+	}
+	encoded := base64.StdEncoding.EncodeToString(payloadJSON)
+
+	messageID := uuid.New().String()
+	timeStamp := time.Now().UTC().Format(time.RFC3339Nano)
+
+	msg := messages.WsMessage{
+		Message: messages.NotificationMessage{
+			MessageID:  messageID,
+			MessageID2: messageID,
+			MessageID3: messageID,
+			Attributes: messages.Attributes{
+				Auth0UserID:    uid,
+				Event:          messages.ScreenshareMessageEvent,
+				SourceDeviceID: fromClientID,
+			},
+			PublishTime:  timeStamp,
+			PublishTime2: timeStamp,
+			Data:         encoded,
+		},
+	}
+
+	h.notifications <- notification{
+		uid:  uid,
+		from: fromClientID,
+		msg:  &msg,
 	}
 }
 

@@ -19,8 +19,9 @@ const (
 	//SyncCompletedEvent sync completed sync15
 	SyncCompletedEvent NotificationType = "SyncComplete"
 
-	// PasscodeResetApprovedEvent passcode reset approved by the user
 	PasscodeResetApprovedEvent NotificationType = "PasscodeResetApproved"
+
+	ScreenshareMessageEvent NotificationType = "ScreenshareMessage"
 )
 
 // BlobStorageRequest else

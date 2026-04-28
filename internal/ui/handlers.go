@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -772,3 +773,124 @@ func (app *ReactAppWrapper) downloadThroughIntegration(c *gin.Context) {
 
 	c.DataFromReader(http.StatusOK, size, "", response, nil)
 }
+
+func (app *ReactAppWrapper) screenshareJoinActive(c *gin.Context) {
+	uid := userID(c)
+
+	roomID := app.roomManager.FindActiveRoom(uid)
+	if roomID == "" {
+		c.JSON(http.StatusNotFound, gin.H{"error": "no active room"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"roomId":     roomID,
+		"clients":    app.roomManager.GetClients(roomID),
+		"iceServers": app.cfg.ICEServers,
+	})
+}
+
+func (app *ReactAppWrapper) screenshareGetRoom(c *gin.Context) {
+	roomID := c.Param("roomId")
+
+	room := app.roomManager.GetRoom(roomID)
+	if room == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "room not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"roomId":    room.RoomID,
+		"createdAt": room.CreatedAt.Format(time.RFC3339Nano),
+		"clients":   app.roomManager.GetClients(roomID),
+	})
+}
+
+func (app *ReactAppWrapper) screenshareGetOffer(c *gin.Context) {
+	uid := userID(c)
+	clientID := c.GetString(browserIDContextKey)
+
+	roomID := app.roomManager.FindActiveRoom(uid)
+	if roomID == "" {
+		c.JSON(http.StatusNotFound, gin.H{"error": "no active room"})
+		return
+	}
+
+	app.roomManager.AddBroadcast(roomID, clientID, json.RawMessage(`{"type":"request-offer","clientId":"`+clientID+`"}`))
+
+	var inner map[string]interface{}
+	json.Unmarshal([]byte(`{"type":"request-offer","clientId":"`+clientID+`","sourceDeviceID":"`+clientID+`"}`), &inner)
+	app.h.NotifyScreenshare(uid, clientID, inner)
+
+	if app.mqtt != nil && app.mqtt.HasConnectedClient(uid) {
+		clients := app.roomManager.GetClients(roomID)
+		for _, cl := range clients {
+			if cl.IsOwner {
+				mqttMsg, _ := json.Marshal(map[string]interface{}{
+					"type":     "broadcast",
+					"clientId": clientID,
+					"payload":  json.RawMessage(`{"type":"request-offer","clientId":"` + clientID + `"}`),
+				})
+				app.mqtt.PublishSignaling(uid, cl.ClientID, mqttMsg)
+				break
+			}
+		}
+	}
+
+	msgs := app.roomManager.WaitForMessages(roomID, 1, 30*time.Second)
+	if msgs == nil {
+		c.JSON(http.StatusGatewayTimeout, gin.H{"error": "timeout waiting for offer"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"roomId":     roomID,
+		"messages":   msgs,
+		"iceServers": app.cfg.ICEServers,
+	})
+}
+
+func (app *ReactAppWrapper) screenshareSendAnswer(c *gin.Context) {
+	roomID := c.Param("roomId")
+	clientID := c.GetString(browserIDContextKey)
+	uid := userID(c)
+
+	if !app.roomManager.RoomExists(roomID) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "room not found"})
+		return
+	}
+
+	var msg struct {
+		Payload        json.RawMessage `json:"payload"`
+		TargetClientID string          `json:"targetClientId"`
+	}
+	if err := c.ShouldBindJSON(&msg); err != nil {
+		badReq(c, "invalid body")
+		return
+	}
+
+	app.roomManager.AddDirect(roomID, clientID, msg.TargetClientID, msg.Payload)
+
+	var inner map[string]interface{}
+	json.Unmarshal(msg.Payload, &inner)
+	inner["sourceDeviceID"] = clientID
+	app.h.NotifyScreenshare(uid, clientID, inner)
+
+	if app.mqtt != nil && app.mqtt.HasConnectedClient(uid) {
+		mqttMsg, _ := json.Marshal(map[string]interface{}{
+			"type":     "direct",
+			"clientId": clientID,
+			"payload":  json.RawMessage(msg.Payload),
+		})
+		app.mqtt.PublishSignaling(uid, msg.TargetClientID, mqttMsg)
+	}
+
+	c.Status(http.StatusAccepted)
+}
+
+func (app *ReactAppWrapper) screenshareDeleteRoom(c *gin.Context) {
+	uid := userID(c)
+	app.roomManager.DeleteAllForUser(uid)
+	c.Status(http.StatusNoContent)
+}
+

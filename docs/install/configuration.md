@@ -42,14 +42,32 @@ To be able to send email from your reMarkable, fill the following variables:
 
 ## Screen sharing
 
+Screen sharing streams your tablet display to a browser via WebRTC. There are two signaling modes depending on your tablet's software version.
+
+### REST-based (reMarkable OS 3.27+)
+
+Starting with OS 3.27, the tablet can use REST-based signaling instead of MQTT. No additional setup is required, screen sharing works out of the box.
+
+Start a screen share session from the sharing menu on your tablet, then open the **Screen Share** page in the rmfakecloud web UI. The page automatically finds the active session and connects.
+
+| Variable name     | Description |
+|-------------------|-------------|
+| `ICE_SERVERS`     | JSON array of WebRTC ICE servers. Default: Google STUN server. Format: `[{"urls":["stun:stun.l.google.com:19302"]}]` or with TURN: `[{"urls":["turn:turn.example.com:3478"],"username":"user","credential":"pass"}]` |
+
+Without `ICE_SERVERS` set, a public Google STUN server is used, which works when the tablet and browser / app are on the same network. If you want to screenshare across the internet, you may need a TURN server.
+
+### MQTT-based (reMarkable OS < 3.27)
+
+Older tablet software uses MQTT for screen share signaling. This requires additional configuration:
+
 | Variable name     | Description |
 |-------------------|-------------|
 | `MQTT_PORT`       | Port for MQTT broker (default: 8883) |
 | `ICE_SERVERS`     | JSON array of WebRTC ICE servers. Default: none. Format: `[{"urls":["stun:stun.l.google.com:19302"]}]` or with TURN: `[{"urls":["turn:turn.example.com:3478"],"username":"user","credential":"pass"}]` |
-| `TLS_CERT`          | `path/to/cert`, required for screen sharing |
-| `TLS_KEY`           | `/path/to/key`, required for screen sharing |
+| `TLS_CERT`          | `path/to/cert`, required for MQTT screen sharing |
+| `TLS_KEY`           | `/path/to/key`, required for MQTT screen sharing |
 
-TLS certificates are required for screen sharing. Desktop apps may not use system certificate store for MQTT.  
+TLS certificates are required for MQTT screen sharing. Desktop apps may not use the system certificate store for MQTT.  
 Requires overriding DNS for `vernemq-prod.cloud.remarkable.engineering` to point to your rmfakecloud instance and using a TCP (not HTTP) reverse proxy.  
 Without `ICE_SERVERS` set, screen sharing will work over USB and if the tablet and desktop app are on the same network.
 
@@ -66,7 +84,7 @@ stream {
     }
 
     server {
-        listen 8883;
+        listen 443;
         proxy_pass mqtt;
         proxy_connect_timeout 5s;
     }
@@ -91,5 +109,5 @@ tcp:
 
 entryPoints:
   mqtt:
-    address: ":8883"
+    address: ":443"
 ```

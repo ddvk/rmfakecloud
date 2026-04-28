@@ -16,6 +16,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/hwr"
 	"github.com/ddvk/rmfakecloud/internal/mqtt"
+	"github.com/ddvk/rmfakecloud/internal/screenshare"
 	"github.com/ddvk/rmfakecloud/internal/storage"
 
 	"github.com/ddvk/rmfakecloud/internal/storage/fs"
@@ -44,6 +45,7 @@ type App struct {
 	codeConnector CodeConnector
 	hwrClient     *hwr.HWRClient
 	mqttBroker    *mqtt.Broker
+	roomManager   *screenshare.RoomManager
 }
 
 // Start starts the app
@@ -72,7 +74,9 @@ func (app *App) Start() {
 
 	if app.mqttBroker != nil {
 		log.Infof("MQTT listening on port: %s", app.cfg.MQTTPort)
-		app.mqttBroker = mqtt.NewBroker(app.cfg.MQTTPort, tlsConfig, app.validateMQTTToken, app.cfg.ICEServers)
+		if tlsConfig != nil {
+			app.mqttBroker.SetTLSConfig(tlsConfig)
+		}
 		if err := app.mqttBroker.Start(); err != nil {
 			log.Errorf("Failed to start MQTT broker: %v", err)
 		}
@@ -170,11 +174,13 @@ func NewApp(cfg *config.Config) App {
 		},
 	}
 
-	app.mqttBroker = mqtt.NewBroker(cfg.MQTTPort, nil, app.validateMQTTToken, cfg.ICEServers)
+	roomMgr := screenshare.NewRoomManager()
+	app.roomManager = roomMgr
+	app.mqttBroker = mqtt.NewBroker(cfg.MQTTPort, nil, app.validateMQTTToken, cfg.ICEServers, roomMgr, ntfHub)
 
 	app.registerRoutes(router)
 
-	uiApp := ui.New(cfg, fsStorage, codeConnector, ntfHub, pcStore, fsStorage, fsStorage)
+	uiApp := ui.New(cfg, fsStorage, codeConnector, ntfHub, pcStore, fsStorage, fsStorage, roomMgr, app.mqttBroker)
 	uiApp.RegisterRoutes(router)
 
 	storageapp := fs.NewApp(cfg, fsStorage)
@@ -198,18 +204,16 @@ func (app *App) validateMQTTToken(token string) (string, error) {
 
 	claims := &UserClaims{}
 	err := common.ClaimsFromToken(claims, token, app.cfg.JWTSecretKey)
-	if err != nil {
-		return "", fmt.Errorf("invalid token: %w", err)
+	if err == nil && claims.Profile.UserID != "" && claims.Version == tokenVersion {
+		userID := common.SanitizeUid(strings.TrimPrefix(claims.Profile.UserID, "auth0|"))
+		return userID, nil
 	}
 
-	if claims.Profile.UserID == "" {
-		return "", fmt.Errorf("missing user ID in token")
+	webClaims := &ui.WebUserClaims{}
+	err = common.ClaimsFromToken(webClaims, token, app.cfg.JWTSecretKey)
+	if err == nil && webClaims.UserID != "" {
+		return common.SanitizeUid(webClaims.UserID), nil
 	}
 
-	if claims.Version != tokenVersion {
-		return "", fmt.Errorf("invalid token version")
-	}
-
-	userID := common.SanitizeUid(strings.TrimPrefix(claims.Profile.UserID, "auth0|"))
-	return userID, nil
+	return "", fmt.Errorf("invalid token")
 }

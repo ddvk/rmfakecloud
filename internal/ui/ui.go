@@ -12,6 +12,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/messages"
+	"github.com/ddvk/rmfakecloud/internal/screenshare"
 	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
@@ -59,6 +60,11 @@ type notificationHub interface {
 	Sync(uid string) error
 }
 
+type mqttBridge interface {
+	PublishSignaling(userID, clientID string, payload []byte)
+	HasConnectedClient(userID string) bool
+}
+
 // ReactAppWrapper encapsulates an app
 type ReactAppWrapper struct {
 	fs            http.FileSystem
@@ -69,6 +75,8 @@ type ReactAppWrapper struct {
 	h             *hub.Hub
 	passcodeStore passcodestore.Store
 	backends      map[common.SyncVersion]backend
+	roomManager   *screenshare.RoomManager
+	mqtt          mqttBridge
 }
 
 // hack for serving index.html on /
@@ -82,7 +90,9 @@ func New(cfg *config.Config,
 	h *hub.Hub,
 	pcStore passcodestore.Store,
 	docHandler documentHandler,
-	blobHandler blobHandler) *ReactAppWrapper {
+	blobHandler blobHandler,
+	roomManager *screenshare.RoomManager,
+	mqttBroker mqttBridge) *ReactAppWrapper {
 
 	sub, err := fs.Sub(webui.Assets, jsBuildFolder)
 	if err != nil {
@@ -108,6 +118,8 @@ func New(cfg *config.Config,
 			common.Sync10: backend10,
 			common.Sync15: backend15,
 		},
+		roomManager: roomManager,
+		mqtt:        mqttBroker,
 	}
 	return &staticWrapper
 }
