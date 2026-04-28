@@ -23,6 +23,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/hwr"
 	"github.com/ddvk/rmfakecloud/internal/integrations"
 	"github.com/ddvk/rmfakecloud/internal/messages"
+	mqttmod "github.com/ddvk/rmfakecloud/internal/mqtt"
 	"github.com/ddvk/rmfakecloud/internal/storage"
 	"github.com/ddvk/rmfakecloud/internal/storage/fs"
 	"github.com/gin-gonic/gin"
@@ -1161,6 +1162,125 @@ func (app *App) connectWebSocket(c *gin.Context) {
 	}
 
 	go app.hub.ConnectWs(uid, deviceID, connection)
+}
+
+func (app *App) screenshareCreateRoom(c *gin.Context) {
+	uid := userID(c)
+	deviceID := c.GetString(deviceIDKey)
+
+	room := app.roomManager.CreateRoom(uid, deviceID)
+
+	c.JSON(http.StatusCreated, gin.H{
+		"roomId":     room.RoomID,
+		"createdAt":  room.CreatedAt.Format(time.RFC3339Nano),
+		"iceServers": app.cfg.ICEServers,
+	})
+}
+
+func (app *App) screenshareDeleteRoom(c *gin.Context) {
+	app.roomManager.DeleteRoom(c.Param("roomId"))
+	c.Status(http.StatusNoContent)
+}
+
+func (app *App) screenshareJoinActive(c *gin.Context) {
+	uid := userID(c)
+
+	roomID := app.roomManager.FindActiveRoom(uid)
+	if roomID == "" {
+		c.JSON(http.StatusNotFound, gin.H{"error": "no active room"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"roomId":     roomID,
+		"clients":    app.roomManager.GetClients(roomID),
+		"iceServers": app.cfg.ICEServers,
+	})
+}
+
+func (app *App) screenshareKeepalive(c *gin.Context) {
+	app.roomManager.Keepalive(c.Param("roomId"))
+	c.Status(http.StatusOK)
+}
+
+func (app *App) screenshareGetRoom(c *gin.Context) {
+	roomID := c.Param("roomId")
+
+	room := app.roomManager.GetRoom(roomID)
+	if room == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "room not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"roomId":    room.RoomID,
+		"createdAt": room.CreatedAt.Format(time.RFC3339Nano),
+		"clients":   app.roomManager.GetClients(roomID),
+	})
+}
+
+func (app *App) screenshareBroadcast(c *gin.Context) {
+	roomID := c.Param("roomId")
+	deviceID := c.GetString(deviceIDKey)
+
+	if !app.roomManager.RoomExists(roomID) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "room not found"})
+		return
+	}
+
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		badReq(c, "invalid body")
+		return
+	}
+
+	log.Debugf("Screenshare broadcast: room=%s from=%s payload=%s", roomID, deviceID, string(body))
+
+	app.roomManager.AddBroadcast(roomID, deviceID, body)
+	c.Status(http.StatusOK)
+}
+
+func (app *App) screenshareDirect(c *gin.Context) {
+	roomID := c.Param("roomId")
+	deviceID := c.GetString(deviceIDKey)
+
+	if !app.roomManager.RoomExists(roomID) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "room not found"})
+		return
+	}
+
+	var msg struct {
+		Payload        json.RawMessage `json:"payload"`
+		TargetClientID string          `json:"targetClientId"`
+	}
+	if err := c.ShouldBindJSON(&msg); err != nil {
+		badReq(c, "invalid body")
+		return
+	}
+
+	log.Debugf("Screenshare direct: room=%s from=%s to=%s", roomID, deviceID, msg.TargetClientID)
+
+	app.roomManager.AddDirect(roomID, deviceID, msg.TargetClientID, msg.Payload)
+	c.Status(http.StatusOK)
+}
+
+func (app *App) handleMQTTWebSocket(c *gin.Context) {
+	upgrader := websocket.Upgrader{
+		Subprotocols: []string{"mqtt"},
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
+	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		log.Warnf("MQTT WebSocket upgrade failed: %v", err)
+		return
+	}
+
+	err = app.mqttBroker.EstablishConnection("ws", mqttmod.NewWsConn(conn))
+	if err != nil {
+		log.Warnf("MQTT WebSocket connection failed: %v", err)
+	}
 }
 
 // syncReports reports sync errors back

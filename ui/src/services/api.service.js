@@ -29,6 +29,7 @@ class ApiServices {
       .then((text) => {
         let user = jwtDecode(text);
         localStorage.setItem("currentUser", JSON.stringify(user));
+        localStorage.setItem("authToken", text);
         return user;
       });
   }
@@ -205,6 +206,7 @@ class ApiServices {
 
 function removeUser(){
   localStorage.removeItem("currentUser");
+  localStorage.removeItem("authToken");
 }
 function handleError(r) {
   if (!r.ok) {

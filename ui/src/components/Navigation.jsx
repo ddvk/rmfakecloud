@@ -43,6 +43,11 @@ const NavigationBar = () => {
                     Connect
                   </Nav.Link>
                 </Nav.Item>
+                <Nav.Item>
+                  <Nav.Link as={NavLink} to="/screenshare">
+                    Screen Share
+                  </Nav.Link>
+                </Nav.Item>
 				{ isAdmin() &&
 
 					<Nav.Item>

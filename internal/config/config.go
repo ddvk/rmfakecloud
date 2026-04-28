@@ -251,6 +251,11 @@ func FromEnv() *Config {
 			iceServers = nil
 		}
 	}
+	if len(iceServers) == 0 {
+		iceServers = []interface{}{
+			map[string]string{"url": "stun:stun.l.google.com:19302", "username": "", "credential": ""},
+		}
+	}
 
 	hashSchemaVersion := os.Getenv(envHashSchemaVersion)
 	if hashSchemaVersion == "" {

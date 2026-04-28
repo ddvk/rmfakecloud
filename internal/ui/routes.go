@@ -86,6 +86,13 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	auth.GET("integrations/:intid/metadata/*path", app.getMetadataIntegration)
 	auth.GET("integrations/:intid/download/*path", app.downloadThroughIntegration)
 
+	ss := auth.Group("screenshare")
+	ss.GET("room", app.screenshareJoinActive)
+	ss.GET("room/:roomId", app.screenshareGetRoom)
+	ss.GET("offer", app.screenshareGetOffer)
+	ss.POST("room/:roomId/answer", app.screenshareSendAnswer)
+	ss.DELETE("room/:roomId", app.screenshareDeleteRoom)
+
 	//admin
 	admin := auth.Group("")
 	admin.Use(app.adminMiddleware())
