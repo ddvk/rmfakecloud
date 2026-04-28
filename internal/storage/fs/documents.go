@@ -98,7 +98,7 @@ func (fs *FileSystemStorage) ExportDocument(uid, id, outputType string, exportOp
 		return nil, err
 	}
 
-	err = exporter.RenderRmapi(arch, outputFile)
+	err = exporter.RenderPDF(arch, outputFile)
 	if err != nil {
 		return nil, err
 	}
