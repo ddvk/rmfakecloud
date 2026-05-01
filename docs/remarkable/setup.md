@@ -91,6 +91,23 @@ Windows/Mac Desktop Client:
 **PROS**: easy setup, you can use whichever port you want, you can get a real trusted ca cert from let's encrypt, if running in a trusted network you may chose to use HTTP  
 **CONS**: you have to configure HTTPS on the host yourself, additional Desktop config
 
+### macOS Desktop via RMHook
+
+If you only need to point the official macOS desktop app at your self-hosted instance, you can patch it with [RMHook](https://github.com/NohamR/RMHook). The tool injects a custom dylib into the reMarkable Desktop bundle so all cloud traffic is redirected to your rmfakecloud host without editing `/etc/hosts`.
+
+1. Download the latest release archive or build from source following the RMHook README.
+2. Quit the reMarkable Desktop app, then run `./scripts/inject.sh reMarkable.dylib /Applications/reMarkable.app` from the RMHook repository to copy and inject the library (the script will also refresh the code signature).
+3. Launch the patched app once to generate `~/Library/Preferences/rmfakecloud.config`, then set your server hostname and port inside that file, for example:
+
+```json
+{
+    "host": "your-server.example.com",
+    "port": 443
+}
+```
+
+4. Restart the desktop app; it should now log in against your rmfakecloud deployment.
+
 ### Modify device /etc/hosts
 
 Connect to the host directly, without a reverse proxy, with HTTPS on :443
