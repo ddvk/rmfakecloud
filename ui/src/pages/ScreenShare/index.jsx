@@ -152,7 +152,6 @@ export default function ScreenShare() {
           const ch = canvas.height;
           const rot = ((manualRotationRef.current % 360) + 360) % 360;
           const isLandscape = rot === 90 || rot === 270;
-          // When rotated 90/270, rect width/height are swapped
           const renderedW = isLandscape ? rect.height : rect.width;
           const renderedH = isLandscape ? rect.width : rect.height;
           const scaleX = renderedW / cw;

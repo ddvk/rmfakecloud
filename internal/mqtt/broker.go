@@ -163,9 +163,7 @@ func (b *Broker) Start() error {
 	if tlsConfig != nil {
 		tlsConfig = tlsConfig.Clone()
 
-		// Force TLS 1.2 to work around desktop app TLS 1.3 issue
-		tlsConfig.MaxVersion = tls.VersionTLS12
-		log.Infof("MQTT: Forcing TLS 1.2 maximum version")
+		tlsConfig.MinVersion = tls.VersionTLS12
 
 		originalGetCertificate := tlsConfig.GetCertificate
 		tlsConfig.GetCertificate = func(info *tls.ClientHelloInfo) (*tls.Certificate, error) {
@@ -404,11 +402,9 @@ func (h *AuthHook) handleCreateRoom(senderClientID, userID string, msg *Signalin
 		return
 	}
 
-	// Only create MQTT room if no REST room exists (avoid duplicates on DualBroker)
 	if existing := h.roomManager.FindActiveRoom(userID); existing != "" {
-		log.Debugf("MQTT: skipping room creation, REST room already exists for user=%s", userID)
-		// Still send room-created response so MQTT side is happy
-		response := SignalingMessage{Type: "room-created", RoomId: existing}
+		h.roomManager.AddParticipant(existing, senderClientID, userID)
+		response := SignalingMessage{Type: "room-created", Room: msg.Room, RoomId: existing}
 		responseBytes, _ := json.Marshal(response)
 		broadcastTopic := fmt.Sprintf("user/%s/signaling", userID)
 		if h.server != nil {
@@ -421,6 +417,7 @@ func (h *AuthHook) handleCreateRoom(senderClientID, userID string, msg *Signalin
 
 	response := SignalingMessage{
 		Type:   "room-created",
+		Room:   msg.Room,
 		RoomId: room.RoomID,
 	}
 
@@ -607,7 +604,6 @@ func (h *AuthHook) OnPublish(cl *mqtt.Client, pk packets.Packet) (packets.Packet
 		}
 	}
 
-	// Only process messages from real MQTT clients (not inline), store only, don't re-publish.
 	if cl.ID != "inline" && strings.HasPrefix(pk.TopicName, "user/") && strings.Contains(pk.TopicName, "/signaling") {
 		var msg SignalingMessage
 		if err := json.Unmarshal(pk.Payload, &msg); err == nil && (msg.Type == "direct" || msg.Type == "broadcast") {
