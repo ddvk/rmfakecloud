@@ -31,6 +31,7 @@ nav:
   - Device Setup:
       - Device: remarkable/setup.md
       - HTTPS: remarkable/https.md
+  - Desktop Setup: remarkable/desktop-client.md
   - Usage:
       - User Profile: usage/userprofile.md
       - Integrations: usage/integrations.md
