@@ -5,6 +5,124 @@ import { BsGearFill, BsFullscreenExit, BsArrowCounterclockwise, BsArrowClockwise
 import pako from "pako";
 import constants from "../../common/constants";
 
+const MSG = {
+  FRAMEBUFFER: 0,
+  CURSOR: 100,
+  SHUTDOWN: 101,
+  ROTATION: 102,
+  PING: 103,
+  HANDSHAKE: 104,
+};
+
+// Frame wire format: [type(1), rectCount(2 BE), deflatedSize(4 BE), zlib...]
+const HEADER_SIZE = 7;
+// Rect wire format (after inflate): [x(2), y(2), w(2), h(2), pixelDataLen(4), pixels...]
+const RECT_HEADER_SIZE = 12;
+
+// Reassembles framebuffer frames split across multiple data-channel messages;
+// other message types pass through untouched.
+class FrameAssembler {
+  constructor() {
+    this.reset();
+  }
+
+  reset() {
+    this.buffer = null;
+    this.expectedSize = 0;
+    this.receivedSize = 0;
+  }
+
+  // Returns a complete message ArrayBuffer, or null while a frame is still arriving.
+  process(data) {
+    if (this.buffer) return this.appendChunk(data);
+    if (data.byteLength < HEADER_SIZE) return data;
+    const view = new DataView(data);
+    if (view.getUint8(0) !== MSG.FRAMEBUFFER) return data;
+    const total = HEADER_SIZE + view.getUint32(3, false);
+    if (data.byteLength >= total) return data;
+    this.expectedSize = total;
+    this.buffer = new Uint8Array(total);
+    this.buffer.set(new Uint8Array(data), 0);
+    this.receivedSize = data.byteLength;
+    return null;
+  }
+
+  appendChunk(data) {
+    const chunk = new Uint8Array(data);
+    const take = Math.min(chunk.byteLength, this.expectedSize - this.receivedSize);
+    this.buffer.set(chunk.subarray(0, take), this.receivedSize);
+    this.receivedSize += take;
+    if (this.receivedSize < this.expectedSize) return null;
+    const done = this.buffer.buffer;
+    this.reset();
+    return done;
+  }
+}
+
+function decodeFramebuffer(data, view) {
+  const rectCount = view.getUint16(1, false);
+  const deflatedSize = view.getUint32(3, false);
+  if (HEADER_SIZE + deflatedSize > data.byteLength) {
+    throw new Error("deflated size exceeds message buffer");
+  }
+  const compressed = new Uint8Array(data.slice(HEADER_SIZE, HEADER_SIZE + deflatedSize));
+  const raw = pako.inflate(compressed);
+  if (!raw) throw new Error("inflate produced no output (truncated stream)");
+
+  const rv = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
+  const rects = [];
+  let pos = 0;
+  for (let i = 0; i < rectCount; i++) {
+    if (pos + RECT_HEADER_SIZE > raw.byteLength) break;
+    const x = rv.getUint16(pos, false);
+    const y = rv.getUint16(pos + 2, false);
+    const w = rv.getUint16(pos + 4, false);
+    const h = rv.getUint16(pos + 6, false);
+    const pxDataLen = rv.getUint32(pos + 8, false);
+    if (pos + RECT_HEADER_SIZE + pxDataLen > raw.byteLength) break;
+
+    const pxView = new DataView(raw.buffer, raw.byteOffset + pos + RECT_HEADER_SIZE, pxDataLen);
+    const imgData = new ImageData(w, h);
+    const out = imgData.data;
+    const pixels = w * h;
+    for (let p = 0; p < pixels; p++) {
+      const val = pxView.getUint16(p * 2, true);
+      const r5 = (val >> 11) & 0x1f;
+      const g6 = (val >> 5) & 0x3f;
+      const b5 = val & 0x1f;
+      out[p * 4] = (r5 << 3) | (r5 >> 2);
+      out[p * 4 + 1] = (g6 << 2) | (g6 >> 4);
+      out[p * 4 + 2] = (b5 << 3) | (b5 >> 2);
+      out[p * 4 + 3] = 255;
+    }
+    pos += RECT_HEADER_SIZE + pxDataLen;
+    rects.push({ x, y, imageData: imgData });
+  }
+  return { type: MSG.FRAMEBUFFER, rects };
+}
+
+function parseMessage(data) {
+  if (data.byteLength < 1) throw new Error("empty message");
+  const view = new DataView(data);
+  const type = view.getUint8(0);
+  switch (type) {
+    case MSG.HANDSHAKE:
+      if (data.byteLength < HEADER_SIZE) throw new Error("short handshake");
+      return { type, width: view.getUint16(3, false), height: view.getUint16(5, false) };
+    case MSG.FRAMEBUFFER:
+      return decodeFramebuffer(data, view);
+    case MSG.CURSOR:
+      return { type, x: view.getUint16(1, false), y: view.getUint16(3, false) };
+    case MSG.ROTATION:
+      return { type, degrees: (360 - view.getUint32(1, false)) % 360 };
+    case MSG.SHUTDOWN:
+    case MSG.PING:
+      return { type };
+    default:
+      throw new Error(`unknown message type: ${type}`);
+  }
+}
+
 const STATUS = {
   WAITING: "waiting",
   CONNECTING: "connecting",
@@ -136,11 +254,7 @@ export default function ScreenShare() {
         let lastPenX = 0;
         let lastPenY = 0;
         let rotation = 0;
-        const frameQueue = [];
-        let rafPending = false;
-        let pendingBuffer = null;
-        let pendingExpected = 0;
-        let pendingReceived = 0;
+        const assembler = new FrameAssembler();
 
         function updateCursor() {
           const cursor = document.getElementById("pen-cursor");
@@ -193,145 +307,62 @@ export default function ScreenShare() {
         dc.onmessage = (e) => {
           const data = e.data;
           if (!(data instanceof ArrayBuffer)) return;
-          const bytes = new Uint8Array(data);
-          if (bytes.length === 0) return;
 
-          if (pendingBuffer && pendingExpected > 0) {
-            const chunk = new Uint8Array(data);
-            const remaining = pendingExpected - pendingReceived;
-            const take = Math.min(chunk.byteLength, remaining);
-            pendingBuffer.set(chunk.subarray(0, take), pendingReceived);
-            pendingReceived += take;
-            if (pendingReceived < pendingExpected) return;
-          }
+          const complete = assembler.process(data);
+          if (!complete) return;
 
-          const msgType = pendingBuffer ? 0x00 : bytes[0];
-
-          // 'h' = header with screen dimensions
-          if (msgType === 0x68 && bytes.length >= 7) {
-            const view = new DataView(data);
-            screenWidth = view.getUint16(3, false);
-            screenHeight = view.getUint16(5, false);
-            if (canvas) {
-              canvas.width = screenWidth;
-              canvas.height = screenHeight;
-              ctx = canvas.getContext("2d", {willReadFrequently: true});
-            }
-            setStatus(STATUS.STREAMING);
-            return;
-          }
-
-          // 'g' = heartbeat, 'f' = flag
-          if (msgType === 0x67) return;
-
-          if (msgType === 0x66 && bytes.length >= 5) {
-            const rv = new DataView(data, 1);
-            const rawDeg = rv.getUint32(0, false);
-            const newRotation = (360 - rawDeg) % 360;
-            if (newRotation !== rotation) {
-              const prev = rotation;
-              rotation = newRotation;
-              setManualRotation(r => {
-                const target = r + ((newRotation - prev + 540) % 360 - 180);
-                return target;
-              });
-            }
-            return;
-          }
-
-          // 'd' = pen position (5 bytes: [0x64, x_hi, x_lo, y_hi, y_lo])
-          if (msgType === 0x64 && bytes.length === 5 && ctx) {
-            const penX = (bytes[1] << 8) | bytes[2];
-            const penY = (bytes[3] << 8) | bytes[4];
-            lastPenX = penX;
-            lastPenY = penY;
-            updateCursor();
-            return;
-          }
-
-          // frame data: [type(1), rectCount(2), deflatedSize(4), zlib...]
-          if ((pendingBuffer && pendingReceived >= pendingExpected) || (msgType === 0x00 && bytes.length > 7 && ctx)) {
-            let frameBytes;
-            if (pendingBuffer && pendingReceived >= pendingExpected) {
-              frameBytes = pendingBuffer;
-              pendingBuffer = null;
-              pendingExpected = 0;
-              pendingReceived = 0;
-            } else {
-              const declaredSize = new DataView(data, 3, 4).getUint32(0, false);
-              const expectedLen = 7 + declaredSize;
-              if (bytes.length < expectedLen) {
-                pendingBuffer = new Uint8Array(expectedLen);
-                pendingBuffer.set(new Uint8Array(data), 0);
-                pendingExpected = expectedLen;
-                pendingReceived = bytes.length;
-                return;
-              }
-              frameBytes = new Uint8Array(bytes);
-            }
-
-            frameQueue.push(frameBytes);
-            if (!rafPending) {
-              rafPending = true;
-              requestAnimationFrame(() => {
-                rafPending = false;
-                while (frameQueue.length > 0) {
-                  const frame = frameQueue.shift();
-                  try {
-                    const fv = new DataView(frame.buffer, frame.byteOffset, frame.byteLength);
-                    const rectCount = fv.getUint16(1, false);
-                    const deflatedSize = fv.getUint32(3, false);
-                    if (7 + deflatedSize > frame.byteLength) continue;
-                    const compressed = new Uint8Array(frame.buffer.slice(frame.byteOffset + 7, frame.byteOffset + 7 + deflatedSize));
-                    const raw = pako.inflate(compressed);
-                    if (!raw || raw.length < 12) continue;
-
-                    const rv = new DataView(raw.buffer);
-                    let pos = 0;
-                    for (let ri = 0; ri < rectCount; ri++) {
-                      if (pos + 12 > raw.byteLength) break;
-                      const regionX = rv.getUint16(pos, false);
-                      const regionY = rv.getUint16(pos + 2, false);
-                      const regionW = rv.getUint16(pos + 4, false);
-                      const regionH = rv.getUint16(pos + 6, false);
-                      const pxDataLen = rv.getUint32(pos + 8, false);
-                      if (pos + 12 + pxDataLen > raw.byteLength) break;
-
-                      const pxView = new DataView(raw.buffer, pos + 12, pxDataLen);
-                      const imgData = new ImageData(regionW, regionH);
-                      const out = imgData.data;
-                      const pixels = regionW * regionH;
-                      for (let i = 0; i < pixels; i++) {
-                        const val = pxView.getUint16(i * 2, true);
-                        const r5 = (val >> 11) & 0x1f;
-                        const g6 = (val >> 5) & 0x3f;
-                        const b5 = val & 0x1f;
-                        out[i * 4] = (r5 << 3) | (r5 >> 2);
-                        out[i * 4 + 1] = (g6 << 2) | (g6 >> 4);
-                        out[i * 4 + 2] = (b5 << 3) | (b5 >> 2);
-                        out[i * 4 + 3] = 255;
-                      }
-                      pos += 12 + pxDataLen;
-
-                      if (regionX === 0 && regionY === 0 &&
-                          regionW >= screenWidth * 0.9 && regionH >= screenHeight * 0.9) {
-                        screenWidth = regionW;
-                        screenHeight = regionH;
-                        canvas.width = screenWidth;
-                        canvas.height = screenHeight;
-                      }
-                      ctx.putImageData(imgData, regionX, regionY);
-                    }
-
-                  } catch (e) {
-                    console.error("[screenshare] frame error:", e);
-                    pendingBuffer = null;
-                    pendingExpected = 0;
-                    pendingReceived = 0;
-                  }
+          try {
+            const msg = parseMessage(complete);
+            switch (msg.type) {
+              case MSG.HANDSHAKE: {
+                screenWidth = msg.width;
+                screenHeight = msg.height;
+                if (canvas) {
+                  canvas.width = screenWidth;
+                  canvas.height = screenHeight;
+                  ctx = canvas.getContext("2d", { willReadFrequently: true });
                 }
-              });
+                setStatus(STATUS.STREAMING);
+                break;
+              }
+              case MSG.FRAMEBUFFER: {
+                if (!ctx) break;
+                for (const rect of msg.rects) {
+                  const { width: w, height: h } = rect.imageData;
+                  if (rect.x === 0 && rect.y === 0 &&
+                      w >= screenWidth * 0.9 && h >= screenHeight * 0.9) {
+                    screenWidth = w;
+                    screenHeight = h;
+                    canvas.width = screenWidth;
+                    canvas.height = screenHeight;
+                  }
+                  ctx.putImageData(rect.imageData, rect.x, rect.y);
+                }
+                break;
+              }
+              case MSG.CURSOR: {
+                if (!ctx) break;
+                lastPenX = msg.x;
+                lastPenY = msg.y;
+                updateCursor();
+                break;
+              }
+              case MSG.ROTATION: {
+                const newRotation = msg.degrees;
+                if (newRotation !== rotation) {
+                  const prev = rotation;
+                  rotation = newRotation;
+                  setManualRotation(r => r + ((newRotation - prev + 540) % 360 - 180));
+                }
+                break;
+              }
+              case MSG.SHUTDOWN:
+              case MSG.PING:
+                break;
             }
+          } catch (err) {
+            console.error("[screenshare] message error:", err);
+            assembler.reset();
           }
         };
 
