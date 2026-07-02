@@ -10,7 +10,9 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/ddvk/rmfakecloud/internal/email"
 	log "github.com/sirupsen/logrus"
@@ -81,12 +83,25 @@ const (
 	envMQTTPort          = "MQTT_PORT"
 	envICEServers        = "ICE_SERVERS"
 	envHashSchemaVersion = "HASH_SCHEMA_VERSION"
+
+	// oidc
+	EnvOIDCProviderURL          = "OIDC_PROVIDER_URL"
+	EnvOIDCClientID             = "OIDC_CLIENT_ID"
+	EnvOIDCClientSecret         = "OIDC_CLIENT_SECRET"
+	EnvOIDCRedirectURL          = "OIDC_REDIRECT_URL"
+	EnvOIDCAdminClaim           = "OIDC_ADMIN_CLAIM"
+	EnvOIDCAdminClaimValue      = "OIDC_ADMIN_CLAIM_VALUE"
+	EnvOIDCExtraScopes          = "OIDC_EXTRA_SCOPES"
+	EnvOIDCDisplayName          = "OIDC_DISPLAY_NAME"
+	EnvOIDCUserIDClaim          = "OIDC_USERID_CLAIM"
+	EnvOIDCAllowUnverifiedEmail = "OIDC_ALLOW_UNVERIFIED_EMAIL"
+	DefaultOIDCUserIDClaim      = "preferred_username"
 )
 
 // Config config
 type Config struct {
-	Port              string
-	StorageURL        string
+	Port       string
+	StorageURL string
 	//only https
 	CloudHost         string
 	DataDir           string
@@ -106,6 +121,46 @@ type Config struct {
 	MQTTPort          string
 	ICEServers        []interface{}
 	HashSchemaVersion string
+
+	OIDC OIDCConfig
+}
+
+// OIDCConfig holds all OIDC-related settings. The zero value means OIDC is disabled.
+type OIDCConfig struct {
+	ProviderURL  string
+	ClientID     string
+	ClientSecret string
+	RedirectURL  string
+	AdminClaim   string
+	AdminClaimValue      string
+	ExtraScopes          []string
+	DisplayName          string
+	UserIDClaim          string
+	AllowUnverifiedEmail bool
+}
+
+// Enabled returns true when all required OIDC fields are set.
+func (o *OIDCConfig) Enabled() bool {
+	return o.ProviderURL != "" && o.ClientID != "" &&
+		o.ClientSecret != "" && o.RedirectURL != ""
+}
+
+// partiallyConfigured detects any OIDC env var set without the full required set.
+func (o *OIDCConfig) partiallyConfigured() bool {
+	any := o.ProviderURL != "" || o.ClientID != "" ||
+		o.ClientSecret != "" || o.RedirectURL != ""
+	return any && !o.Enabled()
+}
+
+// Scopes returns the full scopes list for the OIDC authorization request.
+func (o *OIDCConfig) Scopes() []string {
+	scopes := []string{"openid", "email", "profile"}
+	for _, s := range o.ExtraScopes {
+		if !slices.Contains(scopes, s) {
+			scopes = append(scopes, s)
+		}
+	}
+	return scopes
 }
 
 // Verify verify
@@ -141,6 +196,21 @@ func (cfg *Config) Verify() {
 		log.Infof("WebRTC configured with %d ICE server(s)", len(cfg.ICEServers))
 	} else {
 		log.Info("No ICE servers configured - screenshare will only work on local networks")
+	}
+
+	if cfg.OIDC.partiallyConfigured() {
+		log.Fatal("OIDC is partially configured; set all of: ",
+			EnvOIDCProviderURL, ", ", EnvOIDCClientID, ", ",
+			EnvOIDCClientSecret, ", ", EnvOIDCRedirectURL)
+	}
+	if cfg.OIDC.Enabled() {
+		if !cfg.HTTPSCookie {
+			log.Fatal("OIDC requires secure cookies; set ", envHTTPSCookie, "=true (OIDC flow cookies must not travel over plain HTTP)")
+		}
+		if cfg.OIDC.AdminClaim == "" {
+			log.Warn("OIDC enabled and ", EnvOIDCAdminClaim, " is not set; all OIDC users will be non-admin")
+		}
+		log.Info("OIDC enabled, provider: ", cfg.OIDC.ProviderURL)
 	}
 }
 
@@ -264,6 +334,32 @@ func FromEnv() *Config {
 		log.Fatalf("%s must be either '3' or '4', got: %s", envHashSchemaVersion, hashSchemaVersion)
 	}
 
+	oidcAllowUnverifiedEmail, _ := strconv.ParseBool(os.Getenv(EnvOIDCAllowUnverifiedEmail))
+
+	// OIDCUserIDClaim is always set here; callers must not re-apply the default.
+	oidcUserIDClaim := os.Getenv(EnvOIDCUserIDClaim)
+	if oidcUserIDClaim == "" {
+		oidcUserIDClaim = DefaultOIDCUserIDClaim
+	}
+
+	var oidcExtraScopes []string
+	if raw := os.Getenv(EnvOIDCExtraScopes); raw != "" {
+		for _, s := range strings.Fields(raw) {
+			oidcExtraScopes = append(oidcExtraScopes, s)
+		}
+	}
+
+	oidcRedirectURL := os.Getenv(EnvOIDCRedirectURL)
+	if oidcRedirectURL != "" {
+		u, err := url.Parse(oidcRedirectURL)
+		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+			log.Fatalf("%s '%s' cannot be parsed or is missing http/https scheme", EnvOIDCRedirectURL, oidcRedirectURL)
+		}
+		if !strings.HasSuffix(u.Path, "/ui/api/oidc/callback") {
+			log.Warnf("%s does not end with /ui/api/oidc/callback — verify this matches your IdP client config", EnvOIDCRedirectURL)
+		}
+	}
+
 	cfg := Config{
 		Port:              port,
 		StorageURL:        uploadURL,
@@ -283,6 +379,19 @@ func FromEnv() *Config {
 		MQTTPort:          mqttPort,
 		ICEServers:        iceServers,
 		HashSchemaVersion: hashSchemaVersion,
+		OIDC: OIDCConfig{
+			ProviderURL:  os.Getenv(EnvOIDCProviderURL),
+			ClientID:     os.Getenv(EnvOIDCClientID),
+			ClientSecret: os.Getenv(EnvOIDCClientSecret),
+			RedirectURL:  oidcRedirectURL,
+			AdminClaim:   os.Getenv(EnvOIDCAdminClaim),
+			AdminClaimValue:   os.Getenv(EnvOIDCAdminClaimValue),
+			ExtraScopes:       oidcExtraScopes,
+			DisplayName:       os.Getenv(EnvOIDCDisplayName),
+			// OIDCUserIDClaim is always set here; callers must not re-apply the default.
+			UserIDClaim:          oidcUserIDClaim,
+			AllowUnverifiedEmail: oidcAllowUnverifiedEmail,
+		},
 	}
 	return &cfg
 }
@@ -329,6 +438,19 @@ myScript hwr (needs a developer account):
 	%s
 	%s      override the language specified in myScript requests
 	%s      custom myScript host URL (default: https://cloud.myscript.com)
+
+OIDC authentication (optional, Authorization Code + PKCE):
+	%s		OpenID Connect provider discovery URL (required to enable OIDC)
+	%s			OIDC client ID (required)
+	%s		OIDC client secret (required)
+	%s		callback URL — must end with /ui/api/oidc/callback (required)
+	%s		claim to use as userid (default: preferred_username; falls back to verified email)
+	%s		dotted claim path that holds the admin role (e.g. realm_access.roles)
+	%s	value in that claim that grants admin (e.g. admin)
+	%s		space-separated extra OAuth2 scopes to request
+	%s		custom label for the OIDC login button (default: "Login with OIDC")
+	%s	allow login when email_verified is missing/false (default: false, insecure)
+	note: %s must be set to true when OIDC is enabled
 `,
 		envJWTSecretKey,
 		EnvStorageURL,
@@ -361,5 +483,17 @@ myScript hwr (needs a developer account):
 		envHwrHmac,
 		envHwrLangOverride,
 		envHwrHost,
+
+		EnvOIDCProviderURL,
+		EnvOIDCClientID,
+		EnvOIDCClientSecret,
+		EnvOIDCRedirectURL,
+		EnvOIDCUserIDClaim,
+		EnvOIDCAdminClaim,
+		EnvOIDCAdminClaimValue,
+		EnvOIDCExtraScopes,
+		EnvOIDCDisplayName,
+		EnvOIDCAllowUnverifiedEmail,
+		envHTTPSCookie,
 	)
 }
