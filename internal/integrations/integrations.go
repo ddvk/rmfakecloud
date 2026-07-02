@@ -22,6 +22,7 @@ const (
 	DropboxProvider = "dropbox"
 	GoogleProvider  = "google"
 	LocalfsProvider = "localfs"
+	OPDSProvider    = "opds"
 	IcsProvider     = "ics"
 )
 
@@ -69,6 +70,8 @@ func getIntegrationProvider(storer storage.UserStorer, uid, integrationid string
 			return newLocalFS(intg), nil
 		case WebdavProvider:
 			return newWebDav(intg), nil
+		case OPDSProvider:
+			return newOPDS(intg), nil
 		case IcsProvider:
 			return newICS(intg), nil
 		}
@@ -152,6 +155,8 @@ func ProviderType(n string) string {
 	case DropboxProvider:
 		fallthrough
 	case WebdavProvider:
+		fallthrough
+	case OPDSProvider:
 		return "Storage"
 	case IcsProvider:
 		return "Calendar"
