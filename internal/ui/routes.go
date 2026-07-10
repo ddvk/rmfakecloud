@@ -31,12 +31,27 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 			return
 		}
 
-		c.FileFromFS(indexReplacement, app)
+		// OIDC deployments: redirect unauthenticated users straight to the IdP.
+		// /oidc-success is excluded to avoid a redirect loop after callback.
+		if app.cfg.OIDC.Enabled() &&
+			!strings.HasPrefix(uri, "/oidc-success") &&
+			!app.webAuthenticated(c) {
+			c.Redirect(http.StatusFound, "/ui/api/oidc/login")
+			return
+		}
+
+		app.serveIndex(c)
 	})
 
 	r := router.Group("/ui/api")
-	r.POST("register", app.register)
-	r.POST("login", app.login)
+	if app.cfg.OIDC.Enabled() {
+		r.GET("oidc/login", app.oidcBegin)
+		r.GET("oidc/callback", app.oidcCallback)
+	}
+	if !app.cfg.OIDC.Enabled() {
+		r.POST("register", app.register)
+		r.POST("login", app.login)
+	}
 	r.GET("logout", func(c *gin.Context) {
 		c.SetCookie(cookieName, "/", -1, "", "", false, true)
 		c.Status(http.StatusOK)
@@ -47,6 +62,7 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	auth.HEAD("/", func(c *gin.Context) {
 		c.Status(http.StatusOK)
 	})
+	auth.GET("me", app.meHandler)
 	auth.GET("sync", func(c *gin.Context) {
 		uid := userID(c)
 		br := c.GetString(browserIDContextKey)
