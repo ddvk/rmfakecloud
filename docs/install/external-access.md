@@ -115,8 +115,8 @@ Install `rmfakecloud-proxy` as the [installation instructions](../remarkable/set
 
 When asked for the cloud url, enter your public address. In this case, `https://rmfakecloud.example.com`.
 
-In path to client certificate file, enter `client.crt`.
+In path to client certificate file, enter `client.crt`. Do not enter as a path, only use the name of the file you have placed in the `/home/root/rmfakecloud` folder.
 
-In path to client key file, enter `client.key`.
+In path to client key file, enter `client.key`. Again, only enter as a filename, not the path.
 
-You should now be able to sync your reMarkable from outside your local network.
+You should now be able to sync your reMarkable from outside your local network. Pairing does not work using mTLS authentication, and you will run into a cloudflare block screen. Make sure to pair beforehand, or disable the security rule temporarily for pairing.
