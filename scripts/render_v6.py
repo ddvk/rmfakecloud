@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
-"""Render a reMarkable v6 notebook to PDF using rmc + pypdf."""
+"""Render reMarkable v6 notebook pages to a single PDF.
+
+Pipeline per page: rmc (.rm -> SVG), then svglib+reportlab (SVG -> PDF).
+Pages are merged in the given order with pypdf. No Inkscape required.
+"""
 import argparse
 import os
 import subprocess
 import sys
 import tempfile
 
-from pypdf import PdfWriter, PdfReader
+from pypdf import PdfReader, PdfWriter
+from svglib.svglib import svg2rlg
+from reportlab.graphics import renderPDF
 
 
 def default_rmc():
@@ -17,11 +23,20 @@ def default_rmc():
     return os.path.join(os.path.dirname(os.path.abspath(sys.executable)), "rmc")
 
 
-def convert_page(rm_path, pdf_path, rmc_bin):
-    cmd = [rmc_bin, rm_path, "-o", pdf_path]
-    res = subprocess.run(cmd, capture_output=True, text=True)
-    if res.returncode != 0:
+def rm_to_svg(rm_path, svg_path, rmc_bin):
+    res = subprocess.run(
+        [rmc_bin, rm_path, "-t", "svg", "-o", svg_path],
+        capture_output=True, text=True,
+    )
+    if res.returncode != 0 or not os.path.exists(svg_path):
         raise RuntimeError(f"rmc failed for {rm_path}: {res.stderr}")
+
+
+def svg_to_pdf(svg_path, pdf_path):
+    drawing = svg2rlg(svg_path)
+    if drawing is None:
+        raise RuntimeError(f"svglib could not parse {svg_path}")
+    renderPDF.drawToFile(drawing, pdf_path)
 
 
 def main():
@@ -39,9 +54,11 @@ def main():
     writer = PdfWriter()
     with tempfile.TemporaryDirectory() as tmpdir:
         for pid, rm_path in pages:
-            out_pdf = os.path.join(tmpdir, f"{pid}.pdf")
-            convert_page(rm_path, out_pdf, args.rmc)
-            writer.append(PdfReader(out_pdf))
+            svg_path = os.path.join(tmpdir, f"{pid}.svg")
+            pdf_path = os.path.join(tmpdir, f"{pid}.pdf")
+            rm_to_svg(rm_path, svg_path, args.rmc)
+            svg_to_pdf(svg_path, pdf_path)
+            writer.append(PdfReader(pdf_path))
 
     with open(args.output, "wb") as f:
         writer.write(f)
