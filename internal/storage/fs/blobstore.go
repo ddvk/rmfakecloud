@@ -137,11 +137,16 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 		var err error
 		// pure notebooks written by firmware 3.x (.rm v6) cannot be
 		// rendered by the bundled parser; delegate to the external v6
-		// renderer. Documents with a pdf/epub payload keep the current
-		// behaviour (base document, v6 annotations skipped).
-		if archive.HasV6Pages() && archive.PayloadReader == nil {
+		// renderer when the deployment provides one. Documents with a
+		// pdf/epub payload keep the current behaviour (base document,
+		// v6 annotations skipped). Without the renderer installed the
+		// behaviour matches master exactly.
+		if archive.HasV6Pages() && archive.PayloadReader == nil && exporter.V6RendererAvailable() {
 			err = exporter.RenderV6Fallback(archive, writer)
 		} else {
+			if archive.HasV6Pages() && archive.PayloadReader == nil {
+				log.Warn("document has v6 pages but the external renderer is not installed, see RMC_RENDER_CMD / RMC_RENDER_PY")
+			}
 			err = exporter.RenderRmapi(archive, writer)
 		}
 		if err != nil {

@@ -65,6 +65,18 @@ func envOrDefault(key, def string) string {
 	return def
 }
 
+// V6RendererAvailable reports whether the external v6 renderer is
+// actually installed. The v6 fallback is opt-in: deployments that do
+// not provide the renderer keep the exact behaviour of master.
+func V6RendererAvailable() bool {
+	for _, p := range []string{v6RendererCmd, v6RendererPy} {
+		if _, err := os.Stat(p); err != nil {
+			return false
+		}
+	}
+	return true
+}
+
 // RenderV6Fallback renders documents containing .rm v6 pages by
 // delegating to an external python renderer (rmc + pypdf). Pages that
 // the bundled parser understands (v3/v5) are rendered first with the
