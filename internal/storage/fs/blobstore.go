@@ -134,7 +134,16 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 	}
 	reader, writer := io.Pipe()
 	go func() {
-		err = exporter.RenderRmapi(archive, writer)
+		var err error
+		// pure notebooks written by firmware 3.x (.rm v6) cannot be
+		// rendered by the bundled parser; delegate to the external v6
+		// renderer. Documents with a pdf/epub payload keep the current
+		// behaviour (base document, v6 annotations skipped).
+		if archive.HasV6Pages() && archive.PayloadReader == nil {
+			err = exporter.RenderV6Fallback(archive, writer)
+		} else {
+			err = exporter.RenderRmapi(archive, writer)
+		}
 		if err != nil {
 			log.Error(err)
 			writer.Close()

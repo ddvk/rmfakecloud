@@ -13,6 +13,22 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// cPagesPage mirrors one entry of the "cPages.pages" array found in
+// .content files written by reMarkable firmware 3.x (Paper Pro/Pure).
+type cPagesPage struct {
+	ID string `json:"id"`
+}
+
+type cPages struct {
+	Pages []cPagesPage `json:"pages"`
+}
+
+// rawContent embeds the rmapi Content and adds the newer cPages field
+type rawContent struct {
+	archive.Content
+	CPages cPages `json:"cPages"`
+}
+
 // ArchiveFromHashDoc reads an archive
 func ArchiveFromHashDoc(doc *HashDoc, rs RemoteStorage) (*exporter.MyArchive, error) {
 	uuid := doc.EntryName
@@ -37,9 +53,19 @@ func ArchiveFromHashDoc(doc *HashDoc, rs RemoteStorage) (*exporter.MyArchive, er
 			if err != nil {
 				return nil, err
 			}
-			err = json.Unmarshal(contentBytes, &a.Content)
+			var rc rawContent
+			err = json.Unmarshal(contentBytes, &rc)
 			if err != nil {
 				return nil, err
+			}
+			a.Content = rc.Content
+			// firmware 3.x stores the page list in cPages instead of
+			// the flat pages field; fall back to it when absent
+			if len(a.Content.Pages) == 0 && len(rc.CPages.Pages) > 0 {
+				a.Content.Pages = make([]string, 0, len(rc.CPages.Pages))
+				for _, p := range rc.CPages.Pages {
+					a.Content.Pages = append(a.Content.Pages, p.ID)
+				}
 			}
 		case storage.EpubFileExt:
 			fallthrough
@@ -79,6 +105,18 @@ func ArchiveFromHashDoc(doc *HashDoc, rs RemoteStorage) (*exporter.MyArchive, er
 			rmpage := rm.New()
 			err = rmpage.UnmarshalBinary(pageBin)
 			if err != nil {
+				// firmware 3.x (Paper Pro/Pure) writes .rm v6 pages that
+				// the bundled parser cannot read; keep the raw bytes so a
+				// v6-capable renderer can process them later instead of
+				// aborting the whole export
+				if isV6Page(pageBin) {
+					log.Warnln("keeping unsupported v6 rm page", p)
+					a.V6Pages = append(a.V6Pages, exporter.V6Page{
+						PageID: p,
+						Data:   pageBin,
+					})
+					continue
+				}
 				return nil, err
 			}
 
@@ -91,4 +129,11 @@ func ArchiveFromHashDoc(doc *HashDoc, rs RemoteStorage) (*exporter.MyArchive, er
 	}
 
 	return &a, nil
+}
+
+// v6Header is the magic string .rm v6 files start with
+const v6Header = "reMarkable .lines file, version=6"
+
+func isV6Page(data []byte) bool {
+	return len(data) >= len(v6Header) && string(data[:len(v6Header)]) == v6Header
 }
