@@ -1,0 +1,3 @@
+[submodule "ui/extra/simplerenderer/librm_lines"]
+	path = ui/extra/simplerenderer/librm_lines
+	url = https://github.com/RedTTGMoss/librm_lines
