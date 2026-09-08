@@ -86,6 +86,11 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	auth.GET("integrations/:intid/metadata/*path", app.getMetadataIntegration)
 	auth.GET("integrations/:intid/download/*path", app.downloadThroughIntegration)
 
+	auth.GET("documents/:docid/template", app.getTemplate)
+	auth.GET("templates/:id", app.getBuiltinTemplate)
+	auth.GET("methods/:id", app.getBuiltinMethod)
+	auth.GET("blobs/:blobid", app.getRawBlob)
+	auth.GET("documents/:docid/blobs", app.getBlobTree)
 	ss := auth.Group("screenshare")
 	ss.GET("room", app.screenshareJoinActive)
 	ss.GET("room/:roomId", app.screenshareGetRoom)

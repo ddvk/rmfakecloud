@@ -20,7 +20,7 @@ const DocumentTree = ({ selection, onSelect, treeRef, term, entries, height = 70
       >
         <div className={itemClassName(node.data)}>
           <FileIcon file={node.data} />
-          {node.data.name}
+          {node.data.pinned ? `${node.data.name} ★` : node.data.name}
         </div>
       </div>
     );
