@@ -23,8 +23,10 @@ import (
 const (
 	userIDContextKey    = "userID"
 	browserIDContextKey = "browserID"
+	suByContextKey      = "suBy"
 	isSync15Key         = "sync15"
 	docIDParam          = "docid"
+	blobIDParam         = "blobid"
 	intIDParam          = "intid"
 	uiLogger            = "[ui] "
 	ui10                = " [10] "
@@ -262,6 +264,7 @@ func (app *ReactAppWrapper) listDocuments(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, tree)
 }
+
 func (app *ReactAppWrapper) getDocument(c *gin.Context) {
 	uid := userID(c)
 	docid := common.ParamS(docIDParam, c)
@@ -301,7 +304,6 @@ func (app *ReactAppWrapper) getDocumentMetadata(c *gin.Context) {
 
 }
 
-// move rename
 func (app *ReactAppWrapper) updateDocument(c *gin.Context) {
 	upd := viewmodel.UpdateDoc{}
 	if err := c.ShouldBindJSON(&upd); err != nil {
@@ -320,6 +322,7 @@ func (app *ReactAppWrapper) updateDocument(c *gin.Context) {
 
 	c.Status(http.StatusOK)
 }
+
 func (app *ReactAppWrapper) deleteDocument(c *gin.Context) {
 	uid := userID(c)
 	docid := c.Param("docid")
@@ -495,6 +498,7 @@ func (app *ReactAppWrapper) updateUser(c *gin.Context) {
 	}
 	c.Status(http.StatusAccepted)
 }
+
 func (app *ReactAppWrapper) deleteUser(c *gin.Context) {
 	uid := c.Param(useridParam)
 	if uid == userID(c) {
@@ -894,3 +898,29 @@ func (app *ReactAppWrapper) screenshareDeleteRoom(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
+func (app *ReactAppWrapper) getRawBlob(c *gin.Context) {
+	uid := userID(c)
+	blobid := common.ParamS(blobIDParam, c)
+	backend := app.getBackend(c)
+	reader, err := backend.GetRawBlob(uid, blobid)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	defer reader.Close()
+	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
+}
+
+func (app *ReactAppWrapper) getBlobTree(c *gin.Context) {
+	uid := userID(c)
+	docid := common.ParamS(docIDParam, c)
+	backend := app.getBackend(c)
+	files, err := backend.GetBlobDocumentTree(uid, docid)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.JSON(http.StatusOK, files)
+}

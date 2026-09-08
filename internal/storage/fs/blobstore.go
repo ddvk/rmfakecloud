@@ -760,3 +760,24 @@ func generationFromFileSize(size int64) int64 {
 	//time + 1 space + 64 hash + 1 newline
 	return size / 86
 }
+
+func (fs *FileSystemStorage) GetRawBlob(uid, hash string) (stream io.ReadCloser, err error) {
+	reader, _, _, _, err := fs.LoadBlob(uid, hash)
+	return reader, err
+}
+
+func (fs *FileSystemStorage) GetBlobDocumentTree(uid, docid string) (m map[string]string, err error) {
+	tree, err := fs.GetCachedTree(uid)
+	if err != nil {
+		return nil, err
+	}
+	doc, err := tree.FindDoc(docid)
+	if err != nil {
+		return nil, err
+	}
+	output := make(map[string]string, len(doc.Files))
+	for _, entry := range doc.Files {
+		output[entry.EntryName] = entry.Hash
+	}
+	return output, nil
+}
