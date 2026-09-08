@@ -1,6 +1,7 @@
 package app
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/rand"
 	"encoding/base64"
@@ -112,6 +113,15 @@ func (app *App) newDevice(c *gin.Context) {
 		return
 	}
 
+	if user, err := app.userStorer.GetUser(uid); err == nil && user != nil {
+		user.UpsertRegisteredDevice(tokenRequest.DeviceID, tokenRequest.DeviceDesc, tokenRequest.DeviceLink)
+		if err := app.userStorer.UpdateUser(user); err != nil {
+			log.Warn("could not persist registered device: ", err)
+		}
+	} else if err != nil {
+		log.Warn("could not load user for device registration: ", err)
+	}
+
 	c.String(http.StatusOK, tokenString)
 }
 
@@ -123,6 +133,14 @@ func (app *App) deleteDevice(c *gin.Context) {
 		return
 	}
 	log.Info("Logging out: ", deviceToken.UserID)
+	if user, err := app.userStorer.GetUser(deviceToken.UserID); err == nil && user != nil {
+		user.RemoveRegisteredDevice(deviceToken.DeviceID)
+		if err := app.userStorer.UpdateUser(user); err != nil {
+			log.Warn("could not update user after device logout: ", err)
+		}
+	} else if err != nil {
+		log.Warn("could not load user on device logout: ", err)
+	}
 	c.Status(http.StatusNoContent)
 }
 
@@ -899,7 +917,13 @@ func (app *App) blobStorageRead(c *gin.Context) {
 	defer reader.Close()
 	common.AddHashHeader(c, hash)
 
-	c.DataFromReader(http.StatusOK, size, "application/octet-stream", reader, nil)
+	br := bufio.NewReader(reader)
+	ct := "application/octet-stream"
+	if b, err := br.Peek(5); err == nil && string(b) == "%PDF-" {
+		ct = "application/pdf"
+	}
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.DataFromReader(http.StatusOK, size, ct, br, nil)
 }
 
 func (app *App) blobStorageWrite(c *gin.Context) {
@@ -1032,6 +1056,17 @@ func (app *App) integrationsUpload(c *gin.Context) {
 	name := common.QueryS("name", c)
 	fileType := common.QueryS("fileType", c)
 
+	ro, err := integrations.IsReadOnly(app.userStorer, uid, integrationID)
+	if err != nil {
+		log.Error(fmt.Errorf("can't check integration mode, %v", err))
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	if ro {
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "integration folder is read-only"})
+		return
+	}
+
 	integrationProvider, err := integrations.GetStorageIntegrationProvider(app.userStorer, uid, integrationID)
 
 	if err != nil {
@@ -1072,7 +1107,13 @@ func (app *App) integrationsGetFile(c *gin.Context) {
 
 	defer reader.Close()
 
-	c.DataFromReader(http.StatusOK, size, "application/octet-stream", reader, nil)
+	br := bufio.NewReader(reader)
+	ct := "application/octet-stream"
+	if b, err := br.Peek(5); err == nil && string(b) == "%PDF-" {
+		ct = "application/pdf"
+	}
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.DataFromReader(http.StatusOK, size, ct, br, nil)
 }
 
 func (app *App) integrationsList(c *gin.Context) {

@@ -21,6 +21,7 @@ const Integrations = () => {
   function openModal(index: number) {
     if (!integrationList) return;
     const integration = integrationList[index];
+    if (integration?.Shared && integration?.ReadOnly) return;
     setState({
       showModal: UpdateIntegration,
       modalIntegration: integration,
@@ -83,22 +84,26 @@ const Integrations = () => {
               <th>IntegrationId</th>
               <th>Name</th>
               <th>Provider</th>
+              <th>Scope</th>
               <th><Button onClick={newIntegration}>New Integration</Button></th>
             </tr>
           </thead>
           <tbody>
             {!integrationList.length && (
               <tr>
-                <td colSpan={5} className="text-center">No integration</td>
+                <td colSpan={6} className="text-center">No integration</td>
               </tr>
             )}
             {integrationList.map((i, index) => (
-              <tr key={i.ID} onClick={() => openModal(index)} style={{ cursor: "pointer" }}>
+              <tr key={i.ID} onClick={() => openModal(index)} style={{ cursor: (i.Shared && i.ReadOnly) ? "default" : "pointer" }}>
                 <td>{index}</td>
                 <td>{i.ID}</td>
                 <td>{i.Name}</td>
                 <td>{i.Provider}</td>
-                <td><Button variant="danger" onClick={(e) => remove(e,i.ID,i.Name)}>Delete</Button></td>
+                <td>{i.Shared ? "Admin shared" : "Personal"}</td>
+                <td>
+                  {!(i.Shared && i.ReadOnly) && <Button variant="danger" onClick={(e) => remove(e,i.ID,i.Name)}>Delete</Button>}
+                </td>
               </tr>
             ))}
           </tbody>
