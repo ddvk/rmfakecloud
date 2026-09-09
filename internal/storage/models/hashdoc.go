@@ -26,6 +26,35 @@ type HashDoc struct {
 	MetadataFile
 	//PayloadType
 	PayloadType string
+	PageCount   int
+}
+
+// EffectivePayloadType is pdf, epub, or notebook. Ignores leftover names
+// stored in PayloadType and falls back to the payload filename suffix.
+func (d *HashDoc) EffectivePayloadType() string {
+	t := strings.ToLower(strings.TrimSpace(d.PayloadType))
+	t = strings.TrimPrefix(t, ".")
+	switch t {
+	case "pdf":
+		return "pdf"
+	case "epub":
+		return "epub"
+	case "notebook", "rm":
+		return "notebook"
+	}
+	for _, f := range d.Files {
+		if f == nil {
+			continue
+		}
+		n := strings.ToLower(f.EntryName)
+		if strings.HasSuffix(n, ".pdf") {
+			return "pdf"
+		}
+		if strings.HasSuffix(n, ".epub") {
+			return "epub"
+		}
+	}
+	return "notebook"
 }
 
 func NewHashDocWithMeta(documentID string, meta MetadataFile) *HashDoc {
@@ -181,6 +210,11 @@ func (d *HashDoc) readContent(hash string, r RemoteStorage) error {
 		log.Printf("cannot read content %s %v", hash, err)
 	}
 	d.PayloadType = contentFile.FileType
+	d.PageCount = contentFile.PageCount
+	if d.PageCount == 0 {
+		d.PageCount = len(contentFile.PageIDs())
+	}
+	d.LastOpenedPage = contentFile.MergeLastOpenedIndex(d.LastOpenedPage)
 
 	if len(contentFile.SizeInBytes) > 0 {
 		d.Size, err = strconv.ParseInt(contentFile.SizeInBytes, 10, 64)

@@ -35,8 +35,9 @@ type ChangeEmailForm struct {
 type ErrorResponse struct {
 	Error string `json:"error"`
 }
+
 func NewErrorResponse(errormsg string) ErrorResponse {
-	return ErrorResponse {
+	return ErrorResponse{
 		Error: errormsg,
 	}
 }
@@ -57,6 +58,8 @@ type InternalDoc struct {
 	CurrentPage  int
 	Parent       string
 	Size         int64
+	PageCount    int
+	Pinned       bool
 }
 
 func makeFolder(d *InternalDoc) (entry *Directory) {
@@ -66,6 +69,7 @@ func makeFolder(d *InternalDoc) (entry *Directory) {
 		LastModified: d.LastModified,
 		Entries:      make([]Entry, 0),
 		IsFolder:     true,
+		Pinned:       d.Pinned,
 	}
 	return
 }
@@ -76,6 +80,9 @@ func makeDocument(d *InternalDoc) (entry Entry) {
 		LastModified: d.LastModified,
 		DocumentType: d.FileType,
 		Size:         d.Size,
+		CurrentPage:  d.CurrentPage,
+		PageCount:    d.PageCount,
+		Pinned:       d.Pinned,
 	}
 	return
 }
@@ -98,8 +105,11 @@ func DocTreeFromHashTree(tree *models.HashTree) *DocumentTree {
 			Name:         d.MetadataFile.DocumentName,
 			Type:         d.MetadataFile.CollectionType,
 			LastModified: lastModified,
-			FileType:     d.PayloadType,
+			FileType:     d.EffectivePayloadType(),
 			Size:         d.Size,
+			CurrentPage:  d.LastOpenedPage,
+			PageCount:    d.PageCount,
+			Pinned:       d.Pinned,
 		})
 	}
 
@@ -194,6 +204,7 @@ type Directory struct {
 	Entries      []Entry   `json:"children"`
 	LastModified time.Time `json:"lastModified"`
 	IsFolder     bool      `json:"isFolder"`
+	Pinned       bool      `json:"pinned"`
 }
 
 // Document is a single document
@@ -203,6 +214,9 @@ type Document struct {
 	DocumentType string    `json:"type"` //notebook, pdf, epub
 	LastModified time.Time `json:"lastModified"`
 	Size         int64     `json:"size"`
+	CurrentPage  int       `json:"currentPage"`
+	PageCount    int       `json:"pageCount"`
+	Pinned       bool      `json:"pinned"`
 }
 
 // DocumentList is a list of documents
@@ -216,7 +230,7 @@ type User struct {
 	Email        string `json:"email"`
 	Name         string `json:"name"`
 	NewPassword  string `json:"newpassword,omitempty"`
-	IsAdmin 	 bool `json:"isAdmin"`
+	IsAdmin      bool   `json:"isAdmin"`
 	CreatedAt    time.Time
 	Integrations []string `json:"integrations,omitempty"`
 }
