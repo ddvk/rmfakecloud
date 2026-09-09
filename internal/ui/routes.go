@@ -37,6 +37,9 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	r := router.Group("/ui/api")
 	r.POST("register", app.register)
 	r.POST("login", app.login)
+	r.GET("webauthn/status", app.webAuthnStatus)
+	r.POST("webauthn/login/begin", app.webAuthnLoginBegin)
+	r.POST("webauthn/login/finish", app.webAuthnLoginFinish)
 	r.GET("logout", func(c *gin.Context) {
 		c.SetCookie(cookieName, "/", -1, "", "", false, true)
 		c.Status(http.StatusOK)
@@ -64,6 +67,11 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	// auth.GET("profile", app.newCode)
 	auth.POST("profile", app.changePassword)
 	// auth.POST("changeEmail", app.changePassword)
+
+	auth.POST("webauthn/register/begin", app.webAuthnRegisterBegin)
+	auth.POST("webauthn/register/finish", app.webAuthnRegisterFinish)
+	auth.GET("webauthn/credentials", app.webAuthnListCredentials)
+	auth.DELETE("webauthn/credentials/:id", app.webAuthnDeleteCredential)
 
 	auth.GET("documents", app.listDocuments)
 	auth.GET("documents/:docid", app.getDocument)

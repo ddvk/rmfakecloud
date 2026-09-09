@@ -33,6 +33,92 @@ class ApiServices {
         return user;
       });
   }
+  webAuthnStatus() {
+    return fetch(`${constants.ROOT_URL}/webauthn/status`, {
+      method: "GET",
+      headers: this.header(),
+      credentials: "same-origin",
+    }).then(async (r) => {
+      if (!r.ok) return { enabled: false };
+      return r.json();
+    }).catch(() => ({ enabled: false }));
+  }
+  webAuthnRegisterBegin() {
+    return fetch(`${constants.ROOT_URL}/webauthn/register/begin`, {
+      method: "POST",
+      headers: this.header(),
+      credentials: "same-origin",
+    }).then(async (r) => {
+      handleError(r);
+      return r.json();
+    });
+  }
+  webAuthnRegisterFinish(sessionId, credential, name) {
+    return fetch(`${constants.ROOT_URL}/webauthn/register/finish`, {
+      method: "POST",
+      headers: this.header(),
+      credentials: "same-origin",
+      body: JSON.stringify({ sessionId, credential, name }),
+    }).then(async (r) => {
+      handleError(r);
+      return r.json();
+    });
+  }
+  listWebAuthnCredentials() {
+    return fetch(`${constants.ROOT_URL}/webauthn/credentials`, {
+      method: "GET",
+      headers: this.header(),
+      credentials: "same-origin",
+    }).then(async (r) => {
+      handleError(r);
+      return r.json();
+    });
+  }
+  deleteWebAuthnCredential(id) {
+    return fetch(`${constants.ROOT_URL}/webauthn/credentials/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      headers: this.header(),
+      credentials: "same-origin",
+    }).then((r) => handleError(r));
+  }
+  webAuthnLoginBegin() {
+    return fetch(`${constants.ROOT_URL}/webauthn/login/begin`, {
+      method: "POST",
+      headers: this.header(),
+      credentials: "same-origin",
+    }).then(async (r) => {
+      handleError(r);
+      return r.json();
+    });
+  }
+  webAuthnLoginFinish(sessionId, credential) {
+    return fetch(`${constants.ROOT_URL}/webauthn/login/finish`, {
+      method: "POST",
+      headers: this.header(),
+      credentials: "same-origin",
+      body: JSON.stringify({ sessionId, credential }),
+    })
+      .then(async (r) => {
+        const text = await r.text();
+        if (!r.ok) {
+          let msg = r.statusText;
+          try {
+            if (text && text.startsWith("{")) {
+              const j = JSON.parse(text);
+              if (j.error) msg = j.error;
+            }
+          } catch (_) {}
+          throw new Error(msg);
+        }
+        return text;
+      })
+      .then((text) => {
+        let user = jwtDecode(text);
+        localStorage.setItem("currentUser", JSON.stringify(user));
+        localStorage.setItem("authToken", text);
+        return user;
+      });
+  }
   logout() {
     removeUser();
     fetch(`${constants.ROOT_URL}/logout`);
