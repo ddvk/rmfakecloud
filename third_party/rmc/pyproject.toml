@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "rmc"
+version = "0.3.1-dev"
+description = "Convert to/from v6 .rm files from the reMarkable tablet"
+authors = ["Rick Lupton <mail@ricklupton.name>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+rmscene = ">=0.8.0, <0.9.0"
+click = "^8.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.2.0"
+
+[tool.poetry.scripts]
+rmc = 'rmc.cli:cli'
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

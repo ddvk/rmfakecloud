@@ -53,6 +53,11 @@ func (fs *FileSystemStorage) GetCachedTree(uid string) (t *models.HashTree, err 
 			return nil, err
 		}
 	}
+	metaChanged := fs.ensureTemplateMetadata(tree, blobStorage)
+	labelChanged := fs.ensureFormatLabels(tree, blobStorage)
+	if metaChanged || labelChanged {
+		_ = tree.Save(cachePath)
+	}
 	return tree, nil
 }
 
@@ -128,6 +133,17 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 	}
 	ls := fs.BlobStorage(uid)
 
+	// PDF viewers / Download PDF need the source payload. Baking annotations via
+	// rmapi fails on v6 .rm ("Unknown header"); ink is served separately as page PNGs.
+	for _, f := range doc.Files {
+		if f == nil {
+			continue
+		}
+		if strings.HasSuffix(strings.ToLower(f.EntryName), storage.PdfFileExt) {
+			return ls.GetReader(f.Hash)
+		}
+	}
+
 	archive, err := models.ArchiveFromHashDoc(doc, ls)
 	if err != nil {
 		return nil, err
@@ -137,22 +153,38 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 		err = exporter.RenderRmapi(archive, writer)
 		if err != nil {
 			log.Error(err)
-			writer.Close()
+			writer.CloseWithError(err)
 			return
 		}
 		writer.Close()
 	}()
-	return reader, err
+	return reader, nil
 }
 
 // UpdateBlobDocument updates metadata
 func (fs *FileSystemStorage) UpdateBlobDocument(uid, docID, name, parent string) (err error) {
+	return fs.updateBlobDocumentMeta(uid, docID, func(doc *models.HashDoc) error {
+		log.Info("updateBlobDocument: ", doc.DocumentName, " new name:", name)
+		doc.DocumentName = name
+		doc.Parent = parent
+		return nil
+	})
+}
+
+// SetBlobDocumentPinned sets the favorite (★) flag in document metadata.
+func (fs *FileSystemStorage) SetBlobDocumentPinned(uid, docID string, pinned bool) error {
+	return fs.updateBlobDocumentMeta(uid, docID, func(doc *models.HashDoc) error {
+		doc.Pinned = pinned
+		return nil
+	})
+}
+
+func (fs *FileSystemStorage) updateBlobDocumentMeta(uid, docID string, mut func(*models.HashDoc) error) (err error) {
 	tree, err := fs.GetCachedTree(uid)
 	if err != nil {
-		return nil
+		return err
 	}
 
-	log.Info("updateBlobDocument: ", docID, "new name:", name)
 	blobStorage := fs.BlobStorage(uid)
 
 	err = updateTree(tree, blobStorage, func(t *models.HashTree) error {
@@ -160,11 +192,12 @@ func (fs *FileSystemStorage) UpdateBlobDocument(uid, docID, name, parent string)
 		if err != nil {
 			return err
 		}
-		log.Info("updateBlobDocument: ", hashDoc.DocumentName)
-
-		hashDoc.DocumentName = name
-		hashDoc.Parent = parent
+		if err := mut(hashDoc); err != nil {
+			return err
+		}
 		hashDoc.Version++
+		hashDoc.MetadataModified = true
+		hashDoc.LastModified = models.FromTime(time.Now())
 
 		metadataHash, metadataReader, err := hashDoc.MetadataReader()
 		if err != nil {
@@ -176,7 +209,6 @@ func (fs *FileSystemStorage) UpdateBlobDocument(uid, docID, name, parent string)
 			return err
 		}
 
-		//update the metadata hash
 		for _, hashEntry := range hashDoc.Files {
 			if hashEntry.IsMetadata() {
 				hashEntry.Hash = metadataHash
@@ -323,11 +355,30 @@ func updateTree(tree *models.HashTree, storage *LocalBlobStorage, treeMutation f
 	return errors.New("could not update")
 }
 
+// GetTemplate returns the raw .template file for a given entry (if present).
+func (fs *FileSystemStorage) GetTemplate(uid, docid string) (r io.ReadCloser, err error) {
+	tree, err := fs.GetCachedTree(uid)
+	if err != nil {
+		return nil, err
+	}
+	doc, err := tree.FindDoc(docid)
+	if err != nil {
+		return nil, err
+	}
+	ls := fs.BlobStorage(uid)
+	for _, f := range doc.Files {
+		if strings.HasSuffix(strings.ToLower(f.EntryName), storage.TemplateFileExt) {
+			return ls.GetReader(f.Hash)
+		}
+	}
+	return nil, errors.New("template not found")
+}
+
 // CreateBlobDocument creates a new document
 func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, stream io.Reader) (doc *storage.Document, err error) {
-	ext := path.Ext(filename)
+	ext := strings.ToLower(path.Ext(filename))
 	switch ext {
-	case storage.EpubFileExt, storage.PdfFileExt, storage.RmDocFileExt:
+	case storage.EpubFileExt, storage.PdfFileExt, storage.RmDocFileExt, storage.TemplateFileExt:
 	default:
 		return nil, errors.New("unsupported extension: " + ext)
 	}
@@ -338,7 +389,7 @@ func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, st
 
 	blobPath := fs.getUserBlobPath(uid)
 	docid := uuid.New().String()
-	docName := strings.TrimSuffix(filename, ext)
+	docName := strings.TrimSuffix(filename, path.Ext(filename))
 
 	tree, err := fs.GetCachedTree(uid)
 	if err != nil {
@@ -347,9 +398,13 @@ func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, st
 
 	log.Info("Creating metadata... parent: ", parent)
 
+	collectionType := common.DocumentType
+	if ext == storage.TemplateFileExt {
+		collectionType = common.TemplateType
+	}
 	metadata := models.MetadataFile{
 		DocumentName:     docName,
-		CollectionType:   common.DocumentType,
+		CollectionType:   collectionType,
 		Parent:           parent,
 		Version:          1,
 		CreatedTime:      models.FromTime(time.Now()),
@@ -371,14 +426,21 @@ func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, st
 	}
 
 	hashDoc := models.NewHashDocWithMeta(docid, metadata)
-	hashDoc.PayloadType = docName
+	if ext == storage.TemplateFileExt {
+		hashDoc.PayloadType = "template"
+	} else {
+		hashDoc.PayloadType = strings.TrimPrefix(ext, ".")
+	}
 
 	err = hashDoc.AddFile(payloadEntry)
 	if err != nil {
 		return
 	}
 
-	content := createContent(ext)
+	content := "{}"
+	if ext != storage.TemplateFileExt {
+		content = createContent(ext)
+	}
 
 	contentReader := strings.NewReader(content)
 	contentHash, size, err := models.Hash(contentReader)
@@ -448,7 +510,7 @@ func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, st
 
 	doc = &storage.Document{
 		ID:     docid,
-		Type:   common.DocumentType,
+		Type:   collectionType,
 		Parent: "",
 		Name:   docName,
 	}
@@ -513,7 +575,7 @@ func (fs *FileSystemStorage) createFromRmDoc(uid, parent string, stream io.Reade
 	}
 
 	hashDoc := models.NewHashDocWithMeta(docid, metadata)
-	hashDoc.PayloadType = metadata.DocumentName
+	hashDoc.PayloadType = "notebook"
 
 	for _, f := range zr.File {
 		if strings.HasSuffix(f.Name, storage.ContentFileExt) {
