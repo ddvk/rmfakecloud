@@ -12,6 +12,11 @@ The configuration is made through environment variables.
 | `RM_HTTPS_COOKIE` | For the UI, force cookies to be available only via https |
 | `RM_TRUST_PROXY`  | Trust the proxy for client ip addresses (X-Forwarded-For/X-Real-IP) default false |
 | `HASH_SCHEMA_VERSION` | Hash tree schema version: "3" or "4" (default: 3) |
+| `RMFAKECLOUD_WEBAUTHN` | Enable **passkeys** (WebAuthn) for the web UI (default: `false`). Additive to password login. Requires a real HTTPS browser origin (not `http://hostname:port` or raw IPs). |
+| `RMFAKECLOUD_WEBAUTHN_RPID` | Relying Party ID — hostname without scheme or port (e.g. `www.example.com`). If empty and `STORAGE_URL` is `https://…`, derived from that host. |
+| `RMFAKECLOUD_WEBAUTHN_ORIGINS` | Comma-separated allowed origins (e.g. `https://www.example.com:3000`). If empty and `STORAGE_URL` is `https://…`, derived as a single origin from it. |
+
+Manual verification steps: [passkeys checklist](passkeys-checklist.md).
 
 ## Handwriting recognition
 

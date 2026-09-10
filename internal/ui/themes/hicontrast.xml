@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<theme id="hicontrast" name="High contrast" published="true">
+  <colors
+    background1="#000000"
+    background2="#000000"
+    foreground1="#ffffff"
+    foreground2="#ffffff"
+    foreground3="#ffff00"
+    action="#ffff00"
+    accept="#00ff00"
+    reject="#ff3300"
+  />
+  <icons
+    brand="cloud"
+    documents="folder"
+    integrations="puzzle"
+    connect="link"
+    screenshare="display"
+    admin="gear"
+    profile="person"
+  />
+  <layout>
+    <chrome
+      style="remarkable"
+      folder-color="#ffff00"
+      tab-color="#ffff00"
+      outline-color="#ffffff"
+      drawer-color="#000000"
+      label-color="#ffffff"
+    />
+    <nav brand-position="start" user-menu="end">
+      <item id="documents" visible="true"/>
+      <item id="integrations" visible="true"/>
+      <item id="connect" visible="true"/>
+      <item id="screenshare" visible="true"/>
+      <item id="admin" visible="true" admin-only="true"/>
+      <item id="help" visible="true"/>
+      <item id="profile" visible="true"/>
+    </nav>
+    <login primary-button="end" passkey-button="start" show-brand="true"/>
+    <connect
+      gauge-type="circle"
+      track-color="#333333"
+      fill-color="#ffff00"
+      text-color="#ffffff"
+      prompt-location="above"
+      prompt-style="plain"
+      prompt-bg="#000000"
+      prompt-fg="#ffffff"
+      prompt-border="#ffffff"
+      font-family="system"
+      font-size="lg"
+      code-color="#ffff00"
+    />
+    <mobile>
+      <chrome
+        style="remarkable"
+        folder-color="#ffff00"
+        tab-color="#ffff00"
+        outline-color="#ffffff"
+        drawer-color="#000000"
+        label-color="#ffffff"
+      />
+      <nav brand-position="start" user-menu="end">
+        <item id="documents" visible="true"/>
+        <item id="integrations" visible="true"/>
+        <item id="connect" visible="true"/>
+        <item id="screenshare" visible="true"/>
+        <item id="admin" visible="true" admin-only="true"/>
+        <item id="help" visible="true"/>
+        <item id="profile" visible="true"/>
+      </nav>
+      <login primary-button="end" passkey-button="start" show-brand="true"/>
+      <connect
+        gauge-type="bar"
+        track-color="#333333"
+        fill-color="#ffff00"
+        text-color="#ffffff"
+        prompt-location="above"
+        prompt-style="boxed"
+        prompt-bg="#000000"
+        prompt-fg="#ffffff"
+        prompt-border="#ffff00"
+        font-family="system"
+        font-size="md"
+        code-color="#ffff00"
+      />
+    </mobile>
+  </layout>
+</theme>
