@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "rmscene"
+version = "0.8.1-dev"
+description = "Read v6 .rm files from the reMarkable tablet"
+authors = ["Rick Lupton <mail@ricklupton.name>"]
+license = "MIT"
+repository = "https://github.com/ricklupton/rmscene"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+packaging = "^23.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=7.4"
+hypothesis = "^6.68.2"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

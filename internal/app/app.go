@@ -140,6 +140,7 @@ func NewApp(cfg *config.Config) App {
 	pcStore := passcodestore.NewInMemory()
 	codeConnector := NewCodeConnector()
 	router := gin.Default()
+	router.Use(compressionMiddleware())
 
 	// corsConfig := cors.DefaultConfig()
 

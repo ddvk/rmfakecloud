@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/ddvk/rmfakecloud/internal/common"
@@ -113,7 +115,7 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 	}
 
 	// Try to find the user
-	user, err := app.userStorer.GetUser(form.Email)
+	user, err := app.findUserForLogin(form.Email)
 	if err != nil {
 		log.Error(uiLogger, err, " cannot load user, login failed ip: ", c.ClientIP())
 		c.AbortWithStatus(http.StatusUnauthorized)
@@ -130,6 +132,23 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 		return
 	}
 
+	tokenString, expiresAfter, err := app.issueWebTokenForUser(user, uuid.NewString())
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	log.Debug("cookie expires after: ", expiresAfter)
+	c.SetSameSite(http.SameSiteStrictMode)
+	c.SetCookie(cookieName, tokenString, int(expiresAfter.Seconds()), "/", "", app.cfg.HTTPSCookie, true)
+
+	c.String(http.StatusOK, tokenString)
+}
+
+func (app *ReactAppWrapper) issueWebTokenForUser(user *model.User, browserID string) (string, time.Duration, error) {
+	if user == nil {
+		return "", 0, fmt.Errorf("user is nil")
+	}
 	scopes := ""
 	if user.Sync15 {
 		scopes = isSync15Key
@@ -138,7 +157,7 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 	expires := time.Now().Add(expiresAfter)
 	claims := &WebUserClaims{
 		UserID:    user.ID,
-		BrowserID: uuid.NewString(),
+		BrowserID: browserID,
 		Email:     user.Email,
 		Scopes:    scopes,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -154,17 +173,10 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 	}
 
 	tokenString, err := common.SignClaims(claims, app.cfg.JWTSecretKey)
-
 	if err != nil {
-		log.Error(err)
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
+		return "", 0, err
 	}
-	log.Debug("cookie expires after: ", expiresAfter)
-	c.SetSameSite(http.SameSiteStrictMode)
-	c.SetCookie(cookieName, tokenString, int(expiresAfter.Seconds()), "/", "", app.cfg.HTTPSCookie, true)
-
-	c.String(http.StatusOK, tokenString)
+	return tokenString, expiresAfter, nil
 }
 
 func (app *ReactAppWrapper) changePassword(c *gin.Context) {
@@ -236,6 +248,21 @@ func (app *ReactAppWrapper) newCode(c *gin.Context) {
 	c.JSON(http.StatusOK, code)
 }
 
+func (app *ReactAppWrapper) codeStatus(c *gin.Context) {
+	uid := userID(c)
+	user, err := app.userStorer.GetUser(uid)
+	if err != nil {
+		log.Error("Unable to find user: ", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, viewmodel.NewErrorResponse(err.Error()))
+		return
+	}
+	code, ok := app.codeConnector.CurrentCode(user.ID)
+	if !ok {
+		code = ""
+	}
+	c.JSON(http.StatusOK, gin.H{"code": code, "active": ok})
+}
+
 func (app *ReactAppWrapper) getBackend(c *gin.Context) backend {
 	s, ok := c.Get(backendVersionKey)
 	if !ok {
@@ -284,8 +311,51 @@ func (app *ReactAppWrapper) getDocument(c *gin.Context) {
 	if exportType == "rmdoc" {
 		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s.rmdoc\"", docid))
 	}
+	if exportType == "epub" {
+		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s.epub\"", docid))
+		c.Header("Content-Type", "application/epub+zip")
+		c.Header("X-Content-Type-Options", "nosniff")
+		c.DataFromReader(http.StatusOK, -1, "application/epub+zip", reader, nil)
+		return
+	}
+
+	if exportType == "pdf" {
+		c.Header("Content-Type", "application/pdf")
+		c.Header("X-Content-Type-Options", "nosniff")
+		c.DataFromReader(http.StatusOK, -1, "application/pdf", reader, nil)
+		return
+	}
 
 	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
+}
+
+func (app *ReactAppWrapper) getDocumentPage(c *gin.Context) {
+	uid := userID(c)
+	docid := common.ParamS(docIDParam, c)
+	pagenum, err := strconv.Atoi(c.Param("pagenum"))
+	if err != nil || pagenum < 1 {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	type pagePNGExporter interface {
+		ExportPagePNG(uid, docid string, pageNum int) (io.ReadCloser, error)
+	}
+	backend := app.getBackend(c)
+	pe, ok := backend.(pagePNGExporter)
+	if !ok {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	reader, err := pe.ExportPagePNG(uid, docid, pagenum)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	defer reader.Close()
+	c.Header("Content-Type", "image/png")
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.DataFromReader(http.StatusOK, -1, "image/png", reader, nil)
 }
 
 func (app *ReactAppWrapper) getDocumentMetadata(c *gin.Context) {
@@ -893,4 +963,3 @@ func (app *ReactAppWrapper) screenshareDeleteRoom(c *gin.Context) {
 	app.roomManager.DeleteAllForUser(uid)
 	c.Status(http.StatusNoContent)
 }
-
