@@ -45,6 +45,10 @@ To be able to send email from your reMarkable, fill the following variables:
 
 Screen sharing streams your tablet display to a browser via WebRTC. There are two signaling modes depending on your tablet's software version.
 
+#### Firefox and USB connections
+
+Firefox normally limits WebRTC local network candidates to the interface used to load the site until that site has camera or microphone permission. If rmfakecloud is open over Wi-Fi, this can hide the reMarkable USB interface (`10.11.99.5`) even though the tablet advertises its USB address (`10.11.99.1`). The Screen Share page shows an **Enable Firefox USB access** button in Firefox. It requests microphone permission, immediately stops the resulting media tracks, and retries discovery; rmfakecloud does not keep or transmit microphone audio. If permission is denied, allow microphone access for the rmfakecloud site in Firefox and try again.
+
 ### REST-based (reMarkable OS 3.27+)
 
 Starting with OS 3.27, the tablet can use REST-based signaling instead of MQTT. No additional setup is required, screen sharing works out of the box.

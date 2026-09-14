@@ -4,6 +4,7 @@ import { Container, Alert, Spinner, Button } from "react-bootstrap";
 import { BsGearFill, BsFullscreenExit, BsArrowCounterclockwise, BsArrowClockwise } from "react-icons/bs";
 import pako from "pako";
 import constants from "../../common/constants";
+import { isFirefox, requestLocalCandidateAccess } from "./firefoxUsb";
 
 const STATUS = {
   WAITING: "waiting",
@@ -64,6 +65,8 @@ export default function ScreenShare() {
   const [showControls, setShowControls] = useState(false);
   const [pinnedPosition, setPinnedPosition] = useState(null);
   const [controlsPosition, setControlsPosition] = useState("right");
+  const [firefoxUsbStatus, setFirefoxUsbStatus] = useState("idle");
+  const firefoxBrowser = isFirefox(window.navigator.userAgent);
   const controlsRef = useRef(null);
   const manualRotationRef = useRef(0);
 
@@ -477,6 +480,20 @@ export default function ScreenShare() {
     setStatus(STATUS.WAITING);
   };
 
+  const enableFirefoxUsb = async () => {
+    setFirefoxUsbStatus("requesting");
+    try {
+      await requestLocalCandidateAccess(window.navigator.mediaDevices);
+      cleanup();
+      disconnectedRef.current = false;
+      setErrorMsg("");
+      setStatus(STATUS.WAITING);
+      setFirefoxUsbStatus("granted");
+    } catch {
+      setFirefoxUsbStatus("denied");
+    }
+  };
+
 
   return (
     <Container className="mt-4">
@@ -495,6 +512,31 @@ export default function ScreenShare() {
         <Alert variant="info">
           <Spinner animation="border" size="sm" className="me-2" />
           Waiting for reMarkable to start screen sharing...
+          {firefoxBrowser && (
+            <div className="mt-2">
+              Using the reMarkable USB connection? Firefox may hide the USB network interface
+              until this site has media permission. rmfakecloud does not keep or send audio.
+              <Button
+                variant="outline-primary"
+                size="sm"
+                className="ms-2"
+                disabled={firefoxUsbStatus === "requesting" || firefoxUsbStatus === "granted"}
+                onClick={enableFirefoxUsb}
+              >
+                {firefoxUsbStatus === "requesting"
+                  ? "Requesting permission..."
+                  : firefoxUsbStatus === "granted"
+                    ? "USB access enabled"
+                    : "Enable Firefox USB access"}
+              </Button>
+              {firefoxUsbStatus === "denied" && (
+                <div className="text-danger mt-1">
+                  Permission was not granted. Allow microphone access for this site in Firefox,
+                  then try again.
+                </div>
+              )}
+            </div>
+          )}
         </Alert>
       )}
 
