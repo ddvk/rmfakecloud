@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/ddvk/rmfakecloud/internal/email"
 	log "github.com/sirupsen/logrus"
@@ -81,6 +82,10 @@ const (
 	envMQTTPort          = "MQTT_PORT"
 	envICEServers        = "ICE_SERVERS"
 	envHashSchemaVersion = "HASH_SCHEMA_VERSION"
+
+	envWebAuthn        = "RMFAKECLOUD_WEBAUTHN"
+	envWebAuthnRPID    = "RMFAKECLOUD_WEBAUTHN_RPID"
+	envWebAuthnOrigins = "RMFAKECLOUD_WEBAUTHN_ORIGINS"
 )
 
 // Config config
@@ -106,6 +111,12 @@ type Config struct {
 	MQTTPort          string
 	ICEServers        []interface{}
 	HashSchemaVersion string
+	// WebAuthn enables passkey login for the web UI (RMFAKECLOUD_WEBAUTHN). Default false.
+	WebAuthn bool
+	// WebAuthnRPID is the Relying Party ID (hostname without scheme/port).
+	WebAuthnRPID string
+	// WebAuthnOrigins are allowed browser origins for WebAuthn ceremonies.
+	WebAuthnOrigins []string
 }
 
 // Verify verify
@@ -141,6 +152,9 @@ func (cfg *Config) Verify() {
 		log.Infof("WebRTC configured with %d ICE server(s)", len(cfg.ICEServers))
 	} else {
 		log.Info("No ICE servers configured - screenshare will only work on local networks")
+	}
+	if cfg.WebAuthn {
+		log.Infof("web UI passkeys enabled (rpid=%q origins=%v)", cfg.WebAuthnRPID, cfg.WebAuthnOrigins)
 	}
 }
 
@@ -265,6 +279,29 @@ func FromEnv() *Config {
 		log.Fatalf("%s must be either '3' or '4', got: %s", envHashSchemaVersion, hashSchemaVersion)
 	}
 
+	webAuthnWanted, _ := strconv.ParseBool(os.Getenv(envWebAuthn))
+	webAuthnRPID := strings.TrimSpace(os.Getenv(envWebAuthnRPID))
+	webAuthnOrigins := splitCSV(os.Getenv(envWebAuthnOrigins))
+	webAuthnEnabled := false
+	if webAuthnWanted {
+		if webAuthnRPID == "" || len(webAuthnOrigins) == 0 {
+			if derivedRPID, derivedOrigins, ok := deriveWebAuthnFromStorageURL(uploadURL); ok {
+				if webAuthnRPID == "" {
+					webAuthnRPID = derivedRPID
+				}
+				if len(webAuthnOrigins) == 0 {
+					webAuthnOrigins = derivedOrigins
+				}
+			}
+		}
+		if webAuthnRPID == "" || len(webAuthnOrigins) == 0 {
+			log.Errorf("%s=true but %s / %s not set and could not derive from https %s; passkeys disabled",
+				envWebAuthn, envWebAuthnRPID, envWebAuthnOrigins, EnvStorageURL)
+		} else {
+			webAuthnEnabled = true
+		}
+	}
+
 	cfg := Config{
 		Port:              port,
 		StorageURL:        uploadURL,
@@ -284,8 +321,34 @@ func FromEnv() *Config {
 		MQTTPort:          mqttPort,
 		ICEServers:        iceServers,
 		HashSchemaVersion: hashSchemaVersion,
+		WebAuthn:          webAuthnEnabled,
+		WebAuthnRPID:      webAuthnRPID,
+		WebAuthnOrigins:   webAuthnOrigins,
 	}
 	return &cfg
+}
+
+func splitCSV(s string) []string {
+	parts := strings.Split(s, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// deriveWebAuthnFromStorageURL returns RPID (hostname without port) and a single origin
+// when STORAGE_URL is https with a host. http / empty host returns ok=false.
+func deriveWebAuthnFromStorageURL(storageURL string) (rpid string, origins []string, ok bool) {
+	u, err := url.Parse(storageURL)
+	if err != nil || u.Scheme != "https" || u.Hostname() == "" {
+		return "", nil, false
+	}
+	origin := "https://" + u.Host
+	return u.Hostname(), []string{origin}, true
 }
 
 // normalizeICEServers expands "urls" arrays into singular "url" entries; xochitl rejects anything else
@@ -378,6 +441,12 @@ General:
 	%s	Trust the proxy for X-Forwarded-For/X-Real-IP (set only if behind a proxy)
 	%s	Hash tree schema version: "3" or "4" (default: 3)
 
+Web UI passkeys (WebAuthn):
+	%s	Enable passkey register/login for the web UI (default: false). Requires HTTPS browser origin.
+	%s	Relying Party ID (hostname without scheme/port). If empty, derived from https STORAGE_URL.
+	%s	Comma-separated allowed origins (e.g. https://example.com:3000). If empty, derived from https STORAGE_URL.
+			http://hostname, LAN names, and raw IPs do not work for real passkeys.
+
 MQTT (for screenshare):
 	%s	MQTT TCP port (default: 8883)
 	%s	ICE servers for WebRTC (JSON array format)
@@ -414,6 +483,10 @@ myScript hwr (needs a developer account):
 		envHTTPSCookie,
 		envTrustProxy,
 		envHashSchemaVersion,
+
+		envWebAuthn,
+		envWebAuthnRPID,
+		envWebAuthnOrigins,
 
 		envMQTTPort,
 		envICEServers,

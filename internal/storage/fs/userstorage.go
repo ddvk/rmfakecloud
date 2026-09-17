@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/ddvk/rmfakecloud/internal/model"
 	log "github.com/sirupsen/logrus"
@@ -140,6 +141,32 @@ func (fs *FileSystemStorage) UpdateUser(u *model.User) (err error) {
 	err = os.WriteFile(profilePath, js, 0600)
 
 	return
+}
+
+// RenameUser moves a user directory to a new id and leaves the profile id to the caller to update.
+func (fs *FileSystemStorage) RenameUser(oldID, newID string) error {
+	if oldID == "" || newID == "" {
+		return errors.New("empty id")
+	}
+	oldID = common.SanitizeUid(oldID)
+	newID = common.SanitizeUid(newID)
+	if oldID == "" || newID == "" {
+		return errors.New("invalid id")
+	}
+	if oldID == newID {
+		return nil
+	}
+	oldPath := fs.getUserPath(oldID)
+	newPath := fs.getUserPath(newID)
+	if _, err := os.Stat(oldPath); err != nil {
+		return fmt.Errorf("user not found: %w", err)
+	}
+	if _, err := os.Stat(newPath); err == nil {
+		return errors.New("user id already exists")
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	return os.Rename(oldPath, newPath)
 }
 
 // RemoveUser remove the user and their data
