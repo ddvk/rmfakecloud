@@ -26,6 +26,56 @@ type HashDoc struct {
 	MetadataFile
 	//PayloadType
 	PayloadType string
+	PageCount   int
+	// FormatLabel is a short encoding badge, e.g. "RM v6", "PDF 1.7".
+	FormatLabel string `json:"formatLabel,omitempty"`
+}
+
+// EffectivePayloadType is pdf, epub, or notebook. Ignores leftover names
+// stored in PayloadType and falls back to the payload filename suffix.
+func (d *HashDoc) EffectivePayloadType() string {
+	t := strings.ToLower(strings.TrimSpace(d.PayloadType))
+	t = strings.TrimPrefix(t, ".")
+	switch t {
+	case "pdf":
+		return "pdf"
+	case "epub":
+		return "epub"
+	case "template":
+		return "template"
+	case "notebook", "rm":
+		return "notebook"
+	}
+	for _, f := range d.Files {
+		if f == nil {
+			continue
+		}
+		n := strings.ToLower(f.EntryName)
+		if strings.HasSuffix(n, ".pdf") {
+			return "pdf"
+		}
+		if strings.HasSuffix(n, ".epub") {
+			return "epub"
+		}
+		if strings.HasSuffix(n, ".template") {
+			return "template"
+		}
+	}
+	return "notebook"
+}
+
+// LibraryFileType is the UI/library kind: method, template, pdf, epub, or notebook.
+func (d *HashDoc) LibraryFileType() string {
+	if d == nil {
+		return "notebook"
+	}
+	if d.MetadataFile.IsMethod() {
+		return "method"
+	}
+	if d.MetadataFile.IsTemplate() {
+		return "template"
+	}
+	return d.EffectivePayloadType()
 }
 
 func NewHashDocWithMeta(documentID string, meta MetadataFile) *HashDoc {
@@ -181,6 +231,11 @@ func (d *HashDoc) readContent(hash string, r RemoteStorage) error {
 		log.Printf("cannot read content %s %v", hash, err)
 	}
 	d.PayloadType = contentFile.FileType
+	d.PageCount = contentFile.PageCount
+	if d.PageCount == 0 {
+		d.PageCount = len(contentFile.PageIDs())
+	}
+	d.LastOpenedPage = contentFile.MergeLastOpenedIndex(d.LastOpenedPage)
 
 	if len(contentFile.SizeInBytes) > 0 {
 		d.Size, err = strconv.ParseInt(contentFile.SizeInBytes, 10, 64)
@@ -277,6 +332,7 @@ func (d *HashDoc) Mirror(e *HashEntry, r RemoteStorage) error {
 	}
 	sort.Slice(head, func(i, j int) bool { return head[i].EntryName < head[j].EntryName })
 	d.Files = head
+	d.FormatLabel = ""
 	return nil
 
 }

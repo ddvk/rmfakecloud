@@ -22,6 +22,9 @@ type CodeConnector interface {
 	//NewCode generates one time code for a user
 	NewCode(uid string) (code string, err error)
 
+	//CurrentCode returns the outstanding pairing code for a user, if any.
+	CurrentCode(uid string) (code string, ok bool)
+
 	//ConsumeCode a code and returns the uid if ofound
 	ConsumeCode(code string) (uid string, err error)
 }
@@ -50,12 +53,22 @@ func (conn *inMemoryCodeConnector) NewCode(uid string) (string, error) {
 	conn.lock.Unlock()
 	go func() {
 		<-time.After(conn.codeValidity)
-		if _, err := conn.ConsumeCode(code); err == nil {
+		conn.lock.Lock()
+		defer conn.lock.Unlock()
+		if cur, ok := conn.uids[uid]; ok && cur == code {
+			delete(conn.dict, code)
+			delete(conn.uids, uid)
 			log.Infof("removed unused code: %s for uid: %s ", code, uid)
 		}
-
 	}()
 	return code, nil
+}
+
+func (conn *inMemoryCodeConnector) CurrentCode(uid string) (string, bool) {
+	conn.lock.Lock()
+	defer conn.lock.Unlock()
+	code, ok := conn.uids[uid]
+	return code, ok
 }
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyz")
