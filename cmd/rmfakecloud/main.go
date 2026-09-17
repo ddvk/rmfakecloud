@@ -10,6 +10,7 @@ import (
 	_ "time/tzdata"
 
 	"github.com/ddvk/rmfakecloud/internal/app"
+	"github.com/ddvk/rmfakecloud/internal/applog"
 	"github.com/ddvk/rmfakecloud/internal/cli"
 	"github.com/ddvk/rmfakecloud/internal/config"
 	"github.com/gin-gonic/gin"
@@ -25,6 +26,7 @@ func configureLogging() io.Closer {
 	logformat := os.Getenv(config.EnvLogFormat)
 
 	logger := logrus.StandardLogger()
+	applog.InstallHook()
 	var formatter logrus.Formatter
 	switch logformat {
 	case "json":

@@ -55,6 +55,17 @@ type User struct {
 	AdditionalScopes []string
 	// Integrations stores the list of "Integrations" as shown on the tablet.
 	Integrations []IntegrationConfig
+	// WebAuthnCredentials are passkeys registered for the web UI.
+	WebAuthnCredentials []WebAuthnCredential `yaml:"webauthncredentials,omitempty"`
+	// PasskeysOnly disables password login for the web UI when true.
+	// Ignored (password allowed) if no passkeys are registered.
+	PasskeysOnly bool `yaml:"passkeysonly,omitempty"`
+	// RegisteredDevices are reMarkable clients that completed pairing (see newDevice).
+	RegisteredDevices []RegisteredDevice `yaml:"registereddevices,omitempty"`
+	// ThemeID is the selected shell theme (XML/XSLT). Empty means "default".
+	ThemeID string `yaml:"themeid,omitempty"`
+	// ThemeColorOverrides are optional per-user color tweaks (CSS hex) applied on top of the theme.
+	ThemeColorOverrides map[string]string `yaml:"themecoloroverrides,omitempty"`
 }
 
 // IntegrationConfig config for various integrations
