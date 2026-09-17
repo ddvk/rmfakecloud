@@ -5,6 +5,7 @@ import (
 
 	"github.com/ddvk/rmfakecloud/internal/app/hub"
 	"github.com/ddvk/rmfakecloud/internal/storage"
+	"github.com/ddvk/rmfakecloud/internal/storage/epub"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
 	"github.com/google/uuid"
 )
@@ -26,6 +27,9 @@ func (b *backend15) Export(uid, docid, exporttype string, opt storage.ExportOpti
 	if exporttype == "rmdoc" {
 		return b.blobHandler.ExportRmDoc(uid, docid)
 	}
+	if exporttype == "epub" {
+		return b.blobHandler.GetEpub(uid, docid)
+	}
 	r, err = b.blobHandler.Export(uid, docid)
 	return
 }
@@ -38,6 +42,10 @@ func (b *backend15) CreateDocument(uid, filename, parent string, stream io.Reade
 func (b *backend15) UpdateDocument(uid, docID, name, parent string) (err error) {
 	return b.blobHandler.UpdateBlobDocument(uid, docID, name, parent)
 }
+
+func (b *backend15) SetDocumentPinned(uid, docID string, pinned bool) (err error) {
+	return b.blobHandler.SetBlobDocumentPinned(uid, docID, pinned)
+}
 func (b *backend15) CreateFolder(uid, name, parent string) (doc *storage.Document, err error) {
 	return b.blobHandler.CreateBlobFolder(uid, name, parent)
 }
@@ -46,6 +54,42 @@ func (b *backend15) DeleteDocument(uid, docID string) (err error) {
 	return b.blobHandler.DeleteBlobDocument(uid, docID)
 }
 
+func (b *backend15) ExportPagePNG(uid, docid string, pageNum int) (io.ReadCloser, error) {
+	return b.blobHandler.ExportPagePNG(uid, docid, pageNum)
+}
+
+func (b *backend15) ExportPageThumbPNG(uid, docid string, pageNum int) (io.ReadCloser, error) {
+	return b.blobHandler.ExportPageThumbPNG(uid, docid, pageNum)
+}
+
+func (b *backend15) ExportPageSVG(uid, docid string, pageNum int) (io.ReadCloser, error) {
+	return b.blobHandler.ExportPageSVG(uid, docid, pageNum)
+}
+
+func (b *backend15) NotebookPageCount(uid, docid string) int {
+	return b.blobHandler.NotebookPageCount(uid, docid)
+}
+
+func (b *backend15) GetEpubManifest(uid, docid string) (*epub.Manifest, error) {
+	return b.blobHandler.GetEpubManifest(uid, docid)
+}
+
+func (b *backend15) GetEpubFile(uid, docid, filePath string) (io.ReadCloser, string, error) {
+	return b.blobHandler.GetEpubFile(uid, docid, filePath)
+}
+
+func (b *backend15) GetEpubCoverThumb(uid, docid string) (io.ReadCloser, string, error) {
+	return b.blobHandler.GetEpubCoverThumb(uid, docid)
+}
+
+func (b *backend15) GetEpubPageThumb(uid, docid string, pageIndex0 int) (io.ReadCloser, string, error) {
+	return b.blobHandler.GetEpubPageThumb(uid, docid, pageIndex0)
+}
+
 func (b *backend15) Sync(uid string) {
 	b.h.NotifySync(uid, uuid.NewString())
+}
+
+func (b *backend15) GetTemplate(uid, docid string) (io.ReadCloser, error) {
+	return b.blobHandler.GetTemplate(uid, docid)
 }

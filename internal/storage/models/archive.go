@@ -65,7 +65,16 @@ func ArchiveFromHashDoc(doc *HashDoc, rs RemoteStorage) (*exporter.MyArchive, er
 		}
 	}
 
-	for _, p := range a.Content.Pages {
+	pageIDs := a.Content.Pages
+	if len(pageIDs) == 0 {
+		// Newer tablets store page UUIDs under cPages; rmapi's Content.Pages stays empty.
+		// Fall back to whatever .rm blobs we found so notebook PDF export can still run.
+		for name := range pageMap {
+			pageIDs = append(pageIDs, name)
+		}
+	}
+
+	for _, p := range pageIDs {
 		if hash, ok := pageMap[p]; ok {
 			log.Debug("page ", hash)
 			reader, err := rs.GetReader(hash)
@@ -73,13 +82,18 @@ func ArchiveFromHashDoc(doc *HashDoc, rs RemoteStorage) (*exporter.MyArchive, er
 				return nil, err
 			}
 			pageBin, err := io.ReadAll(reader)
+			_ = reader.Close()
 			if err != nil {
 				return nil, err
 			}
 			rmpage := rm.New()
 			err = rmpage.UnmarshalBinary(pageBin)
 			if err != nil {
-				return nil, err
+				// v6 (and other) pages are not understood by rmapi; keep the
+				// page slot so PDF export can still emit the background.
+				log.Warn("skipping unreadable .rm page ", p, ": ", err)
+				a.Pages = append(a.Pages, archive.Page{Pagedata: "Blank"})
+				continue
 			}
 
 			page := archive.Page{

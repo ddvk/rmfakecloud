@@ -1,13 +1,17 @@
 package ui
 
 import (
+	"bytes"
+	"errors"
 	"io"
 	"time"
 
 	"github.com/ddvk/rmfakecloud/internal/app/hub"
 	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/messages"
+	"github.com/ddvk/rmfakecloud/internal/rmdecode"
 	"github.com/ddvk/rmfakecloud/internal/storage"
+	"github.com/ddvk/rmfakecloud/internal/storage/epub"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
 	log "github.com/sirupsen/logrus"
 )
@@ -116,6 +120,27 @@ func (d *backend10) UpdateDocument(uid, docID, name, parent string) (err error) 
 	return nil
 
 }
+
+func (d *backend10) SetDocumentPinned(uid, docID string, pinned bool) (err error) {
+	metadata, err := d.documentHandler.GetMetadata(uid, docID)
+	if err != nil {
+		return err
+	}
+	metadata.Bookmarked = pinned
+	metadata.Version++
+	if err := d.documentHandler.UpdateMetadata(uid, metadata); err != nil {
+		return err
+	}
+	ntf := hub.DocumentNotification{
+		ID:      docID,
+		Type:    common.DocumentType,
+		Version: metadata.Version,
+		Parent:  metadata.Parent,
+		Name:    metadata.VissibleName,
+	}
+	d.hub.Notify(uid, webDevice, ntf, messages.DocAddedEvent)
+	return nil
+}
 func (d *backend10) DeleteDocument(uid, docID string) (err error) {
 	err = d.documentHandler.RemoveDocument(uid, docID)
 	if err != nil {
@@ -129,4 +154,33 @@ func (d *backend10) DeleteDocument(uid, docID string) (err error) {
 	log.Info(uiLogger, "Deleted document id: ", docID)
 	d.hub.Notify(uid, webDevice, ntf, messages.DocDeletedEvent)
 	return nil
+}
+
+func (d *backend10) ExportPagePNG(uid, docid string, pageNum int) (io.ReadCloser, error) {
+	b, err := rmdecode.RenderNotebookPlaceholderPNG()
+	if err != nil {
+		return nil, err
+	}
+	return io.NopCloser(bytes.NewReader(b)), nil
+}
+
+func (d *backend10) ExportPageThumbPNG(uid, docid string, pageNum int) (io.ReadCloser, error) {
+	return d.ExportPagePNG(uid, docid, pageNum)
+}
+
+func (d *backend10) ExportPageSVG(uid, docid string, pageNum int) (io.ReadCloser, error) {
+	return io.NopCloser(bytes.NewReader([]byte(rmdecode.RenderNotebookPlaceholderSVG()))), nil
+}
+
+func (d *backend10) NotebookPageCount(uid, docid string) int {
+	return 1
+}
+
+func (d *backend10) GetEpubPageThumb(uid, docid string, pageIndex0 int) (io.ReadCloser, string, error) {
+	rc, ct := epub.PlaceholderThumb()
+	return rc, ct, nil
+}
+
+func (d *backend10) GetTemplate(uid, docid string) (io.ReadCloser, error) {
+	return nil, errors.New("templates require sync 1.5 storage")
 }
