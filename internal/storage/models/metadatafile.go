@@ -12,6 +12,7 @@ import (
 type MetadataFile struct {
 	DocumentName     string           `json:"visibleName"`
 	CollectionType   common.EntryType `json:"type"`
+	Source           string           `json:"source,omitempty"` // e.g. "com.remarkable.methods"
 	Parent           string           `json:"parent"`
 	CreatedTime      string           `json:"createdTime"`
 	LastModified     string           `json:"lastModified"`
@@ -23,6 +24,20 @@ type MetadataFile struct {
 	Modified         bool             `json:"modified"`
 	Deleted          bool             `json:"deleted"`
 	MetadataModified bool             `json:"metadatamodified"`
+}
+
+// MethodsSource is the reMarkable metadata source for Methods library items.
+const MethodsSource = "com.remarkable.methods"
+
+// IsMethod reports whether this entry is an rm Method
+// (type TemplateType + source com.remarkable.methods).
+func (m MetadataFile) IsMethod() bool {
+	return m.CollectionType == common.TemplateType && m.Source == MethodsSource
+}
+
+// IsTemplate reports whether this entry is a page template (TemplateType, not a Method).
+func (m MetadataFile) IsTemplate() bool {
+	return m.CollectionType == common.TemplateType && m.Source != MethodsSource
 }
 
 func ToTime(timeStamp string) (t time.Time, err error) {
@@ -57,6 +72,7 @@ type ContentFile struct {
 	Orientation    string        `json:"orientation"`
 	PageCount      int           `json:"pageCount"`
 	Pages          []interface{} `json:"pages"`
+	CPages         CPages        `json:"cPages"`
 	TextScale      int           `json:"textScale"`
 	Transform      Transform     `json:"transform"`
 	SizeInBytes    string        `json:"sizeInBytes"`
