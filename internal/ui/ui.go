@@ -2,10 +2,7 @@ package ui
 
 import (
 	"io"
-	"io/fs"
 	"net/http"
-	"path"
-	"time"
 
 	"github.com/ddvk/rmfakecloud/internal/app/hub"
 	"github.com/ddvk/rmfakecloud/internal/app/passcodestore"
@@ -14,10 +11,12 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/screenshare"
 	"github.com/ddvk/rmfakecloud/internal/storage"
+	"github.com/ddvk/rmfakecloud/internal/storage/epub"
 	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
-	webui "github.com/ddvk/rmfakecloud/ui"
 	"github.com/gin-gonic/gin"
+	"github.com/go-webauthn/webauthn/webauthn"
+	log "github.com/sirupsen/logrus"
 )
 
 type backend interface {
@@ -26,11 +25,14 @@ type backend interface {
 	CreateDocument(uid, name, parent string, stream io.Reader) (doc *storage.Document, err error)
 	CreateFolder(uid, name, parent string) (doc *storage.Document, err error)
 	UpdateDocument(uid, docID, name, parent string) (err error)
+	SetDocumentPinned(uid, docID string, pinned bool) (err error)
 	DeleteDocument(uid, docID string) (err error)
 	Sync(uid string)
+	GetTemplate(uid, docid string) (io.ReadCloser, error)
 }
 type codeGenerator interface {
 	NewCode(string) (string, error)
+	CurrentCode(string) (string, bool)
 }
 
 type documentHandler interface {
@@ -47,10 +49,21 @@ type blobHandler interface {
 	GetCachedTree(uid string) (tree *models.HashTree, err error)
 	CreateBlobDocument(uid, name, parent string, reader io.Reader) (doc *storage.Document, err error)
 	UpdateBlobDocument(uid, docID, name, parent string) (err error)
+	SetBlobDocumentPinned(uid, docID string, pinned bool) error
 	DeleteBlobDocument(uid, docID string) (err error)
 	CreateBlobFolder(uid, name, parent string) (doc *storage.Document, err error)
 	Export(uid, docid string) (io.ReadCloser, error)
 	ExportRmDoc(uid, docid string) (io.ReadCloser, error)
+	ExportPagePNG(uid, docid string, pageNum int) (io.ReadCloser, error)
+	ExportPageThumbPNG(uid, docid string, pageNum int) (io.ReadCloser, error)
+	ExportPageSVG(uid, docid string, pageNum int) (io.ReadCloser, error)
+	NotebookPageCount(uid, docid string) int
+	GetEpub(uid, docid string) (io.ReadCloser, error)
+	GetEpubManifest(uid, docid string) (*epub.Manifest, error)
+	GetEpubFile(uid, docid, filePath string) (io.ReadCloser, string, error)
+	GetEpubCoverThumb(uid, docid string) (io.ReadCloser, string, error)
+	GetEpubPageThumb(uid, docid string, pageIndex0 int) (io.ReadCloser, string, error)
+	GetTemplate(uid, docid string) (io.ReadCloser, error)
 }
 
 type notificationHub interface {
@@ -65,25 +78,28 @@ type mqttBridge interface {
 	HasConnectedClient(userID string) bool
 }
 
-// ReactAppWrapper encapsulates an app
+// DeviceTokenIssuer signs a device API JWT (same claims as POST /token/json/2/device/new).
+type DeviceTokenIssuer func(uid, deviceID, deviceDesc string) (token string, err error)
+
+// ReactAppWrapper encapsulates the web UI (XML/XSLT pages + JSON APIs).
 type ReactAppWrapper struct {
-	fs            http.FileSystem
-	prefix        string
-	cfg           *config.Config
-	userStorer    storage.UserStorer
-	codeConnector codeGenerator
-	h             *hub.Hub
-	passcodeStore passcodestore.Store
-	backends      map[common.SyncVersion]backend
-	roomManager   *screenshare.RoomManager
-	mqtt          mqttBridge
+	fs               http.FileSystem
+	prefix           string
+	cfg              *config.Config
+	userStorer       storage.UserStorer
+	codeConnector    codeGenerator
+	h                *hub.Hub
+	passcodeStore    passcodestore.Store
+	backends         map[common.SyncVersion]backend
+	issueDeviceToken DeviceTokenIssuer
+	roomManager      *screenshare.RoomManager
+	mqtt             mqttBridge
+	webAuthn         *webauthn.WebAuthn
+	webAuthnSessions *webAuthnSessionStore
+	themes           *themeStore
 }
 
-// hack for serving index.html on /
-const indexReplacement = "/default"
-const jsBuildFolder = "dist"
-
-// New Create a React app
+// New creates the web UI app.
 func New(cfg *config.Config,
 	userStorer storage.UserStorer,
 	codeConnector codeGenerator,
@@ -91,13 +107,10 @@ func New(cfg *config.Config,
 	pcStore passcodestore.Store,
 	docHandler documentHandler,
 	blobHandler blobHandler,
+	issueDeviceToken DeviceTokenIssuer,
 	roomManager *screenshare.RoomManager,
 	mqttBroker mqttBridge) *ReactAppWrapper {
 
-	sub, err := fs.Sub(webui.Assets, jsBuildFolder)
-	if err != nil {
-		panic("not embedded?")
-	}
 	backend15 := &backend15{
 		blobHandler: blobHandler,
 		h:           h,
@@ -106,36 +119,39 @@ func New(cfg *config.Config,
 		documentHandler: docHandler,
 		hub:             h,
 	}
-	staticWrapper := ReactAppWrapper{
-		fs:            common.NewLastModifiedFS(http.FS(sub), time.Now()),
-		prefix:        "/assets",
-		cfg:           cfg,
-		userStorer:    userStorer,
-		codeConnector: codeConnector,
-		h:             h,
-		passcodeStore: pcStore,
+	staticWrapper := &ReactAppWrapper{
+		prefix:           "/assets",
+		cfg:              cfg,
+		userStorer:       userStorer,
+		codeConnector:    codeConnector,
+		h:                h,
+		passcodeStore:    pcStore,
+		issueDeviceToken: issueDeviceToken,
 		backends: map[common.SyncVersion]backend{
 			common.Sync10: backend10,
 			common.Sync15: backend15,
 		},
 		roomManager: roomManager,
 		mqtt:        mqttBroker,
+		themes:      newThemeStore(cfg.DataDir),
 	}
-	return &staticWrapper
+	staticWrapper.initStatic()
+	if cfg != nil && cfg.WebAuthn {
+		wa, err := webauthn.New(&webauthn.Config{
+			RPDisplayName: "rmfakecloud",
+			RPID:          cfg.WebAuthnRPID,
+			RPOrigins:     cfg.WebAuthnOrigins,
+		})
+		if err != nil {
+			log.Errorf("webauthn init failed, passkeys disabled: %v", err)
+		} else {
+			staticWrapper.webAuthn = wa
+			staticWrapper.webAuthnSessions = newWebAuthnSessionStore()
+		}
+	}
+	return staticWrapper
 }
 
-// Open opens a file from the fs (virtual)
-func (w ReactAppWrapper) Open(filepath string) (http.File, error) {
-	fullpath := filepath
-	//index.html hack
-	if filepath != indexReplacement {
-		fullpath = path.Join(w.prefix, filepath)
-	} else {
-		fullpath = "/index.html"
-	}
-	f, err := w.fs.Open(fullpath)
-	return f, err
-}
 func badReq(c *gin.Context, message string) {
 	c.AbortWithStatusJSON(http.StatusBadRequest, viewmodel.NewErrorResponse(message))
 }
