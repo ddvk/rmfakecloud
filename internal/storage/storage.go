@@ -51,6 +51,7 @@ type UserStorer interface {
 	GetUser(string) (*model.User, error)
 	RegisterUser(u *model.User) error
 	UpdateUser(u *model.User) error
+	RenameUser(oldID, newID string) error
 	RemoveUser(uid string) error
 }
 

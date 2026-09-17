@@ -55,6 +55,7 @@ func (rm *RoomManager) expireLoop() {
 		now := time.Now().UTC()
 		for id, room := range rm.rooms {
 			if now.Sub(room.lastActivity) > roomTimeout {
+				rm.wakeRoom(room)
 				delete(rm.rooms, id)
 				log.Infof("Screenshare: expired room=%s (no keepalive for %s)", id, roomTimeout)
 			}
@@ -124,13 +125,23 @@ func (rm *RoomManager) AddBroadcast(roomID, senderClientID string, payload json.
 	if !exists {
 		return
 	}
-	// New broadcast clears old messages to prevent stale signaling on reconnect
-	room.messages = nil
-	room.messages = append(room.messages, Message{
+	// Keep pending directs (offer/ICE) so an async browser join can still consume them.
+	// Drop prior broadcasts to avoid stacking stale request-offer / control messages.
+	kept := make([]Message, 0, len(room.messages)+1)
+	for _, m := range room.messages {
+		if m.Type == "direct" {
+			kept = append(kept, m)
+		}
+	}
+	room.messages = append(kept, Message{
 		Type:           "broadcast",
 		SenderClientID: senderClientID,
 		Payload:        payload,
 	})
+	select {
+	case room.notify <- struct{}{}:
+	default:
+	}
 	log.Debugf("Screenshare: broadcast in room=%s from=%s", roomID, senderClientID)
 }
 
@@ -155,27 +166,116 @@ func (rm *RoomManager) AddDirect(roomID, senderClientID, targetClientID string, 
 	log.Debugf("Screenshare: direct in room=%s from=%s to=%s", roomID, senderClientID, targetClientID)
 }
 
-func (rm *RoomManager) WaitForMessages(roomID string, after int, timeout time.Duration) []Message {
+func messageHasOffer(m Message) bool {
+	var p map[string]interface{}
+	if json.Unmarshal(m.Payload, &p) != nil {
+		return false
+	}
+	if t, _ := p["type"].(string); t == "offer" {
+		return true
+	}
+	if t, _ := p["type"].(string); t == "webtrc" {
+		if inner, ok := p["payload"].(map[string]interface{}); ok {
+			if it, _ := inner["type"].(string); it == "offer" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// PeekOfferMessages returns the offer and subsequent messages (e.g. ICE) if present.
+func (rm *RoomManager) PeekOfferMessages(roomID string) []Message {
 	rm.mu.RLock()
+	defer rm.mu.RUnlock()
+
 	room, exists := rm.rooms[roomID]
-	rm.mu.RUnlock()
 	if !exists {
 		return nil
 	}
+	start := -1
+	for i, m := range room.messages {
+		if messageHasOffer(m) {
+			start = i
+			break
+		}
+	}
+	if start < 0 {
+		return nil
+	}
+	msgs := make([]Message, len(room.messages)-start)
+	copy(msgs, room.messages[start:])
+	return msgs
+}
 
+func (rm *RoomManager) WaitForMessages(roomID string, after int, timeout time.Duration) []Message {
 	deadline := time.After(timeout)
 	for {
+		if !rm.RoomExists(roomID) {
+			return nil
+		}
 		msgs := rm.GetMessages(roomID, after)
 		if len(msgs) > 0 {
 			// Wait briefly for additional messages (ICE candidates follow the offer)
 			time.Sleep(200 * time.Millisecond)
 			return rm.GetMessages(roomID, after)
 		}
-		select {
-		case <-room.notify:
-		case <-deadline:
+		rm.mu.RLock()
+		room, exists := rm.rooms[roomID]
+		var notify <-chan struct{}
+		if exists {
+			notify = room.notify
+		}
+		rm.mu.RUnlock()
+		if !exists {
 			return nil
 		}
+		select {
+		case <-notify:
+		case <-deadline:
+			return nil
+		case <-time.After(500 * time.Millisecond):
+		}
+	}
+}
+
+// WaitForOffer blocks until an offer is present, the room is gone, or timeout.
+func (rm *RoomManager) WaitForOffer(roomID string, timeout time.Duration) []Message {
+	deadline := time.After(timeout)
+	for {
+		if !rm.RoomExists(roomID) {
+			return nil
+		}
+		if msgs := rm.PeekOfferMessages(roomID); len(msgs) > 0 {
+			time.Sleep(200 * time.Millisecond)
+			return rm.PeekOfferMessages(roomID)
+		}
+		rm.mu.RLock()
+		room, exists := rm.rooms[roomID]
+		var notify <-chan struct{}
+		if exists {
+			notify = room.notify
+		}
+		rm.mu.RUnlock()
+		if !exists {
+			return nil
+		}
+		select {
+		case <-notify:
+		case <-deadline:
+			return nil
+		case <-time.After(500 * time.Millisecond):
+		}
+	}
+}
+
+func (rm *RoomManager) wakeRoom(room *Room) {
+	if room == nil {
+		return
+	}
+	select {
+	case room.notify <- struct{}{}:
+	default:
 	}
 }
 
@@ -236,6 +336,7 @@ func (rm *RoomManager) DeleteAllForUser(userID string) {
 	defer rm.mu.Unlock()
 	for id, room := range rm.rooms {
 		if room.ownerUserID == userID {
+			rm.wakeRoom(room)
 			delete(rm.rooms, id)
 			log.Infof("Screenshare: deleted room=%s for user=%s", id, userID)
 		}
@@ -245,8 +346,11 @@ func (rm *RoomManager) DeleteAllForUser(userID string) {
 func (rm *RoomManager) DeleteRoom(roomID string) {
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
-	delete(rm.rooms, roomID)
-	log.Infof("Screenshare: deleted room=%s", roomID)
+	if room, exists := rm.rooms[roomID]; exists {
+		rm.wakeRoom(room)
+		delete(rm.rooms, roomID)
+		log.Infof("Screenshare: deleted room=%s", roomID)
+	}
 }
 
 func (rm *RoomManager) FindActiveRoom(userID string) string {

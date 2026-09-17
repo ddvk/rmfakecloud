@@ -10,7 +10,7 @@ import (
 
 // RegisterRoutes the apps routes
 func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
-	router.StaticFS(app.prefix, app)
+	router.StaticFS(app.prefix, app.fs)
 
 	router.GET("/favicon.ico", func(c *gin.Context) {
 		c.FileFromFS("/favicon.ico", app.fs)
@@ -19,24 +19,75 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 		c.FileFromFS("/robots.txt", app.fs)
 	})
 
-	//hack for index.html
+	// HTML pages (XML → XSLT)
+	router.GET("/", app.pageHome)
+	router.GET("/help", app.pageHelp)
+	router.GET("/login", app.pageLogin)
+	router.POST("/login", app.formLogin)
+	router.POST("/logout", app.formLogout)
+	router.GET("/logout", app.formLogout)
+	router.GET("/connect", app.pageConnect)
+	router.GET("/profile", app.pageProfile)
+	router.POST("/profile/theme", app.formProfileTheme)
+	router.POST("/profile/password", app.formProfilePassword)
+	router.POST("/profile/passkeys/:id/delete", app.formPasskeyDelete)
+	router.POST("/profile/passkeys-only", app.formPasskeysOnly)
+	router.POST("/profile/devices/reissue", app.formReissueDevice)
+	router.GET("/documents", app.pageDocuments)
+	router.GET("/documents/:docid/thumb.svg", app.pageNotebookThumb)
+	router.GET("/documents/:docid/thumb.png", app.pageNotebookThumb)
+	router.GET("/documents/:docid/epub-thumb.png", app.pageEpubThumb)
+	router.GET("/documents/:docid/page/:pagenum/svg", app.pageNotebookPageSVG)
+	router.GET("/documents/:docid/page/:pagenum/thumb.png", app.pageAnnotatedPageThumb)
+	router.GET("/documents/:docid", app.pagePDF)
+	router.POST("/documents/upload", app.formUploadDocument)
+	router.POST("/documents/folder", app.formCreateFolder)
+	router.POST("/documents/:docid/delete", app.formDeleteDocument)
+	router.POST("/documents/:docid/update", app.formUpdateDocument)
+	router.POST("/documents/:docid/pin", app.formPinDocument)
+	router.GET("/integrations", app.pageIntegrations)
+	router.POST("/integrations", app.formCreateIntegration)
+	router.POST("/integrations/:intid/delete", app.formDeleteIntegration)
+	router.GET("/admin", app.pageAdmin)
+	router.POST("/admin/users", app.formCreateUser)
+	router.POST("/admin/users/:userid/update", app.formUpdateUser)
+	router.POST("/admin/users/:userid/admin", app.formToggleAdmin)
+	router.POST("/admin/users/:userid/delete", app.formDeleteUser)
+	router.POST("/admin/users/:userid/passkeys-only", app.formAdminPasskeysOnly)
+	router.GET("/admin/themes", app.pageThemeStudio)
+	router.POST("/admin/themes/save", app.formSaveTheme)
+	router.POST("/admin/themes/overrides", app.formThemeOverrides)
+	router.POST("/admin/themes/:id/publish", app.formPublishTheme)
+	router.POST("/admin/themes/:id/delete", app.formDeleteTheme)
+	router.GET("/admin/templates", app.pageTemplates)
+	router.POST("/admin/templates/upload", app.formUploadTemplate)
+	router.GET("/admin/templates/builtin/:kind/:id.svg", app.builtinTemplateSVG)
+	router.GET("/admin/templates/:docid/thumb.svg", app.syncedTemplateThumb)
+	router.POST("/admin/templates/:docid/update", app.formUpdateTemplate)
+	router.POST("/admin/templates/:docid/delete", app.formDeleteTemplate)
+	router.GET("/admin/templates/:docid/download", app.downloadTemplate)
+	router.GET("/screenshare", app.pageScreenShare)
+
 	router.NoRoute(func(c *gin.Context) {
 		uri := c.Request.RequestURI
 		log.Info(uri)
 		if strings.HasPrefix(uri, "/api") ||
 			strings.HasPrefix(uri, "/ui/api") ||
 			c.Request.Method != http.MethodGet {
-
 			c.AbortWithStatus(http.StatusNotFound)
 			return
 		}
-
-		c.FileFromFS(indexReplacement, app)
+		app.page404(c)
 	})
 
 	r := router.Group("/ui/api")
 	r.POST("register", app.register)
 	r.POST("login", app.login)
+	r.GET("webauthn/status", app.webAuthnStatus)
+	r.POST("webauthn/login/begin", app.webAuthnLoginBegin)
+	r.POST("webauthn/login/finish", app.webAuthnLoginFinish)
+	r.GET("themes/assets/:name", app.getThemeAsset)
+	r.GET("themes/:id", app.getThemePublic)
 	r.GET("logout", func(c *gin.Context) {
 		c.SetCookie(cookieName, "/", -1, "", "", false, true)
 		c.Status(http.StatusOK)
@@ -55,27 +106,41 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	})
 
 	auth.GET("newcode", app.newCode)
+	auth.GET("code", app.codeStatus)
 
-	// passcode (PIN) reset approval
+	auth.GET("devices", app.listRegisteredDevices)
+	auth.POST("devices/reissue", app.reissueRegisteredDevice)
+
 	auth.GET("passcode/resets", app.listPasscodeResets)
 	auth.POST("passcode/resets/:uuid/approve", app.approvePasscodeReset)
 	auth.DELETE("passcode/resets/:uuid", app.dismissPasscodeReset)
 
-	// auth.GET("profile", app.newCode)
 	auth.POST("profile", app.changePassword)
-	// auth.POST("changeEmail", app.changePassword)
+	auth.GET("profile/theme", app.getProfileTheme)
+	auth.PUT("profile/theme", app.putProfileTheme)
+
+	auth.POST("webauthn/register/begin", app.webAuthnRegisterBegin)
+	auth.POST("webauthn/register/finish", app.webAuthnRegisterFinish)
+	auth.GET("webauthn/credentials", app.webAuthnListCredentials)
+	auth.DELETE("webauthn/credentials/:id", app.webAuthnDeleteCredential)
+
+	auth.GET("themes", app.listThemes)
 
 	auth.GET("documents", app.listDocuments)
 	auth.GET("documents/:docid", app.getDocument)
+	auth.GET("documents/:docid/thumb", app.getNotebookThumb)
+	auth.GET("documents/:docid/epub-thumb", app.getEpubThumb)
+	auth.GET("documents/:docid/epub/*path", app.getEpubPath)
+	auth.GET("documents/:docid/page/:pagenum/svg", app.getNotebookPageSVG)
+	auth.GET("documents/:docid/page/:pagenum/thumb", app.getDocumentPageThumb)
+	auth.GET("documents/:docid/page/:pagenum", app.getDocumentPage)
 	auth.POST("documents/upload", app.createDocument)
 
-	//move, rename
 	auth.DELETE("documents/:docid", app.deleteDocument)
 	auth.PUT("documents", app.updateDocument)
 	auth.POST("folders", app.createFolder)
 	auth.GET("documents/:docid/metadata", app.getDocumentMetadata)
 
-	// integrations
 	auth.GET("integrations", app.listIntegrations)
 	auth.POST("integrations", app.createIntegration)
 	auth.GET("integrations/:intid", app.getIntegration)
@@ -93,7 +158,6 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	ss.POST("room/:roomId/answer", app.screenshareSendAnswer)
 	ss.DELETE("room/:roomId", app.screenshareDeleteRoom)
 
-	//admin
 	admin := auth.Group("")
 	admin.Use(app.adminMiddleware())
 	admin.GET("users/:userid", app.getUser)
@@ -101,4 +165,9 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	admin.PUT("users", app.updateUser)
 	admin.POST("users", app.createUser)
 	admin.GET("users", app.getAppUsers)
+	admin.GET("logs", app.getAdminLogs)
+	admin.POST("themes", app.saveTheme)
+	admin.PUT("themes/:id", app.updateTheme)
+	admin.POST("themes/:id/publish", app.publishTheme)
+	admin.DELETE("themes/:id", app.deleteTheme)
 }
