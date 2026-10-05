@@ -57,7 +57,7 @@ type ContentFile struct {
 	Orientation    string        `json:"orientation"`
 	PageCount      int           `json:"pageCount"`
 	Pages          []interface{} `json:"pages"`
-	TextScale      int           `json:"textScale"`
+	TextScale      float64        `json:"textScale"`
 	Transform      Transform     `json:"transform"`
 	SizeInBytes    string        `json:"sizeInBytes"`
 }
