@@ -138,6 +138,13 @@ class ApiServices {
       body: JSON.stringify({ name }),
     }).then((r) => handleError(r));
   }
+  moveDocument(id, parent) {
+    return fetch(`${constants.ROOT_URL}/documents/${id}/parent`, {
+      method: "PATCH",
+      headers: this.header(),
+      body: JSON.stringify({ parent }),
+    }).then((r) => handleError(r));
+  }
   download(id, exportType) {
     let url = `${constants.ROOT_URL}/documents/${id}`;
     if (exportType) url += `?type=${exportType}`;
