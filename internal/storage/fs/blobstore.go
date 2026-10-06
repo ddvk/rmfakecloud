@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/url"
 	"os"
@@ -148,9 +149,10 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 // UpdateBlobDocument updates metadata
 func (fs *FileSystemStorage) UpdateBlobDocument(uid, docID, name, parent string) (err error) {
 	log.Info("updateBlobDocument: ", docID, "new name:", name)
-	return fs.updateBlobMetadata(uid, docID, func(hashDoc *models.HashDoc) {
+	return fs.updateBlobMetadata(uid, docID, func(hashDoc *models.HashDoc) error {
 		hashDoc.DocumentName = name
 		hashDoc.Parent = parent
+		return nil
 	})
 }
 
@@ -158,14 +160,64 @@ func (fs *FileSystemStorage) UpdateBlobDocument(uid, docID, name, parent string)
 // the parent and the type stay as they are
 func (fs *FileSystemStorage) RenameBlobDocument(uid, docID, name string) (err error) {
 	log.Info("renameBlobDocument: ", docID, "new name:", name)
-	return fs.updateBlobMetadata(uid, docID, func(hashDoc *models.HashDoc) {
+	return fs.updateBlobMetadata(uid, docID, func(hashDoc *models.HashDoc) error {
 		hashDoc.DocumentName = name
+		return nil
 	})
 }
 
-// updateBlobMetadata applies mutate to the metadata of a document, bumps its version
+// MoveBlobDocument changes only the parent of a document or folder, an empty parent is the root.
+// The parent must be an existing folder and a folder cannot be moved into itself or its descendants.
+func (fs *FileSystemStorage) MoveBlobDocument(uid, docID, parent string) (err error) {
+	log.Info("moveBlobDocument: ", docID, " new parent: ", parent)
+	tree, err := fs.GetCachedTree(uid)
+	if err != nil {
+		return err
+	}
+	return fs.updateBlobMetadata(uid, docID, func(hashDoc *models.HashDoc) error {
+		if err := checkMoveTarget(tree, docID, parent); err != nil {
+			return err
+		}
+		hashDoc.Parent = parent
+		return nil
+	})
+}
+
+// checkMoveTarget checks that parent is the root or a live folder that is not docID or one of its descendants
+func checkMoveTarget(tree *models.HashTree, docID, parent string) error {
+	if parent == "" {
+		return nil
+	}
+	if parent == docID {
+		return errors.New("cannot move a document into itself")
+	}
+	target, err := tree.FindDoc(parent)
+	if err != nil || target.Deleted {
+		return fmt.Errorf("target folder '%s' not found", parent)
+	}
+	if target.CollectionType != common.CollectionType {
+		return fmt.Errorf("target '%s' is not a folder", parent)
+	}
+	// walk up from the target, reaching docID means it is a descendant
+	for i, id := 0, target.Parent; id != "" && i <= len(tree.Docs); i, id = i+1, nextParent(tree, id) {
+		if id == docID {
+			return errors.New("cannot move a folder into its own descendant")
+		}
+	}
+	return nil
+}
+
+func nextParent(tree *models.HashTree, id string) string {
+	d, err := tree.FindDoc(id)
+	if err != nil {
+		return ""
+	}
+	return d.Parent
+}
+
+// updateBlobMetadata applies mutate to the metadata of a document (an error aborts), bumps its version
 // and writes the new metadata, document index and root index
-func (fs *FileSystemStorage) updateBlobMetadata(uid, docID string, mutate func(hashDoc *models.HashDoc)) (err error) {
+func (fs *FileSystemStorage) updateBlobMetadata(uid, docID string, mutate func(hashDoc *models.HashDoc) error) (err error) {
 	tree, err := fs.GetCachedTree(uid)
 	if err != nil {
 		return err
@@ -180,7 +232,9 @@ func (fs *FileSystemStorage) updateBlobMetadata(uid, docID string, mutate func(h
 		}
 		log.Info("updateBlobMetadata: ", hashDoc.DocumentName)
 
-		mutate(hashDoc)
+		if err := mutate(hashDoc); err != nil {
+			return err
+		}
 		hashDoc.Version++
 
 		metadataHash, metadataReader, err := hashDoc.MetadataReader()
