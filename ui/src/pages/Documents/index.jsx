@@ -252,7 +252,7 @@ export default function DocumentList() {
           <Col md={8} style={{display: "flex", flexDirection: "column", height: "100%"}}>
             <div style={{flex: "1 1 auto", minHeight: 0, overflow: "auto"}}>
               {selected && selected.isLeaf && <File file={selected} onSelect={onSelect} />}
-              {selected && !selected.isLeaf && <Folder selection={selected} onSelect={onSelect} onUpdate={onUpdate} counter={counter} />}
+              {selected && !selected.isLeaf && <Folder selection={selected} onSelect={onSelect} onUpdate={onUpdate} counter={counter} entries={entries} />}
             </div>
           </Col>
         </Row>
