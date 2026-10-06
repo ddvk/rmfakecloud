@@ -12,7 +12,7 @@ import (
 func TestRenameBlobDocument(t *testing.T) {
 	testuser := "test"
 	dir := t.TempDir()
-	err := os.MkdirAll(path.Join(dir, userDir, testuser), 0700)
+	err := os.MkdirAll(path.Join(dir, userDir, testuser, SyncFolder), 0700)
 	if err != nil {
 		t.Fatal(err)
 	}
