@@ -235,6 +235,11 @@ type UpdateDoc struct {
 	Name       string `json:"name"`
 }
 
+// RenameDoc changes the visible name of a document or folder
+type RenameDoc struct {
+	Name string `json:"name"`
+}
+
 type NewFolder struct {
 	ParentID string `json:"parentId"`
 	Name     string `json:"name"`
