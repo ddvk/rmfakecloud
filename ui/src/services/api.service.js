@@ -131,6 +131,13 @@ class ApiServices {
       headers: this.header(),
     }).then((r) => handleError(r));
   }
+  renameDocument(id, name) {
+    return fetch(`${constants.ROOT_URL}/documents/${id}`, {
+      method: "PATCH",
+      headers: this.header(),
+      body: JSON.stringify({ name }),
+    }).then((r) => handleError(r));
+  }
   download(id, exportType) {
     let url = `${constants.ROOT_URL}/documents/${id}`;
     if (exportType) url += `?type=${exportType}`;

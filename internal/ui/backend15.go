@@ -38,6 +38,9 @@ func (b *backend15) CreateDocument(uid, filename, parent string, stream io.Reade
 func (b *backend15) UpdateDocument(uid, docID, name, parent string) (err error) {
 	return b.blobHandler.UpdateBlobDocument(uid, docID, name, parent)
 }
+func (b *backend15) RenameDocument(uid, docID, name string) (err error) {
+	return b.blobHandler.RenameBlobDocument(uid, docID, name)
+}
 func (b *backend15) CreateFolder(uid, name, parent string) (doc *storage.Document, err error) {
 	return b.blobHandler.CreateBlobFolder(uid, name, parent)
 }
