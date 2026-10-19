@@ -18,6 +18,7 @@ type notification struct {
 	msg  *messages.WsMessage
 	uid  string
 	from string
+	to   string // only this device, when set
 }
 
 // Hub ws notificaiton hub
@@ -118,6 +119,12 @@ func (h *Hub) NotifyPasscodeReset(uid, deviceID, deviceName, requestID string) {
 }
 
 func (h *Hub) NotifyScreenshare(uid, fromClientID string, payload interface{}) {
+	h.NotifyScreenshareTo(uid, fromClientID, "", payload)
+}
+
+// NotifyScreenshareTo sends a screenshare signaling message to one device of the user,
+// or to all of them except the sender when toClientID is empty
+func (h *Hub) NotifyScreenshareTo(uid, fromClientID, toClientID string, payload interface{}) {
 	payloadJSON, err := json.Marshal(payload)
 	if err != nil {
 		log.Errorf("hub: failed to marshal screenshare payload: %v", err)
@@ -147,6 +154,7 @@ func (h *Hub) NotifyScreenshare(uid, fromClientID string, payload interface{}) {
 	h.notifications <- notification{
 		uid:  uid,
 		from: fromClientID,
+		to:   toClientID,
 		msg:  &msg,
 	}
 }
@@ -158,7 +166,7 @@ func (h *Hub) send(n notification) {
 
 	if clients, ok := h.userClients[uid]; ok {
 		for c := range clients {
-			if c.deviceID == n.from {
+			if c.deviceID == n.from || (n.to != "" && c.deviceID != n.to) {
 				continue
 				// log.Warn("sending to same device: ", c.deviceID)
 			}
