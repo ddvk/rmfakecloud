@@ -63,13 +63,14 @@ func (app *ReactAppWrapper) register(c *gin.Context) {
 	}
 
 	// Check this user doesn't already exist
-	_, err := app.userStorer.GetUser(form.Email)
+	email := model.NormalizeUserID(form.Email)
+	_, err := app.userStorer.GetUser(email)
 	if err == nil {
 		badReq(c, "already taken")
 		return
 	}
 
-	user, err := model.NewUser(form.Email, form.Password)
+	user, err := model.NewUser(email, form.Password)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -96,7 +97,7 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 	// not really thread safe
 	if app.cfg.CreateFirstUser {
 		log.Info("Creating an admin user")
-		user, err := model.NewUser(form.Email, form.Password)
+		user, err := model.NewUser(model.NormalizeUserID(form.Email), form.Password)
 		if err != nil {
 			log.Error("[login]", err)
 			c.AbortWithStatus(http.StatusInternalServerError)
@@ -113,7 +114,7 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 	}
 
 	// Try to find the user
-	user, err := app.userStorer.GetUser(form.Email)
+	user, err := app.userStorer.GetUser(model.NormalizeUserID(form.Email))
 	if err != nil {
 		log.Error(uiLogger, err, " cannot load user, login failed ip: ", c.ClientIP())
 		c.AbortWithStatus(http.StatusUnauthorized)
@@ -130,6 +131,18 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 		return
 	}
 
+	if _, err := app.issueWebSession(c, user); err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.Status(http.StatusOK)
+}
+
+// issueWebSession builds a WebUserClaims JWT for user, sets the auth cookie, and
+// returns the signed token string. It is the sole place expiry, scopes, and cookie
+// attributes are defined for UI sessions — shared by password login and OIDC login.
+func (app *ReactAppWrapper) issueWebSession(c *gin.Context, user *model.User) (string, error) {
 	scopes := ""
 	if user.Sync15 {
 		scopes = isSync15Key
@@ -154,17 +167,13 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 	}
 
 	tokenString, err := common.SignClaims(claims, app.cfg.JWTSecretKey)
-
 	if err != nil {
-		log.Error(err)
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
+		return "", err
 	}
-	log.Debug("cookie expires after: ", expiresAfter)
+
 	c.SetSameSite(http.SameSiteStrictMode)
 	c.SetCookie(cookieName, tokenString, int(expiresAfter.Seconds()), "/", "", app.cfg.HTTPSCookie, true)
-
-	c.String(http.StatusOK, tokenString)
+	return tokenString, nil
 }
 
 func (app *ReactAppWrapper) changePassword(c *gin.Context) {
