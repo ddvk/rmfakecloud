@@ -65,7 +65,15 @@ func ArchiveFromHashDoc(doc *HashDoc, rs RemoteStorage) (*exporter.MyArchive, er
 		}
 	}
 
+	// Every page the document declares gets an entry, whether or not anyone
+	// drew on it. The exporter takes a page's background from its position in
+	// this list, so leaving the untouched ones out moves every page after
+	// them: the nth page with ink ends up over the nth page of the document.
 	for _, p := range a.Content.Pages {
+		page := archive.Page{
+			Pagedata: "Blank",
+		}
+
 		if hash, ok := pageMap[p]; ok {
 			log.Debug("page ", hash)
 			reader, err := rs.GetReader(hash)
@@ -82,12 +90,10 @@ func ArchiveFromHashDoc(doc *HashDoc, rs RemoteStorage) (*exporter.MyArchive, er
 				return nil, err
 			}
 
-			page := archive.Page{
-				Data:     rmpage,
-				Pagedata: "Blank",
-			}
-			a.Pages = append(a.Pages, page)
+			page.Data = rmpage
 		}
+
+		a.Pages = append(a.Pages, page)
 	}
 
 	return &a, nil
