@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/ddvk/rmfakecloud/internal/common"
@@ -319,6 +320,110 @@ func (app *ReactAppWrapper) updateDocument(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
+}
+func (app *ReactAppWrapper) renameDocument(c *gin.Context) {
+	req := viewmodel.RenameDoc{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Error(err)
+		badReq(c, err.Error())
+		return
+	}
+	name := strings.TrimSpace(req.Name)
+	if name == "" {
+		badReq(c, "name cannot be empty")
+		return
+	}
+	backend := app.getBackend(c)
+	uid := userID(c)
+	err := backend.RenameDocument(uid, c.Param("docid"), name)
+	if err != nil {
+		badReq(c, err.Error())
+		return
+	}
+	backend.Sync(uid)
+
+	c.Status(http.StatusOK)
+}
+func (app *ReactAppWrapper) moveDocument(c *gin.Context) {
+	req := viewmodel.MoveDoc{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Error(err)
+		badReq(c, err.Error())
+		return
+	}
+	if req.Parent == nil {
+		badReq(c, "parent is required, use an empty value for the root")
+		return
+	}
+	backend := app.getBackend(c)
+	uid := userID(c)
+	docID := c.Param("docid")
+
+	tree, err := backend.GetDocumentTree(uid)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	err = checkMove(tree.Entries, docID, *req.Parent)
+	if err != nil {
+		badReq(c, err.Error())
+		return
+	}
+
+	err = backend.MoveDocument(uid, docID, *req.Parent)
+	if err != nil {
+		badReq(c, err.Error())
+		return
+	}
+	backend.Sync(uid)
+
+	c.Status(http.StatusOK)
+}
+
+// checkMove checks that parent is the root or a folder (not in the trash) that is not
+// docID or one of its descendants
+func checkMove(entries []viewmodel.Entry, docID, parent string) error {
+	if parent == "" {
+		return nil
+	}
+	if parent == docID {
+		return errors.New("cannot move a document into itself")
+	}
+	target := findEntry(entries, parent)
+	if target == nil {
+		return fmt.Errorf("target folder '%s' not found", parent)
+	}
+	folder, ok := target.(*viewmodel.Directory)
+	if !ok {
+		return fmt.Errorf("target '%s' is not a folder", parent)
+	}
+	if moved, ok := findEntry(entries, docID).(*viewmodel.Directory); ok {
+		if findEntry(moved.Entries, folder.ID) != nil {
+			return errors.New("cannot move a folder into its own descendant")
+		}
+	}
+	return nil
+}
+
+// findEntry looks an entry up by id, depth first
+func findEntry(entries []viewmodel.Entry, id string) viewmodel.Entry {
+	for _, e := range entries {
+		switch v := e.(type) {
+		case *viewmodel.Directory:
+			if v.ID == id {
+				return v
+			}
+			if found := findEntry(v.Entries, id); found != nil {
+				return found
+			}
+		case *viewmodel.Document:
+			if v.ID == id {
+				return v
+			}
+		}
+	}
+	return nil
 }
 func (app *ReactAppWrapper) deleteDocument(c *gin.Context) {
 	uid := userID(c)

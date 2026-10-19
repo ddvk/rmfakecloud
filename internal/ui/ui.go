@@ -26,6 +26,8 @@ type backend interface {
 	CreateDocument(uid, name, parent string, stream io.Reader) (doc *storage.Document, err error)
 	CreateFolder(uid, name, parent string) (doc *storage.Document, err error)
 	UpdateDocument(uid, docID, name, parent string) (err error)
+	RenameDocument(uid, docID, name string) (err error)
+	MoveDocument(uid, docID, parent string) (err error)
 	DeleteDocument(uid, docID string) (err error)
 	Sync(uid string)
 }
@@ -47,6 +49,8 @@ type blobHandler interface {
 	GetCachedTree(uid string) (tree *models.HashTree, err error)
 	CreateBlobDocument(uid, name, parent string, reader io.Reader) (doc *storage.Document, err error)
 	UpdateBlobDocument(uid, docID, name, parent string) (err error)
+	RenameBlobDocument(uid, docID, name string) (err error)
+	MoveBlobDocument(uid, docID, parent string) (err error)
 	DeleteBlobDocument(uid, docID string) (err error)
 	CreateBlobFolder(uid, name, parent string) (doc *storage.Document, err error)
 	Export(uid, docid string) (io.ReadCloser, error)
