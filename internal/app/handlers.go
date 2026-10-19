@@ -1284,6 +1284,21 @@ func (app *App) screenshareBroadcast(c *gin.Context) {
 	log.Debugf("Screenshare broadcast: room=%s from=%s payload=%s", roomID, deviceID, string(body))
 
 	app.roomManager.AddBroadcast(roomID, deviceID, body)
+
+	// relay to the user's other devices: the tablet and the desktop apps get signaling over the notification socket
+	var envelope struct {
+		Payload json.RawMessage `json:"payload"`
+	}
+	inner := map[string]interface{}{}
+	if json.Unmarshal(body, &envelope) == nil && len(envelope.Payload) > 0 {
+		json.Unmarshal(envelope.Payload, &inner)
+	} else {
+		json.Unmarshal(body, &inner)
+	}
+	inner["sourceDeviceID"] = deviceID
+	log.Infof("Screenshare broadcast: room=%s from=%s type=%v", roomID, deviceID, inner["type"])
+	app.hub.NotifyScreenshare(userID(c), deviceID, inner)
+
 	c.Status(http.StatusOK)
 }
 
@@ -1308,6 +1323,14 @@ func (app *App) screenshareDirect(c *gin.Context) {
 	log.Debugf("Screenshare direct: room=%s from=%s to=%s", roomID, deviceID, msg.TargetClientID)
 
 	app.roomManager.AddDirect(roomID, deviceID, msg.TargetClientID, msg.Payload)
+
+	// relay to the target when it is a device on the notification socket (a web client polls the room instead)
+	inner := map[string]interface{}{}
+	json.Unmarshal(msg.Payload, &inner)
+	inner["sourceDeviceID"] = deviceID
+	log.Infof("Screenshare direct: room=%s from=%s to=%s type=%v", roomID, deviceID, msg.TargetClientID, inner["type"])
+	app.hub.NotifyScreenshareTo(userID(c), deviceID, msg.TargetClientID, inner)
+
 	c.Status(http.StatusOK)
 }
 
