@@ -24,3 +24,5 @@ assets_vfsdata.go
 
 # mkdoc build
 site/
+
+.pnpm-store/
