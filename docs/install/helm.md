@@ -10,6 +10,8 @@ Modify your variables just like a simple docker-compose
 vim values.yml
 ```
 
+You can either provide the configuration values with the helm values, or provide a secret containing the env vars yourself (`existingSecret` in the helm values, see [configuration](configuration.md)).
+
 Install the helm chart
 ```sh
 helm install myrmfakecloud .

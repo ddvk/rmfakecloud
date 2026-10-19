@@ -5,6 +5,8 @@ image:
   pullPolicy: Always
   tag: "latest"
 
+existingSecret: # if there is an existingSecret, ignore the next rmfakecloud section and use everything from the existingSecret
+
 rmfakecloud:
   # The secret key used to sign the authentication token. Generate with : openssl rand -base64 48
   jwt_secret_key: "WF1yQRu9blh4nPBzejnl8sgWCaVHvivyaOMcjmjxHSOka/Bd7dxPP6vObv81ThYI" 
