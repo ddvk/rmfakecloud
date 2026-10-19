@@ -287,11 +287,13 @@ outer:
 
 // ConnectWs upgrade the connection to websocket
 func (h *Hub) ConnectWs(uid, deviceID string, connection *websocket.Conn) {
+	// buffered: send() drops a notification when the writer is busy, which lost messages in a burst
+	// (a screenshare offer followed by its ICE candidates)
 	client := &wsClient{
 		uid:           uid,
 		deviceID:      deviceID,
 		hub:           h,
-		notifications: make(chan *messages.WsMessage),
+		notifications: make(chan *messages.WsMessage, 64),
 		done:          make(chan struct{}),
 	}
 	h.additions <- client
