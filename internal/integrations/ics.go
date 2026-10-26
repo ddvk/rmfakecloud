@@ -126,8 +126,15 @@ func (i *icsIntegration) fetch() ([]byte, error) {
 
 func convertEvent(e gocal.Event) messages.CalendarEvent {
 	eventID := e.Uid
+	var seriesID string
 	if e.IsRecurring && e.Start != nil {
 		eventID = fmt.Sprintf("%s_%s", e.Uid, e.Start.UTC().Format("20060102T150405Z"))
+		seriesID = e.Uid
+	}
+
+	var locations []string
+	if e.Location != "" {
+		locations = []string{e.Location}
 	}
 
 	var lastMod string
@@ -183,12 +190,14 @@ func convertEvent(e gocal.Event) messages.CalendarEvent {
 
 	return messages.CalendarEvent{
 		ID:                  eventID,
+		SeriesID:            seriesID,
 		Title:               e.Summary,
 		StartTimeUtc:        startUtc,
 		EndTimeUtc:          endUtc,
 		LastModifiedTimeUtc: lastMod,
 		StartTime:           startLocal,
 		EndTime:             endLocal,
+		Locations:           locations,
 		ResponseStatus:      responseStatus,
 		Organizer:           organizer,
 		Attendees:           attendees,

@@ -1018,7 +1018,7 @@ func (app *App) integrationsCalendarEvents(c *gin.Context) {
 	}
 
 	now := time.Now().UTC()
-	response, err := provider.ListEvents(now, now.Add(24*time.Hour))
+	response, err := provider.ListEvents(now, now.Add(72*time.Hour))
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
