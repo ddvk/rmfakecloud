@@ -28,6 +28,7 @@ func TestSingleEvent(t *testing.T) {
 BEGIN:VEVENT
 UID:single-event-1
 SUMMARY:Team Meeting
+LOCATION:Conference Room B
 DTSTART:20260325T160000Z
 DTEND:20260325T170000Z
 DTSTAMP:20260325T100000Z
@@ -50,6 +51,12 @@ END:VCALENDAR`, start, end)
 	}
 	if evt.EndTimeUtc != "2026-03-25T17:00:00Z" {
 		t.Errorf("unexpected EndTimeUtc: %s", evt.EndTimeUtc)
+	}
+	if evt.SeriesID != "" {
+		t.Errorf("non-recurring event should have no SeriesID, got %s", evt.SeriesID)
+	}
+	if len(evt.Locations) != 1 || evt.Locations[0] != "Conference Room B" {
+		t.Errorf("unexpected Locations: %v", evt.Locations)
 	}
 }
 
@@ -94,6 +101,12 @@ END:VCALENDAR`, start, end)
 
 	if !strings.HasPrefix(evt0.ID, "weekly-1_") {
 		t.Errorf("recurring event ID should have timestamp suffix, got %s", evt0.ID)
+	}
+	if evt0.SeriesID != "weekly-1" || evt1.SeriesID != "weekly-1" {
+		t.Errorf("occurrences should share SeriesID weekly-1, got %s and %s", evt0.SeriesID, evt1.SeriesID)
+	}
+	if evt0.Locations != nil {
+		t.Errorf("event without LOCATION should have no Locations, got %v", evt0.Locations)
 	}
 	if evt0.StartTimeUtc != "2026-03-23T09:00:00Z" {
 		t.Errorf("first occurrence: %s", evt0.StartTimeUtc)
