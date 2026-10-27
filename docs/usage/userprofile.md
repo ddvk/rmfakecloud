@@ -49,6 +49,9 @@ To reset a password:
 read -s -p "New password: " NEWPASSWD && rmfakecloud setuser -u ddvk -p "${NEWPASSWD}"
 ```
 
+New users use [sync 1.5](diff-sync.md) by default. To switch an existing user
+to sync 1.5, use `-s`; to switch back to the old sync, use `-s=false`.
+
 
 ## Directory Structure
 

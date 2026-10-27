@@ -6,11 +6,13 @@ conflicts.
 !!! note
     This feature is available since rmfakecloud v0.0.5.
 
-In order to use this feature, you'll need to update your user to activate it:
+New users use this feature by default. To activate it on an existing user:
 
 ```sh
 rmfakecloud setuser -u ddvk -a -s
 ```
+
+To switch a user back to the old sync, use `-s=false`.
 
 The `-a` is to let/set the user admin: as the tool will remove the admin
 permission if not set.
