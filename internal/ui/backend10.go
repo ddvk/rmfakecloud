@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"errors"
 	"io"
 	"time"
 
@@ -129,4 +130,12 @@ func (d *backend10) DeleteDocument(uid, docID string) (err error) {
 	log.Info(uiLogger, "Deleted document id: ", docID)
 	d.hub.Notify(uid, webDevice, ntf, messages.DocDeletedEvent)
 	return nil
+}
+
+func (d *backend10) GetRawBlob(uid, hash string) (reader io.ReadCloser, err error) {
+	return nil, errors.New("cannot get raw blob on the older backend version")
+}
+
+func (d *backend10) GetBlobDocumentTree(uid, docid string) (m map[string]string, err error) {
+	return nil, errors.New("cannot use the blob API on the older backend version")
 }

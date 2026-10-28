@@ -41,6 +41,10 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 		c.SetCookie(cookieName, "/", -1, "", "", false, true)
 		c.Status(http.StatusOK)
 	})
+	r.POST("logout", func(c *gin.Context) {
+		c.SetCookie(cookieName, "/", -1, "", "", false, true)
+		c.Status(http.StatusOK)
+	})
 	//with authentication
 	auth := r.Group("")
 	auth.Use(app.authMiddleware())
@@ -86,6 +90,15 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	auth.GET("integrations/:intid/metadata/*path", app.getMetadataIntegration)
 	auth.GET("integrations/:intid/download/*path", app.downloadThroughIntegration)
 
+	auth.GET("newcode/status", app.newCodeStatus)
+	auth.GET("devices", app.listRegisteredDevices)
+	auth.POST("devices/reissue", app.reissueRegisteredDevice)
+	auth.GET("documents/:docid/template", app.getTemplate)
+	auth.GET("templates/:id", app.getBuiltinTemplate)
+	auth.GET("methods/:id", app.getBuiltinMethod)
+	auth.GET("documents/:docid/epub/*path", app.getEpubPath)
+	auth.GET("blobs/:blobid", app.getRawBlob)
+	auth.GET("documents/:docid/blobs", app.getBlobTree)
 	ss := auth.Group("screenshare")
 	ss.GET("room", app.screenshareJoinActive)
 	ss.GET("room/:roomId", app.screenshareGetRoom)
