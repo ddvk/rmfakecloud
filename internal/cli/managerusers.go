@@ -33,7 +33,7 @@ func (cli *Cli) SetUser(args []string) {
 	username := userParam.String("u", "", "username")
 	pass := userParam.String("p", "", "password")
 	admin := userParam.Bool("a", false, "isadmmin")
-	sync15 := userParam.Bool("s", false, "should the user use the new sync")
+	sync15 := userParam.Bool("s", false, "use sync15 (default for new users); -s=false switches to sync10")
 
 	userParam.Parse(args)
 	if *username == "" {
@@ -60,7 +60,11 @@ func (cli *Cli) SetUser(args []string) {
 		usr.SetPassword(*pass)
 	}
 	usr.IsAdmin = *admin
-	usr.Sync15 = *sync15
+	userParam.Visit(func(f *flag.Flag) {
+		if f.Name == "s" {
+			usr.Sync15 = *sync15
+		}
+	})
 
 	err = cli.storage.UpdateUser(usr)
 	if err != nil {
