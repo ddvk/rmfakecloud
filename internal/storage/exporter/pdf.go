@@ -34,8 +34,42 @@ type PdfGeneratorOptions struct {
 	AnnotationsOnly bool //export the annotations without the background/pdf
 }
 
-func normalized(p1 rm.Point, ratioX float64) (float64, float64) {
-	return float64(p1.X) * ratioX, float64(p1.Y) * ratioX
+// pageTransform maps a point of ink onto the page it was written on, in the
+// page's own coordinates, which run up from the bottom left.
+//
+// A landscape page does not fit a portrait screen the right way up, so the
+// device turns it a quarter turn: the page's width then runs along the long
+// side of the screen, and the ink is written turned with it. Drawing that ink
+// straight is what puts annotations sideways on landscape documents.
+type pageTransform struct {
+	scale      float64
+	pageHeight float64
+	turned     bool
+}
+
+func (t pageTransform) apply(point rm.Point) (x, y float64) {
+	if t.turned {
+		return (DeviceHeight - float64(point.Y)) * t.scale,
+			t.pageHeight - float64(point.X)*t.scale
+	}
+	return float64(point.X) * t.scale, t.pageHeight - float64(point.Y)*t.scale
+}
+
+// transformFor works out how the ink of a page this size is laid onto it.
+func transformFor(pageWidth, pageHeight float64) pageTransform {
+	if pageWidth > pageHeight {
+		return pageTransform{
+			scale:      pageWidth / DeviceHeight,
+			pageHeight: pageHeight,
+			turned:     true,
+		}
+	}
+
+	scale := pageHeight / DeviceHeight
+	if pageHeight/pageWidth < 1.33 {
+		scale = pageWidth / DeviceWidth
+	}
+	return pageTransform{scale: scale, pageHeight: pageHeight}
 }
 
 func (p *PdfGenerator) Generate(zip *MyArchive, output io.Writer, options PdfGeneratorOptions) (err error) {
@@ -80,14 +114,8 @@ func (p *PdfGenerator) Generate(zip *MyArchive, output io.Writer, options PdfGen
 			return err
 		}
 
-		ratio := c.Height() / c.Width()
+		transform := transformFor(c.Width(), c.Height())
 
-		var scale float64
-		if ratio < 1.33 {
-			scale = c.Width() / DeviceWidth
-		} else {
-			scale = c.Height() / DeviceHeight
-		}
 		if page == nil {
 			logrus.Fatal("page is null")
 		}
@@ -113,13 +141,19 @@ func (p *PdfGenerator) Generate(zip *MyArchive, output io.Writer, options PdfGen
 
 				if line.BrushType == rm.HighlighterV5 {
 					last := len(line.Points) - 1
-					x1, y1 := normalized(line.Points[0], scale)
-					x2, _ := normalized(line.Points[last], scale)
-					// make horizontal lines only, use y1
-					width := scale * 30
-					y1 += width / 2
+					x1, y1 := transform.apply(line.Points[0])
+					x2, y2 := transform.apply(line.Points[last])
+					width := transform.scale * 30
 
-					lineDef := annotator.LineAnnotationDef{X1: x1 - 1, Y1: c.Height() - y1, X2: x2, Y2: c.Height() - y1}
+					// A highlighter stroke is one straight swipe, so it is
+					// drawn flat along whichever way the page runs.
+					if transform.turned {
+						x2 = x1
+					} else {
+						y2 = y1
+					}
+
+					lineDef := annotator.LineAnnotationDef{X1: x1 - 1, Y1: y1, X2: x2, Y2: y2}
 					lineDef.LineColor = pdf.NewPdfColorDeviceRGB(1.0, 1.0, 0.0) //yellow
 					lineDef.Opacity = 0.5
 					lineDef.LineWidth = width
@@ -131,8 +165,8 @@ func (p *PdfGenerator) Generate(zip *MyArchive, output io.Writer, options PdfGen
 				} else {
 					path := draw.NewPath()
 					for i := 0; i < len(line.Points); i++ {
-						x1, y1 := normalized(line.Points[i], scale)
-						path = path.AppendPoint(draw.NewPoint(x1, c.Height()-y1))
+						x1, y1 := transform.apply(line.Points[i])
+						path = path.AppendPoint(draw.NewPoint(x1, y1))
 					}
 
 					contentCreator.Add_w(float64(line.BrushSize / 10))
