@@ -41,6 +41,28 @@ To be able to send email from your reMarkable, fill the following variables:
 | `RM_SMTP_STARTTLS` | use starttls command, should be combined with NOTLS. in most cases port 587 should be used |
 | `RM_SMTP_INSECURE_TLS` | If set, don't check the server certificate (not recommended) |
 
+## OIDC authentication
+
+To use OpenID Connect for login, fill the following variables. `RM_HTTPS_COOKIE=true` is also required.
+
+| Variable name | Description |
+|---|---|
+| `OIDC_PROVIDER_URL` | Provider discovery URL (the base URL, not `/.well-known/openid-configuration`). Example: `https://sso.example.com` |
+| `OIDC_CLIENT_ID` | OAuth2 client ID |
+| `OIDC_CLIENT_SECRET` | OAuth2 client secret |
+| `OIDC_REDIRECT_URL` | Callback URL, must end with `/ui/api/oidc/callback`. Example: `https://your-domain.com/ui/api/oidc/callback` |
+| `OIDC_USERID_CLAIM` | Optional: OIDC claim to use as the user ID (default: `preferred_username`). Supports `preferred_username`, `sub`, `email`, other string claims, and dotted paths such as `custom.userid`. If the configured claim is empty, login falls back to `email`. Whenever the actual identifier is `email`, email verification is enforced unless `OIDC_ALLOW_UNVERIFIED_EMAIL=true`. |
+| `OIDC_DISABLE_LOCAL_LOGIN` | Optional: set to `true` to hide the password form, disable the registration endpoint, and auto-redirect `/login` to OIDC. This requires OIDC for all users (default: `false`). When enabled, users visit the login page and are immediately redirected to your OIDC provider. |
+| `OIDC_ADMIN_CLAIM` | Optional: dotted path to the claim that holds admin role values (e.g. `groups`). If unset, no OIDC user is granted admin. The claim is read from the ID token — see `OIDC_EXTRA_SCOPES` if your provider requires a scope to include it. |
+| `OIDC_ADMIN_CLAIM_VALUE` | Optional: value in that claim that grants admin (e.g. `admin`). Re-evaluated on every login. If unset, no OIDC user is granted admin. |
+| `OIDC_EXTRA_SCOPES` | Optional: space-separated extra OAuth2 scopes. `openid`, `email`, and `profile` are always requested (default: none). Use this if your provider requires a scope to include role claims in the ID token (e.g. `groups` for Okta). |
+| `OIDC_DISPLAY_NAME` | Optional: custom label for the OIDC login button (default: `Login with OIDC`) |
+| `OIDC_ALLOW_UNVERIFIED_EMAIL` | Optional: set to `true` to allow login when the provider's `email_verified` claim is missing or `false`. Leave unset for the secure default — logins with an unverified email are rejected to prevent account takeover via an unverified address. Applies whenever the actual user ID is `email`, including fallback from another claim (default: `false`). |
+
+### Provider examples
+
+- [Authelia](oidc/authelia.md)
+
 ## Screen sharing
 
 Screen sharing streams your tablet display to a browser via WebRTC. There are two signaling modes depending on your tablet's software version.
