@@ -178,6 +178,9 @@ func FromEnv() *Config {
 	var cert tls.Certificate
 	certPath := os.Getenv(envTLSCert)
 	keyPath := os.Getenv(envTLSKey)
+	if err := validateTLSPaths(certPath, keyPath); err != nil {
+		log.Fatal(err)
+	}
 	if certPath != "" && keyPath != "" {
 
 		cert, err = tls.LoadX509KeyPair(certPath, keyPath)
@@ -286,6 +289,16 @@ func FromEnv() *Config {
 		HashSchemaVersion: hashSchemaVersion,
 	}
 	return &cfg
+}
+
+// validateTLSPaths requires TLS_CERT and TLS_KEY together. With only one of
+// them set, the server used to skip TLS and serve plain HTTP, which is easy
+// to miss. Setting neither still selects plain HTTP.
+func validateTLSPaths(certPath, keyPath string) error {
+	if (certPath == "") != (keyPath == "") {
+		return fmt.Errorf("%s and %s must be set together; refusing to start without TLS", envTLSCert, envTLSKey)
+	}
+	return nil
 }
 
 // normalizeICEServers expands "urls" arrays into singular "url" entries; xochitl rejects anything else
