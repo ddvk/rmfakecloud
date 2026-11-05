@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/ddvk/rmfakecloud/internal/common"
@@ -317,6 +318,29 @@ func (app *ReactAppWrapper) updateDocument(c *gin.Context) {
 		badReq(c, err.Error())
 		return
 	}
+
+	c.Status(http.StatusOK)
+}
+func (app *ReactAppWrapper) renameDocument(c *gin.Context) {
+	req := viewmodel.RenameDoc{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Error(err)
+		badReq(c, err.Error())
+		return
+	}
+	name := strings.TrimSpace(req.Name)
+	if name == "" {
+		badReq(c, "name cannot be empty")
+		return
+	}
+	backend := app.getBackend(c)
+	uid := userID(c)
+	err := backend.RenameDocument(uid, c.Param("docid"), name)
+	if err != nil {
+		badReq(c, err.Error())
+		return
+	}
+	backend.Sync(uid)
 
 	c.Status(http.StatusOK)
 }

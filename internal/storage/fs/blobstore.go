@@ -147,23 +147,40 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 
 // UpdateBlobDocument updates metadata
 func (fs *FileSystemStorage) UpdateBlobDocument(uid, docID, name, parent string) (err error) {
+	log.Info("updateBlobDocument: ", docID, "new name:", name)
+	return fs.updateBlobMetadata(uid, docID, func(hashDoc *models.HashDoc) {
+		hashDoc.DocumentName = name
+		hashDoc.Parent = parent
+	})
+}
+
+// RenameBlobDocument changes only the visible name of a document or folder,
+// the parent and the type stay as they are
+func (fs *FileSystemStorage) RenameBlobDocument(uid, docID, name string) (err error) {
+	log.Info("renameBlobDocument: ", docID, "new name:", name)
+	return fs.updateBlobMetadata(uid, docID, func(hashDoc *models.HashDoc) {
+		hashDoc.DocumentName = name
+	})
+}
+
+// updateBlobMetadata applies mutate to the metadata of a document, bumps its version
+// and writes the new metadata, document index and root index
+func (fs *FileSystemStorage) updateBlobMetadata(uid, docID string, mutate func(hashDoc *models.HashDoc)) (err error) {
 	tree, err := fs.GetCachedTree(uid)
 	if err != nil {
-		return nil
+		return err
 	}
 
-	log.Info("updateBlobDocument: ", docID, "new name:", name)
 	blobStorage := fs.BlobStorage(uid)
 
-	err = updateTree(tree, blobStorage, func(t *models.HashTree) error {
+	return updateTree(tree, blobStorage, func(t *models.HashTree) error {
 		hashDoc, err := tree.FindDoc(docID)
 		if err != nil {
 			return err
 		}
-		log.Info("updateBlobDocument: ", hashDoc.DocumentName)
+		log.Info("updateBlobMetadata: ", hashDoc.DocumentName)
 
-		hashDoc.DocumentName = name
-		hashDoc.Parent = parent
+		mutate(hashDoc)
 		hashDoc.Version++
 
 		metadataHash, metadataReader, err := hashDoc.MetadataReader()
@@ -197,8 +214,6 @@ func (fs *FileSystemStorage) UpdateBlobDocument(uid, docID, name, parent string)
 		t.Rehash()
 		return nil
 	})
-
-	return err
 }
 
 // DeleteBlobDocument deletes blob document
