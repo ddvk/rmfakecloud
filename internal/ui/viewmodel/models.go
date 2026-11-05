@@ -235,6 +235,16 @@ type UpdateDoc struct {
 	Name       string `json:"name"`
 }
 
+// RenameDoc changes the visible name of a document or folder
+type RenameDoc struct {
+	Name string `json:"name"`
+}
+
+// MoveDoc moves a document or folder, an empty parent is the root
+type MoveDoc struct {
+	Parent *string `json:"parent"`
+}
+
 type NewFolder struct {
 	ParentID string `json:"parentId"`
 	Name     string `json:"name"`

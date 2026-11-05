@@ -69,7 +69,8 @@ func (app *ReactAppWrapper) RegisterRoutes(router *gin.Engine) {
 	auth.GET("documents/:docid", app.getDocument)
 	auth.POST("documents/upload", app.createDocument)
 
-	//move, rename
+	auth.PATCH("documents/:docid", app.renameDocument)
+	auth.PATCH("documents/:docid/parent", app.moveDocument)
 	auth.DELETE("documents/:docid", app.deleteDocument)
 	auth.PUT("documents", app.updateDocument)
 	auth.POST("folders", app.createFolder)

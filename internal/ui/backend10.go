@@ -116,6 +116,54 @@ func (d *backend10) UpdateDocument(uid, docID, name, parent string) (err error) 
 	return nil
 
 }
+func (d *backend10) RenameDocument(uid, docID, name string) (err error) {
+	metadata, err := d.documentHandler.GetMetadata(uid, docID)
+	if err != nil {
+		return err
+	}
+	metadata.VissibleName = name
+	metadata.Version++
+
+	err = d.documentHandler.UpdateMetadata(uid, metadata)
+	if err != nil {
+		return err
+	}
+	ntf := hub.DocumentNotification{
+		ID:      docID,
+		Type:    metadata.Type,
+		Version: metadata.Version,
+		Parent:  metadata.Parent,
+		Name:    metadata.VissibleName,
+	}
+
+	log.Info(uiLogger, "Renamed document id: ", docID)
+	d.hub.Notify(uid, webDevice, ntf, messages.DocAddedEvent)
+	return nil
+}
+func (d *backend10) MoveDocument(uid, docID, parent string) (err error) {
+	metadata, err := d.documentHandler.GetMetadata(uid, docID)
+	if err != nil {
+		return err
+	}
+	metadata.Parent = parent
+	metadata.Version++
+
+	err = d.documentHandler.UpdateMetadata(uid, metadata)
+	if err != nil {
+		return err
+	}
+	ntf := hub.DocumentNotification{
+		ID:      docID,
+		Type:    metadata.Type,
+		Version: metadata.Version,
+		Parent:  metadata.Parent,
+		Name:    metadata.VissibleName,
+	}
+
+	log.Info(uiLogger, "Moved document id: ", docID)
+	d.hub.Notify(uid, webDevice, ntf, messages.DocAddedEvent)
+	return nil
+}
 func (d *backend10) DeleteDocument(uid, docID string) (err error) {
 	err = d.documentHandler.RemoveDocument(uid, docID)
 	if err != nil {
