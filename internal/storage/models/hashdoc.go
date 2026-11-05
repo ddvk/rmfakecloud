@@ -9,11 +9,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"path"
 	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/ddvk/rmfakecloud/internal/common"
+	"github.com/ddvk/rmfakecloud/internal/storage"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -85,6 +87,35 @@ func (d *HashDoc) MetadataReader() (hash string, reader io.Reader, err error) {
 	return
 }
 
+// HasWritings returns true if the document has any .rm annotation pages.
+func (d *HashDoc) HasWritings() bool {
+	for _, f := range d.Files {
+		if strings.ToLower(path.Ext(f.EntryName)) == storage.RmFileExt {
+			return true
+		}
+	}
+	return false
+}
+
+// PayloadTypeFromFiles returns document type from file extensions only.
+// Returns "epub", "pdf", "template", or "" (caller should use "notebook" or d.PayloadType when "").
+func (d *HashDoc) PayloadTypeFromFiles() string {
+	low := func(s string) string { return strings.ToLower(s) }
+	for _, f := range d.Files {
+		name := low(f.EntryName)
+		if strings.HasSuffix(name, storage.EpubFileExt) {
+			return "epub"
+		}
+		if strings.HasSuffix(name, storage.PdfFileExt) {
+			return "pdf"
+		}
+		if strings.HasSuffix(name, storage.TemplateFileExt) {
+			return "template"
+		}
+	}
+	return ""
+}
+
 // AddFile adds an entry
 func (d *HashDoc) AddFile(e *HashEntry) error {
 	d.Files = append(d.Files, e)
@@ -95,6 +126,7 @@ func (d *HashDoc) AddFile(e *HashEntry) error {
 	d.Size = size
 	return d.Rehash()
 }
+
 
 type ErrDocumentExists struct {
 	DocID string
@@ -180,7 +212,9 @@ func (d *HashDoc) readContent(hash string, r RemoteStorage) error {
 	if err != nil {
 		log.Printf("cannot read content %s %v", hash, err)
 	}
-	d.PayloadType = contentFile.FileType
+	if len(contentBytes) > 4 && contentFile.FileType != "" {
+		d.PayloadType = contentFile.FileType
+	}
 
 	if len(contentFile.SizeInBytes) > 0 {
 		d.Size, err = strconv.ParseInt(contentFile.SizeInBytes, 10, 64)

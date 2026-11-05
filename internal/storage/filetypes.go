@@ -5,6 +5,7 @@ const (
 	PageFileExt     = ".pagedata"
 	ContentFileExt  = ".content"
 	RmFileExt       = ".rm"
+	TemplateFileExt = ".template"
 
 	//ZipFileExt zip file extension
 	ZipFileExt = ".zip"
