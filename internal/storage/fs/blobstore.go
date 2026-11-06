@@ -56,6 +56,36 @@ func (fs *FileSystemStorage) GetCachedTree(uid string) (t *models.HashTree, err 
 	return tree, nil
 }
 
+// CreateEmptyRoot initializes a new account with an empty (but valid) root index,
+// so that the tablet gets a real root hash and a generation > 0
+func (fs *FileSystemStorage) CreateEmptyRoot(uid string) error {
+	tree := &models.HashTree{SchemaVersion: fs.Cfg.HashSchemaVersion}
+	if err := tree.Rehash(); err != nil {
+		return err
+	}
+
+	blobStorage := fs.BlobStorage(uid)
+	rootIndex, err := tree.RootIndex()
+	if err != nil {
+		return err
+	}
+	if err = blobStorage.Write(tree.Hash, rootIndex); err != nil {
+		return err
+	}
+
+	gen, err := blobStorage.WriteRootIndex(0, tree.Hash)
+	if err == ErrorWrongGeneration {
+		// a root was created concurrently, keep that one
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	log.Info("created empty root for new account, gen ", gen)
+	tree.Generation = gen
+	return fs.SaveCachedTree(uid, tree)
+}
+
 // SaveCachedTree saves the cached tree
 func (fs *FileSystemStorage) SaveCachedTree(uid string, t *models.HashTree) error {
 	cachePath := path.Join(fs.getUserPath(uid), cachedTreeName)

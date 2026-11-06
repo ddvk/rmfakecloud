@@ -36,6 +36,7 @@ type BlobStorage interface {
 	StoreBlob(uid, blobID string, s io.Reader, matchGeneration int64) (int64, error)
 	LoadBlob(uid, blobID string) (reader io.ReadCloser, gen int64, size int64, crc32c string, err error)
 	CreateBlobDocument(uid, name, parent string, stream io.Reader) (doc *Document, err error)
+	CreateEmptyRoot(uid string) error
 }
 
 // MetadataStorer manages document metadata
