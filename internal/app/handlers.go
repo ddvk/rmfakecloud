@@ -830,11 +830,14 @@ func (app *App) syncGetRootV4(c *gin.Context) {
 	uid := userID(c)
 	reader, generation, _, _, err := app.blobStorer.LoadBlob(uid, RootHash)
 	if err == fs.ErrorNotFound {
-		log.Warn("No root file found, assuming this is a new account")
-		crcJSON(c, http.StatusOK, messages.SyncRootV4Response{
-			SchemaVersion: SchemaVersion,
-		})
-		return
+		log.Warn("No root file found, assuming this is a new account, creating an empty root")
+		err = app.blobStorer.CreateEmptyRoot(uid)
+		if err != nil {
+			log.Error(err)
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+		reader, generation, _, _, err = app.blobStorer.LoadBlob(uid, RootHash)
 	}
 
 	if err != nil {
@@ -842,6 +845,7 @@ func (app *App) syncGetRootV4(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+	defer reader.Close()
 
 	roothash, err := io.ReadAll(reader)
 	if err != nil {
