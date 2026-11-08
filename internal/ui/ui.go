@@ -28,6 +28,8 @@ type backend interface {
 	UpdateDocument(uid, docID, name, parent string) (err error)
 	DeleteDocument(uid, docID string) (err error)
 	Sync(uid string)
+	GetRawBlob(uid, hash string) (stream io.ReadCloser, err error)
+	GetBlobDocumentTree(uid, docid string) (m map[string]string, err error)
 }
 type codeGenerator interface {
 	NewCode(string) (string, error)
@@ -51,6 +53,8 @@ type blobHandler interface {
 	CreateBlobFolder(uid, name, parent string) (doc *storage.Document, err error)
 	Export(uid, docid string) (io.ReadCloser, error)
 	ExportRmDoc(uid, docid string) (io.ReadCloser, error)
+	GetRawBlob(uid, hash string) (stream io.ReadCloser, err error)
+	GetBlobDocumentTree(uid, docid string) (m map[string]string, err error)
 }
 
 type notificationHub interface {
