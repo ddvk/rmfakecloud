@@ -4,15 +4,24 @@
 /node_modules
 /.pnp
 .pnp.js
+.pnp.*
+.pnpm-store/
 
 # testing
 /coverage
 
-# production
+# production / Vite
 /build
+/dist
+.vite/
+*.tsbuildinfo
+.eslintcache
 
 # misc
 .DS_Store
+.env
+.env.*
+!.env.example
 .env.local
 .env.development.local
 .env.test.local
@@ -21,3 +30,4 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*

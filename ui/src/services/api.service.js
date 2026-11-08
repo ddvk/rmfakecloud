@@ -18,24 +18,86 @@ class ApiServices {
     return fetch(`${constants.ROOT_URL}/login`, {
       method: "POST",
       headers: this.header(),
+      credentials: "same-origin",
       body: JSON.stringify(loginData),
     })
-      .then((r) => {
+      .then(async (r) => {
+        const text = await r.text();
         if (!r.ok) {
-          throw new Error(r.statusText);
+          let msg = r.statusText;
+          try {
+            if (text && text.startsWith("{")) {
+              const j = JSON.parse(text);
+              if (j.error) msg = j.error;
+            }
+          } catch (_) {}
+          throw new Error(msg);
         }
-        return r.text();
+        return text;
       })
-      .then((text) => {
-        let user = jwtDecode(text);
-        localStorage.setItem("currentUser", JSON.stringify(user));
-        localStorage.setItem("authToken", text);
-        return user;
-      });
+      .then((text) => this.consumeWebToken(text));
+  }
+  consumeWebToken(text) {
+    if (!text || typeof text !== "string" || !/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/.test(text)) {
+      throw new Error("Invalid response from server. Check that the app URL and API are correct.");
+    }
+    const user = jwtDecode(text);
+    localStorage.setItem("currentUser", JSON.stringify(user));
+    localStorage.setItem("authToken", text);
+    return user;
+  }
+  suAs(userid) {
+    return fetch(`${constants.ROOT_URL}/su`, {
+      method: "POST",
+      headers: this.header(),
+      credentials: "same-origin",
+      body: JSON.stringify({ userid }),
+    })
+      .then(async (r) => {
+        const text = await r.text();
+        if (!r.ok) {
+          let msg = r.statusText;
+          try {
+            if (text && text.startsWith("{")) {
+              const j = JSON.parse(text);
+              if (j.error) msg = j.error;
+            }
+          } catch (_) {}
+          throw new Error(msg);
+        }
+        return text;
+      })
+      .then((text) => this.consumeWebToken(text));
+  }
+  leaveSu() {
+    return fetch(`${constants.ROOT_URL}/su/leave`, {
+      method: "POST",
+      headers: this.header(),
+      credentials: "same-origin",
+    })
+      .then(async (r) => {
+        const text = await r.text();
+        if (!r.ok) {
+          let msg = r.statusText;
+          try {
+            if (text && text.startsWith("{")) {
+              const j = JSON.parse(text);
+              if (j.error) msg = j.error;
+            }
+          } catch (_) {}
+          throw new Error(msg);
+        }
+        return text;
+      })
+      .then((text) => this.consumeWebToken(text));
   }
   logout() {
     removeUser();
-    fetch(`${constants.ROOT_URL}/logout`);
+    return fetch(`${constants.ROOT_URL}/logout`, {
+      method: "POST",
+      headers: this.header(),
+      credentials: "same-origin",
+    }).catch(() => {});
   }
 
   upload(parent, files) {
@@ -115,13 +177,107 @@ class ApiServices {
       return r.json();
     });
   }
+
+  _isDocumentId(id) {
+    return typeof id === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  }
+
+  getTemplateUrl(id) {
+    if (this._isDocumentId(id)) return `${constants.ROOT_URL}/documents/${id}/template`;
+    return `${constants.ROOT_URL}/templates/${id}`;
+  }
+
+  getTemplate(id) {
+    return fetch(this.getTemplateUrl(id), {
+      method: "GET",
+      credentials: "same-origin",
+    }).then((r) => {
+      handleError(r);
+      return r.text();
+    });
+  }
+
+  getMethodUrl(id) {
+    if (this._isDocumentId(id)) return `${constants.ROOT_URL}/documents/${id}/template`;
+    return `${constants.ROOT_URL}/methods/${id}`;
+  }
+
+  getMethod(id) {
+    return fetch(this.getMethodUrl(id), {
+      method: "GET",
+      credentials: "same-origin",
+    }).then((r) => {
+      handleError(r);
+      return r.text();
+    });
+  }
+
   getCode() {
     return fetch(`${constants.ROOT_URL}/newcode`, {
       method: "GET",
       headers: this.header(),
+      credentials: "same-origin",
     }).then((r) => {
       handleError(r);
       return r.json();
+    });
+  }
+
+  getCodeStatus() {
+    return fetch(`${constants.ROOT_URL}/newcode/status`, {
+      method: "GET",
+      credentials: "same-origin",
+    }).then((r) => {
+      handleError(r);
+      return r.json();
+    });
+  }
+
+  listRegisteredDevices() {
+    return fetch(`${constants.ROOT_URL}/devices`, {
+      method: "GET",
+      credentials: "same-origin",
+    }).then((r) => {
+      handleError(r);
+      return r.json();
+    });
+  }
+
+  reissueDeviceToken(deviceId, deviceDesc) {
+    const body = { deviceId };
+    if (deviceDesc) body.deviceDesc = deviceDesc;
+    return fetch(`${constants.ROOT_URL}/devices/reissue`, {
+      method: "POST",
+      headers: this.header(),
+      credentials: "same-origin",
+      body: JSON.stringify(body),
+    }).then(async (r) => {
+      if (!r.ok) {
+        if (r.status === 401) {
+          removeUser();
+          window.location.reload(true);
+          return;
+        }
+        let msg = r.statusText;
+        try {
+          const ct = r.headers.get("Content-Type");
+          if (ct && ct.includes("application/json")) {
+            const j = await r.json();
+            if (j.error) msg = j.error;
+          }
+        } catch (_) {}
+        throw new Error(msg);
+      }
+      return r.json();
+    });
+  }
+
+  triggerSync() {
+    return fetch(`${constants.ROOT_URL}/sync`, {
+      method: "GET",
+      credentials: "same-origin",
+    }).then((r) => {
+      handleError(r);
     });
   }
 
@@ -136,9 +292,80 @@ class ApiServices {
     if (exportType) url += `?type=${exportType}`;
     return fetch(url, {
       method: "GET",
+      credentials: "same-origin",
     }).then((r) => {
       handleError(r);
       return r.blob();
+    });
+  }
+
+  getServerSettings() {
+    return fetch(`${constants.ROOT_URL}/server-settings`, {
+      method: "GET",
+      credentials: "same-origin",
+    }).then((r) => {
+      handleError(r);
+      return r.json();
+    });
+  }
+
+  updateServerSettings(settings) {
+    return fetch(`${constants.ROOT_URL}/server-settings`, {
+      method: "PUT",
+      headers: this.header(),
+      credentials: "same-origin",
+      body: JSON.stringify(settings),
+    }).then(async (r) => {
+      if (!r.ok) {
+        let msg = r.statusText;
+        try {
+          const j = await r.json();
+          if (j.error) msg = j.error;
+        } catch (_) {}
+        throw new Error(msg);
+      }
+      return r.json();
+    });
+  }
+
+  getDocumentMetadata(id) {
+    return fetch(`${constants.ROOT_URL}/documents/${id}/metadata`, {
+      method: "GET",
+      credentials: "same-origin",
+    }).then((r) => {
+      handleError(r);
+      return r.json();
+    });
+  }
+
+  getDocumentPageBackgroundUrl(id, pageNum) {
+    return `${constants.ROOT_URL}/documents/${id}/page/${pageNum}/background`;
+  }
+
+  getDocumentPagePngUrl(id, pageNum) {
+    return `${constants.ROOT_URL}/documents/${id}/page/${pageNum}`;
+  }
+
+  getDocumentPageThumbUrl(id, pageNum) {
+    return `${constants.ROOT_URL}/documents/${id}/page/${pageNum}/thumb`;
+  }
+
+  /** Cover image URL for EPUB thumbnails (cover.htm/html/xhtml, or *0000.xhtml first img). */
+  getEpubCoverThumbUrl(id) {
+    return `${constants.ROOT_URL}/documents/${id}/epub/cover-thumb`;
+  }
+
+  getDocumentPageOverlayUrl(id, pageNum) {
+    return `${constants.ROOT_URL}/documents/${id}/page/${pageNum}/overlay.svg`;
+  }
+
+  getDocumentPageOverlaySvg(id, pageNum) {
+    return fetch(this.getDocumentPageOverlayUrl(id, pageNum), {
+      method: "GET",
+      credentials: "same-origin",
+    }).then((r) => {
+      handleError(r);
+      return r.text();
     });
   }
 
@@ -215,7 +442,8 @@ function handleError(r) {
       window.location.reload(true);
       return
     }
-    if (r.headers.get("Content-Type").startsWith("application/json")) {
+    const ct = r.headers.get("Content-Type") || "";
+    if (ct.startsWith("application/json")) {
       return r.json().then(d => {throw new Error(d.error)});
     }
     if (r.status === 400) {

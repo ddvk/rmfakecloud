@@ -23,6 +23,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/ui"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v4"
 )
 
 const (
@@ -116,7 +117,6 @@ func (app *App) Stop() {
 	}
 }
 
-
 // NewApp constructs an app
 func NewApp(cfg *config.Config) App {
 	debugMode := log.GetLevel() >= log.DebugLevel
@@ -154,6 +154,7 @@ func NewApp(cfg *config.Config) App {
 
 	// Register the middleware
 	// router.Use(cors.New(corsConfig))
+	router.Use(userAgentLoggerMiddleware())
 
 	if debugMode {
 		router.Use(requestLoggerMiddleware())
@@ -180,7 +181,18 @@ func NewApp(cfg *config.Config) App {
 
 	app.registerRoutes(router)
 
-	uiApp := ui.New(cfg, fsStorage, codeConnector, ntfHub, pcStore, fsStorage, fsStorage, roomMgr, app.mqttBroker)
+	issueDeviceToken := func(uid, deviceID, deviceDesc string) (string, error) {
+		claims := &DeviceClaims{
+			UserID:     uid,
+			DeviceID:   deviceID,
+			DeviceDesc: deviceDesc,
+			StandardClaims: jwt.StandardClaims{
+				Audience: APIUsage,
+			},
+		}
+		return common.SignClaims(claims, cfg.JWTSecretKey)
+	}
+	uiApp := ui.New(cfg, fsStorage, codeConnector, ntfHub, pcStore, fsStorage, fsStorage, issueDeviceToken, roomMgr, app.mqttBroker)
 	uiApp.RegisterRoutes(router)
 
 	storageapp := fs.NewApp(cfg, fsStorage)

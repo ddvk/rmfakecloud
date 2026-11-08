@@ -12,6 +12,8 @@ The configuration is made through environment variables.
 | `RM_HTTPS_COOKIE` | For the UI, force cookies to be available only via https |
 | `RM_TRUST_PROXY`  | Trust the proxy for client ip addresses (X-Forwarded-For/X-Real-IP) default false |
 | `HASH_SCHEMA_VERSION` | Hash tree schema version: "3" or "4" (default: 3) |
+| `RMFAKECLOUD_ALLOW_SU` | Enable admin **su** (impersonate another user) in the web UI (default: `false`). Env-only — not editable from the web UI. When disabled, `POST /su` is forbidden; an active su session can still leave via `POST /su/leave`. |
+| `RMFAKECLOUD_RMC_SRC` | Path to the [rmc](https://github.com/ricklupton/rmc) source `src` directory (e.g. `/home/aaron/Documents/rmc-main/src`) for v6 `.rm` conversion. Also editable by admins under **Admin → Rendering** (saved to `DATADIR/server_settings.json`, which overrides this env value). |
 
 ## Handwriting recognition
 
