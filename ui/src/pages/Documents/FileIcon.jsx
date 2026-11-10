@@ -1,6 +1,10 @@
-import { BsFilePdf, BsFolder, BsFileEarmark, BsFileEarmarkText, BsCloud, BsFile, BsTrash } from "react-icons/bs";
+import { useState } from "react";
+import { BsFilePdf, BsFolder, BsFileEarmark, BsFileEarmarkText, BsCloud, BsFile, BsTrash, BsGrid3X3, BsBook } from "react-icons/bs";
+import apiservice from "../../services/api.service";
+import DocumentPageThumb from "../../components/DocumentPageThumb";
 
-export default function FileIcon({ file }) {
+export default function FileIcon({ file, showThumbnail = false }) {
+  const [epubThumbFailed, setEpubThumbFailed] = useState(false);
 
   const Icon = () => {
     if (!!file.icon) {
@@ -9,6 +13,11 @@ export default function FileIcon({ file }) {
           return <BsFile />
         case "trash":
           return <BsTrash />
+        case "templates":
+        case "templates-methods":
+          return <BsFileEarmarkText />
+        case "methods":
+          return <BsGrid3X3 />
         case "cloud":
           return <BsCloud />
         default:
@@ -21,11 +30,60 @@ export default function FileIcon({ file }) {
     }
 
     if (file.type === "pdf") {
+      if (showThumbnail && file?.id) {
+        return (
+          <DocumentPageThumb
+            docId={file.id}
+            pageNum={1}
+            alt={file.name || "PDF"}
+            fallback={<BsFilePdf />}
+          />
+        );
+      }
       return <BsFilePdf />
     }
 
-    if (file.type === "notebook") {
+    if (file.type === "epub" || (file.name && file.name.toLowerCase().endsWith(".epub"))) {
+      if (showThumbnail && file?.id && !epubThumbFailed) {
+        return (
+          <img
+            src={apiservice.getEpubCoverThumbUrl(file.id)}
+            alt={file.name || "EPUB"}
+            onError={() => setEpubThumbFailed(true)}
+            style={{
+              width: 68,
+              height: 88,
+              objectFit: "cover",
+              borderRadius: 3,
+              border: "1px solid #dee2e6",
+              background: "#fff",
+            }}
+          />
+        );
+      }
+      return <BsBook />
+    }
+
+    if (file.type === "notebook" || file.type === "TODO") {
+      if (showThumbnail && file?.id) {
+        return (
+          <DocumentPageThumb
+            docId={file.id}
+            pageNum={1}
+            alt={file.name || "Notebook"}
+            fallback={<BsFileEarmarkText />}
+          />
+        );
+      }
       return <BsFileEarmarkText />
+    }
+
+    if (file.type === "template") {
+      return <BsFileEarmarkText />
+    }
+
+    if (file.type === "method") {
+      return <BsGrid3X3 />
     }
 
     return <BsFileEarmark />

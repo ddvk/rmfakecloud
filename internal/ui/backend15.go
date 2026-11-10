@@ -5,6 +5,7 @@ import (
 
 	"github.com/ddvk/rmfakecloud/internal/app/hub"
 	"github.com/ddvk/rmfakecloud/internal/storage"
+	"github.com/ddvk/rmfakecloud/internal/storage/epub"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
 	"github.com/google/uuid"
 )
@@ -15,19 +16,51 @@ type backend15 struct {
 }
 
 func (b *backend15) GetDocumentTree(uid string) (tree *viewmodel.DocumentTree, err error) {
-	hashTree, err := b.blobHandler.GetCachedTree(uid)
-	if err != nil {
-		return nil, err
-	}
-
-	return viewmodel.DocTreeFromHashTree(hashTree), nil
+	return documentTreeFromBlob(b.blobHandler, uid)
 }
 func (b *backend15) Export(uid, docid, exporttype string, opt storage.ExportOption) (r io.ReadCloser, err error) {
-	if exporttype == "rmdoc" {
-		return b.blobHandler.ExportRmDoc(uid, docid)
-	}
 	r, err = b.blobHandler.Export(uid, docid)
 	return
+}
+
+func (b *backend15) PDFInlineFilename(uid, docid string) string {
+	return b.blobHandler.PDFInlineFilename(uid, docid)
+}
+
+func (b *backend15) GetTemplate(uid, docid string) (r io.ReadCloser, err error) {
+	return b.blobHandler.GetTemplate(uid, docid)
+}
+
+func (b *backend15) GetDocumentMetadata(uid, docid string) (docType string, hasWritings bool, pageCount int, err error) {
+	return b.blobHandler.GetDocumentMetadata(uid, docid)
+}
+
+func (b *backend15) ExportPagePNG(uid, docid string, pageNum int) (io.ReadCloser, error) {
+	return b.blobHandler.ExportPagePNG(uid, docid, pageNum)
+}
+
+func (b *backend15) ExportPageBackgroundPNG(uid, docid string, pageNum int) (io.ReadCloser, error) {
+	return b.blobHandler.ExportPageBackgroundPNG(uid, docid, pageNum)
+}
+
+func (b *backend15) ExportPageThumbPNG(uid, docid string, pageNum int) (io.ReadCloser, error) {
+	return b.blobHandler.ExportPageThumbPNG(uid, docid, pageNum)
+}
+
+func (b *backend15) ExportPageOverlaySVG(uid, docid string, pageNum int) (io.ReadCloser, error) {
+	return b.blobHandler.ExportPageOverlaySVG(uid, docid, pageNum)
+}
+
+func (b *backend15) GetEpubManifest(uid, docid string) (*epub.Manifest, error) {
+	return b.blobHandler.GetEpubManifest(uid, docid)
+}
+
+func (b *backend15) GetEpubFile(uid, docid, filePath string) (io.ReadCloser, string, error) {
+	return b.blobHandler.GetEpubFile(uid, docid, filePath)
+}
+
+func (b *backend15) GetEpubCoverThumb(uid, docid string) (io.ReadCloser, string, error) {
+	return b.blobHandler.GetEpubCoverThumb(uid, docid)
 }
 
 func (b *backend15) CreateDocument(uid, filename, parent string, stream io.Reader) (doc *storage.Document, err error) {
@@ -48,4 +81,12 @@ func (b *backend15) DeleteDocument(uid, docID string) (err error) {
 
 func (b *backend15) Sync(uid string) {
 	b.h.NotifySync(uid, uuid.NewString())
+}
+
+func (b *backend15) GetRawBlob(uid, hash string) (stream io.ReadCloser, err error) {
+	return b.blobHandler.GetRawBlob(uid, hash)
+}
+
+func (b *backend15) GetBlobDocumentTree(uid, docid string) (m map[string]string, err error) {
+	return b.blobHandler.GetBlobDocumentTree(uid, docid)
 }

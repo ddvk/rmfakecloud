@@ -97,7 +97,7 @@ div[role="button"] > p {
     gap: 2em;
 }
 
-canvas {
+canvas:not(.rmrender) {
   margin: auto;
   width: auto !important;
   height: auto !important;
@@ -273,4 +273,14 @@ main h2 {
 
 .flex-spacer {
   flex: 1;
+}
+
+div.rmrender-wrapper {
+  display: flex;
+  justify-content: center;
+}
+
+div.rmrender-wrapper canvas {
+  max-width: 50%;
+  margin: auto;
 }
