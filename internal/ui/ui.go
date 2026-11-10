@@ -18,6 +18,8 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
 	webui "github.com/ddvk/rmfakecloud/ui"
 	"github.com/gin-gonic/gin"
+	"github.com/go-webauthn/webauthn/webauthn"
+	log "github.com/sirupsen/logrus"
 )
 
 type backend interface {
@@ -77,6 +79,8 @@ type ReactAppWrapper struct {
 	backends      map[common.SyncVersion]backend
 	roomManager   *screenshare.RoomManager
 	mqtt          mqttBridge
+	webAuthn         *webauthn.WebAuthn
+	webAuthnSessions *webAuthnSessionStore
 }
 
 // hack for serving index.html on /
@@ -120,6 +124,19 @@ func New(cfg *config.Config,
 		},
 		roomManager: roomManager,
 		mqtt:        mqttBroker,
+	}
+	if cfg != nil && cfg.WebAuthn {
+		wa, err := webauthn.New(&webauthn.Config{
+			RPDisplayName: "rmfakecloud",
+			RPID:          cfg.WebAuthnRPID,
+			RPOrigins:     cfg.WebAuthnOrigins,
+		})
+		if err != nil {
+			log.Errorf("webauthn init failed, passkeys disabled: %v", err)
+		} else {
+			staticWrapper.webAuthn = wa
+			staticWrapper.webAuthnSessions = newWebAuthnSessionStore()
+		}
 	}
 	return &staticWrapper
 }

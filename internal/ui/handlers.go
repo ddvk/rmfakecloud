@@ -130,6 +130,23 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 		return
 	}
 
+	tokenString, expiresAfter, err := app.issueWebTokenForUser(user, uuid.NewString())
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	log.Debug("cookie expires after: ", expiresAfter)
+	c.SetSameSite(http.SameSiteStrictMode)
+	c.SetCookie(cookieName, tokenString, int(expiresAfter.Seconds()), "/", "", app.cfg.HTTPSCookie, true)
+
+	c.String(http.StatusOK, tokenString)
+}
+
+func (app *ReactAppWrapper) issueWebTokenForUser(user *model.User, browserID string) (string, time.Duration, error) {
+	if user == nil {
+		return "", 0, fmt.Errorf("user is nil")
+	}
 	scopes := ""
 	if user.Sync15 {
 		scopes = isSync15Key
@@ -138,7 +155,7 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 	expires := time.Now().Add(expiresAfter)
 	claims := &WebUserClaims{
 		UserID:    user.ID,
-		BrowserID: uuid.NewString(),
+		BrowserID: browserID,
 		Email:     user.Email,
 		Scopes:    scopes,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -154,17 +171,10 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 	}
 
 	tokenString, err := common.SignClaims(claims, app.cfg.JWTSecretKey)
-
 	if err != nil {
-		log.Error(err)
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
+		return "", 0, err
 	}
-	log.Debug("cookie expires after: ", expiresAfter)
-	c.SetSameSite(http.SameSiteStrictMode)
-	c.SetCookie(cookieName, tokenString, int(expiresAfter.Seconds()), "/", "", app.cfg.HTTPSCookie, true)
-
-	c.String(http.StatusOK, tokenString)
+	return tokenString, expiresAfter, nil
 }
 
 func (app *ReactAppWrapper) changePassword(c *gin.Context) {

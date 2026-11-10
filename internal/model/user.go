@@ -55,6 +55,8 @@ type User struct {
 	AdditionalScopes []string
 	// Integrations stores the list of "Integrations" as shown on the tablet.
 	Integrations []IntegrationConfig
+	// WebAuthnCredentials are passkeys registered for the web UI.
+	WebAuthnCredentials []WebAuthnCredential `yaml:"webauthncredentials,omitempty"`
 }
 
 // IntegrationConfig config for various integrations
