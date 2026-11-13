@@ -1,26 +1,150 @@
-# Binaries for programs and plugins
+# --- OS ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+Desktop.ini
+*~
+
+# --- Editors / IDEs ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+
+# --- Env / secrets (keep example env files tracked) ---
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.priv
+*.key
+!*.pub
+
+# --- Go ---
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
-
-
-# Test binary, built with `go test -c`
 *.test
-
-# Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+*.prof
+*.coverprofile
+coverage.out
+coverage.html
+assets_vfsdata.go
+# vendor/  # uncomment if using vendoring
+# Local toolchains (scripts/download-go-node.sh)
+.tools/
+# Ad-hoc binaries built at repo root
+/rmdecode
+/rmfakecloud
+/rmdoc2png
 
-.eslintcache
-data/
-dist/
+# --- Node / JavaScript / TypeScript (Vite, pnpm) ---
 node_modules/
-assets_vfsdata.go
-.vscode/
-assets_vfsdata.go
-# Dependency directories (remove the comment below to include it)
-# vendor/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.pnpm-store/
+.npm/
+.yarn/
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+.eslintcache
+*.tsbuildinfo
+.turbo/
+.cache/
+ui/dist/
+ui/build/
+ui/.vite/
 
-# mkdoc build
+# --- Python (scripts, rmscene, rmc) ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+.Python
+.venv/
+venv/
+ENV/
+env/
+.env/
+*.egg
+*.egg-info/
+.eggs/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+.ipynb_checkpoints/
+
+# --- C / C++ / CMake / Emscripten (librm_lines WASM) ---
+CMakeCache.txt
+CMakeFiles/
+cmake-build-*/
+cmake_install.cmake
+compile_commands.json
+CTestTestfile.cmake
+Makefile.cmake
+*.o
+*.obj
+*.a
+*.lib
+*.la
+*.lo
+*.gch
+*.pch
+*.d
+*.gcda
+*.gcno
+*.gcov
+.ninja_deps
+.ninja_log
+build.ninja
+ui/extra/simplerenderer/build/
+ui/extra/simplerenderer/cmake-build-*/
+# Intermediate WASM/JS from local emscripten builds (shipped copies live under ui/public/assets/)
+ui/extra/simplerenderer/*.wasm
+ui/extra/simplerenderer/*.js
+ui/extra/simplerenderer/*.wasm.map
+ui/extra/simplerenderer/*.js.map
+!ui/public/assets/
+
+# --- Docs (mkdocs) ---
 site/
+
+# --- App runtime / local data ---
+data/
+*.log
+tmp/
+temp/
+*.tmp
+
+# --- Build / release output ---
+/dist/
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+
+# --- Device firmware reference binaries (local reverse-engineering copies) ---
+refrences/
+references/

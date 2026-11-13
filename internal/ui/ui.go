@@ -14,6 +14,7 @@ import (
 	"github.com/ddvk/rmfakecloud/internal/messages"
 	"github.com/ddvk/rmfakecloud/internal/screenshare"
 	"github.com/ddvk/rmfakecloud/internal/storage"
+	"github.com/ddvk/rmfakecloud/internal/storage/epub"
 	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
 	webui "github.com/ddvk/rmfakecloud/ui"
@@ -23,14 +24,18 @@ import (
 type backend interface {
 	GetDocumentTree(uid string) (tree *viewmodel.DocumentTree, err error)
 	Export(uid, doc, exporttype string, opt storage.ExportOption) (stream io.ReadCloser, err error)
+	PDFInlineFilename(uid, docid string) string
 	CreateDocument(uid, name, parent string, stream io.Reader) (doc *storage.Document, err error)
 	CreateFolder(uid, name, parent string) (doc *storage.Document, err error)
 	UpdateDocument(uid, docID, name, parent string) (err error)
 	DeleteDocument(uid, docID string) (err error)
 	Sync(uid string)
+	GetRawBlob(uid, hash string) (stream io.ReadCloser, err error)
+	GetBlobDocumentTree(uid, docid string) (m map[string]string, err error)
 }
 type codeGenerator interface {
 	NewCode(string) (string, error)
+	CodeStatus(uid string) (expiresAt time.Time, valid bool)
 }
 
 type documentHandler interface {
@@ -50,7 +55,19 @@ type blobHandler interface {
 	DeleteBlobDocument(uid, docID string) (err error)
 	CreateBlobFolder(uid, name, parent string) (doc *storage.Document, err error)
 	Export(uid, docid string) (io.ReadCloser, error)
-	ExportRmDoc(uid, docid string) (io.ReadCloser, error)
+	GetTemplate(uid, docid string) (io.ReadCloser, error)
+	GetDocumentMetadata(uid, docid string) (docType string, hasWritings bool, pageCount int, err error)
+	GetDocumentOrientation(uid, docid string) (orientation string, err error)
+	ExportPagePNG(uid, docid string, pageNum int) (io.ReadCloser, error)
+	ExportPageBackgroundPNG(uid, docid string, pageNum int) (io.ReadCloser, error)
+	ExportPageThumbPNG(uid, docid string, pageNum int) (io.ReadCloser, error)
+	ExportPageOverlaySVG(uid, docid string, pageNum int) (io.ReadCloser, error)
+	GetEpubManifest(uid, docid string) (*epub.Manifest, error)
+	GetEpubFile(uid, docid, filePath string) (io.ReadCloser, string, error)
+	GetEpubCoverThumb(uid, docid string) (io.ReadCloser, string, error)
+	PDFInlineFilename(uid, docid string) string
+	GetRawBlob(uid, hash string) (stream io.ReadCloser, err error)
+	GetBlobDocumentTree(uid, docid string) (m map[string]string, err error)
 }
 
 type notificationHub interface {
@@ -60,6 +77,9 @@ type notificationHub interface {
 	Sync(uid string) error
 }
 
+// DeviceTokenIssuer signs a device API JWT (same claims as POST /token/json/2/device/new).
+type DeviceTokenIssuer func(uid, deviceID, deviceDesc string) (token string, err error)
+
 type mqttBridge interface {
 	PublishSignaling(userID, clientID string, payload []byte)
 	HasConnectedClient(userID string) bool
@@ -67,16 +87,17 @@ type mqttBridge interface {
 
 // ReactAppWrapper encapsulates an app
 type ReactAppWrapper struct {
-	fs            http.FileSystem
-	prefix        string
-	cfg           *config.Config
-	userStorer    storage.UserStorer
-	codeConnector codeGenerator
-	h             *hub.Hub
-	passcodeStore passcodestore.Store
-	backends      map[common.SyncVersion]backend
-	roomManager   *screenshare.RoomManager
-	mqtt          mqttBridge
+	fs               http.FileSystem
+	prefix           string
+	cfg              *config.Config
+	userStorer       storage.UserStorer
+	codeConnector    codeGenerator
+	h                *hub.Hub
+	passcodeStore    passcodestore.Store
+	backends         map[common.SyncVersion]backend
+	issueDeviceToken DeviceTokenIssuer
+	roomManager      *screenshare.RoomManager
+	mqtt             mqttBridge
 }
 
 // hack for serving index.html on /
@@ -91,6 +112,7 @@ func New(cfg *config.Config,
 	pcStore passcodestore.Store,
 	docHandler documentHandler,
 	blobHandler blobHandler,
+	issueDeviceToken DeviceTokenIssuer,
 	roomManager *screenshare.RoomManager,
 	mqttBroker mqttBridge) *ReactAppWrapper {
 
@@ -104,16 +126,18 @@ func New(cfg *config.Config,
 	}
 	backend10 := &backend10{
 		documentHandler: docHandler,
+		blobHandler:     blobHandler,
 		hub:             h,
 	}
 	staticWrapper := ReactAppWrapper{
-		fs:            common.NewLastModifiedFS(http.FS(sub), time.Now()),
-		prefix:        "/assets",
-		cfg:           cfg,
-		userStorer:    userStorer,
-		codeConnector: codeConnector,
-		h:             h,
-		passcodeStore: pcStore,
+		fs:               common.NewLastModifiedFS(http.FS(sub), time.Now()),
+		prefix:           "/assets",
+		cfg:              cfg,
+		userStorer:       userStorer,
+		codeConnector:    codeConnector,
+		h:                h,
+		passcodeStore:    pcStore,
+		issueDeviceToken: issueDeviceToken,
 		backends: map[common.SyncVersion]backend{
 			common.Sync10: backend10,
 			common.Sync15: backend15,

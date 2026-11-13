@@ -15,6 +15,7 @@ import (
 const (
 	authLog        = "[auth-middleware]"
 	requestLog     = "[requestlogging-middleware]"
+	userAgentLog   = "[user-agent-middleware]"
 	syncDefault    = "sync:default"
 	syncNew        = "sync:tortoise"
 	syncNewLimited = "sync:fox" // Display cloud limit messages
@@ -93,5 +94,16 @@ func requestLoggerMiddleware() gin.HandlerFunc {
 			log.Debugln(requestLog, "body: ", string(body))
 		}
 		c.Next()
+	}
+}
+
+func userAgentLoggerMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ua := c.Request.UserAgent()
+		if ua == "" {
+			ua = "-"
+		}
+		c.Next()
+		log.Infof("%s %s %s %d ua=%q", userAgentLog, c.Request.Method, c.Request.URL.Path, c.Writer.Status(), ua)
 	}
 }
