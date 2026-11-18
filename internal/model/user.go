@@ -55,6 +55,29 @@ type User struct {
 	AdditionalScopes []string
 	// Integrations stores the list of "Integrations" as shown on the tablet.
 	Integrations []IntegrationConfig
+	// RevokedDevices maps a device ID to the time it was unpaired.
+	// Device tokens for that ID issued at or before that time are rejected.
+	RevokedDevices map[string]time.Time `yaml:"revokeddevices,omitempty"`
+}
+
+// RevokeDevice marks every device token issued for deviceID up to now as revoked.
+// Pairing the same device again issues a newer token, which is accepted.
+func (u *User) RevokeDevice(deviceID string, at time.Time) {
+	if u.RevokedDevices == nil {
+		u.RevokedDevices = make(map[string]time.Time)
+	}
+	u.RevokedDevices[deviceID] = at.UTC()
+}
+
+// IsDeviceTokenRevoked reports whether a device token for deviceID with the given
+// issued-at time (unix seconds, 0 if absent) has been revoked.
+func (u *User) IsDeviceTokenRevoked(deviceID string, issuedAt int64) bool {
+	revokedAt, ok := u.RevokedDevices[deviceID]
+	if !ok {
+		return false
+	}
+	// tokens issued before iat was added have issuedAt == 0 and are revoked too
+	return issuedAt <= revokedAt.Unix()
 }
 
 // IntegrationConfig config for various integrations
