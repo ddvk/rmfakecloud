@@ -54,6 +54,15 @@ func (app *App) getDeviceClaims(c *gin.Context) (*DeviceClaims, error) {
 	if claims.UserID == "" {
 		return nil, fmt.Errorf("wrong token, missing userid")
 	}
+
+	uid := strings.TrimPrefix(claims.UserID, "auth0|")
+	user, err := app.userStorer.GetUser(uid)
+	if err != nil {
+		return nil, fmt.Errorf("loading user %s: %w", uid, err)
+	}
+	if user != nil && user.IsDeviceTokenRevoked(claims.DeviceID, claims.IssuedAt) {
+		return nil, fmt.Errorf("device token revoked for device %s", claims.DeviceID)
+	}
 	return claims, nil
 }
 
@@ -102,6 +111,7 @@ func (app *App) newDevice(c *gin.Context) {
 		UserID:     uid,
 		StandardClaims: jwt.StandardClaims{
 			Audience: APIUsage,
+			IssuedAt: time.Now().Unix(),
 		},
 	}
 
@@ -123,6 +133,21 @@ func (app *App) deleteDevice(c *gin.Context) {
 		return
 	}
 	log.Info("Logging out: ", deviceToken.UserID)
+
+	uid := strings.TrimPrefix(deviceToken.UserID, "auth0|")
+	user, err := app.userStorer.GetUser(uid)
+	if err != nil || user == nil {
+		log.Error("device delete: cannot load user ", uid, ": ", err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	user.RevokeDevice(deviceToken.DeviceID, time.Now())
+	if err := app.userStorer.UpdateUser(user); err != nil {
+		log.Error("device delete: cannot save user ", uid, ": ", err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	log.Info("Revoked device token for device: ", deviceToken.DeviceID)
 	c.Status(http.StatusNoContent)
 }
 
