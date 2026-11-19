@@ -5,10 +5,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -16,7 +18,9 @@ import (
 	"github.com/danjacques/gofslock/fslock"
 	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/config"
+	"github.com/ddvk/rmfakecloud/internal/rmdecode"
 	"github.com/ddvk/rmfakecloud/internal/storage"
+	"github.com/ddvk/rmfakecloud/internal/storage/epub"
 	"github.com/ddvk/rmfakecloud/internal/storage/exporter"
 	"github.com/ddvk/rmfakecloud/internal/storage/models"
 	"github.com/google/uuid"
@@ -69,54 +73,9 @@ func (fs *FileSystemStorage) BlobStorage(uid string) *LocalBlobStorage {
 	}
 }
 
-// ExportRmDoc exports a document as a zip of all blobs
-func (fs *FileSystemStorage) ExportRmDoc(uid, docid string) (io.ReadCloser, error) {
-	tree, err := fs.GetCachedTree(uid)
-	if err != nil {
-		return nil, err
-	}
-	doc, err := tree.FindDoc(docid)
-	if err != nil {
-		return nil, err
-	}
-	ls := fs.BlobStorage(uid)
-
-	reader, writer := io.Pipe()
-	go func() {
-		zw := zip.NewWriter(writer)
-		var writeErr error
-		for _, entry := range doc.Files {
-			blob, err := ls.GetReader(entry.Hash)
-			if err != nil {
-				writeErr = err
-				break
-			}
-			fw, err := zw.Create(entry.EntryName)
-			if err != nil {
-				blob.Close()
-				writeErr = err
-				break
-			}
-			_, err = io.Copy(fw, blob)
-			blob.Close()
-			if err != nil {
-				writeErr = err
-				break
-			}
-		}
-		if writeErr != nil {
-			log.Error(writeErr)
-			zw.Close()
-			writer.CloseWithError(writeErr)
-			return
-		}
-		zw.Close()
-		writer.Close()
-	}()
-	return reader, nil
-}
-
-// Export exports a document
+// Export exports a document.
+// For PDF-type documents, the original payload bytes are streamed unchanged (no re-render).
+// For notebooks and other types, the PDF is produced via rmtool render.
 func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err error) {
 	tree, err := fs.GetCachedTree(uid)
 	if err != nil {
@@ -128,21 +87,532 @@ func (fs *FileSystemStorage) Export(uid, docid string) (r io.ReadCloser, err err
 	}
 	ls := fs.BlobStorage(uid)
 
+	// PDF: send stored blob as-is (binary), no processing.
+	if doc.PayloadTypeFromFiles() == "pdf" {
+		for _, f := range doc.Files {
+			if strings.EqualFold(f.EntryName, docid+storage.PdfFileExt) {
+				return ls.GetReader(f.Hash)
+			}
+		}
+		for _, f := range doc.Files {
+			if strings.EqualFold(strings.ToLower(path.Ext(f.EntryName)), storage.PdfFileExt) {
+				return ls.GetReader(f.Hash)
+			}
+		}
+		return nil, fmt.Errorf("pdf payload not found for document %s", docid)
+	}
+
+	if strings.TrimSpace(fs.Cfg.RmrlPython) != "" {
+		rc, err := renderPDFRmrlFromHashDoc(fs.Cfg.RmrlPython, doc, ls)
+		if err == nil {
+			return rc, nil
+		}
+		log.Warn("rmrl PDF export failed, using rmtool: ", err)
+	}
+
+	reader, writer := io.Pipe()
+	go func() {
+		rc, e := renderPDFRmtool(doc, ls)
+		if e != nil {
+			log.Error(e)
+			_ = writer.Close()
+			return
+		}
+		defer rc.Close()
+		if _, err := io.Copy(writer, rc); err != nil {
+			log.Error(err)
+			_ = writer.Close()
+			return
+		}
+		_ = writer.Close()
+	}()
+	return reader, err
+}
+
+// PDFInlineFilename returns a safe filename for Content-Disposition (visible name + .pdf when possible).
+func (fs *FileSystemStorage) PDFInlineFilename(uid, docid string) string {
+	tree, err := fs.GetCachedTree(uid)
+	if err != nil {
+		return docid + ".pdf"
+	}
+	doc, err := tree.FindDoc(docid)
+	if err != nil {
+		return docid + ".pdf"
+	}
+	name := strings.TrimSpace(doc.DocumentName)
+	if name == "" {
+		return docid + ".pdf"
+	}
+	base := filepath.Base(name)
+	if strings.EqualFold(filepath.Ext(base), storage.PdfFileExt) {
+		return sanitizeFileName(base)
+	}
+	return sanitizeFileName(strings.TrimSuffix(base, filepath.Ext(base))) + storage.PdfFileExt
+}
+
+// GetTemplate returns the raw .template file for a given entry (if present).
+func (fs *FileSystemStorage) GetTemplate(uid, docid string) (r io.ReadCloser, err error) {
+	tree, err := fs.GetCachedTree(uid)
+	if err != nil {
+		return nil, err
+	}
+	doc, err := tree.FindDoc(docid)
+	if err != nil {
+		return nil, err
+	}
+	ls := fs.BlobStorage(uid)
+	for _, f := range doc.Files {
+		if strings.HasSuffix(strings.ToLower(f.EntryName), storage.TemplateFileExt) {
+			return ls.GetReader(f.Hash)
+		}
+	}
+	return nil, errors.New("template not found")
+}
+
+// GetEpub returns the raw .epub file for a document (if present).
+func (fs *FileSystemStorage) GetEpub(uid, docid string) (io.ReadCloser, error) {
+	tree, err := fs.GetCachedTree(uid)
+	if err != nil {
+		return nil, err
+	}
+	doc, err := tree.FindDoc(docid)
+	if err != nil {
+		return nil, err
+	}
+	ls := fs.BlobStorage(uid)
+	for _, f := range doc.Files {
+		if strings.HasSuffix(strings.ToLower(f.EntryName), storage.EpubFileExt) {
+			return ls.GetReader(f.Hash)
+		}
+	}
+	return nil, errors.New("epub not found")
+}
+
+// GetEpubManifest parses the EPUB and returns spine and base path as JSON.
+func (fs *FileSystemStorage) GetEpubManifest(uid, docid string) (*epub.Manifest, error) {
+	rc, err := fs.GetEpub(uid, docid)
+	if err != nil {
+		return nil, err
+	}
+	defer rc.Close()
+	// zip.Reader needs ReaderAt; load into memory
+	b, err := io.ReadAll(rc)
+	if err != nil {
+		return nil, err
+	}
+	zr, err := zip.NewReader(bytes.NewReader(b), int64(len(b)))
+	if err != nil {
+		return nil, err
+	}
+	return epub.ReadManifest(zr)
+}
+
+// GetEpubFile returns a reader for a file inside the document's EPUB (path relative to zip root).
+func (fs *FileSystemStorage) GetEpubFile(uid, docid, filePath string) (io.ReadCloser, string, error) {
+	rc, err := fs.GetEpub(uid, docid)
+	if err != nil {
+		return nil, "", err
+	}
+	defer rc.Close()
+	b, err := io.ReadAll(rc)
+	if err != nil {
+		return nil, "", err
+	}
+	zr, err := zip.NewReader(bytes.NewReader(b), int64(len(b)))
+	if err != nil {
+		return nil, "", err
+	}
+	f, err := epub.OpenZipFile(zr, filePath)
+	if err != nil {
+		return nil, "", err
+	}
+	contentType := epub.ContentType(filePath)
+	return f, contentType, nil
+}
+
+// GetEpubCoverThumb opens the EPUB, finds a cover image (see epub.FindCoverImagePath), and returns that file.
+func (fs *FileSystemStorage) GetEpubCoverThumb(uid, docid string) (io.ReadCloser, string, error) {
+	rc, err := fs.GetEpub(uid, docid)
+	if err != nil {
+		return nil, "", err
+	}
+	defer rc.Close()
+	b, err := io.ReadAll(rc)
+	if err != nil {
+		return nil, "", err
+	}
+	zr, err := zip.NewReader(bytes.NewReader(b), int64(len(b)))
+	if err != nil {
+		return nil, "", err
+	}
+	imgPath, err := epub.FindCoverImagePath(zr)
+	if err != nil {
+		return nil, "", err
+	}
+	return fs.GetEpubFile(uid, docid, imgPath)
+}
+
+// GetDocumentMetadata returns document type, hasWritings, and page count for the given doc.
+func (fs *FileSystemStorage) GetDocumentMetadata(uid, docid string) (docType string, hasWritings bool, pageCount int, err error) {
+	tree, err := fs.GetCachedTree(uid)
+	if err != nil {
+		return "", false, 0, err
+	}
+	doc, err := tree.FindDoc(docid)
+	if err != nil {
+		return "", false, 0, err
+	}
+	if t := doc.PayloadTypeFromFiles(); t != "" {
+		docType = t
+	} else {
+		docType = doc.PayloadType
+	}
+	if docType == "" {
+		docType = "notebook"
+	}
+	hasWritings = doc.HasWritings()
+	for _, f := range doc.Files {
+		if strings.HasSuffix(strings.ToLower(f.EntryName), storage.ContentFileExt) {
+			if f.Size > 4 {
+				rc, err := fs.BlobStorage(uid).GetReader(f.Hash)
+				if err != nil {
+					return docType, hasWritings, 0, err
+				}
+				var content models.ContentFile
+				if err := json.NewDecoder(rc).Decode(&content); err != nil {
+					rc.Close()
+					return docType, hasWritings, 0, err
+				}
+				rc.Close()
+				if content.FileType != "" {
+					docType = content.FileType
+				}
+				if content.PageCount > 0 {
+					pageCount = content.PageCount
+				} else {
+					pageCount = len(content.Pages)
+				}
+				return docType, hasWritings, pageCount, nil
+			}
+			break
+		}
+	}
+	return docType, hasWritings, pageCount, nil
+}
+
+// GetDocumentOrientation returns the orientation from the document's .content file ("portrait", "landscape", or "").
+func (fs *FileSystemStorage) GetDocumentOrientation(uid, docid string) (string, error) {
+	tree, err := fs.GetCachedTree(uid)
+	if err != nil {
+		return "", err
+	}
+	doc, err := tree.FindDoc(docid)
+	if err != nil {
+		return "", err
+	}
+	for _, f := range doc.Files {
+		if strings.HasSuffix(strings.ToLower(f.EntryName), storage.ContentFileExt) {
+			rc, err := fs.BlobStorage(uid).GetReader(f.Hash)
+			if err != nil {
+				return "", err
+			}
+			defer rc.Close()
+			var content models.ContentFile
+			if err := json.NewDecoder(rc).Decode(&content); err != nil {
+				return "", err
+			}
+			return content.Orientation, nil
+		}
+	}
+	return "", nil
+}
+
+// ExportPagePNG exports a single page of the document as PNG (1-based page number).
+// - PDF documents: payload background (OOP PDF raster) × ink (.rm) multiply composite when writings exist.
+// - Notebooks / non-PDF: strokes rendered with rmdecode → raw PNG bytes (cached as page-*-rmdecode-*).
+// On cache hit, returns the stored PNG file unchanged.
+func (fs *FileSystemStorage) ExportPagePNG(uid, docid string, pageNum int) (io.ReadCloser, error) {
+	tree, err := fs.GetCachedTree(uid)
+	if err != nil {
+		return nil, err
+	}
+	doc, err := tree.FindDoc(docid)
+	if err != nil {
+		return nil, err
+	}
+	docHash := doc.Hash
+	cacheDir := fs.getPathFromUser(uid, CacheDir)
+	_ = os.MkdirAll(cacheDir, 0700)
+	safeDoc := common.Sanitize(docid)
+
+	ls := fs.BlobStorage(uid)
+	payload := doc.PayloadTypeFromFiles()
+
+	var cachePath string
+	var gen func() ([]byte, error)
+
+	if payload == "pdf" {
+		cachePath = path.Join(cacheDir, "renders", safeDoc, fmt.Sprintf("page-%d-composite-v2-%s.png", pageNum, docHash))
+		gen = func() ([]byte, error) {
+			return exportPDFPageCompositePNG(doc, ls, docid, pageNum)
+		}
+	} else {
+		// Notebook, template, or no payload: render .rm with rmdecode (raw PNG).
+		cachePath = path.Join(cacheDir, "renders", safeDoc, fmt.Sprintf("page-%d-rmdecode-v2-%s.png", pageNum, docHash))
+		gen = func() ([]byte, error) {
+			return exportNotebookPagePNGWithRmdecode(doc, ls, docid, pageNum)
+		}
+	}
+
+	if docHash != "" {
+		if r, err := os.Open(cachePath); err == nil {
+			return r, nil
+		}
+	}
+
+	b, err := gen()
+	if err != nil {
+		// Fallback: legacy full-document PDF raster (slow, may include backgrounds).
+		log.Warn("ExportPagePNG primary path failed, falling back to RenderPagePNG: ", err)
+		archive, e2 := models.ArchiveFromHashDoc(doc, ls)
+		if e2 != nil {
+			return nil, e2
+		}
+		rc, e3 := exporter.RenderPagePNGReader(archive, pageNum)
+		if e3 != nil {
+			return nil, e3
+		}
+		if docHash == "" {
+			return rc, nil
+		}
+		fb, e4 := io.ReadAll(rc)
+		_ = rc.Close()
+		if e4 != nil {
+			return nil, e4
+		}
+		_ = os.MkdirAll(path.Dir(cachePath), 0700)
+		_ = os.WriteFile(cachePath, fb, 0600)
+		return exporter.NewSeekCloser(fb), nil
+	}
+	if docHash == "" {
+		return exporter.NewSeekCloser(b), nil
+	}
+	_ = os.MkdirAll(path.Dir(cachePath), 0700)
+	_ = os.WriteFile(cachePath, b, 0600)
+	return exporter.NewSeekCloser(b), nil
+}
+
+// exportPDFPageCompositePNG builds a device-like page: PDF background × ink multiply.
+func exportPDFPageCompositePNG(doc *models.HashDoc, ls *LocalBlobStorage, docid string, pageNum int) ([]byte, error) {
 	archive, err := models.ArchiveFromHashDoc(doc, ls)
 	if err != nil {
 		return nil, err
 	}
-	reader, writer := io.Pipe()
-	go func() {
-		err = exporter.RenderRmapi(archive, writer)
-		if err != nil {
-			log.Error(err)
-			writer.Close()
-			return
+	bg, err := exporter.RenderPayloadPagePNG(archive, pageNum)
+	if err != nil {
+		return nil, err
+	}
+	ink, inkErr := exportNotebookPagePNGWithRmdecode(doc, ls, docid, pageNum)
+	if inkErr != nil || len(ink) == 0 {
+		// No writings (or blank page): background only.
+		return bg, nil
+	}
+	// Blank notebook PNG is all white — multiply leaves bg unchanged, but skip the work
+	// when the .rm blob was missing (exportNotebook returns blank). Detect nearly-empty
+	// by checking whether a .rm existed via a second read is heavy; just blend.
+	comp, err := exporter.MultiplyBlendPNGs(bg, ink, nil)
+	if err != nil {
+		log.Warn("composite blend failed, returning background: ", err)
+		return bg, nil
+	}
+	return comp, nil
+}
+
+// ExportPageThumbPNG returns a device-sized (~384×512) composite thumbnail for a page.
+func (fs *FileSystemStorage) ExportPageThumbPNG(uid, docid string, pageNum int) (io.ReadCloser, error) {
+	tree, err := fs.GetCachedTree(uid)
+	if err != nil {
+		return nil, err
+	}
+	doc, err := tree.FindDoc(docid)
+	if err != nil {
+		return nil, err
+	}
+	docHash := doc.Hash
+	cacheDir := fs.getPathFromUser(uid, CacheDir)
+	_ = os.MkdirAll(cacheDir, 0700)
+	safeDoc := common.Sanitize(docid)
+	cachePath := path.Join(cacheDir, "renders", safeDoc, fmt.Sprintf("page-%d-thumb-v2-%s.png", pageNum, docHash))
+	if docHash != "" {
+		if r, err := os.Open(cachePath); err == nil {
+			return r, nil
 		}
-		writer.Close()
-	}()
-	return reader, err
+	}
+
+	full, err := fs.ExportPagePNG(uid, docid, pageNum)
+	if err != nil {
+		return nil, err
+	}
+	defer full.Close()
+	raw, err := io.ReadAll(full)
+	if err != nil {
+		return nil, err
+	}
+	thumb, err := exporter.ScalePNGToThumb(raw)
+	if err != nil {
+		return nil, err
+	}
+	if docHash != "" {
+		_ = os.MkdirAll(path.Dir(cachePath), 0700)
+		_ = os.WriteFile(cachePath, thumb, 0600)
+	}
+	return exporter.NewSeekCloser(thumb), nil
+}
+
+// ExportPageBackgroundPNG renders the original payload (PDF) page as PNG (without handwriting).
+func (fs *FileSystemStorage) ExportPageBackgroundPNG(uid, docid string, pageNum int) (io.ReadCloser, error) {
+	tree, err := fs.GetCachedTree(uid)
+	if err != nil {
+		return nil, err
+	}
+	doc, err := tree.FindDoc(docid)
+	if err != nil {
+		return nil, err
+	}
+	// Cache key: pdf blob hash (changes when PDF payload changes)
+	pdfHash := ""
+	for _, f := range doc.Files {
+		if strings.EqualFold(f.EntryName, docid+storage.PdfFileExt) {
+			pdfHash = f.Hash
+			break
+		}
+	}
+	cacheDir := fs.getPathFromUser(uid, CacheDir)
+	_ = os.MkdirAll(cacheDir, 0700)
+	safeDoc := common.Sanitize(docid)
+	cachePath := path.Join(cacheDir, "renders", safeDoc, fmt.Sprintf("page-%d-bg-oop-%s.png", pageNum, pdfHash))
+	if pdfHash != "" {
+		if r, err := os.Open(cachePath); err == nil {
+			return r, nil
+		}
+	}
+	ls := fs.BlobStorage(uid)
+	archive, err := models.ArchiveFromHashDoc(doc, ls)
+	if err != nil {
+		return nil, err
+	}
+	rc, err := exporter.RenderPayloadPagePNGReader(archive, pageNum)
+	if err != nil {
+		return nil, err
+	}
+	if pdfHash == "" {
+		return rc, nil
+	}
+	// Best-effort write-through cache (regenerated automatically when hashes change).
+	_ = os.MkdirAll(path.Dir(cachePath), 0700)
+	b, readErr := io.ReadAll(rc)
+	_ = rc.Close()
+	if readErr != nil {
+		return exporter.NewSeekCloser(b), nil
+	}
+	_ = os.WriteFile(cachePath, b, 0600)
+	return exporter.NewSeekCloser(b), nil
+}
+
+// ExportPageOverlaySVG renders the handwriting (.rm) content for a page as SVG.
+func (fs *FileSystemStorage) ExportPageOverlaySVG(uid, docid string, pageNum int) (io.ReadCloser, error) {
+	tree, err := fs.GetCachedTree(uid)
+	if err != nil {
+		return nil, err
+	}
+	doc, err := tree.FindDoc(docid)
+	if err != nil {
+		return nil, err
+	}
+	// Cache key: per-page .rm blob hash (changes when a page drawing changes)
+	// Determine page UUID from .content pages array.
+	type contentPages struct {
+		Pages []string `json:"pages"`
+	}
+	var pageID string
+	contentHash := ""
+	for _, f := range doc.Files {
+		if strings.EqualFold(f.EntryName, docid+storage.ContentFileExt) {
+			contentHash = f.Hash
+			break
+		}
+	}
+	if contentHash != "" {
+		if rc, err := fs.BlobStorage(uid).GetReader(contentHash); err == nil {
+			var cp contentPages
+			if err := json.NewDecoder(rc).Decode(&cp); err == nil {
+				if pageNum >= 1 && pageNum <= len(cp.Pages) {
+					pageID = cp.Pages[pageNum-1]
+				}
+			}
+			_ = rc.Close()
+		}
+	}
+	ls := fs.BlobStorage(uid)
+	rmHash := ""
+	if pageID != "" {
+		want := pageID + storage.RmFileExt
+		for _, f := range doc.Files {
+			if strings.EqualFold(f.EntryName, want) {
+				rmHash = f.Hash
+				break
+			}
+		}
+	}
+	cacheDir := fs.getPathFromUser(uid, CacheDir)
+	_ = os.MkdirAll(cacheDir, 0700)
+	safeDoc := common.Sanitize(docid)
+	cachePath := path.Join(cacheDir, "renders", safeDoc, fmt.Sprintf("page-%d-ov-v3-%s.svg", pageNum, rmHash))
+	if rmHash != "" {
+		if r, err := os.Open(cachePath); err == nil {
+			return r, nil
+		}
+	}
+
+	// Transparent SVG overlay is the app’s ink layer for PDF/EPUB/notebooks.
+	// Prefer rmc (via RMFAKECLOUD_RMC_SRC) for v6; lines2svg/embedded for v3.
+	if rmHash != "" {
+		if rc, err := ls.GetReader(rmHash); err == nil {
+			rmData, readErr := io.ReadAll(rc)
+			_ = rc.Close()
+			if readErr == nil {
+				if s, rErr := rmdecode.RenderRmOverlaySVG(rmData); rErr == nil {
+					b := []byte(s)
+					_ = os.MkdirAll(path.Dir(cachePath), 0700)
+					_ = os.WriteFile(cachePath, b, 0600)
+					return exporter.NewSeekCloser(b), nil
+				} else {
+					log.Warn("overlay SVG render failed; falling back: ", rErr)
+					if ver, vErr := rmdecode.ParseVersion(rmData); vErr == nil && ver == 6 && rmdecode.RMCAvailable() {
+						return nil, fmt.Errorf("v6 overlay: rmc required but failed: %w", rErr)
+					}
+					if ver, vErr := rmdecode.ParseVersion(rmData); vErr == nil && ver == 3 && rmdecode.Lines2SVGAvailable() {
+						return nil, fmt.Errorf("v3 overlay: lines2svg available but failed: %w", rErr)
+					}
+				}
+			}
+		}
+	}
+
+	archive, err := models.ArchiveFromHashDoc(doc, ls)
+	if err != nil {
+		return nil, err
+	}
+	s, err := exporter.RenderPageAnnotationsSVG(archive, pageNum)
+	if err != nil {
+		return nil, err
+	}
+	b := []byte(rmdecode.EnsureTransparentOverlaySVG(s))
+	if rmHash != "" {
+		_ = os.MkdirAll(path.Dir(cachePath), 0700)
+		_ = os.WriteFile(cachePath, b, 0600)
+	}
+	return exporter.NewSeekCloser(b), nil
 }
 
 // UpdateBlobDocument updates metadata
@@ -239,6 +709,10 @@ func (fs *FileSystemStorage) CreateBlobFolder(uid, foldername, parent string) (d
 	}
 
 	metadataReader, metahash, size, err := createMetadataFile(metadata)
+	if err != nil {
+		return nil, err
+	}
+
 	log.Info("meta hash: ", metahash)
 	err = blobStorage.Write(metahash, metadataReader)
 	if err != nil {
@@ -325,20 +799,339 @@ func updateTree(tree *models.HashTree, storage *LocalBlobStorage, treeMutation f
 
 // CreateBlobDocument creates a new document
 func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, stream io.Reader) (doc *storage.Document, err error) {
-	ext := path.Ext(filename)
+	origExt := path.Ext(filename)
+	ext := strings.ToLower(origExt)
 	switch ext {
-	case storage.EpubFileExt, storage.PdfFileExt, storage.RmDocFileExt:
+	case storage.EpubFileExt, storage.PdfFileExt, storage.RmDocFileExt, storage.TemplateFileExt:
 	default:
 		return nil, errors.New("unsupported extension: " + ext)
 	}
 
 	if ext == storage.RmDocFileExt {
-		return fs.createFromRmDoc(uid, parent, stream)
+		// Decode .rmdoc container.
+		// We will read embedded JSON, but override with what we actually find
+		// (payload/template presence, file sizes, parent, filename).
+		tmpFile, err := os.CreateTemp("", "rmdoc-*")
+		if err != nil {
+			return nil, err
+		}
+		defer os.Remove(tmpFile.Name())
+
+		if _, err = io.Copy(tmpFile, stream); err != nil {
+			tmpFile.Close()
+			return nil, err
+		}
+		if err = tmpFile.Close(); err != nil {
+			return nil, err
+		}
+
+		zr, err := zip.OpenReader(tmpFile.Name())
+		if err != nil {
+			return nil, err
+		}
+		defer zr.Close()
+
+		// identify doc id (uuid prefix) from metadata/content/payload/template entries
+		var docid string
+		for _, f := range zr.File {
+			base := path.Base(f.Name)
+			low := strings.ToLower(base)
+			switch {
+			case strings.HasSuffix(low, storage.MetadataFileExt),
+				strings.HasSuffix(low, storage.ContentFileExt),
+				strings.HasSuffix(low, storage.TemplateFileExt),
+				strings.HasSuffix(low, storage.PdfFileExt),
+				strings.HasSuffix(low, storage.EpubFileExt):
+				docid = strings.TrimSuffix(base, path.Ext(base))
+				break
+			}
+			if docid != "" {
+				break
+			}
+		}
+		if docid == "" {
+			return nil, errors.New("rmdoc: could not determine document id")
+		}
+
+		// Find relevant entries
+		var metaFile, contentFile, templateFile, pdfFile, epubFile *zip.File
+		rmFiles := []*zip.File{}
+		pagedataFiles := []*zip.File{}
+		for _, f := range zr.File {
+			low := strings.ToLower(f.Name)
+			switch {
+			case f.Name == docid+storage.MetadataFileExt:
+				metaFile = f
+			case f.Name == docid+storage.ContentFileExt:
+				contentFile = f
+			case f.Name == docid+storage.TemplateFileExt:
+				templateFile = f
+			case f.Name == docid+storage.PdfFileExt:
+				pdfFile = f
+			case f.Name == docid+storage.EpubFileExt:
+				epubFile = f
+			case strings.HasSuffix(low, storage.PageFileExt):
+				pagedataFiles = append(pagedataFiles, f)
+			case strings.HasSuffix(low, storage.RmFileExt):
+				rmFiles = append(rmFiles, f)
+			}
+		}
+
+		// Decide what this rmdoc represents (template vs document) and which payload to use.
+		payloadFile := pdfFile
+		payloadExt := storage.PdfFileExt
+		if payloadFile == nil && epubFile != nil {
+			payloadFile = epubFile
+			payloadExt = storage.EpubFileExt
+		}
+		isTemplate := templateFile != nil && payloadFile == nil
+
+		// Load embedded metadata/content JSON (if present)
+		embeddedMeta := models.MetadataFile{}
+		metaOK := false
+		if metaFile != nil {
+			rc, err := metaFile.Open()
+			if err != nil {
+				return nil, err
+			}
+			metaBytes, err := io.ReadAll(rc)
+			rc.Close()
+			if err != nil {
+				return nil, err
+			}
+			if err := json.Unmarshal(metaBytes, &embeddedMeta); err == nil {
+				metaOK = true
+			}
+		}
+
+		embeddedContent := models.ContentFile{}
+		contentOK := false
+		if contentFile != nil {
+			rc, err := contentFile.Open()
+			if err != nil {
+				return nil, err
+			}
+			contentBytes, err := io.ReadAll(rc)
+			rc.Close()
+			if err != nil {
+				return nil, err
+			}
+			if err := json.Unmarshal(contentBytes, &embeddedContent); err == nil {
+				contentOK = true
+			}
+		}
+
+		// Build corrected metadata/content: trust embedded values when they don't conflict with our findings.
+		now := models.FromTime(time.Now())
+		// Prefer the embedded visibleName (user-facing name) if present.
+		// Fall back to the uploaded filename base if metadata is missing/invalid.
+		docName := ""
+		if metaOK && embeddedMeta.DocumentName != "" {
+			docName = embeddedMeta.DocumentName
+		}
+		if docName == "" {
+			docName = strings.TrimSuffix(filename, origExt)
+		}
+
+		correctedMeta := embeddedMeta
+		if !metaOK {
+			correctedMeta = models.MetadataFile{}
+			correctedMeta.CreatedTime = now
+			correctedMeta.LastModified = now
+		}
+		correctedMeta.DocumentName = docName
+		correctedMeta.Parent = parent
+		correctedMeta.Version = 1
+		correctedMeta.Synced = true
+		correctedMeta.MetadataModified = true
+		if correctedMeta.CreatedTime == "" {
+			correctedMeta.CreatedTime = now
+		}
+		if correctedMeta.LastModified == "" {
+			correctedMeta.LastModified = now
+		}
+		if isTemplate {
+			correctedMeta.CollectionType = common.EntryType("TemplateType")
+		} else {
+			correctedMeta.CollectionType = common.DocumentType
+		}
+
+		correctedContent := embeddedContent
+		if !contentOK {
+			correctedContent = models.ContentFile{}
+		}
+		if isTemplate {
+			// templates often have empty content
+			correctedContent.FileType = "template"
+		} else {
+			correctedContent.FileType = strings.TrimPrefix(payloadExt, ".")
+		}
+
+		// Create the doc and store all relevant files as blobs using *our* hashes.
+		blobStorage := fs.BlobStorage(uid)
+		tree, err := fs.GetCachedTree(uid)
+		if err != nil {
+			return nil, err
+		}
+
+		hashDoc := models.NewHashDocWithMeta(docid, correctedMeta)
+		hashDoc.PayloadType = correctedContent.FileType
+
+		writeZipEntry := func(zf *zip.File) (hash string, size int64, err error) {
+			// write to temp file so we can hash+write without double-reading
+			tf, err := os.CreateTemp(fs.getUserBlobPath(uid), "rmdoc-entry-*")
+			if err != nil {
+				return "", 0, err
+			}
+			defer os.Remove(tf.Name())
+			defer tf.Close()
+
+			rc, err := zf.Open()
+			if err != nil {
+				return "", 0, err
+			}
+			defer rc.Close()
+
+			tee := io.TeeReader(rc, tf)
+			hash, size, err = models.Hash(tee)
+			if err != nil {
+				return "", size, err
+			}
+			if _, err := tf.Seek(0, io.SeekStart); err != nil {
+				return "", size, err
+			}
+			if err := blobStorage.Write(hash, tf); err != nil {
+				return "", size, err
+			}
+			return hash, size, nil
+		}
+
+		// metadata blob (corrected)
+		metaJSON, err := json.Marshal(correctedMeta)
+		if err != nil {
+			return nil, err
+		}
+		metaReader := bytes.NewReader(metaJSON)
+		metaHash, metaSize, err := models.Hash(metaReader)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := metaReader.Seek(0, io.SeekStart); err != nil {
+			return nil, err
+		}
+		if err := blobStorage.Write(metaHash, metaReader); err != nil {
+			return nil, err
+		}
+		if err := hashDoc.AddFile(models.NewHashEntry(metaHash, docid+storage.MetadataFileExt, metaSize)); err != nil {
+			return nil, err
+		}
+
+		// content blob (corrected)
+		// ensure SizeInBytes matches the payload/template size we actually store
+		var payloadSize int64
+		if isTemplate && templateFile != nil {
+			payloadSize = int64(templateFile.UncompressedSize64)
+		} else if payloadFile != nil {
+			payloadSize = int64(payloadFile.UncompressedSize64)
+		}
+		if payloadSize > 0 {
+			correctedContent.SizeInBytes = fmt.Sprintf("%d", payloadSize)
+		}
+		contentJSON, err := json.Marshal(correctedContent)
+		if err != nil {
+			return nil, err
+		}
+		contentReader := bytes.NewReader(contentJSON)
+		contentHash, contentSize, err := models.Hash(contentReader)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := contentReader.Seek(0, io.SeekStart); err != nil {
+			return nil, err
+		}
+		if err := blobStorage.Write(contentHash, contentReader); err != nil {
+			return nil, err
+		}
+		if err := hashDoc.AddFile(models.NewHashEntry(contentHash, docid+storage.ContentFileExt, contentSize)); err != nil {
+			return nil, err
+		}
+
+		// pagedata (if present)
+		for _, pf := range pagedataFiles {
+			h, s, err := writeZipEntry(pf)
+			if err != nil {
+				return nil, err
+			}
+			if err := hashDoc.AddFile(models.NewHashEntry(h, pf.Name, s)); err != nil {
+				return nil, err
+			}
+		}
+
+		// rm pages
+		for _, rf := range rmFiles {
+			h, s, err := writeZipEntry(rf)
+			if err != nil {
+				return nil, err
+			}
+			if err := hashDoc.AddFile(models.NewHashEntry(h, rf.Name, s)); err != nil {
+				return nil, err
+			}
+		}
+
+		// template or payload
+		if isTemplate {
+			if templateFile == nil {
+				return nil, errors.New("rmdoc: template type but no .template found")
+			}
+			h, s, err := writeZipEntry(templateFile)
+			if err != nil {
+				return nil, err
+			}
+			if err := hashDoc.AddFile(models.NewHashEntry(h, docid+storage.TemplateFileExt, s)); err != nil {
+				return nil, err
+			}
+			ext = storage.TemplateFileExt
+		} else {
+			if payloadFile == nil {
+				return nil, errors.New("rmdoc: no supported document payload (pdf/epub) found")
+			}
+			h, s, err := writeZipEntry(payloadFile)
+			if err != nil {
+				return nil, err
+			}
+			if err := hashDoc.AddFile(models.NewHashEntry(h, docid+payloadExt, s)); err != nil {
+				return nil, err
+			}
+			ext = payloadExt
+		}
+
+		indexReader, err := hashDoc.IndexReader()
+		if err != nil {
+			return nil, err
+		}
+		if err := blobStorage.Write(hashDoc.Hash, indexReader); err != nil {
+			return nil, err
+		}
+
+		if err := updateTree(tree, blobStorage, func(t *models.HashTree) error {
+			return tree.Add(hashDoc)
+		}); err != nil {
+			return nil, err
+		}
+
+		return &storage.Document{
+			ID:     docid,
+			Type:   correctedMeta.CollectionType,
+			Parent: "",
+			Name:   docName,
+		}, nil
 	}
 
+	//TODO: zips and rm
 	blobPath := fs.getUserBlobPath(uid)
 	docid := uuid.New().String()
-	docName := strings.TrimSuffix(filename, ext)
+	//create metadata
+	docName := strings.TrimSuffix(filename, origExt)
 
 	tree, err := fs.GetCachedTree(uid)
 	if err != nil {
@@ -347,9 +1140,13 @@ func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, st
 
 	log.Info("Creating metadata... parent: ", parent)
 
+	collectionType := common.DocumentType
+	if ext == storage.TemplateFileExt {
+		collectionType = common.EntryType("TemplateType")
+	}
 	metadata := models.MetadataFile{
 		DocumentName:     docName,
-		CollectionType:   common.DocumentType,
+		CollectionType:   collectionType,
 		Parent:           parent,
 		Version:          1,
 		CreatedTime:      models.FromTime(time.Now()),
@@ -378,7 +1175,10 @@ func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, st
 		return
 	}
 
-	content := createContent(ext)
+	content := "{}"
+	if ext != storage.TemplateFileExt {
+		content = createContent(ext)
+	}
 
 	contentReader := strings.NewReader(content)
 	contentHash, size, err := models.Hash(contentReader)
@@ -453,146 +1253,6 @@ func (fs *FileSystemStorage) CreateBlobDocument(uid, filename, parent string, st
 		Name:   docName,
 	}
 	return
-}
-
-func (fs *FileSystemStorage) createFromRmDoc(uid, parent string, stream io.Reader) (*storage.Document, error) {
-	data, err := io.ReadAll(stream)
-	if err != nil {
-		return nil, err
-	}
-
-	zr, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
-	if err != nil {
-		return nil, err
-	}
-
-	var metadataEntry *zip.File
-	for _, f := range zr.File {
-		if strings.HasSuffix(f.Name, storage.MetadataFileExt) {
-			metadataEntry = f
-			break
-		}
-	}
-	if metadataEntry == nil {
-		return nil, errors.New("rmdoc: no .metadata file found in archive")
-	}
-
-	docid := strings.TrimSuffix(metadataEntry.Name, storage.MetadataFileExt)
-
-	mr, err := metadataEntry.Open()
-	if err != nil {
-		return nil, err
-	}
-	metaBytes, err := io.ReadAll(mr)
-	mr.Close()
-	if err != nil {
-		return nil, err
-	}
-
-	var metadata models.MetadataFile
-	if err := json.Unmarshal(metaBytes, &metadata); err != nil {
-		return nil, err
-	}
-
-	if parent != "" {
-		metadata.Parent = parent
-	}
-	metadata.Synced = true
-	metadata.MetadataModified = true
-
-	blobStorage := fs.BlobStorage(uid)
-
-	metaReader := bytes.NewReader(metaBytes)
-	metaHash, metaSize, err := models.Hash(metaReader)
-	if err != nil {
-		return nil, err
-	}
-	metaReader.Seek(0, io.SeekStart)
-	if err := blobStorage.Write(metaHash, metaReader); err != nil {
-		return nil, err
-	}
-
-	hashDoc := models.NewHashDocWithMeta(docid, metadata)
-	hashDoc.PayloadType = metadata.DocumentName
-
-	for _, f := range zr.File {
-		if strings.HasSuffix(f.Name, storage.ContentFileExt) {
-			cr, err := f.Open()
-			if err == nil {
-				var contentFile models.ContentFile
-				contentBytes, err := io.ReadAll(cr)
-				cr.Close()
-				if err == nil {
-					if json.Unmarshal(contentBytes, &contentFile) == nil && contentFile.FileType != "" {
-						hashDoc.PayloadType = contentFile.FileType
-					}
-				}
-			}
-			break
-		}
-	}
-
-	entry := models.NewHashEntry(metaHash, metadataEntry.Name, metaSize)
-	if err := hashDoc.AddFile(entry); err != nil {
-		return nil, err
-	}
-
-	for _, f := range zr.File {
-		if f.Name == metadataEntry.Name {
-			continue
-		}
-
-		rc, err := f.Open()
-		if err != nil {
-			return nil, err
-		}
-		fileData, err := io.ReadAll(rc)
-		rc.Close()
-		if err != nil {
-			return nil, err
-		}
-
-		reader := bytes.NewReader(fileData)
-		fileHash, fileSize, err := models.Hash(reader)
-		if err != nil {
-			return nil, err
-		}
-		reader.Seek(0, io.SeekStart)
-		if err := blobStorage.Write(fileHash, reader); err != nil {
-			return nil, err
-		}
-
-		entry := models.NewHashEntry(fileHash, f.Name, fileSize)
-		if err := hashDoc.AddFile(entry); err != nil {
-			return nil, err
-		}
-	}
-
-	indexReader, err := hashDoc.IndexReader()
-	if err != nil {
-		return nil, err
-	}
-	if err := blobStorage.Write(hashDoc.Hash, indexReader); err != nil {
-		return nil, err
-	}
-
-	tree, err := fs.GetCachedTree(uid)
-	if err != nil {
-		return nil, err
-	}
-	err = updateTree(tree, blobStorage, func(t *models.HashTree) error {
-		return tree.Add(hashDoc)
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return &storage.Document{
-		ID:     docid,
-		Type:   metadata.CollectionType,
-		Parent: metadata.Parent,
-		Name:   metadata.DocumentName,
-	}, nil
 }
 
 func createMetadataFile(metadata models.MetadataFile) (r io.Reader, filehash string, size int64, err error) {
@@ -682,6 +1342,29 @@ func (fs *FileSystemStorage) LoadBlob(uid, blobid string) (reader io.ReadCloser,
 	}
 	reader = osFile
 	return reader, generation, fi.Size(), "crc32c=" + hash, err
+}
+
+// GetRawBlob reads a raw blob (returns just the reader and error - wrapper around LoadBlob)
+func (fs *FileSystemStorage) GetRawBlob(uid, hash string) (stream io.ReadCloser, err error) {
+	reader, _, _, _, err := fs.LoadBlob(uid, hash)
+	return reader, err
+}
+
+func (fs *FileSystemStorage) GetBlobDocumentTree(uid, docid string) (m map[string]string, err error) {
+	tree, err := fs.GetCachedTree(uid)
+	if err != nil {
+		return nil, err
+	}
+	doc, err := tree.FindDoc(docid)
+	if err != nil {
+		return nil, err
+	}
+	output := make(map[string]string, len(doc.Files))
+	for _, entry := range doc.Files {
+		output[entry.EntryName] = entry.Hash
+	}
+
+	return output, nil
 }
 
 // StoreBlob stores a document

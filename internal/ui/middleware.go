@@ -70,6 +70,9 @@ func (app *ReactAppWrapper) authMiddleware() gin.HandlerFunc {
 
 		brid := claims.BrowserID
 		c.Set(browserIDContextKey, brid)
+		if claims.SuBy != "" {
+			c.Set(suByContextKey, claims.SuBy)
+		}
 		for _, r := range claims.Roles {
 			if r == AdminRole {
 				c.Set(AdminRole, true)

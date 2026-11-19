@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/ddvk/rmfakecloud/internal/email"
 	log "github.com/sirupsen/logrus"
@@ -81,6 +82,12 @@ const (
 	envMQTTPort          = "MQTT_PORT"
 	envICEServers        = "ICE_SERVERS"
 	envHashSchemaVersion = "HASH_SCHEMA_VERSION"
+	// envRmrlPython if set, path to a Python interpreter with the `rmrl` package installed; used for optional higher-fidelity notebook→PDF export (see rmrl).
+	envRmrlPython = "RMFAKECLOUD_RMRL_PYTHON"
+	// envAllowSu enables admin "su" (impersonate another user) in the web UI. Not editable via the web UI.
+	envAllowSu = "RMFAKECLOUD_ALLOW_SU"
+	// EnvRMCSrc is also defined in rmdecode; keep the name identical for docs/env help.
+	EnvRMCSrc = "RMFAKECLOUD_RMC_SRC"
 )
 
 // Config config
@@ -106,6 +113,13 @@ type Config struct {
 	MQTTPort          string
 	ICEServers        []interface{}
 	HashSchemaVersion string
+	// RmrlPython optional interpreter (e.g. /usr/bin/python3) to run `python -m rmrl` for PDF export of notebooks when compatible.
+	RmrlPython string
+	// AllowSu enables admin impersonation (POST /ui/api/su). Env-only; not configurable from the web UI.
+	AllowSu bool
+	// RmcSrc is the rmc package "src" directory for v6 .rm conversion (RMFAKECLOUD_RMC_SRC).
+	// Editable by admins in the web UI; persisted under DATADIR/server_settings.json.
+	RmcSrc string
 }
 
 // Verify verify
@@ -141,6 +155,18 @@ func (cfg *Config) Verify() {
 		log.Infof("WebRTC configured with %d ICE server(s)", len(cfg.ICEServers))
 	} else {
 		log.Info("No ICE servers configured - screenshare will only work on local networks")
+	}
+
+	if strings.TrimSpace(cfg.RmrlPython) != "" {
+		log.Infof("rmrl PDF export enabled (%s=%q); install templates under XDG data rmrl/templates if needed", envRmrlPython, cfg.RmrlPython)
+	}
+	if cfg.AllowSu {
+		log.Infof("admin su (impersonation) enabled (%s=true)", envAllowSu)
+	} else {
+		log.Infof("admin su (impersonation) disabled (set %s=true to enable)", envAllowSu)
+	}
+	if strings.TrimSpace(cfg.RmcSrc) != "" {
+		log.Infof("rmc source configured (%s=%q)", EnvRMCSrc, cfg.RmcSrc)
 	}
 }
 
@@ -256,7 +282,6 @@ func FromEnv() *Config {
 			map[string]string{"url": "stun:stun.l.google.com:19302", "username": "", "credential": ""},
 		}
 	}
-	iceServers = normalizeICEServers(iceServers)
 
 	hashSchemaVersion := os.Getenv(envHashSchemaVersion)
 	if hashSchemaVersion == "" {
@@ -264,6 +289,8 @@ func FromEnv() *Config {
 	} else if hashSchemaVersion != "3" && hashSchemaVersion != "4" {
 		log.Fatalf("%s must be either '3' or '4', got: %s", envHashSchemaVersion, hashSchemaVersion)
 	}
+
+	allowSu, _ := strconv.ParseBool(os.Getenv(envAllowSu))
 
 	cfg := Config{
 		Port:              port,
@@ -284,76 +311,13 @@ func FromEnv() *Config {
 		MQTTPort:          mqttPort,
 		ICEServers:        iceServers,
 		HashSchemaVersion: hashSchemaVersion,
+		RmrlPython:        strings.TrimSpace(os.Getenv(envRmrlPython)),
+		AllowSu:           allowSu,
+		RmcSrc:            strings.TrimSpace(os.Getenv(EnvRMCSrc)),
 	}
+	cfg.LoadServerSettings()
+	cfg.ApplyRuntimeEnv()
 	return &cfg
-}
-
-// normalizeICEServers expands "urls" arrays into singular "url" entries; xochitl rejects anything else
-func normalizeICEServers(servers []interface{}) []interface{} {
-	normalized := make([]interface{}, 0, len(servers))
-	for _, s := range servers {
-		m, ok := toStringMap(s)
-		if !ok {
-			normalized = append(normalized, s)
-			continue
-		}
-		_, hasURL := m["url"]
-		_, hasURLs := m["urls"]
-		urls := collectICEURLs(m)
-		if len(urls) == 0 {
-			if !hasURL && !hasURLs {
-				normalized = append(normalized, s)
-			}
-			continue
-		}
-		for _, u := range urls {
-			entry := map[string]interface{}{"url": u}
-			for k, v := range m {
-				if k == "url" || k == "urls" {
-					continue
-				}
-				entry[k] = v
-			}
-			normalized = append(normalized, entry)
-		}
-	}
-	return normalized
-}
-
-func toStringMap(v interface{}) (map[string]interface{}, bool) {
-	switch t := v.(type) {
-	case map[string]interface{}:
-		return t, true
-	case map[string]string:
-		m := make(map[string]interface{}, len(t))
-		for k, val := range t {
-			m[k] = val
-		}
-		return m, true
-	default:
-		return nil, false
-	}
-}
-
-func collectICEURLs(m map[string]interface{}) []string {
-	var urls []string
-	add := func(v interface{}) {
-		switch t := v.(type) {
-		case string:
-			if t != "" {
-				urls = append(urls, t)
-			}
-		case []interface{}:
-			for _, item := range t {
-				if str, ok := item.(string); ok && str != "" {
-					urls = append(urls, str)
-				}
-			}
-		}
-	}
-	add(m["url"])
-	add(m["urls"])
-	return urls
 }
 
 // EnvVars env vars usage
@@ -377,6 +341,11 @@ General:
 	%s Send auth cookie only via https
 	%s	Trust the proxy for X-Forwarded-For/X-Real-IP (set only if behind a proxy)
 	%s	Hash tree schema version: "3" or "4" (default: 3)
+	%s	Enable admin "su" (impersonate another user) in the web UI (default: false). Env-only; not editable from the UI.
+	%s	Path to rmc source "src" dir for v6 .rm→SVG/PDF (also editable by admins in the web UI).
+
+Optional notebook PDF (rmrl, reMarkable-like rendering):
+	%s	Path to Python 3 with pip package "rmrl" installed. When set, notebook PDF download uses rmrl when possible (v3/v5 .rm), with fallback to the built-in renderer. Install line templates in XDG data dir (e.g. ~/.local/share/rmrl/templates).
 
 MQTT (for screenshare):
 	%s	MQTT TCP port (default: 8883)
@@ -414,6 +383,10 @@ myScript hwr (needs a developer account):
 		envHTTPSCookie,
 		envTrustProxy,
 		envHashSchemaVersion,
+		envAllowSu,
+		EnvRMCSrc,
+
+		envRmrlPython,
 
 		envMQTTPort,
 		envICEServers,

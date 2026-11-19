@@ -4,14 +4,22 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"path"
+	"sort"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ddvk/rmfakecloud/internal/common"
 	"github.com/ddvk/rmfakecloud/internal/integrations"
 	"github.com/ddvk/rmfakecloud/internal/model"
 	"github.com/ddvk/rmfakecloud/internal/storage"
+	"github.com/ddvk/rmfakecloud/internal/storage/epub"
 	"github.com/ddvk/rmfakecloud/internal/storage/models"
+	"github.com/ddvk/rmfakecloud/internal/ui/methods"
+	"github.com/ddvk/rmfakecloud/internal/ui/templates"
 	"github.com/ddvk/rmfakecloud/internal/ui/viewmodel"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
@@ -23,8 +31,10 @@ import (
 const (
 	userIDContextKey    = "userID"
 	browserIDContextKey = "browserID"
+	suByContextKey      = "suBy"
 	isSync15Key         = "sync15"
 	docIDParam          = "docid"
+	blobIDParam         = "blobid"
 	intIDParam          = "intid"
 	uiLogger            = "[ui] "
 	ui10                = " [10] "
@@ -129,32 +139,12 @@ func (app *ReactAppWrapper) login(c *gin.Context) {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
-
-	scopes := ""
-	if user.Sync15 {
-		scopes = isSync15Key
-	}
-	expiresAfter := 24 * time.Hour
-	expires := time.Now().Add(expiresAfter)
-	claims := &WebUserClaims{
-		UserID:    user.ID,
-		BrowserID: uuid.NewString(),
-		Email:     user.Email,
-		Scopes:    scopes,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(expires),
-			Issuer:    "rmFake WEB",
-			Audience:  []string{WebUsage},
-		},
-	}
-	if user.IsAdmin {
-		claims.Roles = []string{AdminRole}
-	} else {
-		claims.Roles = []string{"User"}
+	user.LastLoginAt = time.Now()
+	if err := app.userStorer.UpdateUser(user); err != nil {
+		log.Warn(uiLogger, "persist last login: ", err)
 	}
 
-	tokenString, err := common.SignClaims(claims, app.cfg.JWTSecretKey)
-
+	tokenString, expiresAfter, err := app.issueWebTokenForUser(user, uuid.NewString(), false, "")
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -232,8 +222,8 @@ func (app *ReactAppWrapper) newCode(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, viewmodel.NewErrorResponse("Unable to generate new code"))
 		return
 	}
-
-	c.JSON(http.StatusOK, code)
+	expiresAt, _ := app.codeConnector.CodeStatus(user.ID)
+	c.JSON(http.StatusOK, gin.H{"code": code, "expiresAt": expiresAt.Unix()})
 }
 
 func (app *ReactAppWrapper) getBackend(c *gin.Context) backend {
@@ -262,14 +252,15 @@ func (app *ReactAppWrapper) listDocuments(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, tree)
 }
+
 func (app *ReactAppWrapper) getDocument(c *gin.Context) {
 	uid := userID(c)
 	docid := common.ParamS(docIDParam, c)
 
-	exportType := c.DefaultQuery("type", "pdf")
+	exportType := "pdf"
 	var exportOption storage.ExportOption = 0
 
-	log.Info("exporting ", docid, " as ", exportType)
+	log.Info("exporting ", docid)
 	backend := app.getBackend(c)
 
 	reader, err := backend.Export(uid, docid, exportType, exportOption)
@@ -280,28 +271,38 @@ func (app *ReactAppWrapper) getDocument(c *gin.Context) {
 	}
 
 	defer reader.Close()
-
-	if exportType == "rmdoc" {
-		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s.rmdoc\"", docid))
-	}
-
-	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
+	// Raw PDF bytes; filename uses visible document name when available.
+	filename := backend.PDFInlineFilename(uid, docid)
+	c.Header("Content-Disposition", fmt.Sprintf("inline; filename=%q", filename))
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.DataFromReader(http.StatusOK, -1, "application/pdf", reader, nil)
 }
 
 func (app *ReactAppWrapper) getDocumentMetadata(c *gin.Context) {
 	uid := userID(c)
 	docid := common.ParamS(docIDParam, c)
-	// if err != nil {
-	// 	log.Error(err)
-	// 	c.AbortWithStatus(http.StatusInternalServerError)
-	// 	return
-	// }
-	log.Info(uid, docid)
-	c.JSON(http.StatusOK, "TODO")
-
+	type metadataGetter interface {
+		GetDocumentMetadata(uid, docid string) (docType string, hasWritings bool, pageCount int, err error)
+	}
+	backend := app.getBackend(c)
+	mg, ok := backend.(metadataGetter)
+	if !ok {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	docType, hasWritings, pageCount, err := mg.GetDocumentMetadata(uid, docid)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"type":        docType,
+		"hasWritings": hasWritings,
+		"pageCount":   pageCount,
+	})
 }
 
-// move rename
 func (app *ReactAppWrapper) updateDocument(c *gin.Context) {
 	upd := viewmodel.UpdateDoc{}
 	if err := c.ShouldBindJSON(&upd); err != nil {
@@ -320,6 +321,7 @@ func (app *ReactAppWrapper) updateDocument(c *gin.Context) {
 
 	c.Status(http.StatusOK)
 }
+
 func (app *ReactAppWrapper) deleteDocument(c *gin.Context) {
 	uid := userID(c)
 	docid := c.Param("docid")
@@ -416,11 +418,18 @@ func (app *ReactAppWrapper) getAppUsers(c *gin.Context) {
 	uilist := make([]viewmodel.User, 0)
 	for _, u := range users {
 		usr := viewmodel.User{
-			ID:        u.ID,
-			Email:     u.Email,
-			Name:      u.Name,
-			CreatedAt: u.CreatedAt,
-			IsAdmin:   u.IsAdmin,
+			ID:                u.ID,
+			Email:             u.Email,
+			Name:              u.Name,
+			CreatedAt:         u.CreatedAt,
+			PasswordChangedAt: u.PasswordChangedAt,
+			LastLoginAt:       u.LastLoginAt,
+			QuotaBytes:        ptrInt64(u.QuotaBytes),
+			IsAdmin:           u.IsAdmin,
+		}
+		usr.FileUsageBytes = app.userFileUsageBytes(u)
+		for _, d := range u.RegisteredDevices {
+			usr.RegisteredDevices = append(usr.RegisteredDevices, toVMRegisteredDevice(d))
 		}
 		uilist = append(uilist, usr)
 	}
@@ -450,10 +459,17 @@ func (app *ReactAppWrapper) getUser(c *gin.Context) {
 	}
 
 	vmUser := &viewmodel.User{
-		ID:        user.ID,
-		Email:     user.Email,
-		Name:      user.Name,
-		CreatedAt: user.CreatedAt,
+		ID:                user.ID,
+		Email:             user.Email,
+		Name:              user.Name,
+		CreatedAt:         user.CreatedAt,
+		PasswordChangedAt: user.PasswordChangedAt,
+		LastLoginAt:       user.LastLoginAt,
+		QuotaBytes:        ptrInt64(user.QuotaBytes),
+	}
+	vmUser.FileUsageBytes = app.userFileUsageBytes(user)
+	for _, d := range user.RegisteredDevices {
+		vmUser.RegisteredDevices = append(vmUser.RegisteredDevices, toVMRegisteredDevice(d))
 	}
 	for _, i := range user.Integrations {
 		vmUser.Integrations = append(vmUser.Integrations, i.Name)
@@ -487,6 +503,13 @@ func (app *ReactAppWrapper) updateUser(c *gin.Context) {
 	if req.Email != "" {
 		user.Email = req.Email
 	}
+	if req.QuotaBytes != nil {
+		if *req.QuotaBytes < 0 {
+			badReq(c, "quotaBytes must be >= 0")
+			return
+		}
+		user.QuotaBytes = *req.QuotaBytes
+	}
 
 	err = app.userStorer.UpdateUser(user)
 	if err != nil {
@@ -495,6 +518,7 @@ func (app *ReactAppWrapper) updateUser(c *gin.Context) {
 	}
 	c.Status(http.StatusAccepted)
 }
+
 func (app *ReactAppWrapper) deleteUser(c *gin.Context) {
 	uid := c.Param(useridParam)
 	if uid == userID(c) {
@@ -547,7 +571,7 @@ func (app *ReactAppWrapper) listIntegrations(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, user.Integrations)
+	c.JSON(http.StatusOK, app.effectiveIntegrationsForUser(user))
 }
 
 func warnLocalfsEdition(c *gin.Context, int *model.IntegrationConfig) {
@@ -568,6 +592,10 @@ func (app *ReactAppWrapper) createIntegration(c *gin.Context) {
 		badReq(c, err.Error())
 		return
 	}
+	if int.Shared && !IsAdmin(c) {
+		c.AbortWithStatusJSON(http.StatusForbidden, viewmodel.NewErrorResponse("only admins can create shared integrations"))
+		return
+	}
 
 	if int.Provider == integrations.LocalfsProvider {
 		int.ID = uuid.NewString()
@@ -585,7 +613,11 @@ func (app *ReactAppWrapper) createIntegration(c *gin.Context) {
 	}
 
 	int.ID = uuid.NewString()
-	user.Integrations = append(user.Integrations, int)
+	if int.Shared {
+		user.SharedIntegrations = append(user.SharedIntegrations, int)
+	} else {
+		user.Integrations = append(user.Integrations, int)
+	}
 
 	err = app.userStorer.UpdateUser(user)
 
@@ -610,7 +642,7 @@ func (app *ReactAppWrapper) getIntegration(c *gin.Context) {
 		return
 	}
 
-	for _, integration := range user.Integrations {
+	for _, integration := range app.effectiveIntegrationsForUser(user) {
 		if integration.ID == intid {
 			c.JSON(http.StatusOK, integration)
 			return
@@ -647,6 +679,7 @@ func (app *ReactAppWrapper) updateIntegration(c *gin.Context) {
 	for idx, integration := range user.Integrations {
 		if integration.ID == intid {
 			int.ID = integration.ID
+			int.Shared = false
 			user.Integrations[idx] = int
 
 			err = app.userStorer.UpdateUser(user)
@@ -659,6 +692,23 @@ func (app *ReactAppWrapper) updateIntegration(c *gin.Context) {
 
 			c.JSON(http.StatusOK, int)
 			return
+		}
+	}
+	if IsAdmin(c) {
+		for idx, integration := range user.SharedIntegrations {
+			if integration.ID == intid {
+				int.ID = integration.ID
+				int.Shared = true
+				user.SharedIntegrations[idx] = int
+				err = app.userStorer.UpdateUser(user)
+				if err != nil {
+					log.Error("error updating user", err)
+					c.AbortWithStatus(http.StatusInternalServerError)
+					return
+				}
+				c.JSON(http.StatusOK, int)
+				return
+			}
 		}
 	}
 
@@ -691,6 +741,21 @@ func (app *ReactAppWrapper) deleteIntegration(c *gin.Context) {
 
 			c.Status(http.StatusAccepted)
 			return
+		}
+	}
+	if IsAdmin(c) {
+		for idx, integration := range user.SharedIntegrations {
+			if integration.ID == intid {
+				user.SharedIntegrations = append(user.SharedIntegrations[:idx], user.SharedIntegrations[idx+1:]...)
+				err = app.userStorer.UpdateUser(user)
+				if err != nil {
+					log.Error("error updating user", err)
+					c.AbortWithStatus(http.StatusInternalServerError)
+					return
+				}
+				c.Status(http.StatusAccepted)
+				return
+			}
 		}
 	}
 
@@ -894,3 +959,490 @@ func (app *ReactAppWrapper) screenshareDeleteRoom(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
+func suBy(c *gin.Context) string {
+	return c.GetString(suByContextKey)
+}
+
+func (app *ReactAppWrapper) issueWebTokenForUser(user *model.User, browserID string, keepAdmin bool, suByUserID string) (string, time.Duration, error) {
+	if user == nil {
+		return "", 0, fmt.Errorf("user is nil")
+	}
+	scopes := ""
+	if user.Sync15 {
+		scopes = isSync15Key
+	}
+	expiresAfter := 24 * time.Hour
+	expires := time.Now().Add(expiresAfter)
+	claims := &WebUserClaims{
+		UserID:    user.ID,
+		BrowserID: browserID,
+		SuBy:      suByUserID,
+		AllowSu:   app.cfg.AllowSu,
+		Email:     user.Email,
+		Scopes:    scopes,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expires),
+			Issuer:    "rmFake WEB",
+			Audience:  []string{WebUsage},
+		},
+	}
+	if user.IsAdmin || keepAdmin {
+		// Keep Admin first to satisfy the current frontend role guard.
+		claims.Roles = []string{AdminRole, "User"}
+	} else {
+		claims.Roles = []string{"User"}
+	}
+	tokenString, err := common.SignClaims(claims, app.cfg.JWTSecretKey)
+	if err != nil {
+		return "", 0, err
+	}
+	return tokenString, expiresAfter, nil
+}
+
+func (app *ReactAppWrapper) newCodeStatus(c *gin.Context) {
+	uid := userID(c)
+	expiresAt, valid := app.codeConnector.CodeStatus(uid)
+	if !valid {
+		c.JSON(http.StatusOK, gin.H{"valid": false})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"valid": true, "expiresAt": expiresAt.Unix()})
+}
+
+func (app *ReactAppWrapper) listRegisteredDevices(c *gin.Context) {
+	uid := userID(c)
+	user, err := app.userStorer.GetUser(uid)
+	if err != nil || user == nil {
+		log.Error(uiLogger, "list devices: ", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, viewmodel.NewErrorResponse("unable to load profile"))
+		return
+	}
+	out := make([]viewmodel.RegisteredDeviceEntry, 0, len(user.RegisteredDevices))
+	for _, d := range user.RegisteredDevices {
+		out = append(out, toVMRegisteredDevice(d))
+	}
+	sort.Slice(out, func(i, j int) bool {
+		return out[i].LastSeen > out[j].LastSeen
+	})
+	c.JSON(http.StatusOK, viewmodel.RegisteredDevicesResponse{Devices: out})
+}
+
+func (app *ReactAppWrapper) reissueRegisteredDevice(c *gin.Context) {
+	if app.issueDeviceToken == nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, viewmodel.NewErrorResponse("device token signing not configured"))
+		return
+	}
+	var req viewmodel.ReissueDeviceRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		badReq(c, err.Error())
+		return
+	}
+	uid := userID(c)
+	user, err := app.userStorer.GetUser(uid)
+	if err != nil || user == nil {
+		log.Error(uiLogger, "reissue device: ", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, viewmodel.NewErrorResponse("unable to load profile"))
+		return
+	}
+	reg, ok := user.GetRegisteredDevice(req.DeviceID)
+	if !ok {
+		c.AbortWithStatusJSON(http.StatusNotFound, viewmodel.NewErrorResponse("device not registered for this account"))
+		return
+	}
+	desc := reg.DeviceDesc
+	if strings.TrimSpace(req.DeviceDesc) != "" {
+		desc = strings.TrimSpace(req.DeviceDesc)
+	}
+	token, err := app.issueDeviceToken(uid, req.DeviceID, desc)
+	if err != nil {
+		log.Error(uiLogger, "reissue device token: ", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, viewmodel.NewErrorResponse("could not issue token"))
+		return
+	}
+	user.UpsertRegisteredDevice(req.DeviceID, desc, req.DeviceLink)
+	if err := app.userStorer.UpdateUser(user); err != nil {
+		log.Warn(uiLogger, "reissue device persist: ", err)
+	}
+	c.JSON(http.StatusOK, viewmodel.ReissueDeviceResponse{Token: token})
+}
+
+func toVMRegisteredDevice(d model.RegisteredDevice) viewmodel.RegisteredDeviceEntry {
+	e := viewmodel.RegisteredDeviceEntry{
+		DeviceID:   d.DeviceID,
+		DeviceDesc: d.DeviceDesc,
+		DeviceLink: d.DeviceLink,
+		Make:       d.Make,
+		Model:      d.Model,
+		Year:       d.Year,
+	}
+	if !d.RegisteredAt.IsZero() {
+		e.RegisteredAt = d.RegisteredAt.UTC().Format(time.RFC3339)
+	}
+	if !d.LastSeen.IsZero() {
+		e.LastSeen = d.LastSeen.UTC().Format(time.RFC3339)
+	}
+	return e
+}
+
+func (app *ReactAppWrapper) getTemplate(c *gin.Context) {
+	uid := userID(c)
+	docid := common.ParamS(docIDParam, c)
+
+	backend := app.getBackend(c)
+	// only sync15 backends have templates
+	type templateGetter interface {
+		GetTemplate(uid, docid string) (io.ReadCloser, error)
+	}
+	tg, ok := backend.(templateGetter)
+	if !ok {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	reader, err := tg.GetTemplate(uid, docid)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	defer reader.Close()
+
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%q", docid+storage.TemplateFileExt))
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
+}
+
+func (app *ReactAppWrapper) getBuiltinTemplate(c *gin.Context) {
+	id := c.Param("id")
+	svg := templates.GetSVG(id)
+	if svg == "" {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	c.Header("Content-Type", "image/svg+xml")
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.String(http.StatusOK, svg)
+}
+
+func (app *ReactAppWrapper) getBuiltinMethod(c *gin.Context) {
+	id := c.Param("id")
+	svg := methods.GetSVG(id)
+	if svg == "" {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	c.Header("Content-Type", "image/svg+xml")
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.String(http.StatusOK, svg)
+}
+
+func (app *ReactAppWrapper) getDocumentPage(c *gin.Context) {
+	uid := userID(c)
+	docid := common.ParamS(docIDParam, c)
+	pagenumStr := c.Param("pagenum")
+	pagenum, err := strconv.Atoi(pagenumStr)
+	if err != nil || pagenum < 1 {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	type pagePNGExporter interface {
+		ExportPagePNG(uid, docid string, pageNum int) (io.ReadCloser, error)
+	}
+	backend := app.getBackend(c)
+	pe, ok := backend.(pagePNGExporter)
+	if !ok {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	reader, err := pe.ExportPagePNG(uid, docid, pagenum)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	defer reader.Close()
+	c.Header("Content-Type", "image/png")
+	c.Header("Content-Disposition", fmt.Sprintf("inline; filename=%q", fmt.Sprintf("page-%d.png", pagenum)))
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.DataFromReader(http.StatusOK, -1, "image/png", reader, nil)
+}
+
+func (app *ReactAppWrapper) getDocumentPageBackground(c *gin.Context) {
+	uid := userID(c)
+	docid := common.ParamS(docIDParam, c)
+	pagenumStr := c.Param("pagenum")
+	pagenum, err := strconv.Atoi(pagenumStr)
+	if err != nil || pagenum < 1 {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	type pageBackgroundExporter interface {
+		ExportPageBackgroundPNG(uid, docid string, pageNum int) (io.ReadCloser, error)
+	}
+	backend := app.getBackend(c)
+	pe, ok := backend.(pageBackgroundExporter)
+	if !ok {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	reader, err := pe.ExportPageBackgroundPNG(uid, docid, pagenum)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	defer reader.Close()
+	c.Header("Content-Type", "image/png")
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.DataFromReader(http.StatusOK, -1, "image/png", reader, nil)
+}
+
+func (app *ReactAppWrapper) getDocumentPageOverlay(c *gin.Context) {
+	uid := userID(c)
+	docid := common.ParamS(docIDParam, c)
+	pagenumStr := c.Param("pagenum")
+	pagenum, err := strconv.Atoi(pagenumStr)
+	if err != nil || pagenum < 1 {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	type pageOverlayExporter interface {
+		ExportPageOverlaySVG(uid, docid string, pageNum int) (io.ReadCloser, error)
+	}
+	backend := app.getBackend(c)
+	pe, ok := backend.(pageOverlayExporter)
+	if !ok {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	reader, err := pe.ExportPageOverlaySVG(uid, docid, pagenum)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	defer reader.Close()
+	c.Header("Content-Type", "image/svg+xml")
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.DataFromReader(http.StatusOK, -1, "image/svg+xml", reader, nil)
+}
+
+func (app *ReactAppWrapper) getEpubPath(c *gin.Context) {
+	uid := userID(c)
+	docid := common.ParamS(docIDParam, c)
+	pathParam := c.Param("path")
+	pathParam = strings.TrimPrefix(path.Clean("/"+pathParam), "/")
+	if pathParam == "" || strings.Contains(pathParam, "..") {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	type epubBackend interface {
+		GetEpubManifest(uid, docid string) (*epub.Manifest, error)
+		GetEpubFile(uid, docid, filePath string) (io.ReadCloser, string, error)
+		GetEpubCoverThumb(uid, docid string) (io.ReadCloser, string, error)
+	}
+	backend := app.getBackend(c)
+	eb, ok := backend.(epubBackend)
+	if !ok {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	if pathParam == "cover-thumb" {
+		reader, contentType, err := eb.GetEpubCoverThumb(uid, docid)
+		if err != nil {
+			log.Debug("epub cover-thumb: ", err)
+			c.AbortWithStatus(http.StatusNotFound)
+			return
+		}
+		defer reader.Close()
+		c.Header("Content-Type", contentType)
+		c.Header("Cache-Control", "public, max-age=86400")
+		c.Header("X-Content-Type-Options", "nosniff")
+		c.DataFromReader(http.StatusOK, -1, contentType, reader, nil)
+		return
+	}
+	if pathParam == "manifest" {
+		manifest, err := eb.GetEpubManifest(uid, docid)
+		if err != nil {
+			log.Error(err)
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+		c.JSON(http.StatusOK, manifest)
+		return
+	}
+	reader, contentType, err := eb.GetEpubFile(uid, docid, pathParam)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	defer reader.Close()
+	c.Header("Content-Type", contentType)
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.DataFromReader(http.StatusOK, -1, contentType, reader, nil)
+}
+
+func (app *ReactAppWrapper) getRawBlob(c *gin.Context) {
+	uid := userID(c)
+	blobid := common.ParamS(blobIDParam, c)
+	backend := app.getBackend(c)
+	reader, err := backend.GetRawBlob(uid, blobid)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	defer reader.Close()
+	c.DataFromReader(http.StatusOK, -1, "application/octet-stream", reader, nil)
+}
+
+func (app *ReactAppWrapper) getBlobTree(c *gin.Context) {
+	uid := userID(c)
+	docid := common.ParamS(docIDParam, c)
+	backend := app.getBackend(c)
+	files, err := backend.GetBlobDocumentTree(uid, docid)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.JSON(http.StatusOK, files)
+}
+
+func (app *ReactAppWrapper) userFileUsageBytes(user *model.User) int64 {
+	if user == nil {
+		return 0
+	}
+	backend, ok := app.backends[userSyncVersion(user)]
+	if !ok || backend == nil {
+		return 0
+	}
+	tree, err := backend.GetDocumentTree(user.ID)
+	if err != nil || tree == nil {
+		if err != nil {
+			log.Warn(uiLogger, "file usage: ", user.ID, ": ", err)
+		}
+		return 0
+	}
+	total := int64(0)
+	total += sumEntrySizes(tree.Entries)
+	total += sumEntrySizes(tree.Trash)
+	return total
+}
+
+func userSyncVersion(user *model.User) common.SyncVersion {
+	if user != nil && user.Sync15 {
+		return common.Sync15
+	}
+	return common.Sync10
+}
+
+func sumEntrySizes(entries []viewmodel.Entry) int64 {
+	total := int64(0)
+	for _, entry := range entries {
+		switch x := entry.(type) {
+		case *viewmodel.Document:
+			total += x.Size
+		case *viewmodel.Directory:
+			total += sumEntrySizes(x.Entries)
+		}
+	}
+	return total
+}
+
+func ptrInt64(v int64) *int64 {
+	return &v
+}
+
+func (app *ReactAppWrapper) suUser(c *gin.Context) {
+	if app.cfg == nil || !app.cfg.AllowSu {
+		c.AbortWithStatusJSON(http.StatusForbidden, viewmodel.NewErrorResponse("su is disabled (set RMFAKECLOUD_ALLOW_SU=true)"))
+		return
+	}
+	var req viewmodel.SuRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		badReq(c, err.Error())
+		return
+	}
+	target, err := app.userStorer.GetUser(req.UserID)
+	if err != nil || target == nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, viewmodel.NewErrorResponse("target user not found"))
+		return
+	}
+
+	// su switches document context to target user while preserving admin powers
+	// so admins can continue switching across users to inspect files.
+	target.LastLoginAt = time.Now()
+	if err := app.userStorer.UpdateUser(target); err != nil {
+		log.Warn(uiLogger, "persist su last login: ", err)
+	}
+	rootAdmin := userID(c)
+	if prior := suBy(c); prior != "" {
+		rootAdmin = prior
+	}
+	suByUserID := ""
+	if target.ID != rootAdmin {
+		suByUserID = rootAdmin
+	}
+	tokenString, expiresAfter, err := app.issueWebTokenForUser(target, uuid.NewString(), true, suByUserID)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.SetSameSite(http.SameSiteStrictMode)
+	c.SetCookie(cookieName, tokenString, int(expiresAfter.Seconds()), "/", "", app.cfg.HTTPSCookie, true)
+	c.String(http.StatusOK, tokenString)
+}
+
+func (app *ReactAppWrapper) leaveSu(c *gin.Context) {
+	rootAdmin := suBy(c)
+	if rootAdmin == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, viewmodel.NewErrorResponse("not in su session"))
+		return
+	}
+	adminUser, err := app.userStorer.GetUser(rootAdmin)
+	if err != nil || adminUser == nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, viewmodel.NewErrorResponse("original admin not found"))
+		return
+	}
+	tokenString, expiresAfter, err := app.issueWebTokenForUser(adminUser, uuid.NewString(), false, "")
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.SetSameSite(http.SameSiteStrictMode)
+	c.SetCookie(cookieName, tokenString, int(expiresAfter.Seconds()), "/", "", app.cfg.HTTPSCookie, true)
+	c.String(http.StatusOK, tokenString)
+}
+
+func (app *ReactAppWrapper) effectiveIntegrationsForUser(user *model.User) []model.IntegrationConfig {
+	if user == nil {
+		return nil
+	}
+	out := make([]model.IntegrationConfig, 0, len(user.Integrations)+len(user.SharedIntegrations))
+	for _, cfg := range user.Integrations {
+		cfg.Shared = false
+		out = append(out, cfg)
+	}
+	users, err := app.userStorer.GetUsers()
+	if err != nil {
+		return out
+	}
+	for _, u := range users {
+		if u == nil || !u.IsAdmin {
+			continue
+		}
+		for _, cfg := range u.SharedIntegrations {
+			cfg.Shared = true
+			if user.IsAdmin && u.ID == user.ID {
+				cfg.ReadOnly = cfg.ReadOnly
+			} else {
+				cfg.ReadOnly = true
+			}
+			out = append(out, cfg)
+		}
+	}
+	return out
+}

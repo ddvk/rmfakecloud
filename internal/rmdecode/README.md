@@ -1,0 +1,128 @@
+# .rm (reMarkable lines) decoder
+
+This repo includes tooling to inspect raw page files (`.rm` / “lines” format):
+
+- **v3 / v5** — decoded in **Go** via [`github.com/juruen/rmapi/encoding/rm`](https://github.com/juruen/rmapi) (`internal/rmdecode`, `cmd/rmdecode`).
+- **v6** (tablet OS 3.x) — summaries via **Python + [rmscene](https://github.com/ricklupton/rmscene)** (`scripts/rmdecode_v6_summary.py`). Upstream **rmscene** is vendored as a git submodule at **`third_party/rmscene`** (see below).
+
+Production-grade v6 tooling in the wider ecosystem is **[rmscene](https://github.com/ricklupton/rmscene) + [rmc](https://github.com/ricklupton/rmc)** (SVG/PDF/Markdown export and other conversions). This repository uses **rmc for v6 conversions** and **Go/legacy tools for v3/v5**.
+
+## Versions
+
+| Header prefix | Decoder |
+|---------------|---------|
+| `version=3` / `version=5` | Go: `DecodeLegacy` → `github.com/juruen/rmapi/encoding/rm` |
+| `version=6` (tablet OS 3.x) | Tagged blocks / scene tree via [rmscene](https://github.com/ricklupton/rmscene); conversions use [rmc](https://github.com/ricklupton/rmc) (SVG/PDF/Markdown). |
+
+## CLI
+
+From the repo root:
+
+```bash
+# Text dump (v3/v5) or JSON summary (v6; needs rmscene)
+go run ./cmd/rmdecode /path/to/page.rm
+
+# All writings → SVG (v3/v5 native; v6 needs `rmc` on PATH)
+go run ./cmd/rmdecode -format svg -o out.svg /path/to/page.rm
+
+# All writings → PDF
+go run ./cmd/rmdecode -format pdf -o out.pdf /path/to/page.rm
+# or infer format from extension:
+go run ./cmd/rmdecode -o out.svg /path/to/page.rm
+```
+
+- **v3 / v5**: SVG/PDF are generated in Go (`RenderWritingsSVG`, `RenderWritingsPDF`).
+- **v6**: Markdown/SVG/PDF are produced by invoking **`rmc`** (`pipx install rmc` or `pip install rmc`). Text summary remains available via Python + **rmscene** (`scripts/rmdecode_v6_summary.py`).
+
+### Submodule `third_party/rmscene`
+
+After cloning this repo, initialize submodules:
+
+```bash
+git submodule update --init --recursive
+```
+
+Use the vendored source without PyPI (set `PYTHONPATH` to the package root):
+
+```bash
+export PYTHONPATH="$(pwd)/third_party/rmscene/src"
+python3 scripts/rmdecode_v6_summary.py /path/to/page.rm
+```
+
+Alternatively install from PyPI or editable from the submodule (venv recommended):
+
+```bash
+pip install 'rmscene>=0.6'
+# or: pip install -e ./third_party/rmscene
+```
+
+Full SVG/PDF export for v6 (not included in this repo’s CLI):
+
+```bash
+pipx install rmc   # or: pip install rmc
+rmc -t svg -o out.svg page.rm
+```
+
+### `.rmdoc` → PNG for every `.rm` page (paging)
+
+From the repo root, after `git submodule update --init --recursive` (for **v6** via vendored **rmscene**):
+
+```bash
+pip install Pillow   # for v6 pages
+go run ./cmd/rmdoc2png -o ./out_pngs path/to/document.rmdoc
+```
+
+- Walks the **zip** and processes every `*.rm` member in archive order.
+- Output files: **`001_<sanitized_path>.png`**, **`002_…`**, … (1-based page index + original stem).
+- **v3/v5**: rendered in Go (`RenderWritingsPNG`, [gg](https://github.com/fogleman/gg)).
+- **v6**: `scripts/rmscene_v6_to_png.py` + `third_party/rmscene` + **Pillow**.
+- Default output directory is `<rmdoc_basename>_png` if `-o` is omitted.
+
+### Web UI notebook page PNGs (`GET /documents/:id/page/:n`)
+
+For **non-PDF** documents, the server renders each page’s `.rm` with **`EncodeRmPageToPNG`**:
+
+- **v3** — prefers `lines2png` (from lines-are-beautiful) when installed; falls back to Go (`RenderWritingsPNG`).
+- **v5** — pure Go (`RenderWritingsPNG`).
+- **v6** — `python3` + `scripts/rmscene_v6_to_png.py` (needs **Pillow** and the **rmscene** path). Set either:
+
+  - **`RMFAKECLOUD_V6_PNG_SCRIPT`** — full path to `rmscene_v6_to_png.py`, or  
+  - **`RMFAKECLOUD_ROOT`** — repo root so the server can find `scripts/rmscene_v6_to_png.py`.
+
+If v6 tooling is missing or decoding fails, the server **falls back** to the legacy PDF→PNG raster path.
+
+### Web UI notebook page overlay SVGs (`GET /documents/:id/page/:n/overlay.svg`)
+
+For page overlays, v3/v5 keep using the in-process Go renderer.  
+For **v6**, the server now tries **`rmc`** first for better fidelity, then falls back to the legacy stroke renderer.
+For **v3**, the server prefers `lines2svg` (from lines-are-beautiful) for stroke rendering when installed, then falls back to an embedded Go renderer.
+
+Configuration options for v6 overlay rendering:
+
+- **`RMFAKECLOUD_RMC_BIN`** — full path to an `rmc` executable (or leave unset and use `rmc` from `PATH`).
+- **`RMFAKECLOUD_RMC_SRC`** — optional `rmc` source `src` directory for module mode (`python3 -m rmc.cli`), e.g. `/home/aaron/Downloads/rmc-main/src`.
+- **`RMFAKECLOUD_RMSCENE_SRC`** — optional `rmscene` source import root; accepts either `.../src` or `.../src/rmscene`.
+- **`RMFAKECLOUD_ROOT`** — if set, module mode also adds `<root>/third_party/rmscene/src` to `PYTHONPATH`.
+
+Configuration options for v3 stroke rendering (lines-are-beautiful):
+
+- **`RMFAKECLOUD_LINES2SVG_BIN`** — full path to `lines2svg` (optional; otherwise PATH lookup).
+- **`RMFAKECLOUD_LINES2PNG_BIN`** — full path to `lines2png` (optional; otherwise PATH lookup).
+
+### PDF page backgrounds (device-like OOP raster)
+
+Web UI backgrounds / composites use an out-of-process PDF engine first (same idea as
+`xochitl_pdf_renderer` + PDFium on the tablet):
+
+- **`RMFAKECLOUD_PDF_RENDERER`** — `auto` (default), `pdftoppm`, `mutool`, or `unipdf`.
+  - `auto`: try `pdftoppm` → `mutool` → unipdf
+  - Target width: **1404** px (device portrait)
+
+Server composites (`GET /documents/:id/page/:n`) multiply-blend PDF background × ink PNG.
+Device-sized thumbs: `GET /documents/:id/page/:n/thumb` (~384×512).
+
+
+## References
+
+- [Older binary layout (v3)](https://plasma.ninja/blog/devices/remarkable/binary/format/2017/12/26/reMarkable-lines-file-format.html)
+- [Notes on v6 vs v5](https://github.com/chemag/maxio/blob/master/version6.md)
