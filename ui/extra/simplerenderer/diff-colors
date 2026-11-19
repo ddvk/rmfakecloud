@@ -1,0 +1,56 @@
+diff --git a/rm_lines/headers/common/scene_items.h b/rm_lines/headers/common/scene_items.h
+index d3ac174..3c686b7 100644
+--- a/rm_lines/headers/common/scene_items.h
++++ b/rm_lines/headers/common/scene_items.h
+@@ -38,10 +38,6 @@ enum PenColor {
+     GRAY = 1,
+     WHITE = 2,
+ 
+-    YELLOW = 3,
+-    GREEN = 4,
+-    PINK = 5,
+-
+     BLUE = 6,
+     RED = 7,
+ 
+@@ -53,11 +49,10 @@ enum PenColor {
+     // that might contain additional color information.
+     HIGHLIGHT = 9,
+ 
+-    GREEN_2 = 10,
++    GREEN = 10,
+     CYAN = 11,
+     MAGENTA = 12,
+-
+-    YELLOW_2 = 13,
++    YELLOW = 13,
+ };
+ 
+ struct Point {
+diff --git a/rm_lines/headers/renderer/rm_lines_stroker/rm_pens/colors.h b/rm_lines/headers/renderer/rm_lines_stroker/rm_pens/colors.h
+index b7c38af..faf599c 100644
+--- a/rm_lines/headers/renderer/rm_lines_stroker/rm_pens/colors.h
++++ b/rm_lines/headers/renderer/rm_lines_stroker/rm_pens/colors.h
+@@ -6,16 +6,17 @@ constexpr std::pair<PenColor, Color> rMPallet[] = {
+     {BLACK, Color(0, 0, 0, 255)},
+     {GRAY, Color(125, 125, 125, 255)},
+     {WHITE, Color(255, 255, 255, 255)},
+-    {YELLOW, Color(255, 255, 99, 255)},
+-    {GREEN, Color(0, 255, 0, 255)},
+-    {PINK, Color(255, 20, 147, 255)},
++    {BLACK, Color(0, 0, 0, 255)},
++    {BLACK, Color(0, 0, 0, 255)},
++    {BLACK, Color(0, 0, 0, 255)},
+     {BLUE, Color(0, 98, 204, 255)},
+     {RED, Color(217, 7, 7, 255)},
+     {GRAY_OVERLAP, Color(125, 125, 125, 255)},
+-    {GREEN_2, Color(145, 218, 113, 255)},
++    {HIGHLIGHT, Color(255, 255, 0, 255)},
++    {GREEN, Color(145, 218, 113, 255)},
+     {CYAN, Color(116, 210, 232, 255)},
+     {MAGENTA, Color(192, 127, 210, 255)},
+-    {YELLOW_2, Color(250, 231, 25, 255)}
++    {YELLOW, Color(250, 231, 25, 255)}
+ };
+ 
+ inline Color blendMultiply(const Color base, const Color blend, const float blend_amount) {
